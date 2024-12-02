@@ -46,6 +46,12 @@ pub async fn bot_user_create(
     info!("Creating new bot user with name '{name}'");
 
     // TODO verify auth token
+    // TODO add authorization token service
+    // format: [flag]-[uuid]
+    //         for instance B-1F305167-AE64-4486-809A-09D14659AB4A
+    //
+    //         B: create a bot user
+    //         S: create a site
     let _ = authorization_token;
 
     // Create bot user
