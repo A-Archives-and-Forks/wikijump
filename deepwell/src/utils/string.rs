@@ -18,7 +18,13 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+use std::sync::LazyLock;
 use regex::Regex;
+
+static LEADING_TRAILING_SPACES: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(^\s+)|(\s+$)").unwrap());
+
+// General replacement
 
 /// Replaces all instances of the given fixed string in the buffer, in-place.
 pub fn replace_in_place(string: &mut String, pattern: &str, replacement: &str) {
@@ -49,4 +55,10 @@ pub fn trim_end_matches_in_place(string: &mut String, pattern: &str) {
     if string.starts_with(pattern) {
         string.drain(pattern.len() - 1..);
     }
+}
+
+// Specific replacement
+#[inline]
+pub fn trim_spaces_in_place(string: &mut String) {
+    regex_replace_in_place(string, &LEADING_TRAILING_SPACES, "");
 }
