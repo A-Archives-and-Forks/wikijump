@@ -13,3 +13,5 @@ authors = ["Emmie Smith <emmie.maeda@gmail.com>"]
 edition = "2021"
 
 [dependencies]
+axum = { version = "0.8", features = [ "http2", "macros", "tokio", "tower-log", "tracing" ], default-features = false }
+axum-extra = { version = "0.10", features = [ "attachment" ] }
