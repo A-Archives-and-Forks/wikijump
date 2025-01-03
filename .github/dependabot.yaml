@@ -14,8 +14,8 @@ updates:
     schedule:
       interval: weekly
 
-  # FTML
+  # WWS
   - package-ecosystem: cargo
-    directory: "/ftml"
+    directory: "/ws"
     schedule:
       interval: weekly
