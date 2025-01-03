@@ -1,0 +1,15 @@
+[package]
+name = "wws"
+description = "Wilson's Web Server - Serve a zoo of user content (files, code, etc)"
+repository = "https://github.com/scpwiki/wikijump/tree/develop/wws"
+readme = "README.md"
+license = "AGPL-3.0-or-later"
+keywords = ["wikijump", "api", "backend", "wiki"]
+categories = ["asynchronous", "caching", "web-programming::http-server"]
+exclude = [".gitignore", ".editorconfig"]
+
+version = "2025.1.1"
+authors = ["Emmie Smith <emmie.maeda@gmail.com>"]
+edition = "2021"
+
+[dependencies]
