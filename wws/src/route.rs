@@ -24,11 +24,9 @@ use crate::info;
 use crate::state::ServerState;
 use axum::{
     body::Body,
-    extract::{FromRequestParts, Path, Request},
-    http::{request::Parts, StatusCode},
-    response::{Html, IntoResponse, Response},
+    extract::Request,
     routing::{any, get},
-    RequestPartsExt, Router,
+    Router,
 };
 use axum_extra::extract::Host;
 use http::header::{HeaderName, HeaderValue};
