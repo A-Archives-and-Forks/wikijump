@@ -19,7 +19,7 @@
  */
 
 use anyhow::Result;
-use jsonrpsee::{http_client::HttpClient, rpc_params};
+use jsonrpsee::{core::client::ClientT, http_client::HttpClient, rpc_params};
 use std::time::Duration;
 
 const JSONRPC_MAX_REQUEST: u32 = 16 * 1024;
@@ -39,4 +39,23 @@ impl Deepwell {
 
         Ok(Deepwell { client })
     }
+
+    pub async fn ping(&self) -> Result<()> {
+        let response: String = self.client.request("ping", rpc_params![]).await?;
+        assert!(!response.is_empty());
+        Ok(())
+    }
+
+    pub async fn info(&self) -> Result<DeepwellInfo> {
+        todo!()
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct DeepwellInfo {
+    pub main_domain: String,
+    pub main_domain_no_dot: String,
+    pub file_domain: String,
+    pub file_domain_no_dot: String,
+    pub deepwell_version: String,
 }

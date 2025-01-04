@@ -21,6 +21,7 @@
 use crate::handler::handle_hello_world;
 use crate::info;
 use crate::state::ServerState;
+use crate::deepwell::DeepwellInfo;
 use axum::{
     body::Body,
     extract::{FromRequestParts, Path, Request},
@@ -37,7 +38,7 @@ use tower_http::{
     normalize_path::NormalizePathLayer, set_header::SetResponseHeaderLayer, trace::TraceLayer,
 };
 
-pub fn build_router(state: ServerState, deepwell_info: ()) -> Router {
+pub fn build_router(state: ServerState, deepwell_info: DeepwellInfo) -> Router {
     // Router that serves framerail
     let main_router = Router::new().route("/_TODO", get(handle_hello_world)); // handle wjfiles routes
 
@@ -61,6 +62,7 @@ pub fn build_router(state: ServerState, deepwell_info: ()) -> Router {
     let app = Router::new().route(
         "/{*path}",
         any(|Host(hostname): Host, request: Request<Body>| async move {
+            // TODO
             match hostname.as_str() {
                 "api.mydomain.com" => file_router.oneshot(request).await,
                 _ => main_router.oneshot(request).await,
@@ -95,7 +97,7 @@ pub fn build_router(state: ServerState, deepwell_info: ()) -> Router {
         ))
         .layer(SetResponseHeaderLayer::overriding(
             HeaderName::from_static("x-wikijump-deepwell-ver"),
-            Some(header_value!(todo!())),
+            Some(header_value!(&deepwell_info.deepwell_version)),
         ));
 
     app

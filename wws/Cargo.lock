@@ -2565,6 +2565,7 @@ dependencies = [
  "redis",
  "ref-map",
  "rust-s3",
+ "serde",
  "str-macro",
  "tokio",
  "tower 0.5.2",

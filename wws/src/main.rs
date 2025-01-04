@@ -68,7 +68,7 @@ async fn main() -> Result<()> {
     }
 
     let state = build_server_state(secrets)?;
-    let deepwell_info = ();
+    let deepwell_info = state.deepwell.info().await?;
     let app = build_router(state, deepwell_info);
     let listener = TcpListener::bind(config.address).await?;
 
