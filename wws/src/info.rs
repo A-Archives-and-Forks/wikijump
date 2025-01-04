@@ -1,5 +1,5 @@
 /*
- * handler/mod.rs
+ * info.rs
  *
  * Wilson's Web Server - Serves a zoo of content (framerail, user files, code, etc)
  * Copyright (C) 2019-2025 Wikijump Team
@@ -18,10 +18,12 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-// TODO
-
-use axum::response::Html;
-
-pub async fn handle_hello_world() -> Html<&'static str> {
-    Html("<h1>Hello, World!</h1>")
+mod build {
+    include!(concat!(env!("OUT_DIR"), "/built.rs"));
 }
+
+#[allow(unused_imports)]
+pub use self::build::{
+    CFG_ENDIAN, GIT_COMMIT_HASH, NUM_JOBS, PKG_AUTHORS, PKG_DESCRIPTION, PKG_LICENSE, PKG_NAME,
+    PKG_REPOSITORY, PKG_VERSION, RUSTC_VERSION, TARGET,
+};

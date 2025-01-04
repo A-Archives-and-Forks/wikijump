@@ -16,8 +16,17 @@ edition = "2021"
 anyhow = "1"
 axum = { version = "0.8", features = ["http1", "http2", "macros", "tokio", "tower-log", "tracing"], default-features = false }
 axum-extra = { version = "0.10", features = ["attachment"] }
+clap = "4"
+color-backtrace = "0.6"
 dotenvy = "0.15"
 redis = { version = "0.25", features = ["aio", "connection-manager", "keep-alive", "tokio-comp", "tokio-rustls-comp"] }
+ref-map = "0.1"
 rust-s3 = { version = "0.35", features = ["with-tokio", "tokio-rustls-tls"], default-features = false }
+str-macro = "1"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 tower = "0.5"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[build-dependencies]
+built = { version = "0.7", features = ["git2"] }

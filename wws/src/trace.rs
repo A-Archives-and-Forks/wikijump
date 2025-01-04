@@ -1,5 +1,5 @@
 /*
- * handler/mod.rs
+ * trace.rs
  *
  * Wilson's Web Server - Serves a zoo of content (framerail, user files, code, etc)
  * Copyright (C) 2019-2025 Wikijump Team
@@ -18,10 +18,21 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-// TODO
+use tracing_subscriber::{fmt, layer::SubscriberExt, registry, util::SubscriberInitExt, EnvFilter};
 
-use axum::response::Html;
+pub fn setup_tracing() {
+    registry()
+        .with(EnvFilter::try_from_default_env().unwrap_or_else(|_| {
+            // axum logs rejections from built-in extractors with the `axum::rejection`
+            // target, at `TRACE` level. `axum::rejection=trace` enables showing those events
+            concat!(
+                env!("CARGO_CRATE_NAME"),
+                "=debug,tower_http=debug,axum::rejection=trace",
+            )
+            .into()
+        }))
+        .with(fmt::layer())
+        .init();
 
-pub async fn handle_hello_world() -> Html<&'static str> {
-    Html("<h1>Hello, World!</h1>")
+    color_backtrace::install();
 }

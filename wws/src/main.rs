@@ -23,19 +23,42 @@
 //! Depending on the hostname, requests are routed to either framerail
 //! or given to logic to serve wjfiles data.
 
-mod handler;
-mod route;
+#[macro_use]
+extern crate str_macro;
 
+#[macro_use]
+extern crate tracing;
+
+mod config;
+mod handler;
+mod info;
+mod route;
+mod state;
+mod trace;
+
+use self::config::{load_config, Config, Secrets};
 use self::route::build_router;
+use self::state::ServerState;
+use self::trace::setup_tracing;
+use anyhow::Result;
+use tokio::net::TcpListener;
 
 #[tokio::main]
-async fn main() -> anyhow::Result<()> {
-    let app = build_router();
+async fn main() -> Result<()> {
+    let (config, secrets) = load_config();
+    if config.enable_trace {
+        setup_tracing();
+    }
 
-    // run it
-    let listener = tokio::net::TcpListener::bind("[::]:8080").await?;
+    let domains = ();
+    let state = ServerState::build(secrets)?;
+    let app = build_router(domains);
+    let listener = TcpListener::bind(config.address).await?;
 
-    println!("listening on {}", listener.local_addr()?);
+    info!(
+        address = str!(config.address),
+        "Listening to connections...",
+    );
     axum::serve(listener, app).await?;
     Ok(())
 }

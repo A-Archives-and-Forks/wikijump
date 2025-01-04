@@ -1,5 +1,5 @@
 /*
- * handler/mod.rs
+ * config/object.rs
  *
  * Wilson's Web Server - Serves a zoo of content (framerail, user files, code, etc)
  * Copyright (C) 2019-2025 Wikijump Team
@@ -18,10 +18,14 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-// TODO
+use std::net::SocketAddr;
 
-use axum::response::Html;
+/// The runtime configuration structure for the web server.
+#[derive(Debug, Clone)]
+pub struct Config {
+    /// Whether to enable tracing and colored backtrace.
+    pub enable_trace: bool,
 
-pub async fn handle_hello_world() -> Html<&'static str> {
-    Html("<h1>Hello, World!</h1>")
+    /// The address the server will be hosted on.
+    pub address: SocketAddr,
 }

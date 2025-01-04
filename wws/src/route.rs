@@ -30,7 +30,7 @@ use axum::{
 use axum_extra::extract::Host;
 use tower::util::ServiceExt;
 
-pub fn build_router() -> Router {
+pub fn build_router(domains: ()) -> Router {
     // Router that serves framerail
     let main_router = Router::new().route("/_TODO", get(handle_hello_world)); // handle wjfiles routes
 
