@@ -85,3 +85,24 @@ pub async fn server_info(
         current_time: now(),
     })
 }
+
+#[derive(Serialize, Debug, Clone)]
+pub struct Domains {
+    main_domain_no_dot: String,
+    files_domain_no_dot: String,
+    deepwell_version: &'static str,
+}
+
+pub async fn server_domains(
+    ctx: &ServiceContext<'_>,
+    _params: Params<'static>,
+) -> Result<Domains> {
+    let config = ctx.config();
+
+    info!("Building server domain information response");
+    Ok(Domains {
+        main_domain_no_dot: config.main_domain_no_dot.clone(),
+        files_domain_no_dot: config.files_domain_no_dot.clone(),
+        deepwell_version: &*info::VERSION_INFO,
+    })
+}
