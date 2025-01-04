@@ -20,6 +20,7 @@
 
 use anyhow::Result;
 use jsonrpsee::{core::client::ClientT, http_client::HttpClient, rpc_params};
+use serde::Deserialize;
 use std::time::Duration;
 
 const JSONRPC_MAX_REQUEST: u32 = 16 * 1024;
@@ -46,13 +47,44 @@ impl Deepwell {
         Ok(())
     }
 
-    pub async fn info(&self) -> Result<DeepwellInfo> {
-        todo!()
+    pub async fn domains(&self) -> Result<Domains> {
+        #[derive(Deserialize, Debug)]
+        struct Response {
+            main_domain_no_dot: String,
+            file_domain_no_dot: String,
+            deepwell_version: String,
+        }
+
+        let Response {
+            main_domain_no_dot,
+            file_domain_no_dot,
+            deepwell_version,
+        } = self.client.request("domains", rpc_params![]).await?;
+
+        assert!(
+            !main_domain_no_dot.starts_with('.'),
+            "Main domain returned from DEEPWELL starts with '.': {main_domain_no_dot:?}",
+        );
+        let main_domain = format!(".{main_domain_no_dot}");
+
+        assert!(
+            !file_domain_no_dot.starts_with('.'),
+            "File domain returned from DEEPWELL starts with '.': {file_domain_no_dot:?}",
+        );
+        let file_domain = format!(".{file_domain_no_dot}");
+
+        Ok(Domains {
+            main_domain,
+            main_domain_no_dot,
+            file_domain,
+            file_domain_no_dot,
+            deepwell_version,
+        })
     }
 }
 
 #[derive(Debug, Clone)]
-pub struct DeepwellInfo {
+pub struct Domains {
     pub main_domain: String,
     pub main_domain_no_dot: String,
     pub file_domain: String,

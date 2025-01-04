@@ -18,10 +18,10 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+use crate::deepwell::Domains;
 use crate::handler::handle_hello_world;
 use crate::info;
 use crate::state::ServerState;
-use crate::deepwell::DeepwellInfo;
 use axum::{
     body::Body,
     extract::{FromRequestParts, Path, Request},
@@ -38,7 +38,7 @@ use tower_http::{
     normalize_path::NormalizePathLayer, set_header::SetResponseHeaderLayer, trace::TraceLayer,
 };
 
-pub fn build_router(state: ServerState, deepwell_info: DeepwellInfo) -> Router {
+pub fn build_router(state: ServerState, info: Domains) -> Router {
     // Router that serves framerail
     let main_router = Router::new().route("/_TODO", get(handle_hello_world)); // handle wjfiles routes
 
@@ -97,7 +97,7 @@ pub fn build_router(state: ServerState, deepwell_info: DeepwellInfo) -> Router {
         ))
         .layer(SetResponseHeaderLayer::overriding(
             HeaderName::from_static("x-wikijump-deepwell-ver"),
-            Some(header_value!(&deepwell_info.deepwell_version)),
+            Some(header_value!(&info.deepwell_version)),
         ));
 
     app

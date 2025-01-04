@@ -54,5 +54,9 @@ pub fn build_server_state(secrets: Secrets) -> Result<ServerState> {
         bucket
     };
 
-    Ok(Arc::new(ServerStateInner { deepwell, redis, s3_bucket }))
+    Ok(Arc::new(ServerStateInner {
+        deepwell,
+        redis,
+        s3_bucket,
+    }))
 }
