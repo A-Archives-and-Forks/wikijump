@@ -31,13 +31,17 @@ use axum::{
 };
 use axum_extra::extract::Host;
 use http::header::{HeaderName, HeaderValue};
+use std::sync::Arc;
 use tower::util::ServiceExt;
 use tower_http::{
     add_extension::AddExtensionLayer, compression::CompressionLayer,
     normalize_path::NormalizePathLayer, set_header::SetResponseHeaderLayer, trace::TraceLayer,
 };
 
-pub fn build_router(state: ServerState, Domains { file_domain, file_domain_no_dot, deepwell_version, .. }: Domains) -> Router {
+pub fn build_router(state: ServerState) -> Router {
+    let host_state = Arc::clone(&state);
+    let header_state = Arc::clone(&state);
+
     // Router that serves framerail
     // TODO
     let main_router = Router::new().route("/_TODO", get(handle_hello_world)); // handle wjfiles routes
@@ -60,11 +64,18 @@ pub fn build_router(state: ServerState, Domains { file_domain, file_domain_no_do
         .route("/-/html/{page_slug}/{hash}", get(handle_hello_world))
         .route("/{*path}", get(handle_hello_world));
 
+    // Domain delegation logic
     let app = Router::new().route(
         "/{*path}",
         any(|Host(hostname): Host, request: Request<Body>| async move {
+            let Domains {
+                ref file_domain,
+                ref file_domain_no_dot,
+                ..
+            } = host_state.domains;
+
             // Determine if it's a files domain.
-            if let Some(site_slug) = hostname.strip_suffix(&file_domain) {
+            if let Some(site_slug) = hostname.strip_suffix(file_domain) {
                 // TODO
                 println!("DEBUG files (site {site_slug})");
                 return file_router.oneshot(request).await;
@@ -74,7 +85,7 @@ pub fn build_router(state: ServerState, Domains { file_domain, file_domain_no_do
             //
             // This is weird, wjfiles should always a site slug subdomain,
             // so in this case we just XXX
-            if hostname == file_domain_no_dot {
+            if &hostname == file_domain_no_dot {
                 // TODO
                 println!("DEBUG files no site");
                 return todo!();
@@ -126,7 +137,7 @@ pub fn build_router(state: ServerState, Domains { file_domain, file_domain_no_do
         ))
         .layer(SetResponseHeaderLayer::overriding(
             HeaderName::from_static("x-wikijump-deepwell-ver"),
-            Some(header_value!(&deepwell_version)),
+            Some(header_value!(&header_state.domains.deepwell_version)),
         ));
 
     app

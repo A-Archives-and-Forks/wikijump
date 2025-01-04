@@ -20,7 +20,7 @@
 
 use crate::cache::Cache;
 use crate::config::Secrets;
-use crate::deepwell::Deepwell;
+use crate::deepwell::{Deepwell, Domains};
 use anyhow::Result;
 use s3::bucket::Bucket;
 use std::sync::Arc;
@@ -32,13 +32,15 @@ pub type ServerState = Arc<ServerStateInner>;
 
 #[derive(Debug)]
 pub struct ServerStateInner {
+    pub domains: Domains,
     pub deepwell: Deepwell,
     pub cache: Cache,
     pub s3_bucket: Box<Bucket>,
 }
 
-pub fn build_server_state(secrets: Secrets) -> Result<ServerState> {
+pub async fn build_server_state(secrets: Secrets) -> Result<ServerState> {
     let deepwell = Deepwell::connect(&secrets.deepwell_host)?;
+    let domains = deepwell.domains().await?;
     let cache = Cache::connect(&secrets.redis_url)?;
     let s3_bucket = {
         let mut bucket = Bucket::new(
@@ -56,6 +58,7 @@ pub fn build_server_state(secrets: Secrets) -> Result<ServerState> {
     };
 
     Ok(Arc::new(ServerStateInner {
+        domains,
         deepwell,
         cache,
         s3_bucket,
