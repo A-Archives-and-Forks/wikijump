@@ -23,7 +23,7 @@ use crate::services::job::{
 };
 use anyhow::Result;
 use bb8::{ErrorSink, Pool};
-use redis::{Client as RedisClient, IntoConnectionInfo, RedisError};
+use redis::{IntoConnectionInfo, RedisError};
 use rsmq_async::{PooledRsmq, RedisConnectionManager, RsmqConnection};
 
 const REDIS_POOL_SIZE: u32 = 12;
@@ -33,7 +33,7 @@ pub async fn connect(redis_uri: &str) -> Result<(redis::Client, PooledRsmq)> {
     let redis = redis::Client::open(redis_uri)?;
     let mut rsmq = {
         let connection_info = redis_uri.into_connection_info()?;
-        let redis = RedisClient::open(connection_info)?;
+        let redis = redis::Client::open(connection_info)?;
         let redis_conn = RedisConnectionManager::from_client(redis)?;
         let pool = Pool::builder()
             .max_size(REDIS_POOL_SIZE)
