@@ -25,6 +25,7 @@ use crate::state::ServerState;
 use axum::{
     body::Body,
     extract::Request,
+    response::Redirect,
     routing::{any, get},
     Router,
 };
@@ -36,11 +37,13 @@ use tower_http::{
     normalize_path::NormalizePathLayer, set_header::SetResponseHeaderLayer, trace::TraceLayer,
 };
 
-pub fn build_router(state: ServerState, info: Domains) -> Router {
+pub fn build_router(state: ServerState, Domains { file_domain, file_domain_no_dot, deepwell_version, .. }: Domains) -> Router {
     // Router that serves framerail
+    // TODO
     let main_router = Router::new().route("/_TODO", get(handle_hello_world)); // handle wjfiles routes
 
     // Router that serves wjfiles
+    // TODO
     let file_router = Router::new()
         .route(
             "/local--files/{page_slug}/{filename}",
@@ -60,11 +63,39 @@ pub fn build_router(state: ServerState, info: Domains) -> Router {
     let app = Router::new().route(
         "/{*path}",
         any(|Host(hostname): Host, request: Request<Body>| async move {
-            // TODO
-            match hostname.as_str() {
-                "api.mydomain.com" => file_router.oneshot(request).await,
-                _ => main_router.oneshot(request).await,
+            // Determine if it's a files domain.
+            if let Some(site_slug) = hostname.strip_suffix(&file_domain) {
+                // TODO
+                println!("DEBUG files (site {site_slug})");
+                return file_router.oneshot(request).await;
             }
+
+            // Next, check if it's the files domain by itself.
+            //
+            // This is weird, wjfiles should always a site slug subdomain,
+            // so in this case we just XXX
+            if hostname == file_domain_no_dot {
+                // TODO
+                println!("DEBUG files no site");
+                return todo!();
+            }
+
+            // If it's anything else, it is a canonical domain or a custom domain.
+            // In either case, it goes to framerail as-is.
+            //
+            // NOTE: Do not include code to massage requests to the framerail web server.
+            //       We shouldn't spread around logic throughout the stack since this makes
+            //       debugging and later maintenance and development more difficult.
+            //
+            //       If you need to adjust web server processing in general, modify framerail.
+            //
+            //       If you need to adjust how custom domains work or how site information
+            //       is fetched from the database, modify DomainService in DEEPWELL.
+            //
+            //       The only exception are the fixed redirects which would be
+            //       included in an nginx configuration or used for wjfiles
+            //       compatibility. See the definition of main_router above.
+            main_router.oneshot(request).await
         }),
     );
 
@@ -95,7 +126,7 @@ pub fn build_router(state: ServerState, info: Domains) -> Router {
         ))
         .layer(SetResponseHeaderLayer::overriding(
             HeaderName::from_static("x-wikijump-deepwell-ver"),
-            Some(header_value!(&info.deepwell_version)),
+            Some(header_value!(&deepwell_version)),
         ));
 
     app
