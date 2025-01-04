@@ -41,7 +41,11 @@ impl Deepwell {
         Ok(Deepwell { client })
     }
 
-    #[allow(dead_code)] // We currently don't have a direct place to use this
+    /// Attempt to ping DEEPWELL, panicking if connecting failed.
+    pub async fn check(&self) {
+        self.ping().await.expect("Unable to connect to DEEPWELL");
+    }
+
     pub async fn ping(&self) -> Result<()> {
         let response: String = self.client.request("ping", rpc_params![]).await?;
         assert!(!response.is_empty());
