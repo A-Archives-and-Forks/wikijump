@@ -14,7 +14,10 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1"
-axum = { version = "0.8", features = [ "http1", "http2", "macros", "tokio", "tower-log", "tracing" ], default-features = false }
-axum-extra = { version = "0.10", features = [ "attachment" ] }
+axum = { version = "0.8", features = ["http1", "http2", "macros", "tokio", "tower-log", "tracing"], default-features = false }
+axum-extra = { version = "0.10", features = ["attachment"] }
+dotenvy = "0.15"
+redis = { version = "0.25", features = ["aio", "connection-manager", "keep-alive", "tokio-comp", "tokio-rustls-comp"] }
+rust-s3 = { version = "0.35", features = ["with-tokio", "tokio-rustls-tls"], default-features = false }
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 tower = "0.5"
