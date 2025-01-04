@@ -67,11 +67,15 @@ async fn main() -> Result<()> {
         writeln!(&mut file, "{}", process::id())?;
     }
 
+    // Connect to external services and fetch DEEPWELL data
     let state = build_server_state(secrets)?;
     let domains = state.deepwell.domains().await?;
+
+    // Build HTTP server
     let app = build_router(state, domains);
     let listener = TcpListener::bind(config.address).await?;
 
+    // Begin listening
     info!(
         address = str!(config.address),
         "Listening to connections...",
