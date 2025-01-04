@@ -31,7 +31,7 @@ pub struct Deepwell {
 }
 
 impl Deepwell {
-    pub fn new(deepwell_url: &str) -> Result<Self> {
+    pub fn open(deepwell_url: &str) -> Result<Self> {
         let client = HttpClient::builder()
             .max_request_size(JSONRPC_MAX_REQUEST)
             .request_timeout(JSONRPC_TIMEOUT)

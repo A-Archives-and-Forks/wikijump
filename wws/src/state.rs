@@ -18,7 +18,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use crate::Secrets;
+use crate::config::Secrets;
+use crate::deepwell::Deepwell;
 use anyhow::Result;
 use s3::bucket::Bucket;
 use std::sync::Arc;
@@ -30,11 +31,13 @@ pub type ServerState = Arc<ServerStateInner>;
 
 #[derive(Debug)]
 pub struct ServerStateInner {
+    deepwell: Deepwell,
     redis: redis::Client,
     s3_bucket: Box<Bucket>,
 }
 
 pub fn build_server_state(secrets: Secrets) -> Result<ServerState> {
+    let deepwell = Deepwell::open(&secrets.deepwell_url)?;
     let redis = redis::Client::open(secrets.redis_url)?;
     let s3_bucket = {
         let mut bucket = Bucket::new(
@@ -51,5 +54,5 @@ pub fn build_server_state(secrets: Secrets) -> Result<ServerState> {
         bucket
     };
 
-    Ok(Arc::new(ServerStateInner { redis, s3_bucket }))
+    Ok(Arc::new(ServerStateInner { deepwell, redis, s3_bucket }))
 }
