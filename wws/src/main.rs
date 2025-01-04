@@ -29,6 +29,9 @@ extern crate str_macro;
 #[macro_use]
 extern crate tracing;
 
+#[macro_use]
+mod macros;
+
 mod config;
 mod deepwell;
 mod handler;
@@ -40,7 +43,7 @@ mod trace;
 use self::config::{load_config, Secrets};
 use self::deepwell::Deepwell;
 use self::route::build_router;
-use self::state::ServerState;
+use self::state::build_server_state;
 use self::trace::setup_tracing;
 use anyhow::Result;
 use tokio::net::TcpListener;
@@ -52,9 +55,9 @@ async fn main() -> Result<()> {
         setup_tracing();
     }
 
-    let domains = ();
-    let state = ServerState::build(secrets)?;
-    let app = build_router(domains);
+    let deepwell_info = ();
+    let state = build_server_state(secrets)?;
+    let app = build_router(state, deepwell_info);
     let listener = TcpListener::bind(config.address).await?;
 
     info!(

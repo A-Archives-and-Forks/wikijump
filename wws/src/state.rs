@@ -21,34 +21,35 @@
 use crate::Secrets;
 use anyhow::Result;
 use s3::bucket::Bucket;
+use std::sync::Arc;
 use std::time::Duration;
 
 const BUCKET_REQUEST_TIMEOUT: Duration = Duration::from_millis(200);
 
+pub type ServerState = Arc<ServerStateInner>;
+
 #[derive(Debug)]
-pub struct ServerState {
+pub struct ServerStateInner {
     redis: redis::Client,
     s3_bucket: Box<Bucket>,
 }
 
-impl ServerState {
-    pub fn build(secrets: Secrets) -> Result<Self> {
-        let redis = redis::Client::open(secrets.redis_url)?;
-        let s3_bucket = {
-            let mut bucket = Bucket::new(
-                &secrets.s3_bucket,
-                secrets.s3_region.clone(),
-                secrets.s3_credentials.clone(),
-            )?;
+pub fn build_server_state(secrets: Secrets) -> Result<ServerState> {
+    let redis = redis::Client::open(secrets.redis_url)?;
+    let s3_bucket = {
+        let mut bucket = Bucket::new(
+            &secrets.s3_bucket,
+            secrets.s3_region.clone(),
+            secrets.s3_credentials.clone(),
+        )?;
 
-            if secrets.s3_path_style {
-                bucket = bucket.with_path_style();
-            }
+        if secrets.s3_path_style {
+            bucket = bucket.with_path_style();
+        }
 
-            bucket.request_timeout = Some(BUCKET_REQUEST_TIMEOUT);
-            bucket
-        };
+        bucket.request_timeout = Some(BUCKET_REQUEST_TIMEOUT);
+        bucket
+    };
 
-        Ok(ServerState { redis, s3_bucket })
-    }
+    Ok(Arc::new(ServerStateInner { redis, s3_bucket }))
 }

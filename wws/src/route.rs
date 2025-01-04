@@ -19,6 +19,8 @@
  */
 
 use crate::handler::handle_hello_world;
+use crate::info;
+use crate::state::ServerState;
 use axum::{
     body::Body,
     extract::{FromRequestParts, Path, Request},
@@ -28,9 +30,14 @@ use axum::{
     RequestPartsExt, Router,
 };
 use axum_extra::extract::Host;
+use http::header::{HeaderName, HeaderValue};
 use tower::util::ServiceExt;
+use tower_http::{
+    add_extension::AddExtensionLayer, compression::CompressionLayer,
+    normalize_path::NormalizePathLayer, set_header::SetResponseHeaderLayer, trace::TraceLayer,
+};
 
-pub fn build_router(domains: ()) -> Router {
+pub fn build_router(state: ServerState, deepwell_info: ()) -> Router {
     // Router that serves framerail
     let main_router = Router::new().route("/_TODO", get(handle_hello_world)); // handle wjfiles routes
 
@@ -60,7 +67,36 @@ pub fn build_router(domains: ()) -> Router {
             }
         }),
     );
-    // TODO .layer(Extension(state));
+
+    macro_rules! header_value {
+        ($value:expr) => {
+            HeaderValue::from_str($value).expect("Version is not a valid header value")
+        };
+    }
+
+    let app = app
+        .layer(TraceLayer::new_for_http())
+        .layer(NormalizePathLayer::trim_trailing_slash())
+        .layer(
+            CompressionLayer::new()
+                .gzip(true)
+                .deflate(true)
+                .br(true)
+                .zstd(true),
+        )
+        .layer(AddExtensionLayer::new(state))
+        .layer(SetResponseHeaderLayer::overriding(
+            HeaderName::from_static("x-wikijump"),
+            Some(HeaderValue::from_static("1")),
+        ))
+        .layer(SetResponseHeaderLayer::overriding(
+            HeaderName::from_static("x-wikijump-wws-ver"),
+            Some(header_value!(&*info::VERSION_INFO)),
+        ))
+        .layer(SetResponseHeaderLayer::overriding(
+            HeaderName::from_static("x-wikijump-deepwell-ver"),
+            Some(header_value!(todo!())),
+        ));
 
     app
 }
