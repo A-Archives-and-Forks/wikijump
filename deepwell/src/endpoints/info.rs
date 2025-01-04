@@ -103,6 +103,6 @@ pub async fn server_domains(
     Ok(Domains {
         main_domain_no_dot: config.main_domain_no_dot.clone(),
         files_domain_no_dot: config.files_domain_no_dot.clone(),
-        deepwell_version: &*info::VERSION_INFO,
+        deepwell_version: &info::VERSION_INFO,
     })
 }
