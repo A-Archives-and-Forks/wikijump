@@ -69,6 +69,7 @@ use std::process;
 async fn main() -> Result<()> {
     // Load the configuration so we can set up
     let SetupConfig { secrets, config } = SetupConfig::load();
+    let address = config.address;
     let run_seeder = config.run_seeder;
 
     // Configure the logger
@@ -119,7 +120,7 @@ async fn main() -> Result<()> {
     info!("Building server...");
     let server = api::build_server(app_state).await?;
 
-    info!("Listening to connections...");
+    info!("Listening to connections on {address}...");
     server.stopped().await; // block until end
     Ok(())
 }

@@ -241,7 +241,6 @@ impl Config {
         }
 
         info!("Configuration details:");
-        info!("Serving on {}", self.address);
         info!(
             "Auto-restart on config change: {}",
             bool_str(self.watch_files),
