@@ -47,6 +47,8 @@ use std::fmt::{self, Debug};
 use std::sync::Arc;
 use std::time::Duration;
 
+const BUCKET_REQUEST_TIMEOUT: Duration = Duration::from_millis(500);
+
 pub type ServerState = Arc<ServerStateInner>;
 
 pub struct ServerStateInner {
@@ -105,7 +107,7 @@ pub async fn build_server_state(
             bucket = bucket.with_path_style();
         }
 
-        bucket.request_timeout = Some(Duration::from_millis(500));
+        bucket.request_timeout = Some(BUCKET_REQUEST_TIMEOUT);
         bucket
     };
 
