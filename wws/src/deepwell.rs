@@ -41,6 +41,7 @@ impl Deepwell {
         Ok(Deepwell { client })
     }
 
+    #[allow(dead_code)] // We currently don't have a direct place to use this
     pub async fn ping(&self) -> Result<()> {
         let response: String = self.client.request("ping", rpc_params![]).await?;
         assert!(!response.is_empty());
