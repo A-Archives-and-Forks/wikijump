@@ -29,7 +29,7 @@ use std::path::PathBuf;
 use std::time::Duration as StdDuration;
 use time::Duration as TimeDuration;
 
-/// Primary configuration structure.
+/// The primary configuration structure for the DEEPWELL server.
 ///
 /// * See `config/file.rs` for the structure as parsed from disk.
 /// * See `config.example.toml` for an explanation of all these fields.
