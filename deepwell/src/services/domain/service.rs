@@ -181,21 +181,11 @@ impl DomainService {
     /// If this domain is canonical domain, extract the site slug.
     pub fn parse_canonical<'a>(config: &Config, domain: &'a str) -> Option<&'a str> {
         let main_domain = &config.main_domain;
+        let main_domain_no_dot = &config.main_domain_no_dot;
 
         // Special case, see if it's the root domain (i.e. 'wikijump.com')
-        {
-            // This slice is safe, we know the first character of 'main_domain'
-            // is always '.', then we compare to the passed domain to see if
-            // it's the root domain.
-            //
-            // We are not slicing 'domain' at all, which is user-provided and
-            // has no guarantees about character composition.
-            //
-            // See config/file.rs prefix_domain()
-            let root_domain = &main_domain[1..];
-            if domain == root_domain {
-                return Some("www");
-            }
+        if domain == main_domain_no_dot {
+            return Some("www");
         }
 
         // Remove the '.wikijump.com' suffix, get slug
