@@ -31,9 +31,9 @@ pub type ServerState = Arc<ServerStateInner>;
 
 #[derive(Debug)]
 pub struct ServerStateInner {
-    deepwell: Deepwell,
-    redis: redis::Client,
-    s3_bucket: Box<Bucket>,
+    pub deepwell: Deepwell,
+    pub redis: redis::Client,
+    pub s3_bucket: Box<Bucket>,
 }
 
 pub fn build_server_state(secrets: Secrets) -> Result<ServerState> {
