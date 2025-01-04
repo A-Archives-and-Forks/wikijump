@@ -20,7 +20,6 @@
 
 use crate::Secrets;
 use anyhow::Result;
-use redis::{Client as RedisClient, IntoConnectionInfo, RedisError};
 use s3::bucket::Bucket;
 use std::time::Duration;
 

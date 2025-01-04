@@ -36,7 +36,7 @@ mod route;
 mod state;
 mod trace;
 
-use self::config::{load_config, Config, Secrets};
+use self::config::{load_config, Secrets};
 use self::route::build_router;
 use self::state::ServerState;
 use self::trace::setup_tracing;

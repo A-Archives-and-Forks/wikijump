@@ -19,7 +19,6 @@
  */
 
 use crate::info;
-use clap::builder::{BoolishValueParser, NonEmptyStringValueParser};
 use clap::{value_parser, Arg, ArgAction, Command};
 use std::net::{IpAddr, SocketAddr};
 
