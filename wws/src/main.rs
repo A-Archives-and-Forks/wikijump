@@ -46,17 +46,29 @@ use self::route::build_router;
 use self::state::build_server_state;
 use self::trace::setup_tracing;
 use anyhow::Result;
+use std::fs::File;
+use std::io::Write;
+use std::process;
 use tokio::net::TcpListener;
 
 #[tokio::main]
 async fn main() -> Result<()> {
     let (config, secrets) = load_config();
+
+    // Set up tracing
     if config.enable_trace {
         setup_tracing();
     }
 
-    let deepwell_info = ();
+    // Write PID file
+    if let Some(ref path) = config.pid_file {
+        debug!(pid = process::id(), "Writing PID file");
+        let mut file = File::create(path)?;
+        writeln!(&mut file, "{}", process::id())?;
+    }
+
     let state = build_server_state(secrets)?;
+    let deepwell_info = ();
     let app = build_router(state, deepwell_info);
     let listener = TcpListener::bind(config.address).await?;
 

@@ -81,7 +81,7 @@ async fn main() -> Result<()> {
         color_backtrace::install();
     }
 
-    // Write PID file, if enabled
+    // Write PID file
     if let Some(ref path) = config.pid_file {
         info!(
             "Writing process ID ({}) to {}",
