@@ -562,6 +562,7 @@ impl ViewService {
                 let mut args = FluentArgs::new();
                 args.set("slug", fluent_str!(site_slug));
                 args.set("domain", fluent_str!(config.main_domain_no_dot));
+                args.set("files-domain", fluent_str!(config.files_domain_no_dot));
 
                 let html = ctx.localization().translate(
                     locales,
@@ -577,6 +578,7 @@ impl ViewService {
                 let mut args = FluentArgs::new();
                 args.set("custom_domain", fluent_str!(domain));
                 args.set("domain", fluent_str!(config.main_domain_no_dot));
+                args.set("files-domain", fluent_str!(config.files_domain_no_dot));
 
                 let html = ctx.localization().translate(
                     locales,
