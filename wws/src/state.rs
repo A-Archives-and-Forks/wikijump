@@ -18,6 +18,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+use crate::cache::Cache;
 use crate::config::Secrets;
 use crate::deepwell::Deepwell;
 use anyhow::Result;
@@ -32,13 +33,13 @@ pub type ServerState = Arc<ServerStateInner>;
 #[derive(Debug)]
 pub struct ServerStateInner {
     pub deepwell: Deepwell,
-    pub redis: redis::Client,
+    pub cache: Cache,
     pub s3_bucket: Box<Bucket>,
 }
 
 pub fn build_server_state(secrets: Secrets) -> Result<ServerState> {
-    let deepwell = Deepwell::open(&secrets.deepwell_url)?;
-    let redis = redis::Client::open(secrets.redis_url)?;
+    let deepwell = Deepwell::connect(&secrets.deepwell_url)?;
+    let cache = Cache::connect(&secrets.redis_url)?;
     let s3_bucket = {
         let mut bucket = Bucket::new(
             &secrets.s3_bucket,
@@ -56,7 +57,7 @@ pub fn build_server_state(secrets: Secrets) -> Result<ServerState> {
 
     Ok(Arc::new(ServerStateInner {
         deepwell,
-        redis,
+        cache,
         s3_bucket,
     }))
 }

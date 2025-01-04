@@ -32,6 +32,7 @@ extern crate tracing;
 #[macro_use]
 mod macros;
 
+mod cache;
 mod config;
 mod deepwell;
 mod handler;
