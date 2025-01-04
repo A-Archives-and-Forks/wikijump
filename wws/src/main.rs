@@ -41,8 +41,7 @@ mod route;
 mod state;
 mod trace;
 
-use self::config::{load_config, Secrets};
-use self::deepwell::Deepwell;
+use self::config::load_config;
 use self::route::build_router;
 use self::state::build_server_state;
 use self::trace::setup_tracing;
