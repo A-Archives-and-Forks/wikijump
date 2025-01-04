@@ -39,7 +39,7 @@ pub struct ServerStateInner {
 }
 
 pub async fn build_server_state(secrets: Secrets) -> Result<ServerState> {
-    let deepwell = Deepwell::connect(&secrets.deepwell_host)?;
+    let deepwell = Deepwell::connect(&secrets.deepwell_url)?;
     let domains = deepwell.domains().await?;
     let cache = Cache::connect(&secrets.redis_url)?;
     let s3_bucket = {
