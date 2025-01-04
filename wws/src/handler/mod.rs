@@ -1,5 +1,5 @@
 /*
- * main.rs
+ * handler/mod.rs
  *
  * Wilson's Web Server - Serves a zoo of content (framerail, user files, code, etc)
  * Copyright (C) 2019-2025 Wikijump Team
@@ -18,24 +18,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-//! A server to handle incoming web requests.
-//!
-//! Depending on the hostname, requests are routed to either framerail
-//! or given to logic to serve wjfiles data.
+use axum::response::Html;
 
-mod handler;
-mod route;
-
-use self::route::build_router;
-
-#[tokio::main]
-async fn main() -> anyhow::Result<()> {
-    let app = build_router();
-
-    // run it
-    let listener = tokio::net::TcpListener::bind("[::]:8080").await?;
-
-    println!("listening on {}", listener.local_addr()?);
-    axum::serve(listener, app).await?;
-    Ok(())
+pub async fn handle_hello_world() -> Html<&'static str> {
+    Html("<h1>Hello, World!</h1>")
 }
