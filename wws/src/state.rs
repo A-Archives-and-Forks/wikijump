@@ -38,7 +38,7 @@ pub struct ServerStateInner {
 }
 
 pub fn build_server_state(secrets: Secrets) -> Result<ServerState> {
-    let deepwell = Deepwell::connect(&secrets.deepwell_url)?;
+    let deepwell = Deepwell::connect(&secrets.deepwell_host)?;
     let cache = Cache::connect(&secrets.redis_url)?;
     let s3_bucket = {
         let mut bucket = Bucket::new(
