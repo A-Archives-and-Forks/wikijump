@@ -20,11 +20,14 @@
 
 use crate::info;
 use clap::{value_parser, Arg, ArgAction, Command};
+use std::ffi::OsString;
 use std::net::{IpAddr, SocketAddr};
+use std::path::PathBuf;
 
 #[derive(Debug, Clone)]
 pub struct Arguments {
     pub enable_trace: bool,
+    pub pid_file: Option<PathBuf>,
     pub address: SocketAddr,
 }
 
@@ -32,6 +35,7 @@ impl Default for Arguments {
     fn default() -> Arguments {
         Arguments {
             enable_trace: true,
+            pid_file: None,
             address: "[::]:80".parse().unwrap(),
         }
     }
@@ -50,6 +54,14 @@ impl Arguments {
                     .long("disable-trace")
                     .action(ArgAction::SetTrue)
                     .help("Disable trace output."),
+            )
+            .arg(
+                Arg::new("pid-file")
+                    .short('P')
+                    .long("pid")
+                    .long("pid-file")
+                    .value_name("PATH")
+                    .help("The PID file to write to on boot."),
             )
             .arg(
                 Arg::new("host")
@@ -76,6 +88,10 @@ impl Arguments {
 
         if matches.remove_one::<bool>("disable-trace") == Some(true) {
             args.enable_trace = false;
+        }
+
+        if let Some(value) = matches.remove_one::<OsString>("pid-file") {
+            args.pid_file = Some(PathBuf::from(value));
         }
 
         if let Some(value) = matches.remove_one::<IpAddr>("host") {

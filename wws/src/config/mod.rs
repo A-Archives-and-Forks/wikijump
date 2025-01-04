@@ -29,6 +29,7 @@ use self::args::Arguments;
 use dotenvy::dotenv;
 use ref_map::*;
 use s3::{creds::Credentials, region::Region};
+use std::path::PathBuf;
 use std::{env, process};
 
 pub fn load_config() -> (Config, Secrets) {
@@ -50,8 +51,13 @@ pub fn load_config() -> (Config, Secrets) {
     // Process arguments and overrides
     let Arguments {
         enable_trace,
+        mut pid_file,
         mut address,
     } = Arguments::parse();
+
+    if let Some(value) = env::var_os("PID_FILE") {
+        pid_file = Some(PathBuf::from(value));
+    }
 
     if let Ok(value) = env::var("ADDRESS") {
         address = value.parse().expect("Unable to parse socket address");
@@ -121,6 +127,7 @@ pub fn load_config() -> (Config, Secrets) {
     // Build and return
     let config = Config {
         enable_trace,
+        pid_file,
         address,
     };
 
