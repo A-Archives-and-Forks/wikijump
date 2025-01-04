@@ -22,6 +22,11 @@ use s3::{creds::Credentials, region::Region};
 
 #[derive(Debug, Clone)]
 pub struct Secrets {
+    /// The URL of the DEEPWELL backend server.
+    ///
+    /// Set using environment variable `DEEPWELL_URL`.
+    pub deepwell_url: String,
+
     /// The URL of the Redis cache to connect to.
     ///
     /// Set using environment variable `REDIS_URL`.

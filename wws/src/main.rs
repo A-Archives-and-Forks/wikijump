@@ -30,6 +30,7 @@ extern crate str_macro;
 extern crate tracing;
 
 mod config;
+mod deepwell;
 mod handler;
 mod info;
 mod route;
@@ -37,6 +38,7 @@ mod state;
 mod trace;
 
 use self::config::{load_config, Secrets};
+use self::deepwell::Deepwell;
 use self::route::build_router;
 use self::state::ServerState;
 use self::trace::setup_tracing;

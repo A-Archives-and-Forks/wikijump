@@ -58,6 +58,8 @@ pub fn load_config() -> (Config, Secrets) {
     }
 
     // Process secrets
+    let deepwell_url = get_env!("DEEPWELL_URL");
+
     let redis_url = get_env!("REDIS_URL");
 
     let s3_bucket = get_env!("S3_BUCKET");
@@ -123,6 +125,7 @@ pub fn load_config() -> (Config, Secrets) {
     };
 
     let secrets = Secrets {
+        deepwell_url,
         redis_url,
         s3_bucket,
         s3_region,
