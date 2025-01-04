@@ -18,7 +18,25 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-// TODO
+use anyhow::Result;
+use jsonrpsee::{http_client::HttpClient, rpc_params};
+use std::time::Duration;
+
+const JSONRPC_MAX_REQUEST: u32 = 16 * 1024;
+const JSONRPC_TIMEOUT: Duration = Duration::from_millis(200);
 
 #[derive(Debug)]
-pub struct Deepwell;
+pub struct Deepwell {
+    client: HttpClient,
+}
+
+impl Deepwell {
+    pub fn new(deepwell_url: &str) -> Result<Self> {
+        let client = HttpClient::builder()
+            .max_request_size(JSONRPC_MAX_REQUEST)
+            .request_timeout(JSONRPC_TIMEOUT)
+            .build(deepwell_url)?;
+
+        Ok(Deepwell { client })
+    }
+}
