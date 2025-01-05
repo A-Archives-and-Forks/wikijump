@@ -41,7 +41,6 @@ impl SetupConfig {
         run_special_action();
         let secrets = Secrets::load();
         let config = parse_args();
-
         SetupConfig { secrets, config }
     }
 }
