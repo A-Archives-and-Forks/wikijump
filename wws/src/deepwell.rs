@@ -49,6 +49,7 @@ impl Deepwell {
     pub async fn ping(&self) -> Result<()> {
         let response: String = self.client.request("ping", rpc_params![]).await?;
         assert!(!response.is_empty());
+        debug!("Successfully pinged DEEPWELL");
         Ok(())
     }
 
