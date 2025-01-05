@@ -56,13 +56,13 @@ impl Deepwell {
         #[derive(Deserialize, Debug)]
         struct Response {
             main_domain_no_dot: String,
-            file_domain_no_dot: String,
+            files_domain_no_dot: String,
             deepwell_version: String,
         }
 
         let Response {
             main_domain_no_dot,
-            file_domain_no_dot,
+            files_domain_no_dot,
             deepwell_version,
         } = self.client.request("domains", rpc_params![]).await?;
 
@@ -73,16 +73,16 @@ impl Deepwell {
         let main_domain = format!(".{main_domain_no_dot}");
 
         assert!(
-            !file_domain_no_dot.starts_with('.'),
-            "File domain returned from DEEPWELL starts with '.': {file_domain_no_dot:?}",
+            !files_domain_no_dot.starts_with('.'),
+            "Files domain returned from DEEPWELL starts with '.': {files_domain_no_dot:?}",
         );
-        let file_domain = format!(".{file_domain_no_dot}");
+        let files_domain = format!(".{files_domain_no_dot}");
 
         Ok(Domains {
             main_domain,
             main_domain_no_dot,
-            file_domain,
-            file_domain_no_dot,
+            files_domain,
+            files_domain_no_dot,
             deepwell_version,
         })
     }
@@ -92,7 +92,7 @@ impl Deepwell {
 pub struct Domains {
     pub main_domain: String,
     pub main_domain_no_dot: String,
-    pub file_domain: String,
-    pub file_domain_no_dot: String,
+    pub files_domain: String,
+    pub files_domain_no_dot: String,
     pub deepwell_version: String,
 }

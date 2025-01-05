@@ -69,13 +69,13 @@ pub fn build_router(state: ServerState) -> Router {
         "/{*path}",
         any(|Host(hostname): Host, request: Request<Body>| async move {
             let Domains {
-                ref file_domain,
-                ref file_domain_no_dot,
+                ref files_domain,
+                ref files_domain_no_dot,
                 ..
             } = host_state.domains;
 
             // Determine if it's a files domain.
-            if let Some(site_slug) = hostname.strip_suffix(file_domain) {
+            if let Some(site_slug) = hostname.strip_suffix(files_domain) {
                 // TODO
                 println!("DEBUG files (site {site_slug})");
                 return file_router.oneshot(request).await;
@@ -85,7 +85,7 @@ pub fn build_router(state: ServerState) -> Router {
             //
             // This is weird, wjfiles should always a site slug subdomain,
             // so in this case we just XXX
-            if &hostname == file_domain_no_dot {
+            if &hostname == files_domain_no_dot {
                 // TODO
                 println!("DEBUG files no site");
                 return todo!();
