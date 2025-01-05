@@ -78,6 +78,12 @@ impl Deepwell {
         );
         let files_domain = format!(".{files_domain_no_dot}");
 
+        info!(
+            main_domain = main_domain_no_dot,
+            files_domain = files_domain_no_dot,
+            "Got domain information from DEEPWELL {deepwell_version}",
+        );
+
         Ok(Domains {
             main_domain,
             main_domain_no_dot,
