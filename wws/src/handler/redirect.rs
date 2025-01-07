@@ -26,7 +26,11 @@ use axum::{
 };
 use axum_extra::extract::Host;
 
-pub async fn redirect_to_files(Host(hostname): Host, req: Request) -> Html<&'static str> {
+pub async fn redirect_to_files(
+    State(state): State<ServerState>,
+    Host(hostname): Host,
+    req: Request,
+) -> Html<&'static str> {
     let path = get_path(req.uri());
 
     // xyz.wikijump.com -> xyz.wjfiles.com
