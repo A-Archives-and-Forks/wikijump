@@ -37,6 +37,7 @@ mod config;
 mod deepwell;
 mod handler;
 mod info;
+mod path;
 mod route;
 mod state;
 mod trace;

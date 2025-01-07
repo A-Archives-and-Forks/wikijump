@@ -1,5 +1,5 @@
 /*
- * handler/mod.rs
+ * path.rs
  *
  * Wilson's Web Server - Serves a zoo of content (framerail, user files, code, etc)
  * Copyright (C) 2019-2025 Wikijump Team
@@ -18,19 +18,16 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-mod framerail;
-mod misc;
-mod redirect;
+use axum::http::Uri;
 
-pub use self::framerail::*;
-pub use self::misc::*;
-pub use self::redirect::*;
-
-use axum::{
-    http::status::StatusCode,
-    response::{Html, Response},
-};
-
-pub async fn handle_hello_world() -> Html<&'static str> {
-    Html("<h1>Hello, World!</h1>")
+/// Extracts the path and query from a URI.
+///
+/// Since `Uri::path_and_query()` returns an `Option`,
+/// we need a match statement to get the path if there
+/// is no query string portion.
+pub fn get_path(uri: &Uri) -> &str {
+    match uri.path_and_query() {
+        Some(path_and_query) => path_and_query.as_str(),
+        None => uri.path(),
+    }
 }

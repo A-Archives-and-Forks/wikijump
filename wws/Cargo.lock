@@ -2559,7 +2559,6 @@ dependencies = [
  "clap",
  "color-backtrace",
  "dotenvy",
- "http 1.2.0",
  "jsonrpsee",
  "once_cell",
  "redis",

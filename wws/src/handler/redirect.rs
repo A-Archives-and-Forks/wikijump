@@ -1,5 +1,5 @@
 /*
- * handler/mod.rs
+ * handler/redirect.rs
  *
  * Wilson's Web Server - Serves a zoo of content (framerail, user files, code, etc)
  * Copyright (C) 2019-2025 Wikijump Team
@@ -18,19 +18,20 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-mod framerail;
-mod misc;
-mod redirect;
-
-pub use self::framerail::*;
-pub use self::misc::*;
-pub use self::redirect::*;
-
+use crate::path::get_path;
+use crate::state::ServerState;
 use axum::{
-    http::status::StatusCode,
-    response::{Html, Response},
+    extract::{Request, State},
+    response::Html,
 };
+use axum_extra::extract::Host;
 
-pub async fn handle_hello_world() -> Html<&'static str> {
-    Html("<h1>Hello, World!</h1>")
+pub async fn redirect_to_files(Host(hostname): Host, req: Request) -> Html<&'static str> {
+    let path = get_path(req.uri());
+
+    // xyz.wikijump.com -> xyz.wjfiles.com
+    // customdomain.com -> xyz.wjfiles.com
+
+    let uri = format!("https://{hostname}{path}");
+    todo!()
 }

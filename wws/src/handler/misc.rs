@@ -1,5 +1,5 @@
 /*
- * handler/mod.rs
+ * handler/misc.rs
  *
  * Wilson's Web Server - Serves a zoo of content (framerail, user files, code, etc)
  * Copyright (C) 2019-2025 Wikijump Team
@@ -18,19 +18,12 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-mod framerail;
-mod misc;
-mod redirect;
+use axum::{body::Body, http::status::StatusCode, response::Response};
 
-pub use self::framerail::*;
-pub use self::misc::*;
-pub use self::redirect::*;
-
-use axum::{
-    http::status::StatusCode,
-    response::{Html, Response},
-};
-
-pub async fn handle_hello_world() -> Html<&'static str> {
-    Html("<h1>Hello, World!</h1>")
+pub async fn handle_teapot() -> Response {
+    Response::builder()
+        .status(StatusCode::IM_A_TEAPOT)
+        .header("Content-Type", "text/html; charset=utf-8")
+        .body(Body::from("🫖"))
+        .expect("Unable to convert response data")
 }

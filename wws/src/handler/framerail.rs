@@ -1,5 +1,5 @@
 /*
- * handler/mod.rs
+ * handler/framerail.rs
  *
  * Wilson's Web Server - Serves a zoo of content (framerail, user files, code, etc)
  * Copyright (C) 2019-2025 Wikijump Team
@@ -18,19 +18,27 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-mod framerail;
-mod misc;
-mod redirect;
-
-pub use self::framerail::*;
-pub use self::misc::*;
-pub use self::redirect::*;
-
+use crate::path::get_path;
+use crate::state::ServerState;
 use axum::{
-    http::status::StatusCode,
-    response::{Html, Response},
+    extract::{Request, State},
+    http::{status::StatusCode, Uri},
+    response::Html,
 };
 
-pub async fn handle_hello_world() -> Html<&'static str> {
-    Html("<h1>Hello, World!</h1>")
+pub async fn proxy_framerail(
+    State(state): State<ServerState>,
+    mut req: Request,
+) -> Html<&'static str> {
+    // Get path and query
+    let path = get_path(req.uri());
+
+    // Create and set framerail URL
+    let framerail_host = "framerail"; // TODO
+    let framerail_port = 3000; // TODO
+    let uri = format!("http://{framerail_host}:{framerail_port}{path}");
+    *req.uri_mut() = Uri::try_from(uri).expect("Internal framerail URI is invalid");
+
+    // TODO
+    todo!()
 }
