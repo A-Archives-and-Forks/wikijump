@@ -86,7 +86,7 @@ pub fn build_router(state: ServerState) -> Router {
         // Domain delegation logic
         .route(
             "/",
-            any(|Host(hostname): Host, request: Request<Body>| async move {
+            any(|Host(ref hostname): Host, request: Request<Body>| async move {
                 let Domains {
                     ref main_domain,
                     ref main_domain_no_dot,
@@ -95,17 +95,17 @@ pub fn build_router(state: ServerState) -> Router {
                     ..
                 } = host_state.domains;
 
-                // Determine if it's the main domain.
-                if let Some(site_slug) = hostname.strip_suffix(main_domain) {
+                // First, check if it's the main domain by itself.
+                if hostname = main_domain_no_dot {
                     // TODO
-                    println!("DEBUG main (main {site_slug})");
+                    println!("DEBUG main default");
                     return main_router.oneshot(request).await;
                 }
 
-                // Next, check if it's the main domain by itself.
-                if &hostname == main_domain_no_dot {
+                // Determine if it's the main domain.
+                if let Some(site_slug) = hostname.strip_suffix(main_domain) {
                     // TODO
-                    println!("DEBUG main (main default)");
+                    println!("DEBUG main ({site_slug})");
                     return main_router.oneshot(request).await;
                 }
 
@@ -116,15 +116,18 @@ pub fn build_router(state: ServerState) -> Router {
                     return file_router.oneshot(request).await;
                 }
 
-                // Next, check if it's the files domain by itself.
+                // Finally, check if it's the files domain by itself.
                 //
                 // This is weird, wjfiles should always a site slug subdomain,
                 // so in this case we just temporary redirect to the main domain,
                 // stripping the path.
-                if &hostname == files_domain_no_dot {
+                //
+                // Since this is expected to be uncommon, we're putting it after
+                // the site files check.
+                if hostname = files_domain_no_dot {
                     // TODO
-                    println!("DEBUG files no site");
-                    return todo!();
+                    println!("DEBUG files default");
+                    return file_router.oneshot(request).await;
                 }
 
                 // If it's anything else, it must be a custom domain.
