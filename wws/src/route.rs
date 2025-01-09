@@ -88,10 +88,26 @@ pub fn build_router(state: ServerState) -> Router {
             "/",
             any(|Host(hostname): Host, request: Request<Body>| async move {
                 let Domains {
+                    ref main_domain,
+                    ref main_domain_no_dot,
                     ref files_domain,
                     ref files_domain_no_dot,
                     ..
                 } = host_state.domains;
+
+                // Determine if it's the main domain.
+                if let Some(site_slug) = hostname.strip_suffix(main_domain) {
+                    // TODO
+                    println!("DEBUG main (main {site_slug})");
+                    return main_router.oneshot(request).await;
+                }
+
+                // Next, check if it's the main domain by itself.
+                if &hostname == main_domain_no_dot {
+                    // TODO
+                    println!("DEBUG main (main default)");
+                    return main_router.oneshot(request).await;
+                }
 
                 // Determine if it's a files domain.
                 if let Some(site_slug) = hostname.strip_suffix(files_domain) {
@@ -103,28 +119,16 @@ pub fn build_router(state: ServerState) -> Router {
                 // Next, check if it's the files domain by itself.
                 //
                 // This is weird, wjfiles should always a site slug subdomain,
-                // so in this case we just XXX
+                // so in this case we just temporary redirect to the main domain,
+                // stripping the path.
                 if &hostname == files_domain_no_dot {
                     // TODO
                     println!("DEBUG files no site");
                     return todo!();
                 }
 
-                // If it's anything else, it is a canonical domain or a custom domain.
-                // In either case, it goes to framerail as-is.
-                //
-                // NOTE: Do not include code to massage requests to the framerail web server.
-                //       We shouldn't spread around logic throughout the stack since this makes
-                //       debugging and later maintenance and development more difficult.
-                //
-                //       If you need to adjust web server processing in general, modify framerail.
-                //
-                //       If you need to adjust how custom domains work or how site information
-                //       is fetched from the database, modify DomainService in DEEPWELL.
-                //
-                //       The only exception are the fixed redirects which would be
-                //       included in an nginx configuration or used for wjfiles
-                //       compatibility. See the definition of main_router above.
+                // If it's anything else, it must be a custom domain.
+                // Do a lookup, then set the site data as appropriate.
                 println!("DEBUG main {hostname}");
                 main_router.oneshot(request).await
             }),
