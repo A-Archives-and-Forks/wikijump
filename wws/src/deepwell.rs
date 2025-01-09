@@ -79,7 +79,10 @@ impl Deepwell {
         );
         let files_domain = format!(".{files_domain_no_dot}");
 
-        assert_ne!(main_domain, files_domain, "Cannot set domain for main and files service!");
+        assert_ne!(
+            main_domain, files_domain,
+            "Cannot set domain for main and files service!",
+        );
 
         info!(
             main_domain = main_domain_no_dot,
