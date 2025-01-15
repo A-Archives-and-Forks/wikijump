@@ -20,7 +20,7 @@
 
 use crate::cache::Cache;
 use crate::config::Secrets;
-use crate::deepwell::{Deepwell, Domains};
+use crate::deepwell::{Deepwell, Domains, SiteData};
 use anyhow::Result;
 use s3::bucket::Bucket;
 use std::sync::Arc;
@@ -64,4 +64,38 @@ pub async fn build_server_state(secrets: Secrets) -> Result<ServerState> {
         cache,
         s3_bucket,
     }))
+}
+
+impl ServerStateInner {
+    // Contains implementations for the common pattern of "check the cache,
+    // if not present, get it from DEEPWELL and populate it".
+
+    pub async fn get_site_slug(&self, site_slug: &str) -> Result<i64> {
+        match self.cache.get_site_slug(site_slug)? {
+            Some(site_id) => Ok(site_id),
+            None => {
+                let SiteData { site_id, .. } = self.deepwell.get_site_from_slug(site_slug).await?;
+                self.cache.set_site_slug(site_slug, site_id)?;
+                Ok(site_id)
+            }
+        }
+    }
+
+    pub async fn get_site_domain(&self, site_domain: &str) -> Result<(i64, String)> {
+        match self.cache.get_site_domain(site_domain)? {
+            Some((site_id, site_slug)) => Ok((site_id, site_slug)),
+            None => {
+                let SiteData {
+                    site_id,
+                    slug: site_slug,
+                    ..
+                } = self.deepwell.get_site_from_domain(site_domain).await?;
+
+                self.cache
+                    .set_site_domain(site_domain, site_id, &site_slug)?;
+
+                Ok((site_id, site_slug))
+            }
+        }
+    }
 }

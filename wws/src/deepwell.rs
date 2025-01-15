@@ -26,6 +26,23 @@ use std::time::Duration;
 const JSONRPC_MAX_REQUEST: u32 = 16 * 1024;
 const JSONRPC_TIMEOUT: Duration = Duration::from_millis(200);
 
+/// Macro to create `ObjectParams` instances.
+/// This is the object equivalent to `rpc_params!`, which creates `ArrayParams` instances.
+macro_rules! rpc_object {
+    ($($key:expr => $value:expr,)+) => { rpc_object!($($key => $value),+) };
+    ($($key:expr => $value:expr),*) => {{
+        use jsonrpsee::core::params::ObjectParams;
+
+        let mut params = ObjectParams::new();
+        $(
+            if let Err(error) = params.insert($key, $value) {
+                panic!("Parameter `{}` cannot be serialized: {:?}", stringify!($), error);
+            }
+        )*
+        params
+    }};
+}
+
 #[derive(Debug)]
 pub struct Deepwell {
     client: HttpClient,
@@ -98,6 +115,15 @@ impl Deepwell {
             deepwell_version,
         })
     }
+
+    pub async fn get_site_from_slug(&self, slug: &str) -> Result<SiteData> {
+        let response: SiteData = self.client.request("site_get", rpc_object! {}).await?;
+        Ok(response)
+    }
+
+    pub async fn get_site_from_domain(&self, domain: &str) -> Result<SiteData> {
+        todo!()
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -107,4 +133,12 @@ pub struct Domains {
     pub files_domain: String,
     pub files_domain_no_dot: String,
     pub deepwell_version: String,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct SiteData {
+    pub site_id: i64,
+    pub slug: String,
+    pub name: String,
+    pub custom_domain: Option<String>,
 }
