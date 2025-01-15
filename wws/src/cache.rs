@@ -45,7 +45,7 @@ impl Cache {
     pub fn set_site_slug(&self, site_slug: &str, site_id: i64) -> Result<()> {
         let mut conn = self.client.get_connection()?;
         let key = format!("site_slug:{site_slug}");
-        conn.hset(key, "id", site_id)?;
+        conn.hset::<_, _, _, ()>(key, "id", site_id)?;
         Ok(())
     }
 
@@ -61,8 +61,8 @@ impl Cache {
     pub fn set_site_domain(&self, domain: &str, site_id: i64, site_slug: &str) -> Result<()> {
         let mut conn = self.client.get_connection()?;
         let key = format!("site_domain:{domain}");
-        conn.hset(&key, "id", site_id)?;
-        conn.hset(&key, "slug", site_slug)?;
+        conn.hset::<_, _, _, ()>(&key, "id", site_id)?;
+        conn.hset::<_, _, _, ()>(&key, "slug", site_slug)?;
         Ok(())
     }
 }
