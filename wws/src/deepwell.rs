@@ -116,13 +116,24 @@ impl Deepwell {
         })
     }
 
-    pub async fn get_site_from_slug(&self, slug: &str) -> Result<SiteData> {
-        let response: SiteData = self.client.request("site_get", rpc_object! {}).await?;
-        Ok(response)
+    pub async fn get_site_from_slug(&self, slug: &str) -> Result<Option<SiteData>> {
+        let response: SiteData = self
+            .client
+            .request("site_get", rpc_object! { "site" => slug })
+            .await?;
+
+        // TODO handle missing site
+
+        Ok(Some(response))
     }
 
-    pub async fn get_site_from_domain(&self, domain: &str) -> Result<SiteData> {
-        todo!()
+    pub async fn get_site_from_domain(&self, domain: &str) -> Result<Option<SiteData>> {
+        let response: Option<SiteData> = self
+            .client
+            .request("site_from_domain", rpc_params![domain])
+            .await?;
+
+        Ok(response)
     }
 }
 
