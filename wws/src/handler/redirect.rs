@@ -24,34 +24,34 @@ use crate::state::ServerState;
 use axum::{
     extract::State,
     http::{header::HeaderMap, Uri},
-    response::Html,
+    response::Redirect,
 };
 
 pub async fn redirect_to_files(
     State(state): State<ServerState>,
     headers: HeaderMap,
     uri: Uri,
-) -> Html<&'static str> {
+) -> Redirect {
     // xyz.wikijump.com -> xyz.wjfiles.com
     // customdomain.com -> xyz.wjfiles.com
 
     let site_slug = get_site_slug(&headers);
     let domain = &state.domains.files_domain;
     let path = get_path(&uri);
-    let uri = format!("https://{site_slug}{domain}{path}");
-    todo!()
+    let destination = format!("https://{site_slug}{domain}{path}");
+    Redirect::permanent(&destination)
 }
 
 pub async fn redirect_to_main(
     State(state): State<ServerState>,
     headers: HeaderMap,
     uri: Uri,
-) -> Html<&'static str> {
+) -> Redirect {
     let site_slug = get_site_slug(&headers);
     let domain = &state.domains.main_domain;
     let path = get_path(&uri);
-    let uri = format!("https://{site_slug}{domain}{path}");
-    todo!()
+    let destination = format!("https://{site_slug}{domain}{path}");
+    Redirect::permanent(&destination)
 }
 
 fn get_site_slug(headers: &HeaderMap) -> &str {
