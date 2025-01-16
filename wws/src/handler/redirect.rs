@@ -26,19 +26,19 @@ use axum::{
     http::{header::HeaderMap, Uri},
     response::Html,
 };
-use axum_extra::extract::Host;
 
 pub async fn redirect_to_files(
     State(state): State<ServerState>,
-    Host(hostname): Host,
+    headers: HeaderMap,
     uri: Uri,
 ) -> Html<&'static str> {
-    let path = get_path(&uri);
-
     // xyz.wikijump.com -> xyz.wjfiles.com
     // customdomain.com -> xyz.wjfiles.com
 
-    let uri = format!("https://{hostname}{path}");
+    let site_slug = get_site_slug(&headers);
+    let domain = &state.domains.files_domain;
+    let path = get_path(&uri);
+    let uri = format!("https://{site_slug}{domain}{path}");
     todo!()
 }
 
@@ -47,14 +47,17 @@ pub async fn redirect_to_main(
     headers: HeaderMap,
     uri: Uri,
 ) -> Html<&'static str> {
-    let site_slug = headers
+    let site_slug = get_site_slug(&headers);
+    let domain = &state.domains.main_domain;
+    let path = get_path(&uri);
+    let uri = format!("https://{site_slug}{domain}{path}");
+    todo!()
+}
+
+fn get_site_slug(headers: &HeaderMap) -> &str {
+    headers
         .get(HEADER_SITE_SLUG)
         .expect("Site slug header not set by parent rounter")
         .to_str()
-        .expect("Unable to convert site slug header to string");
-
-    let path = get_path(&uri);
-    let uri = format!("https://{}{}{}", site_slug, state.domains.main_domain, path,);
-
-    todo!()
+        .expect("Unable to convert site slug header to string")
 }
