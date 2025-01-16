@@ -48,7 +48,7 @@ pub fn build_router(state: ServerState) -> Router {
 
     macro_rules! header_value {
         ($value:expr) => {
-            HeaderValue::from_str(&$value).expect("Version is not a valid header value")
+            HeaderValue::from_str(&$value).expect("String is not a valid header value")
         };
     }
 
