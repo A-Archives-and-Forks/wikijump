@@ -19,6 +19,7 @@
  */
 
 use jsonrpsee::core::ClientError;
+use s3::error::S3Error;
 use std::io;
 use thiserror::Error as ThisError;
 
@@ -35,6 +36,9 @@ pub enum Error {
 
     #[error("Redis error: {0}")]
     Redis(#[from] redis::RedisError),
+
+    #[error("S3 service returned error: {0}")]
+    S3(#[from] S3Error),
 
     #[error("I/O error: {0}")]
     Io(#[from] io::Error),

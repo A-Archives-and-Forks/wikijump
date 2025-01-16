@@ -18,10 +18,12 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use crate::cache::Cache;
-use crate::config::Secrets;
-use crate::deepwell::{Deepwell, Domains, SiteData};
-use anyhow::Result;
+use crate::{
+    cache::Cache,
+    config::Secrets,
+    deepwell::{Deepwell, Domains, SiteData},
+    error::Result,
+};
 use s3::bucket::Bucket;
 use std::sync::Arc;
 use std::time::Duration;

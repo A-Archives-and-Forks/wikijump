@@ -18,13 +18,15 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use crate::deepwell::Domains;
-use crate::handler::*;
-use crate::info;
-use crate::state::ServerState;
+use crate::{
+    handler::*,
+    host::{lookup_host, SiteAndHost},
+    info,
+    state::ServerState,
+};
 use axum::{
     body::Body,
-    extract::Request,
+    extract::{Request, State},
     http::header::{HeaderName, HeaderValue},
     response::Redirect,
     routing::{any, get},
@@ -86,49 +88,30 @@ pub fn build_router(state: ServerState) -> Router {
         // Domain delegation logic
         .route(
             "/",
-            any(|Host(hostname): Host, request: Request<Body>| async move {
-                let Domains {
-                    ref main_domain,
-                    ref main_domain_no_dot,
-                    ref files_domain,
-                    ref files_domain_no_dot,
-                    ..
-                } = host_state.domains;
+            any(
+                |State(state): State<ServerState>,
+                 Host(hostname): Host,
+                 mut request: Request<Body>| async {
+                    {
+                        let mut headers = request.headers_mut();
 
-                if &hostname == main_domain_no_dot {
-                    // First, check if it's the main domain by itself.
-                    println!("DEBUG main default");
-                    // TODO
-                    main_router.oneshot(request).await
-                } else if let Some(site_slug) = hostname.strip_suffix(main_domain) {
-                    // Determine if it's the main domain.
-                    println!("DEBUG main ({site_slug})");
-                    // TODO
-                    main_router.oneshot(request).await
-                } else if let Some(site_slug) = hostname.strip_suffix(files_domain) {
-                    // Determine if it's a files domain.
-                    println!("DEBUG files (site {site_slug})");
-                    // TODO
-                    file_router.oneshot(request).await
-                } else if &hostname == files_domain_no_dot {
-                    // Finally, check if it's the files domain by itself.
-                    //
-                    // This is weird, wjfiles should always a site slug subdomain,
-                    // so in this case we just temporary redirect to the main domain,
-                    // stripping the path.
-                    //
-                    // Since this is expected to be uncommon, we're putting it after
-                    // the site files check.
-                    println!("DEBUG files default");
-                    // TODO
-                    file_router.oneshot(request).await
-                } else {
-                    // If it's anything else, it must be a custom domain.
-                    // Do a lookup, then set the site data as appropriate.
-                    println!("DEBUG main {hostname}");
-                    main_router.oneshot(request).await
-                }
-            }),
+                        // Strip internal headers, just to be safe.
+                        headers.remove("x-wikijump-site-slug");
+                        headers.remove("x-wikijump-site-id");
+                        headers.remove("x-wikijump-domain");
+
+                        /*
+                        // Also add the domain header since that is the same before lookup_host()
+                        headers.insert("x-wikijump-domain", &hostname);
+                        */
+                    }
+
+                    match lookup_host(&state, &hostname).await {
+                        // TODO
+                        _ => todo!(),
+                    }
+                },
+            ),
         )
         // Easter egg
         .route("/-/teapot", any(handle_teapot))
