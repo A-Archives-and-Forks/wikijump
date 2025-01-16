@@ -76,7 +76,7 @@ pub fn build_router(state: ServerState) -> Router {
         .route("/-/code/{page_slug}/{index}", any(handle_invalid_method))
         .route("/-/html/{page_slug}/{id}", get(handle_html_block))
         .route("/-/html/{page_slug}/{id}", any(handle_invalid_method))
-        .fallback(handle_hello_world)
+        .fallback(redirect_to_main)
         .with_state(file_state);
 
     Router::new()
@@ -101,15 +101,15 @@ pub fn build_router(state: ServerState) -> Router {
                 .zstd(true),
         )
         .layer(SetResponseHeaderLayer::overriding(
-            HeaderName::from_static("x-wikijump"),
+            HEADER_IS_WIKIJUMP,
             Some(HeaderValue::from_static("1")),
         ))
         .layer(SetResponseHeaderLayer::overriding(
-            HeaderName::from_static("x-wikijump-wws-ver"),
+            HEADER_WWS_VERSION,
             Some(header_value!(&*info::VERSION_INFO)),
         ))
         .layer(SetResponseHeaderLayer::overriding(
-            HeaderName::from_static("x-wikijump-deepwell-ver"),
+            HEADER_DEEPWELL_VERSION,
             Some(header_value!(&header_state.domains.deepwell_version)),
         ))
         .with_state(state)

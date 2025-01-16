@@ -18,10 +18,12 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+use super::HEADER_SITE_SLUG;
 use crate::path::get_path;
 use crate::state::ServerState;
 use axum::{
-    extract::{Request, State},
+    extract::State,
+    http::{header::HeaderMap, Uri},
     response::Html,
 };
 use axum_extra::extract::Host;
@@ -29,13 +31,30 @@ use axum_extra::extract::Host;
 pub async fn redirect_to_files(
     State(state): State<ServerState>,
     Host(hostname): Host,
-    req: Request,
+    uri: Uri,
 ) -> Html<&'static str> {
-    let path = get_path(req.uri());
+    let path = get_path(&uri);
 
     // xyz.wikijump.com -> xyz.wjfiles.com
     // customdomain.com -> xyz.wjfiles.com
 
     let uri = format!("https://{hostname}{path}");
+    todo!()
+}
+
+pub async fn redirect_to_main(
+    State(state): State<ServerState>,
+    headers: HeaderMap,
+    uri: Uri,
+) -> Html<&'static str> {
+    let site_slug = headers
+        .get(HEADER_SITE_SLUG)
+        .expect("Site slug header not set by parent rounter")
+        .to_str()
+        .expect("Unable to convert site slug header to string");
+
+    let path = get_path(&uri);
+    let uri = format!("https://{}{}{}", site_slug, state.domains.main_domain, path,);
+
     todo!()
 }

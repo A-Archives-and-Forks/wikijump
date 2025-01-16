@@ -40,10 +40,19 @@ use crate::{
 use axum::{
     body::Body,
     extract::Request,
+    http::header::HeaderName,
     response::{Html, IntoResponse, Redirect, Response},
     Router,
 };
 use tower::util::ServiceExt;
+
+pub const HEADER_SITE_ID: HeaderName = HeaderName::from_static("x-wikijump-site-id");
+pub const HEADER_SITE_SLUG: HeaderName = HeaderName::from_static("x-wikijump-site-slug");
+pub const HEADER_DOMAIN: HeaderName = HeaderName::from_static("x-wikijump-domain");
+
+pub const HEADER_IS_WIKIJUMP: HeaderName = HeaderName::from_static("x-wikijump");
+pub const HEADER_WWS_VERSION: HeaderName = HeaderName::from_static("x-wikijump-wws-ver");
+pub const HEADER_DEEPWELL_VERSION: HeaderName = HeaderName::from_static("x-wikijump-deepwell-ver");
 
 #[deprecated]
 pub async fn handle_hello_world() -> Html<&'static str> {
@@ -67,12 +76,12 @@ pub async fn handle_host_delegation(
         let headers = request.headers_mut();
 
         // Strip internal headers, just to be safe.
-        headers.remove("x-wikijump-site-id");
-        headers.remove("x-wikijump-site-slug");
-        headers.remove("x-wikijump-domain");
+        headers.remove(HEADER_SITE_ID);
+        headers.remove(HEADER_SITE_SLUG);
+        headers.remove(HEADER_DOMAIN);
 
         // Also add the domain header since that is the same before lookup_host()
-        headers.insert("x-wikijump-domain", header_value!(hostname));
+        headers.insert(HEADER_DOMAIN, header_value!(hostname));
     }
 
     macro_rules! forward_request {
@@ -85,6 +94,7 @@ pub async fn handle_host_delegation(
     }
 
     macro_rules! add_headers {
+        // Add both headers
         ($site_id:expr, $site_slug:expr) => {{
             // Validate types
             let _: i64 = $site_id;
@@ -92,8 +102,15 @@ pub async fn handle_host_delegation(
 
             // Add headers
             let headers = request.headers_mut();
-            headers.insert("x-wikijump-site-id", header_value!(str!($site_id)));
-            headers.insert("x-wikijump-site-slug", header_value!($site_slug));
+            headers.insert(HEADER_SITE_ID, header_value!(str!($site_id)));
+            headers.insert(HEADER_SITE_SLUG, header_value!($site_slug));
+        }};
+
+        // Add only slug (site doesn't exist)
+        ($site_slug:expr) => {{
+            let _: &str = &$site_slug;
+            let headers = request.headers_mut();
+            headers.insert(HEADER_SITE_SLUG, header_value!($site_slug));
         }};
     }
 
@@ -121,7 +138,7 @@ pub async fn handle_host_delegation(
         }
         // Main site missing
         SiteAndHost::MainMissing { site_slug } => {
-            // TODO
+            add_headers!(site_slug);
             forward_request!(main_router)
         }
         SiteAndHost::MainCustomMissing => {
@@ -143,7 +160,7 @@ pub async fn handle_host_delegation(
             forward_request!(files_router)
         }
         SiteAndHost::FileMissing { site_slug } => {
-            // TODO
+            add_headers!(site_slug);
             forward_request!(files_router)
         }
         // Files site by itself
