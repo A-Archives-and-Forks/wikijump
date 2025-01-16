@@ -28,6 +28,7 @@ pub use self::redirect::*;
 
 use axum::response::Html;
 
+#[deprecated]
 pub async fn handle_hello_world() -> Html<&'static str> {
     Html("<h1>Hello, World!</h1>")
 }
