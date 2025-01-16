@@ -24,7 +24,7 @@ use crate::{deepwell::Domains, error::Result, state::ServerState};
 ///
 /// This refers to the site displayed when you visit `wikijump.com`
 /// with no subdomain component.
-const DEFAULT_SITE_SLUG: &str = "www";
+pub const DEFAULT_SITE_SLUG: &str = "www";
 
 #[derive(Debug)]
 pub enum SiteAndHost<'a> {

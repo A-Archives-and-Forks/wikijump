@@ -19,8 +19,7 @@
  */
 
 use super::HEADER_SITE_SLUG;
-use crate::path::get_path;
-use crate::state::ServerState;
+use crate::{path::get_path, state::ServerState, host::DEFAULT_SITE_SLUG};
 use axum::{
     extract::State,
     http::{header::HeaderMap, Uri},
@@ -36,9 +35,8 @@ pub async fn redirect_to_files(
     // customdomain.com -> xyz.wjfiles.com
 
     let site_slug = get_site_slug(&headers);
-    let domain = &state.domains.files_domain;
     let path = get_path(&uri);
-    let destination = format!("https://{site_slug}{domain}{path}");
+    let destination = build_url(site_slug, &state.domains.files_domain_no_dot, path);
     Redirect::permanent(&destination)
 }
 
@@ -48,9 +46,8 @@ pub async fn redirect_to_main(
     uri: Uri,
 ) -> Redirect {
     let site_slug = get_site_slug(&headers);
-    let domain = &state.domains.main_domain;
     let path = get_path(&uri);
-    let destination = format!("https://{site_slug}{domain}{path}");
+    let destination = build_url(site_slug, &state.domains.main_domain_no_dot, path);
     Redirect::permanent(&destination)
 }
 
@@ -60,4 +57,14 @@ fn get_site_slug(headers: &HeaderMap) -> &str {
         .expect("Site slug header not set by parent rounter")
         .to_str()
         .expect("Unable to convert site slug header to string")
+}
+
+fn build_url(site_slug: &str, domain_no_dot: &str, path: &str) -> String {
+    if site_slug == DEFAULT_SITE_SLUG {
+        // We don't include the 'www' for the default site, just do the regular domain
+        format!("https://{domain_no_dot}{path}")
+    } else {
+        // Otherwise, add the site slug as the subdomain
+        format!("https://{site_slug}.{domain_no_dot}{path}")
+    }
 }
