@@ -22,18 +22,19 @@ use crate::{
     handler::*,
     host::{lookup_host, SiteAndHost},
     info,
+    path::get_path,
     state::ServerState,
 };
 use axum::{
     body::Body,
     extract::{Request, State},
     http::header::{HeaderName, HeaderValue},
-    response::Redirect,
+    response::{IntoResponse, Redirect},
     routing::{any, get},
     Router,
 };
 use axum_extra::extract::Host;
-use std::sync::Arc;
+use std::{convert::Infallible, sync::Arc};
 use tower::util::ServiceExt;
 use tower_http::{
     compression::CompressionLayer, normalize_path::NormalizePathLayer,
@@ -67,7 +68,7 @@ pub fn build_router(state: ServerState) -> Router {
 
     // Router that serves wjfiles
     // TODO
-    let file_router = Router::new()
+    let files_router = Router::new()
         .route(
             "/local--files/{page_slug}/{filename}",
             get(handle_hello_world),
@@ -91,7 +92,7 @@ pub fn build_router(state: ServerState) -> Router {
             any(
                 |State(state): State<ServerState>,
                  Host(hostname): Host,
-                 mut request: Request<Body>| async {
+                 mut request: Request<Body>| async move {
                     {
                         let mut headers = request.headers_mut();
 
@@ -106,9 +107,68 @@ pub fn build_router(state: ServerState) -> Router {
                         */
                     }
 
-                    match lookup_host(&state, &hostname).await {
-                        // TODO
-                        _ => todo!(),
+                    macro_rules! forward_request {
+                        ($router:expr) => {
+                            match $router.oneshot(request).await {
+                                Ok(response) => response,
+                                Err(Infallible) => match Infallible {},
+                            }
+                        };
+                    }
+
+                    let host_data = match lookup_host(&state, &hostname).await {
+                        Ok(host_data) => host_data,
+                        Err(error) => {
+                            // TODO error page response in case of an internal issue
+                            todo!()
+                        }
+                    };
+
+                    match host_data {
+                        // Main site route handling
+                        SiteAndHost::Main { site_id, site_slug } => {
+                            // TODO
+                            forward_request!(main_router)
+                        }
+                        SiteAndHost::MainCustom { site_id, site_slug } => {
+                            // TODO
+                            forward_request!(main_router)
+                        }
+                        // Main site missing
+                        SiteAndHost::MainMissing { site_slug } => {
+                            // TODO
+                            forward_request!(main_router)
+                        }
+                        SiteAndHost::MainCustomMissing => {
+                            todo!()
+                        }
+                        // Default site redirect
+                        // e.g. "www.wikijump.com/foo" -> "wikijump.com/foo"
+                        SiteAndHost::DefaultRedirect => {
+                            let destination = format!(
+                                "https://{}{}",
+                                state.domains.main_domain_no_dot,
+                                get_path(request.uri()),
+                            );
+                            Redirect::permanent(&destination).into_response()
+                        }
+                        // Files site route handling
+                        SiteAndHost::File { site_id, site_slug } => {
+                            // TODO
+                            forward_request!(files_router)
+                        }
+                        SiteAndHost::FileMissing { site_slug } => {
+                            // TODO
+                            forward_request!(files_router)
+                        }
+                        // Files site by itself
+                        // See the case in host.rs for an explanation
+                        SiteAndHost::FileRoot => {
+                            let destination =
+                                format!("https://{}", state.domains.main_domain_no_dot);
+
+                            Redirect::temporary(&destination).into_response()
+                        }
                     }
                 },
             ),

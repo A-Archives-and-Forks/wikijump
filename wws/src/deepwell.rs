@@ -18,7 +18,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use crate::error::Result;
+use crate::error::{Error, Result};
 use jsonrpsee::{core::client::ClientT, http_client::HttpClient, rpc_params};
 use serde::Deserialize;
 use std::time::Duration;
@@ -117,23 +117,32 @@ impl Deepwell {
     }
 
     pub async fn get_site_from_slug(&self, slug: &str) -> Result<Option<SiteData>> {
-        let response: SiteData = self
+        use jsonrpsee::core::ClientError;
+
+        let result = self
             .client
             .request("site_get", rpc_object! { "site" => slug })
-            .await?;
+            .await;
 
-        // TODO handle missing site
+        match result {
+            // Site data found
+            Ok(site_data) => Ok(Some(site_data)),
 
-        Ok(Some(response))
+            // SiteNotFound error case
+            Err(ClientError::Call(error)) if error.code() == 2004 => Ok(None),
+
+            // For any other error, forward
+            Err(error) => Err(Error::Deepwell(error)),
+        }
     }
 
     pub async fn get_site_from_domain(&self, domain: &str) -> Result<Option<SiteData>> {
-        let response: Option<SiteData> = self
+        let site_data: Option<SiteData> = self
             .client
             .request("site_from_domain", rpc_params![domain])
             .await?;
 
-        Ok(response)
+        Ok(site_data)
     }
 }
 
