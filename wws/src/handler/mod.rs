@@ -26,10 +26,7 @@ pub use self::framerail::*;
 pub use self::misc::*;
 pub use self::redirect::*;
 
-use axum::{
-    http::status::StatusCode,
-    response::{Html, Response},
-};
+use axum::response::Html;
 
 pub async fn handle_hello_world() -> Html<&'static str> {
     Html("<h1>Hello, World!</h1>")

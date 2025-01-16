@@ -44,7 +44,6 @@ use tower_http::{
 pub fn build_router(state: ServerState) -> Router {
     let main_state = Arc::clone(&state);
     let file_state = Arc::clone(&state);
-    let host_state = Arc::clone(&state);
     let header_state = Arc::clone(&state);
 
     macro_rules! header_value {
@@ -94,7 +93,7 @@ pub fn build_router(state: ServerState) -> Router {
                  Host(hostname): Host,
                  mut request: Request<Body>| async move {
                     {
-                        let mut headers = request.headers_mut();
+                        let headers = request.headers_mut();
 
                         // Strip internal headers, just to be safe.
                         headers.remove("x-wikijump-site-id");
@@ -121,7 +120,7 @@ pub fn build_router(state: ServerState) -> Router {
                             let _: &str = &$site_slug;
 
                             // Add headers
-                            let mut headers = request.headers_mut();
+                            let headers = request.headers_mut();
                             headers.insert("x-wikijump-site-id", header_value!(str!($site_id)));
                             headers.insert("x-wikijump-site-slug", header_value!($site_slug));
                         }};
