@@ -154,4 +154,5 @@ pub fn build_router(state: ServerState) -> Router {
             HeaderName::from_static("x-wikijump-deepwell-ver"),
             Some(header_value!(&header_state.domains.deepwell_version)),
         ))
+        .with_state(state)
 }
