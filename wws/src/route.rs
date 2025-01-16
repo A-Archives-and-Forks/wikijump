@@ -109,7 +109,7 @@ pub fn build_router(state: ServerState) -> Router {
                         ($router:expr) => {
                             match $router.oneshot(request).await {
                                 Ok(response) => response,
-                                Err(Infallible) => match Infallible {},
+                                Err(infallible) => match infallible {},
                             }
                         };
                     }
