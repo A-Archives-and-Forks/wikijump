@@ -51,7 +51,6 @@ pub fn build_router(state: ServerState) -> Router {
         .with_state(main_state);
 
     // Router that serves wjfiles
-    // TODO
     let files_router = Router::new()
         .route(
             "/local--files/{page_slug}/{filename}",

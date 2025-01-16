@@ -41,7 +41,7 @@ use axum::{
     body::Body,
     extract::Request,
     http::header::HeaderName,
-    response::{Html, IntoResponse, Redirect, Response},
+    response::{IntoResponse, Redirect, Response},
     Router,
 };
 use tower::util::ServiceExt;
@@ -53,11 +53,6 @@ pub const HEADER_DOMAIN: HeaderName = HeaderName::from_static("x-wikijump-domain
 pub const HEADER_IS_WIKIJUMP: HeaderName = HeaderName::from_static("x-wikijump");
 pub const HEADER_WWS_VERSION: HeaderName = HeaderName::from_static("x-wikijump-wws-ver");
 pub const HEADER_DEEPWELL_VERSION: HeaderName = HeaderName::from_static("x-wikijump-deepwell-ver");
-
-#[deprecated]
-pub async fn handle_hello_world() -> Html<&'static str> {
-    Html("<h1>Hello, World!</h1>")
-}
 
 /// Entry route handler to first process host information.
 ///
