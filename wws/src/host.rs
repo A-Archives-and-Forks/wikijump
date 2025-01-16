@@ -96,9 +96,7 @@ pub async fn lookup_host<'a>(state: &ServerState, hostname: &'a str) -> Result<S
         //
         // Since this is expected to be uncommon, we're putting it after
         // the site files check.
-
-        info!(domain = hostname, "Handling lone files site request",);
-
+        info!(domain = hostname, "Handling lone files site request");
         Ok(SiteAndHost::FileRoot)
     } else {
         // If it's anything else, it must be a custom domain.
