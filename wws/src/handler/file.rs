@@ -21,7 +21,7 @@
 use crate::state::ServerState;
 use axum::{
     extract::{Path, State},
-    response::Html,
+    response::{Html, Redirect},
 };
 use axum_extra::response::Attachment;
 
@@ -39,4 +39,9 @@ pub async fn handle_file_download(
 ) -> Html<&'static str> {
     // TODO Attachment
     todo!()
+}
+
+pub async fn handle_file_redirect(Path((page_slug, filename)): Path<(String, String)>) -> Redirect {
+    let destination = format!("/-/{page_slug}/{filename}");
+    Redirect::permanent(&destination)
 }

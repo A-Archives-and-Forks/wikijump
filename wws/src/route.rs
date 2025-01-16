@@ -55,7 +55,7 @@ pub fn build_router(state: ServerState) -> Router {
     let files_router = Router::new()
         .route(
             "/local--files/{page_slug}/{filename}",
-            get(handle_hello_world),
+            get(handle_file_redirect),
         )
         .route(
             "/local--code/{page_slug}/{index}",
