@@ -19,7 +19,7 @@
  */
 
 use crate::error::Result;
-use redis::Commands;
+use redis::AsyncCommands;
 
 #[derive(Debug)]
 pub struct Cache {
@@ -34,35 +34,35 @@ impl Cache {
     }
 
     /// Retrieve the site ID from the slug from the cache.
-    pub fn get_site_slug(&self, site_slug: &str) -> Result<Option<i64>> {
-        let mut conn = self.client.get_connection()?;
+    pub async fn get_site_slug(&self, site_slug: &str) -> Result<Option<i64>> {
+        let mut conn = self.client.get_multiplexed_async_connection().await?;
         let key = format!("site_slug:{site_slug}");
-        let value = conn.hget(key, "id")?;
+        let value = conn.hget(key, "id").await?;
         Ok(value)
     }
 
     /// Set the site ID for a site slug.
-    pub fn set_site_slug(&self, site_slug: &str, site_id: i64) -> Result<()> {
-        let mut conn = self.client.get_connection()?;
+    pub async fn set_site_slug(&self, site_slug: &str, site_id: i64) -> Result<()> {
+        let mut conn = self.client.get_multiplexed_async_connection().await?;
         let key = format!("site_slug:{site_slug}");
-        conn.hset::<_, _, _, ()>(key, "id", site_id)?;
+        conn.hset::<_, _, _, ()>(key, "id", site_id).await?;
         Ok(())
     }
 
     /// Retrieve the site slug and ID from a custom domain from the cache.
-    pub fn get_site_domain(&self, domain: &str) -> Result<Option<(i64, String)>> {
-        let mut conn = self.client.get_connection()?;
+    pub async fn get_site_domain(&self, domain: &str) -> Result<Option<(i64, String)>> {
+        let mut conn = self.client.get_multiplexed_async_connection().await?;
         let key = format!("site_domain:{domain}");
-        let value = conn.hget(key, &["id", "slug"])?;
+        let value = conn.hget(key, &["id", "slug"]).await?;
         Ok(value)
     }
 
     /// Set the site slug and ID for a custom domain.
-    pub fn set_site_domain(&self, domain: &str, site_id: i64, site_slug: &str) -> Result<()> {
-        let mut conn = self.client.get_connection()?;
+    pub async fn set_site_domain(&self, domain: &str, site_id: i64, site_slug: &str) -> Result<()> {
+        let mut conn = self.client.get_multiplexed_async_connection().await?;
         let key = format!("site_domain:{domain}");
-        conn.hset::<_, _, _, ()>(&key, "id", site_id)?;
-        conn.hset::<_, _, _, ()>(&key, "slug", site_slug)?;
+        conn.hset::<_, _, _, ()>(&key, "id", site_id).await?;
+        conn.hset::<_, _, _, ()>(&key, "slug", site_slug).await?;
         Ok(())
     }
 }

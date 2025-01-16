@@ -21,7 +21,7 @@ color-backtrace = "0.6"
 dotenvy = "0.15"
 jsonrpsee = { version = "0.24", features = ["async-client", "jsonrpsee-http-client"] }
 once_cell = "1"
-redis = { version = "0.25", features = ["aio", "connection-manager", "keep-alive", "tokio-comp", "tokio-rustls-comp"] }
+redis = { version = "0.25", features = ["aio", "connection-manager", "keep-alive", "r2d2", "tokio-comp", "tokio-rustls-comp"], default-features = false }
 ref-map = "0.1"
 rust-s3 = { version = "0.35", features = ["with-tokio", "tokio-rustls-tls"], default-features = false }
 serde = { version = "1", features = ["derive"] }
