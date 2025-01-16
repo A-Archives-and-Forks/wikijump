@@ -35,6 +35,7 @@ mod macros;
 mod cache;
 mod config;
 mod deepwell;
+mod error;
 mod handler;
 mod info;
 mod path;
@@ -78,6 +79,7 @@ async fn main() -> Result<()> {
         address = str!(config.address),
         "Listening to connections...",
     );
+
     axum::serve(listener, app).await?;
     Ok(())
 }
