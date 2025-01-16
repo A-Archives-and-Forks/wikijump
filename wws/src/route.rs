@@ -39,7 +39,6 @@ pub fn build_router(state: ServerState) -> Router {
     let header_state = Arc::clone(&state);
 
     // Router that serves framerail
-    // TODO
     let main_router = Router::new()
         .route("/local--files/{*rest}", any(redirect_to_files))
         .route("/local--code/{*rest}", any(redirect_to_files))
