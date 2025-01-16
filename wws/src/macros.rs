@@ -31,3 +31,14 @@ macro_rules! str_write {
         write!($dest, $($arg)*).expect("Writing to string failed");
     }};
 }
+
+/// Convert a string to a `HeaderValue`.
+///
+/// This code assumes the string in question is valid and can be
+/// converted to a header value.
+macro_rules! header_value {
+    ($value:expr) => {{
+        use axum::http::header::HeaderValue;
+        HeaderValue::from_str(&$value).expect("String is not a valid header value")
+    }};
+}
