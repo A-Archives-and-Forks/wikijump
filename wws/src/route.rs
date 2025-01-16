@@ -126,6 +126,7 @@ pub fn build_router(state: ServerState) -> Router {
                         }};
                     }
 
+                    // Determine what host and site (e.g. main vs files, what site slug and ID)
                     let host_data = match lookup_host(&state, &hostname).await {
                         Ok(host_data) => host_data,
                         Err(error) => {
@@ -134,6 +135,8 @@ pub fn build_router(state: ServerState) -> Router {
                         }
                     };
 
+                    // Now that we have the general category of request type, we can
+                    // give it to the right place to be processed.
                     match host_data {
                         // Main site route handling
                         SiteAndHost::Main { site_id, site_slug } => {
@@ -141,6 +144,7 @@ pub fn build_router(state: ServerState) -> Router {
                             forward_request!(main_router)
                         }
                         SiteAndHost::MainCustom { site_id, site_slug } => {
+                            // NOTE: The difference here is site_slug here is String not &str
                             add_headers!(site_id, site_slug);
                             forward_request!(main_router)
                         }
