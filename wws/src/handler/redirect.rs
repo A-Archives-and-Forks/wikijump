@@ -19,7 +19,7 @@
  */
 
 use super::HEADER_SITE_SLUG;
-use crate::{path::get_path, state::ServerState, host::DEFAULT_SITE_SLUG};
+use crate::{host::DEFAULT_SITE_SLUG, path::get_path, state::ServerState};
 use axum::{
     extract::State,
     http::{header::HeaderMap, Uri},
