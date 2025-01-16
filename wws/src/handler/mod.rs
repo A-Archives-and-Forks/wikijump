@@ -39,11 +39,10 @@ use crate::{
 };
 use axum::{
     body::Body,
-    extract::{Request, State},
+    extract::Request,
     response::{Html, IntoResponse, Redirect, Response},
     Router,
 };
-use axum_extra::extract::Host;
 use tower::util::ServiceExt;
 
 #[deprecated]

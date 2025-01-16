@@ -23,8 +23,6 @@ use s3::error::S3Error;
 use std::io;
 use thiserror::Error as ThisError;
 
-pub use std::error::Error as StdError;
-
 pub type StdResult<T, E> = std::result::Result<T, E>;
 pub type Result<T> = StdResult<T, Error>;
 
