@@ -51,10 +51,6 @@ pub async fn lookup_host<'a>(state: &ServerState, hostname: &'a str) -> Result<S
         // First, check if it's the default domain by itself.
         main_site_slug(state, hostname, None).await
     } else if let Some(site_slug) = hostname.strip_suffix(main_domain) {
-        // Determine if it's the main domain.
-
-        let site_id = state.get_site_slug(site_slug).await?;
-
         if site_slug == DEFAULT_SITE_SLUG {
             // We should be redirecting to the non-www version of the link
             return Ok(SiteAndHost::DefaultRedirect);
