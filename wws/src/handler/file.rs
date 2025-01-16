@@ -1,5 +1,5 @@
 /*
- * handler/mod.rs
+ * handler/file.rs
  *
  * Wilson's Web Server - Serves a zoo of content (framerail, user files, code, etc)
  * Copyright (C) 2019-2025 Wikijump Team
@@ -18,23 +18,25 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-mod code;
-mod file;
-mod framerail;
-mod html;
-mod misc;
-mod redirect;
+use crate::state::ServerState;
+use axum::{
+    extract::{Path, State},
+    response::Html,
+};
+use axum_extra::response::Attachment;
 
-pub use self::code::*;
-pub use self::file::*;
-pub use self::framerail::*;
-pub use self::html::*;
-pub use self::misc::*;
-pub use self::redirect::*;
+pub async fn handle_file_fetch(
+    State(state): State<ServerState>,
+    Path((page_slug, filename)): Path<(String, String)>,
+) -> Html<&'static str> {
+    // TODO
+    todo!()
+}
 
-use axum::response::Html;
-
-#[deprecated]
-pub async fn handle_hello_world() -> Html<&'static str> {
-    Html("<h1>Hello, World!</h1>")
+pub async fn handle_file_download(
+    State(state): State<ServerState>,
+    Path((page_slug, filename)): Path<(String, String)>,
+) -> Html<&'static str> {
+    // TODO Attachment
+    todo!()
 }

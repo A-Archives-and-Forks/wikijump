@@ -74,13 +74,13 @@ pub fn build_router(state: ServerState) -> Router {
         )
         .route("/local--code/{page_slug}/{index}", get(handle_hello_world))
         .route("/local--html/{page_slug}/{id}", get(handle_hello_world))
-        .route("/-/file/{page_slug}/{filename}", get(handle_hello_world))
+        .route("/-/file/{page_slug}/{filename}", get(handle_file_fetch))
         .route(
             "/-/download/{page_slug}/{filename}",
-            get(handle_hello_world),
+            get(handle_file_download),
         )
-        .route("/-/code/{page_slug}/{index}", get(handle_hello_world))
-        .route("/-/html/{page_slug}/{hash}", get(handle_hello_world))
+        .route("/-/code/{page_slug}/{index}", get(handle_code_block))
+        .route("/-/html/{page_slug}/{hash}", get(handle_html_block))
         .route("/", get(handle_hello_world))
         .with_state(file_state);
 
