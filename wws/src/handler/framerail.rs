@@ -30,6 +30,8 @@ pub async fn proxy_framerail(
     State(state): State<ServerState>,
     mut req: Request,
 ) -> Html<&'static str> {
+    info!("Proxying request to framerail");
+
     // Get path and query
     let path = get_path(req.uri());
 

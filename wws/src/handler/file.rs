@@ -29,6 +29,12 @@ pub async fn handle_file_fetch(
     State(state): State<ServerState>,
     Path((page_slug, filename)): Path<(String, String)>,
 ) -> Html<&'static str> {
+    info!(
+        page_slug = page_slug,
+        filename = filename,
+        "Returning file data",
+    );
+
     // TODO
     todo!()
 }
@@ -37,6 +43,12 @@ pub async fn handle_file_download(
     State(state): State<ServerState>,
     Path((page_slug, filename)): Path<(String, String)>,
 ) -> Html<&'static str> {
+    info!(
+        page_slug = page_slug,
+        filename = filename,
+        "Returning file download",
+    );
+
     // TODO Attachment
     todo!()
 }

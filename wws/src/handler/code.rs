@@ -28,6 +28,12 @@ pub async fn handle_code_block(
     State(state): State<ServerState>,
     Path((page_slug, index)): Path<(String, String)>,
 ) -> Html<&'static str> {
+    info!(
+        page_slug = page_slug,
+        index = index,
+        "Returning code block data",
+    );
+
     // TODO
     todo!()
 }
