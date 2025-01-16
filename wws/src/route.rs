@@ -49,7 +49,7 @@ pub fn build_router(state: ServerState) -> Router {
 
     macro_rules! header_value {
         ($value:expr) => {
-            HeaderValue::from_str($value).expect("Version is not a valid header value")
+            HeaderValue::from_str(&$value).expect("Version is not a valid header value")
         };
     }
 
@@ -97,14 +97,12 @@ pub fn build_router(state: ServerState) -> Router {
                         let mut headers = request.headers_mut();
 
                         // Strip internal headers, just to be safe.
-                        headers.remove("x-wikijump-site-slug");
                         headers.remove("x-wikijump-site-id");
+                        headers.remove("x-wikijump-site-slug");
                         headers.remove("x-wikijump-domain");
 
-                        /*
                         // Also add the domain header since that is the same before lookup_host()
-                        headers.insert("x-wikijump-domain", &hostname);
-                        */
+                        headers.insert("x-wikijump-domain", header_value!(hostname));
                     }
 
                     macro_rules! forward_request {
@@ -114,6 +112,19 @@ pub fn build_router(state: ServerState) -> Router {
                                 Err(Infallible) => match Infallible {},
                             }
                         };
+                    }
+
+                    macro_rules! add_headers {
+                        ($site_id:expr, $site_slug:expr) => {{
+                            // Validate types
+                            let _: i64 = $site_id;
+                            let _: &str = &$site_slug;
+
+                            // Add headers
+                            let mut headers = request.headers_mut();
+                            headers.insert("x-wikijump-site-id", header_value!(str!($site_id)));
+                            headers.insert("x-wikijump-site-slug", header_value!($site_slug));
+                        }};
                     }
 
                     let host_data = match lookup_host(&state, &hostname).await {
@@ -127,11 +138,11 @@ pub fn build_router(state: ServerState) -> Router {
                     match host_data {
                         // Main site route handling
                         SiteAndHost::Main { site_id, site_slug } => {
-                            // TODO
+                            add_headers!(site_id, site_slug);
                             forward_request!(main_router)
                         }
                         SiteAndHost::MainCustom { site_id, site_slug } => {
-                            // TODO
+                            add_headers!(site_id, site_slug);
                             forward_request!(main_router)
                         }
                         // Main site missing
@@ -154,7 +165,7 @@ pub fn build_router(state: ServerState) -> Router {
                         }
                         // Files site route handling
                         SiteAndHost::File { site_id, site_slug } => {
-                            // TODO
+                            add_headers!(site_id, site_slug);
                             forward_request!(files_router)
                         }
                         SiteAndHost::FileMissing { site_slug } => {
