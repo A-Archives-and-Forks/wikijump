@@ -27,3 +27,7 @@ pub async fn handle_teapot() -> Response {
         .body(Body::from("🫖"))
         .expect("Unable to convert response data")
 }
+
+pub async fn handle_invalid_method() -> StatusCode {
+    StatusCode::METHOD_NOT_ALLOWED
+}
