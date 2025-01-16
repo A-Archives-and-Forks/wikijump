@@ -117,23 +117,12 @@ impl Deepwell {
     }
 
     pub async fn get_site_from_slug(&self, slug: &str) -> Result<Option<SiteData>> {
-        use jsonrpsee::core::ClientError;
-
-        let result = self
+        let site_data: Option<SiteData> = self
             .client
             .request("site_get", rpc_object! { "site" => slug })
-            .await;
+            .await?;
 
-        match result {
-            // Site data found
-            Ok(site_data) => Ok(Some(site_data)),
-
-            // SiteNotFound error case
-            Err(ClientError::Call(error)) if error.code() == 2004 => Ok(None),
-
-            // For any other error, forward
-            Err(error) => Err(Error::Deepwell(error)),
-        }
+        Ok(site_data)
     }
 
     pub async fn get_site_from_domain(&self, domain: &str) -> Result<Option<SiteData>> {
