@@ -89,6 +89,7 @@ pub struct GetFileOutput {
     pub data: Option<Bytes<'static>>,
     pub mime: String,
     pub size: i64,
+    pub s3_hash: Bytes<'static>,
     pub licensing: JsonValue,
     pub revision_comments: String,
     pub hidden_fields: Vec<String>,
