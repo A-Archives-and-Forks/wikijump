@@ -25,6 +25,11 @@ use axum::{
 };
 use axum_extra::response::Attachment;
 
+pub async fn handle_file_redirect(Path((page_slug, filename)): Path<(String, String)>) -> Redirect {
+    let destination = format!("/-/file/{page_slug}/{filename}");
+    Redirect::permanent(&destination)
+}
+
 pub async fn handle_file_fetch(
     State(state): State<ServerState>,
     Path((page_slug, filename)): Path<(String, String)>,
@@ -51,9 +56,4 @@ pub async fn handle_file_download(
 
     // TODO Attachment
     todo!()
-}
-
-pub async fn handle_file_redirect(Path((page_slug, filename)): Path<(String, String)>) -> Redirect {
-    let destination = format!("/-/file/{page_slug}/{filename}");
-    Redirect::permanent(&destination)
 }

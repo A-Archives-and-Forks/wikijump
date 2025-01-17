@@ -24,15 +24,15 @@ use axum::{
     response::{Html, Redirect},
 };
 
+pub async fn handle_html_redirect(Path((page_slug, id)): Path<(String, String)>) -> Redirect {
+    let destination = format!("/-/html/{page_slug}/{id}");
+    Redirect::permanent(&destination)
+}
+
 pub async fn handle_html_block(
     State(state): State<ServerState>,
     Path((page_slug, id)): Path<(String, String)>,
 ) -> Html<&'static str> {
     // TODO
     todo!()
-}
-
-pub async fn handle_html_redirect(Path((page_slug, id)): Path<(String, String)>) -> Redirect {
-    let destination = format!("/-/html/{page_slug}/{id}");
-    Redirect::permanent(&destination)
 }

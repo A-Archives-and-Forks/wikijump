@@ -24,6 +24,11 @@ use axum::{
     response::{Html, Redirect},
 };
 
+pub async fn handle_code_redirect(Path((page_slug, index)): Path<(String, String)>) -> Redirect {
+    let destination = format!("/-/code/{page_slug}/{index}");
+    Redirect::permanent(&destination)
+}
+
 pub async fn handle_code_block(
     State(state): State<ServerState>,
     Path((page_slug, index)): Path<(String, String)>,
@@ -36,9 +41,4 @@ pub async fn handle_code_block(
 
     // TODO
     todo!()
-}
-
-pub async fn handle_code_redirect(Path((page_slug, index)): Path<(String, String)>) -> Redirect {
-    let destination = format!("/-/code/{page_slug}/{index}");
-    Redirect::permanent(&destination)
 }
