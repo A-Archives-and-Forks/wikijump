@@ -21,7 +21,7 @@
 use crate::{
     cache::Cache,
     config::Secrets,
-    deepwell::{Deepwell, Domains, SiteData},
+    deepwell::{Deepwell, Domains, PageData, SiteData},
     error::Result,
 };
 use s3::bucket::Bucket;
@@ -102,6 +102,25 @@ impl ServerStateInner {
                     Ok(Some((site_id, site_slug)))
                 }
             },
+        }
+    }
+
+    pub async fn get_page_slug(&self, site_id: i64, page_slug: &str) -> Result<Option<i64>> {
+        match self.cache.get_page_slug(site_id, page_slug).await? {
+            Some(page_id) =>Ok(Some(page_id)),
+            None => match self.deepwell.get_page_metadata(site_id, page_slug).await? {
+                None => Ok(None),
+                Some(PageData {
+                    page_id,
+                    ..
+                }) => {
+                    self.cache
+                        .set_page_slug(site_id, page_slug, page_id)
+                        .await?;
+
+                    Ok(Some(page_id))
+                }
+            }
         }
     }
 }

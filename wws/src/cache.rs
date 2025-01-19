@@ -70,4 +70,18 @@ impl Cache {
         conn.hset::<_, _, _, ()>(&key, "slug", site_slug).await?;
         Ok(())
     }
+
+    pub async fn get_page_slug(&self, site_id: i64, page_slug: &str) -> Result<Option<i64>> {
+        let mut conn = self.client.get_multiplexed_async_connection().await?;
+        let key = format!("page_slug:{site_id}:{page_slug}");
+        let value = conn.hget(key, "id").await?;
+        Ok(value)
+    }
+
+    pub async fn set_page_slug(&self, site_id: i64, page_slug: &str, page_id: i64) -> Result<()> {
+        let mut conn = self.client.get_multiplexed_async_connection().await?;
+        let key = format!("page_slug:{site_id}:{page_slug}");
+        conn.hset::<_, _, _, ()>(&key, "id", page_id).await?;
+        Ok(())
+    }
 }

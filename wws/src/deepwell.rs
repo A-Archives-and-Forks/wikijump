@@ -133,6 +133,38 @@ impl Deepwell {
 
         Ok(site_data)
     }
+
+    pub async fn get_page_metadata(&self, site_id: i64, page_slug: &str) -> Result<Option<PageData>> {
+        let params = rpc_object! {
+            "site_id" => site_id,
+            "page" => page_slug,
+            "wikitext" => false,
+            "compiled" => false,
+        };
+
+        let page_data: Option<PageData> = self
+            .client
+            .request("page_get", params)
+            .await?;
+
+        Ok(page_data)
+    }
+
+    pub async fn get_file_metadata(&self, site_id: i64, page_id: i64, filename: &str) -> Result<Option<FileData>> {
+        let params = rpc_object! {
+            "site_id" => site_id,
+            "page_id" => page_id,
+            "file" => filename,
+            "data" => false,
+        };
+
+        let file_data: Option<FileData> = self
+            .client
+            .request("file_get", params)
+            .await?;
+
+        Ok(file_data)
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -150,4 +182,26 @@ pub struct SiteData {
     pub slug: String,
     pub name: String,
     pub custom_domain: Option<String>,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct PageData {
+    pub page_id: i64,
+    pub page_revision_count: i32,
+    pub page_category_id: i64,
+    pub page_category_slug: String,
+    pub revision_id: i64,
+    pub revision_number: i32,
+    pub revision_user_id: i64,
+    pub revision_comments: String,
+    pub title: String,
+    pub alt_title: Option<String>,
+    pub slug: String,
+    pub hidden_fields: Vec<String>,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct FileData {
+    pub file_id: i64,
+    pub s3_hash: Vec<u8>,
 }

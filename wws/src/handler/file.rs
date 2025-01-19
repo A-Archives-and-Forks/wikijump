@@ -18,12 +18,13 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use crate::state::ServerState;
+use crate::{error::Result, state::ServerState};
 use axum::{
     extract::{Path, State},
     response::{Html, Redirect},
 };
 use axum_extra::response::Attachment;
+use wikidot_normalize::normalize;
 
 pub async fn handle_file_redirect(Path((page_slug, filename)): Path<(String, String)>) -> Redirect {
     let destination = format!("/-/file/{page_slug}/{filename}");
@@ -32,7 +33,7 @@ pub async fn handle_file_redirect(Path((page_slug, filename)): Path<(String, Str
 
 pub async fn handle_file_fetch(
     State(state): State<ServerState>,
-    Path((page_slug, filename)): Path<(String, String)>,
+    Path((mut page_slug, filename)): Path<(String, String)>,
 ) -> Html<&'static str> {
     info!(
         page_slug = page_slug,
@@ -46,7 +47,7 @@ pub async fn handle_file_fetch(
 
 pub async fn handle_file_download(
     State(state): State<ServerState>,
-    Path((page_slug, filename)): Path<(String, String)>,
+    Path((mut page_slug, filename)): Path<(String, String)>,
 ) -> Html<&'static str> {
     info!(
         page_slug = page_slug,
@@ -55,5 +56,12 @@ pub async fn handle_file_download(
     );
 
     // TODO Attachment
+    todo!()
+}
+
+async fn get_file(state: &ServerState, site_id: i64, page_slug: &mut String, filename: &str) -> Result<i8> {
+    normalize(page_slug);
+
+    let page_id = state.get_page_slug(site_id, &page_slug).await?;
     todo!()
 }
