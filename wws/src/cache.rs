@@ -127,6 +127,7 @@ impl Cache {
 
             // Some fields are set and others aren't. Let's clear all them out.
             _ => {
+                warn!(key = key, "Inconsistent cache data, deleting");
                 hdel!(conn, key, fields);
                 Ok(None)
             }
