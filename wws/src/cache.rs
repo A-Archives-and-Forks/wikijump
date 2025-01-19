@@ -104,10 +104,15 @@ impl Cache {
         page_id: i64,
         filename: &str,
     ) -> Result<Option<FileData>> {
+        type FileDataTuple = Option<(i64, String, i64, String)>;
+
         let mut conn = get_connection!(self.client);
         let key = format!("file_name:{site_id}:{page_id}:{filename}");
-        let (file_id, s3_hash) = conn.hget(key, &["id", "s3_hash"]).await?;
-        Ok(Some(FileData { file_id, s3_hash }))
+        let data = conn.hget::<_, _, FileDataTuple>(key, &["id", "mime", "size", "s3_hash"])
+            .await?
+            .map(|(file_id, mime, size, s3_hash)| FileData { file_id, mime, size, s3_hash });
+
+        Ok(data)
     }
 
     pub async fn set_file(
