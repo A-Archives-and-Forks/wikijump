@@ -18,12 +18,12 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use axum::{body::Body, http::status::StatusCode, response::Response};
+use axum::{body::Body, http::{status::StatusCode, header}, response::Response};
 
 pub async fn handle_teapot() -> Response {
     Response::builder()
         .status(StatusCode::IM_A_TEAPOT)
-        .header("Content-Type", "text/html; charset=utf-8")
+        .header(header::CONTENT_TYPE, "text/html; charset=utf-8")
         .body(Body::from("🫖"))
         .expect("Unable to convert response data")
 }
