@@ -18,6 +18,11 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+//! Manages cached data in Redis.
+//!
+//! Whenever you make changes to this module, make sure that the code is
+//! compatible with DEEPWELL's Redis code.
+
 use crate::error::Result;
 use redis::AsyncCommands;
 
