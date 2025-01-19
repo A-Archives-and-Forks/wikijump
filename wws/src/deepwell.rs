@@ -187,16 +187,8 @@ pub struct SiteData {
 #[derive(Deserialize, Debug, Clone)]
 pub struct PageData {
     pub page_id: i64,
-    pub page_revision_count: i32,
-    pub page_category_id: i64,
-    pub page_category_slug: String,
-    pub revision_id: i64,
-    pub revision_number: i32,
-    pub revision_user_id: i64,
-    pub revision_comments: String,
     pub title: String,
     pub alt_title: Option<String>,
-    pub slug: String,
     pub hidden_fields: Vec<String>,
 }
 
