@@ -50,28 +50,33 @@ impl Cache {
         Ok(Cache { client })
     }
 
-    pub async fn get_site_slug(&self, site_slug: &str) -> Result<Option<i64>> {
+    pub async fn get_site_from_slug(&self, site_slug: &str) -> Result<Option<i64>> {
         let mut conn = get_connection!(self.client);
         let key = format!("site_slug:{site_slug}");
         let value = conn.hget(key, "id").await?;
         Ok(value)
     }
 
-    pub async fn set_site_slug(&self, site_slug: &str, site_id: i64) -> Result<()> {
+    pub async fn set_site_from_slug(&self, site_slug: &str, site_id: i64) -> Result<()> {
         let mut conn = get_connection!(self.client);
         let key = format!("site_slug:{site_slug}");
         hset!(conn, key, "id", site_id);
         Ok(())
     }
 
-    pub async fn get_site_domain(&self, domain: &str) -> Result<Option<(i64, String)>> {
+    pub async fn get_site_from_domain(&self, domain: &str) -> Result<Option<(i64, String)>> {
         let mut conn = get_connection!(self.client);
         let key = format!("site_domain:{domain}");
         let value = conn.hget(key, &["id", "slug"]).await?;
         Ok(value)
     }
 
-    pub async fn set_site_domain(&self, domain: &str, site_id: i64, site_slug: &str) -> Result<()> {
+    pub async fn set_site_from_domain(
+        &self,
+        domain: &str,
+        site_id: i64,
+        site_slug: &str,
+    ) -> Result<()> {
         let mut conn = get_connection!(self.client);
         let key = format!("site_domain:{domain}");
         hset!(conn, key, "id", site_id);
@@ -79,21 +84,21 @@ impl Cache {
         Ok(())
     }
 
-    pub async fn get_page_slug(&self, site_id: i64, page_slug: &str) -> Result<Option<i64>> {
+    pub async fn get_page(&self, site_id: i64, page_slug: &str) -> Result<Option<i64>> {
         let mut conn = get_connection!(self.client);
         let key = format!("page_slug:{site_id}:{page_slug}");
         let value = conn.hget(key, "id").await?;
         Ok(value)
     }
 
-    pub async fn set_page_slug(&self, site_id: i64, page_slug: &str, page_id: i64) -> Result<()> {
+    pub async fn set_page(&self, site_id: i64, page_slug: &str, page_id: i64) -> Result<()> {
         let mut conn = get_connection!(self.client);
         let key = format!("page_slug:{site_id}:{page_slug}");
         hset!(conn, key, "id", page_id);
         Ok(())
     }
 
-    pub async fn get_file_name(
+    pub async fn get_file(
         &self,
         site_id: i64,
         page_id: i64,
@@ -105,7 +110,7 @@ impl Cache {
         Ok(Some(FileData { file_id, s3_hash }))
     }
 
-    pub async fn set_file_name(
+    pub async fn set_file(
         &self,
         site_id: i64,
         page_id: i64,

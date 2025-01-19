@@ -72,21 +72,21 @@ impl ServerStateInner {
     // Contains implementations for the common pattern of "check the cache,
     // if not present, get it from DEEPWELL and populate it".
 
-    pub async fn get_site_slug(&self, site_slug: &str) -> Result<Option<i64>> {
-        match self.cache.get_site_slug(site_slug).await? {
+    pub async fn get_site_from_slug(&self, site_slug: &str) -> Result<Option<i64>> {
+        match self.cache.get_site_from_slug(site_slug).await? {
             Some(site_id) => Ok(Some(site_id)),
             None => match self.deepwell.get_site_from_slug(site_slug).await? {
                 None => Ok(None),
                 Some(SiteData { site_id, .. }) => {
-                    self.cache.set_site_slug(site_slug, site_id).await?;
+                    self.cache.set_site_from_slug(site_slug, site_id).await?;
                     Ok(Some(site_id))
                 }
             },
         }
     }
 
-    pub async fn get_site_domain(&self, site_domain: &str) -> Result<Option<(i64, String)>> {
-        match self.cache.get_site_domain(site_domain).await? {
+    pub async fn get_site_from_domain(&self, site_domain: &str) -> Result<Option<(i64, String)>> {
+        match self.cache.get_site_from_domain(site_domain).await? {
             Some((site_id, site_slug)) => Ok(Some((site_id, site_slug))),
             None => match self.deepwell.get_site_from_domain(site_domain).await? {
                 None => Ok(None),
@@ -96,7 +96,7 @@ impl ServerStateInner {
                     ..
                 }) => {
                     self.cache
-                        .set_site_domain(site_domain, site_id, &site_slug)
+                        .set_site_from_domain(site_domain, site_id, &site_slug)
                         .await?;
 
                     Ok(Some((site_id, site_slug)))
@@ -105,39 +105,32 @@ impl ServerStateInner {
         }
     }
 
-    pub async fn get_page_slug(&self, site_id: i64, page_slug: &str) -> Result<Option<i64>> {
-        match self.cache.get_page_slug(site_id, page_slug).await? {
+    pub async fn get_page(&self, site_id: i64, page_slug: &str) -> Result<Option<i64>> {
+        match self.cache.get_page(site_id, page_slug).await? {
             Some(page_id) => Ok(Some(page_id)),
-            None => match self.deepwell.get_page_metadata(site_id, page_slug).await? {
+            None => match self.deepwell.get_page(site_id, page_slug).await? {
                 None => Ok(None),
                 Some(PageData { page_id, .. }) => {
-                    self.cache
-                        .set_page_slug(site_id, page_slug, page_id)
-                        .await?;
-
+                    self.cache.set_page(site_id, page_slug, page_id).await?;
                     Ok(Some(page_id))
                 }
             },
         }
     }
 
-    pub async fn get_file_name(
+    pub async fn get_file(
         &self,
         site_id: i64,
         page_id: i64,
         filename: &str,
     ) -> Result<Option<FileData>> {
-        match self.cache.get_file_name(site_id, page_id, filename).await? {
+        match self.cache.get_file(site_id, page_id, filename).await? {
             Some(data) => Ok(Some(data)),
-            None => match self
-                .deepwell
-                .get_file_metadata(site_id, page_id, filename)
-                .await?
-            {
+            None => match self.deepwell.get_file(site_id, page_id, filename).await? {
                 None => Ok(None),
                 Some(data) => {
                     self.cache
-                        .set_file_name(site_id, page_id, filename, &data)
+                        .set_file(site_id, page_id, filename, &data)
                         .await?;
 
                     Ok(Some(data))

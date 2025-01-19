@@ -134,11 +134,7 @@ impl Deepwell {
         Ok(site_data)
     }
 
-    pub async fn get_page_metadata(
-        &self,
-        site_id: i64,
-        page_slug: &str,
-    ) -> Result<Option<PageData>> {
+    pub async fn get_page(&self, site_id: i64, page_slug: &str) -> Result<Option<PageData>> {
         let params = rpc_object! {
             "site_id" => site_id,
             "page" => page_slug,
@@ -151,7 +147,7 @@ impl Deepwell {
         Ok(page_data)
     }
 
-    pub async fn get_file_metadata(
+    pub async fn get_file(
         &self,
         site_id: i64,
         page_id: i64,

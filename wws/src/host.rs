@@ -59,7 +59,7 @@ pub async fn lookup_host<'a>(state: &ServerState, hostname: &'a str) -> Result<S
         main_site_slug(state, hostname, Some(site_slug)).await
     } else if let Some(site_slug) = hostname.strip_suffix(files_domain) {
         // Determine if it's a files domain.
-        let site_id = state.get_site_slug(site_slug).await?;
+        let site_id = state.get_site_from_slug(site_slug).await?;
         match site_id {
             Some(site_id) => {
                 // Site exists
@@ -98,7 +98,7 @@ pub async fn lookup_host<'a>(state: &ServerState, hostname: &'a str) -> Result<S
         // If it's anything else, it must be a custom domain.
         // Do a lookup, then set the site data as appropriate.
 
-        match state.get_site_domain(&hostname).await? {
+        match state.get_site_from_domain(&hostname).await? {
             Some((site_id, site_slug)) => {
                 // Site exists
                 info!(
@@ -136,7 +136,7 @@ async fn main_site_slug<'a>(
     };
 
     // Return site present or missing response based on site ID.
-    let site_id = state.get_site_slug(site_slug).await?;
+    let site_id = state.get_site_from_slug(site_slug).await?;
     match site_id {
         Some(site_id) => {
             // Site exists
