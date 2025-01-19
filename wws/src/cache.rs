@@ -38,6 +38,12 @@ macro_rules! hset {
     };
 }
 
+macro_rules! hdel {
+    ($conn:expr, $key:expr, $field:expr $(,)?) => {
+        $conn.hdel::<_, _, ()>(&$key, $field).await?
+    };
+}
+
 #[derive(Debug)]
 pub struct Cache {
     client: redis::Client,
@@ -104,15 +110,27 @@ impl Cache {
         page_id: i64,
         filename: &str,
     ) -> Result<Option<FileData>> {
-        type FileDataTuple = Option<(i64, String, i64, String)>;
+        type FileDataTuple = (Option<i64>, Option<String>, Option<i64>, Option<String>);
 
         let mut conn = get_connection!(self.client);
         let key = format!("file_name:{site_id}:{page_id}:{filename}");
-        let data = conn.hget::<_, _, FileDataTuple>(key, &["id", "mime", "size", "s3_hash"])
-            .await?
-            .map(|(file_id, mime, size, s3_hash)| FileData { file_id, mime, size, s3_hash });
+        let fields = &["id", "mime", "size", "s3_hash"];
+        let values = conn.hget::<_, _, FileDataTuple>(&key, fields).await?;
+        match values {
+            // Ideally, all of these should be non-null, if it's a cache hit.
+            (Some(file_id), Some(mime), Some(size), Some(s3_hash)) => {
+                Ok(Some(FileData { file_id, mime, size, s3_hash }))
+            }
 
-        Ok(data)
+            // Cache miss
+            (None, None, None, None) => Ok(None),
+
+            // Some fields are set and others aren't. Let's clear all them out.
+            _ => {
+                hdel!(conn, key, fields);
+                Ok(None)
+            }
+        }
     }
 
     pub async fn set_file(
