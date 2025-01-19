@@ -59,9 +59,23 @@ pub async fn handle_file_download(
     todo!()
 }
 
-async fn get_file(state: &ServerState, site_id: i64, page_slug: &mut String, filename: &str) -> Result<i8> {
+async fn get_file(
+    state: &ServerState,
+    site_id: i64,
+    page_slug: &mut String,
+    filename: &str,
+) -> Result<Option<()>> {
     normalize(page_slug);
 
-    let page_id = state.get_page_slug(site_id, &page_slug).await?;
+    let page_id = match state.get_page_slug(site_id, &page_slug).await? {
+        Some(page_id) => page_id,
+        None => return Ok(None),
+    };
+
+    let file_info = match state.get_file_name(site_id, page_id, filename).await? {
+        Some(file_info) => file_info,
+        None => return Ok(None),
+    };
+
     todo!()
 }

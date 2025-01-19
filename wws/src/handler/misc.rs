@@ -18,7 +18,11 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use axum::{body::Body, http::{status::StatusCode, header}, response::Response};
+use axum::{
+    body::Body,
+    http::{header, status::StatusCode},
+    response::Response,
+};
 
 pub async fn handle_teapot() -> Response {
     Response::builder()

@@ -23,7 +23,7 @@
 //! Whenever you make changes to this module, make sure that the code is
 //! compatible with DEEPWELL's Redis code.
 
-use crate::error::Result;
+use crate::{deepwell::FileData, error::Result};
 use redis::AsyncCommands;
 
 #[derive(Debug)]
@@ -38,7 +38,6 @@ impl Cache {
         Ok(Cache { client })
     }
 
-    /// Retrieve the site ID from the slug from the cache.
     pub async fn get_site_slug(&self, site_slug: &str) -> Result<Option<i64>> {
         let mut conn = self.client.get_multiplexed_async_connection().await?;
         let key = format!("site_slug:{site_slug}");
@@ -46,7 +45,6 @@ impl Cache {
         Ok(value)
     }
 
-    /// Set the site ID for a site slug.
     pub async fn set_site_slug(&self, site_slug: &str, site_id: i64) -> Result<()> {
         let mut conn = self.client.get_multiplexed_async_connection().await?;
         let key = format!("site_slug:{site_slug}");
@@ -54,7 +52,6 @@ impl Cache {
         Ok(())
     }
 
-    /// Retrieve the site slug and ID from a custom domain from the cache.
     pub async fn get_site_domain(&self, domain: &str) -> Result<Option<(i64, String)>> {
         let mut conn = self.client.get_multiplexed_async_connection().await?;
         let key = format!("site_domain:{domain}");
@@ -62,7 +59,6 @@ impl Cache {
         Ok(value)
     }
 
-    /// Set the site slug and ID for a custom domain.
     pub async fn set_site_domain(&self, domain: &str, site_id: i64, site_slug: &str) -> Result<()> {
         let mut conn = self.client.get_multiplexed_async_connection().await?;
         let key = format!("site_domain:{domain}");
@@ -82,6 +78,33 @@ impl Cache {
         let mut conn = self.client.get_multiplexed_async_connection().await?;
         let key = format!("page_slug:{site_id}:{page_slug}");
         conn.hset::<_, _, _, ()>(&key, "id", page_id).await?;
+        Ok(())
+    }
+
+    pub async fn get_file_name(
+        &self,
+        site_id: i64,
+        page_id: i64,
+        filename: &str,
+    ) -> Result<Option<FileData>> {
+        let mut conn = self.client.get_multiplexed_async_connection().await?;
+        let key = format!("file_name:{site_id}:{page_id}:{filename}");
+        let (file_id, s3_hash) = conn.hget(key, &["id", "s3_hash"]).await?;
+        Ok(Some(FileData { file_id, s3_hash }))
+    }
+
+    pub async fn set_file_name(
+        &self,
+        site_id: i64,
+        page_id: i64,
+        filename: &str,
+        data: &FileData,
+    ) -> Result<()> {
+        let mut conn = self.client.get_multiplexed_async_connection().await?;
+        let key = format!("file_name:{site_id}:{page_id}:{filename}");
+        conn.hset::<_, _, _, ()>(&key, "id", data.file_id).await?;
+        conn.hset::<_, _, _, ()>(&key, "s3_hash", &data.s3_hash)
+            .await?;
         Ok(())
     }
 }

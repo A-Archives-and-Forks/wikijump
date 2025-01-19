@@ -134,7 +134,11 @@ impl Deepwell {
         Ok(site_data)
     }
 
-    pub async fn get_page_metadata(&self, site_id: i64, page_slug: &str) -> Result<Option<PageData>> {
+    pub async fn get_page_metadata(
+        &self,
+        site_id: i64,
+        page_slug: &str,
+    ) -> Result<Option<PageData>> {
         let params = rpc_object! {
             "site_id" => site_id,
             "page" => page_slug,
@@ -142,15 +146,17 @@ impl Deepwell {
             "compiled" => false,
         };
 
-        let page_data: Option<PageData> = self
-            .client
-            .request("page_get", params)
-            .await?;
+        let page_data: Option<PageData> = self.client.request("page_get", params).await?;
 
         Ok(page_data)
     }
 
-    pub async fn get_file_metadata(&self, site_id: i64, page_id: i64, filename: &str) -> Result<Option<FileData>> {
+    pub async fn get_file_metadata(
+        &self,
+        site_id: i64,
+        page_id: i64,
+        filename: &str,
+    ) -> Result<Option<FileData>> {
         let params = rpc_object! {
             "site_id" => site_id,
             "page_id" => page_id,
@@ -158,11 +164,7 @@ impl Deepwell {
             "data" => false,
         };
 
-        let file_data: Option<FileData> = self
-            .client
-            .request("file_get", params)
-            .await?;
-
+        let file_data: Option<FileData> = self.client.request("file_get", params).await?;
         Ok(file_data)
     }
 }

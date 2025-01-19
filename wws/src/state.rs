@@ -21,7 +21,7 @@
 use crate::{
     cache::Cache,
     config::Secrets,
-    deepwell::{Deepwell, Domains, PageData, SiteData},
+    deepwell::{Deepwell, Domains, FileData, PageData, SiteData},
     error::Result,
 };
 use s3::bucket::Bucket;
@@ -107,20 +107,42 @@ impl ServerStateInner {
 
     pub async fn get_page_slug(&self, site_id: i64, page_slug: &str) -> Result<Option<i64>> {
         match self.cache.get_page_slug(site_id, page_slug).await? {
-            Some(page_id) =>Ok(Some(page_id)),
+            Some(page_id) => Ok(Some(page_id)),
             None => match self.deepwell.get_page_metadata(site_id, page_slug).await? {
                 None => Ok(None),
-                Some(PageData {
-                    page_id,
-                    ..
-                }) => {
+                Some(PageData { page_id, .. }) => {
                     self.cache
                         .set_page_slug(site_id, page_slug, page_id)
                         .await?;
 
                     Ok(Some(page_id))
                 }
-            }
+            },
+        }
+    }
+
+    pub async fn get_file_name(
+        &self,
+        site_id: i64,
+        page_id: i64,
+        filename: &str,
+    ) -> Result<Option<FileData>> {
+        match self.cache.get_file_name(site_id, page_id, filename).await? {
+            Some(data) => Ok(Some(data)),
+            None => match self
+                .deepwell
+                .get_file_metadata(site_id, page_id, filename)
+                .await?
+            {
+                None => Ok(None),
+                Some(data) => {
+                    self.cache
+                        .set_file_name(site_id, page_id, filename, &data)
+                        .await?;
+
+                    Ok(Some(data))
+                }
+            },
         }
     }
 }
