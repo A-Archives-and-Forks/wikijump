@@ -193,5 +193,7 @@ pub struct PageData {
 #[derive(Deserialize, Debug, Clone)]
 pub struct FileData {
     pub file_id: i64,
+    pub mime: String,
+    pub size: i64,
     pub s3_hash: String,
 }

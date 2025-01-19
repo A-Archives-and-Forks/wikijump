@@ -125,6 +125,8 @@ impl Cache {
         let mut conn = get_connection!(self.client);
         let key = format!("file_name:{site_id}:{page_id}:{filename}");
         hset!(conn, key, "id", data.file_id);
+        hset!(conn, key, "mime", &data.mime);
+        hset!(conn, key, "size", data.size);
         hset!(conn, key, "s3_hash", &data.s3_hash);
         Ok(())
     }
