@@ -134,8 +134,11 @@ pub async fn handle_host_delegation(
         Err(error) => {
             // TODO error page response in case of an internal issue
             //todo!()
-// TODO
-SiteAndHost::File { site_id: 4, site_slug: "scp-wiki" }
+            // TODO
+            SiteAndHost::File {
+                site_id: 4,
+                site_slug: "scp-wiki",
+            }
         }
     };
 

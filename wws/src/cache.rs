@@ -118,9 +118,12 @@ impl Cache {
         let values = conn.hget::<_, _, FileDataTuple>(&key, fields).await?;
         match values {
             // Ideally, all of these should be non-null, if it's a cache hit.
-            (Some(file_id), Some(mime), Some(size), Some(s3_hash)) => {
-                Ok(Some(FileData { file_id, mime, size, s3_hash }))
-            }
+            (Some(file_id), Some(mime), Some(size), Some(s3_hash)) => Ok(Some(FileData {
+                file_id,
+                mime,
+                size,
+                s3_hash,
+            })),
 
             // Cache miss
             (None, None, None, None) => Ok(None),

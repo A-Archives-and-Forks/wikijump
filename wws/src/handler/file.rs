@@ -18,42 +18,99 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use crate::{deepwell::FileData, error::Result, state::ServerState};
 use super::get_site_info;
+use crate::{deepwell::FileData, error::Result, state::ServerState};
 use axum::{
     body::Body,
     extract::{Path, State},
-    http::StatusCode,
     http::header::{self, HeaderMap},
-    response::{Redirect, Response, IntoResponse},
+    http::StatusCode,
+    response::{IntoResponse, Redirect, Response},
 };
 use axum_extra::response::Attachment;
 use s3::request::request_trait::ResponseDataStream;
 use wikidot_normalize::normalize;
 
-/// Helper function to retrieve file data for returning via HTTP.
-async fn get_file(
-    state: &ServerState,
-    site_id: i64,
-    page_slug: &mut String,
-    filename: &str,
-) -> Result<Option<(FileData, Body)>> {
-    normalize(page_slug);
+macro_rules! fetch_file {
+    ($state:expr, $headers:expr, $page_slug:expr, $filename:expr $(,)?) => {{
+        normalize(&mut $page_slug);
 
-    let page_id = match state.get_page(site_id, &page_slug).await? {
-        Some(page_id) => page_id,
-        None => return Ok(None),
-    };
+        let (site_id, _) = get_site_info(&$headers);
 
-    let file_info = match state.get_file(site_id, page_id, filename).await? {
-        Some(file_info) => file_info,
-        None => return Ok(None),
-    };
+        let state = &$state;
+        let page_slug = &$page_slug;
+        let filename = &$filename;
 
-    let ResponseDataStream { bytes, status_code } = state.s3_bucket.get_object_stream(&file_info.s3_hash).await?;
-    assert_eq!(status_code, 200, "get_object_stream() succeeded but did not reply 200");
-    let body = Body::from_stream(bytes);
-    Ok(Some((file_info, body)))
+        let page_id = match state.get_page(site_id, page_slug).await {
+            Ok(Some(page_id)) => page_id,
+            Ok(None) => {
+                error!(
+                    site_id = site_id,
+                    page_slug = page_slug,
+                    "Cannot get file, no such page",
+                );
+
+                return StatusCode::NOT_FOUND.into_response();
+            }
+            Err(error) => {
+                error!(
+                    site_id = site_id,
+                    page_slug = page_slug,
+                    "Cannot get page info: {error}",
+                );
+
+                return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+            }
+        };
+
+        let file_info = match state.get_file(site_id, page_id, filename).await {
+            Ok(Some(file_info)) => file_info,
+            Ok(None) => {
+                error!(
+                    site_id = site_id,
+                    page_id = page_id,
+                    filename = $filename,
+                    "Cannot get file, none with filename",
+                );
+
+                return StatusCode::NOT_FOUND.into_response();
+            }
+            Err(error) => {
+                error!(
+                    site_id = site_id,
+                    page_slug = page_slug,
+                    "Cannot get file info: {error}",
+                );
+
+                return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+            }
+        };
+
+        let body = match state.s3_bucket.get_object_stream(&file_info.s3_hash).await {
+            Ok(ResponseDataStream { bytes, status_code }) => {
+                assert_eq!(
+                    status_code,
+                    StatusCode::OK,
+                    "get_object_stream() succeeded but did not reply 200",
+                );
+
+                Body::from_stream(bytes)
+            }
+            Err(error) => {
+                error!(
+                    site_id = site_id,
+                    page_slug = page_slug,
+                    filename = filename,
+                    s3_hash = &file_info.s3_hash,
+                    "Cannot get blob data: {error}",
+                );
+
+                return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+            }
+        };
+
+        (file_info, body)
+    }};
 }
 
 pub async fn handle_file_redirect(Path((page_slug, filename)): Path<(String, String)>) -> Redirect {
@@ -72,18 +129,18 @@ pub async fn handle_file_fetch(
         "Returning file data",
     );
 
-    let (site_id, _) = get_site_info(&headers);
-    // TODO
-    let _result = get_file(&state, site_id, &mut page_slug, &filename).await;
-    let (metadata, data) = _result.expect("_TODO").expect("_TODO");
+    let (file_info, body) = fetch_file!(state, headers, page_slug, filename);
 
     let result = Response::builder()
-        .header(header::CONTENT_TYPE, &metadata.mime)
-        .body(Body::from(data));
+        .header(header::CONTENT_TYPE, &file_info.mime)
+        .body(body);
 
     match result {
         Ok(response) => response,
-        Err(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
+        Err(error) => {
+            error!("Unable to convert response: {error}");
+            StatusCode::INTERNAL_SERVER_ERROR.into_response()
+        }
     }
 }
 
@@ -98,13 +155,10 @@ pub async fn handle_file_download(
         "Returning file download",
     );
 
-    let (site_id, _) = get_site_info(&headers);
-    // TODO
-    let _result = get_file(&state, site_id, &mut page_slug, &filename).await;
-    let (metadata, data) = _result.expect("_TODO").expect("_TODO");
+    let (file_info, body) = fetch_file!(state, headers, page_slug, filename);
 
-    Attachment::new(data)
+    Attachment::new(body)
         .filename(&filename)
-        .content_type(&metadata.mime)
+        .content_type(&file_info.mime)
         .into_response()
 }
