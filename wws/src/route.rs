@@ -43,6 +43,7 @@ pub fn build_router(state: ServerState) -> Router {
         .route("/local--files/{*rest}", any(redirect_to_files))
         .route("/local--code/{*rest}", any(redirect_to_files))
         .route("/local--html/{*rest}", any(redirect_to_files))
+        .route("/-/files/{*rest}", any(redirect_to_files))
         .route("/-/file/{*rest}", any(redirect_to_files))
         .route("/-/download/{*rest}", any(redirect_to_files))
         .route("/-/code/{*rest}", any(redirect_to_files))
@@ -52,6 +53,7 @@ pub fn build_router(state: ServerState) -> Router {
 
     // Router that serves wjfiles
     let files_router = Router::new()
+        // Wikidot routes
         .route(
             "/local--files/{page_slug}/{filename}",
             get(handle_file_redirect),
@@ -61,6 +63,9 @@ pub fn build_router(state: ServerState) -> Router {
             any(handle_code_redirect),
         )
         .route("/local--html/{page_slug}/{id}", any(handle_html_redirect))
+        // Other redirects
+        .route("/-/files/{page_slug}/{filename}", any(handle_file_redirect))
+        // Files
         .route("/-/file/{page_slug}/{filename}", get(handle_file_fetch))
         .route("/-/file/{page_slug}/{filename}", any(handle_invalid_method))
         .route(
@@ -71,6 +76,7 @@ pub fn build_router(state: ServerState) -> Router {
             "/-/download/{page_slug}/{filename}",
             any(handle_invalid_method),
         )
+        // Code and HTML
         .route("/-/code/{page_slug}/{index}", get(handle_code_block))
         .route("/-/code/{page_slug}/{index}", any(handle_invalid_method))
         .route("/-/html/{page_slug}/{id}", get(handle_html_block))
