@@ -18,10 +18,14 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use crate::{error::Result, state::ServerState};
+use crate::{deepwell::FileData, error::Result, state::ServerState};
+use super::get_site_info;
 use axum::{
+    body::Body,
     extract::{Path, State},
-    response::{Html, Redirect},
+    http::StatusCode,
+    http::header::{self, HeaderMap},
+    response::{Redirect, Response, IntoResponse},
 };
 use axum_extra::response::Attachment;
 use wikidot_normalize::normalize;
@@ -64,7 +68,7 @@ async fn get_file(
     site_id: i64,
     page_slug: &mut String,
     filename: &str,
-) -> Result<Option<()>> {
+) -> Result<Option<(FileData, Body)>> {
     normalize(page_slug);
 
     let page_id = match state.get_page(site_id, &page_slug).await? {
@@ -77,5 +81,8 @@ async fn get_file(
         None => return Ok(None),
     };
 
-    todo!()
+    let s3_result = state.s3_bucket.get_object_stream(&file_info.s3_hash).await?;
+    assert_eq!(s3_result.status_code, 200, "get_object_stream() succeeded but did not reply 200");
+    let body = Body::from_stream(s3_result.bytes);
+    Ok(Some((file_info, body)))
 }
