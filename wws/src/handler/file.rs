@@ -69,7 +69,7 @@ macro_rules! fetch_file {
                 error!(
                     site_id = site_id,
                     page_id = page_id,
-                    filename = $filename,
+                    filename = filename,
                     "Cannot get file, none with filename",
                 );
 
