@@ -31,6 +31,31 @@ use axum_extra::response::Attachment;
 use s3::request::request_trait::ResponseDataStream;
 use wikidot_normalize::normalize;
 
+/// Helper function to retrieve file data for returning via HTTP.
+async fn get_file(
+    state: &ServerState,
+    site_id: i64,
+    page_slug: &mut String,
+    filename: &str,
+) -> Result<Option<(FileData, Body)>> {
+    normalize(page_slug);
+
+    let page_id = match state.get_page(site_id, &page_slug).await? {
+        Some(page_id) => page_id,
+        None => return Ok(None),
+    };
+
+    let file_info = match state.get_file(site_id, page_id, filename).await? {
+        Some(file_info) => file_info,
+        None => return Ok(None),
+    };
+
+    let ResponseDataStream { bytes, status_code } = state.s3_bucket.get_object_stream(&file_info.s3_hash).await?;
+    assert_eq!(status_code, 200, "get_object_stream() succeeded but did not reply 200");
+    let body = Body::from_stream(bytes);
+    Ok(Some((file_info, body)))
+}
+
 pub async fn handle_file_redirect(Path((page_slug, filename)): Path<(String, String)>) -> Redirect {
     let destination = format!("/-/file/{page_slug}/{filename}");
     Redirect::permanent(&destination)
@@ -82,28 +107,4 @@ pub async fn handle_file_download(
         .filename(&filename)
         .content_type(&metadata.mime)
         .into_response()
-}
-
-async fn get_file(
-    state: &ServerState,
-    site_id: i64,
-    page_slug: &mut String,
-    filename: &str,
-) -> Result<Option<(FileData, Body)>> {
-    normalize(page_slug);
-
-    let page_id = match state.get_page(site_id, &page_slug).await? {
-        Some(page_id) => page_id,
-        None => return Ok(None),
-    };
-
-    let file_info = match state.get_file(site_id, page_id, filename).await? {
-        Some(file_info) => file_info,
-        None => return Ok(None),
-    };
-
-    let ResponseDataStream { bytes, status_code } = state.s3_bucket.get_object_stream(&file_info.s3_hash).await?;
-    assert_eq!(status_code, 200, "get_object_stream() succeeded but did not reply 200");
-    let body = Body::from_stream(bytes);
-    Ok(Some((file_info, body)))
 }
