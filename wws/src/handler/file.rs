@@ -97,6 +97,14 @@ macro_rules! fetch_file {
                 Body::from_stream(bytes)
             }
             Err(error) => {
+                // NOTE: If the error here is 404 we still return 500.
+                //
+                //       If we have a file record for a file, then the
+                //       corresponding blob *should* exist.
+                //
+                //       If it doesn't, the data invariant is not being met,
+                //       which is an unexpected error.
+
                 error!(
                     site_id = site_id,
                     page_slug = page_slug,
