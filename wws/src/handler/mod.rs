@@ -40,7 +40,7 @@ use crate::{
 use axum::{
     body::Body,
     extract::Request,
-    http::header::HeaderName,
+    http::header::{HeaderMap, HeaderName},
     response::{IntoResponse, Redirect, Response},
     Router,
 };
@@ -53,6 +53,25 @@ pub const HEADER_DOMAIN: HeaderName = HeaderName::from_static("x-wikijump-domain
 pub const HEADER_IS_WIKIJUMP: HeaderName = HeaderName::from_static("x-wikijump");
 pub const HEADER_WWS_VERSION: HeaderName = HeaderName::from_static("x-wikijump-wws-ver");
 pub const HEADER_DEEPWELL_VERSION: HeaderName = HeaderName::from_static("x-wikijump-deepwell-ver");
+
+/// Helper function to get the site ID and slug from headers.
+fn get_site_info(headers: &HeaderMap) -> (i64, &str) {
+    let site_id = headers
+        .get(HEADER_SITE_ID)
+        .expect("No site ID header in request")
+        .to_str()
+        .expect("Site ID header is not UTF-8")
+        .parse()
+        .expect("Site ID is not a valid integer");
+
+    let site_slug = headers
+        .get(HEADER_SITE_SLUG)
+        .expect("No site slug header in request")
+        .to_str()
+        .expect("Site slug header is not UTF-8");
+
+    (site_id, site_slug)
+}
 
 /// Entry route handler to first process host information.
 ///
@@ -114,7 +133,9 @@ pub async fn handle_host_delegation(
         Ok(host_data) => host_data,
         Err(error) => {
             // TODO error page response in case of an internal issue
-            todo!()
+            //todo!()
+// TODO
+SiteAndHost::File { site_id: 4, site_slug: "scp-wiki" }
         }
     };
 

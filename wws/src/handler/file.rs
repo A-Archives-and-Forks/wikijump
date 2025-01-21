@@ -39,29 +39,49 @@ pub async fn handle_file_redirect(Path((page_slug, filename)): Path<(String, Str
 pub async fn handle_file_fetch(
     State(state): State<ServerState>,
     Path((mut page_slug, filename)): Path<(String, String)>,
-) -> Html<&'static str> {
+    headers: HeaderMap,
+) -> Response {
     info!(
         page_slug = page_slug,
         filename = filename,
         "Returning file data",
     );
 
+    let (site_id, _) = get_site_info(&headers);
     // TODO
-    todo!()
+    let _result = get_file(&state, site_id, &mut page_slug, &filename).await;
+    let (metadata, data) = _result.expect("_TODO").expect("_TODO");
+
+    let result = Response::builder()
+        .header(header::CONTENT_TYPE, &metadata.mime)
+        .body(Body::from(data));
+
+    match result {
+        Ok(response) => response,
+        Err(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
+    }
 }
 
 pub async fn handle_file_download(
     State(state): State<ServerState>,
     Path((mut page_slug, filename)): Path<(String, String)>,
-) -> Html<&'static str> {
+    headers: HeaderMap,
+) -> Response {
     info!(
         page_slug = page_slug,
         filename = filename,
         "Returning file download",
     );
 
-    // TODO Attachment
-    todo!()
+    let (site_id, _) = get_site_info(&headers);
+    // TODO
+    let _result = get_file(&state, site_id, &mut page_slug, &filename).await;
+    let (metadata, data) = _result.expect("_TODO").expect("_TODO");
+
+    Attachment::new(data)
+        .filename(&filename)
+        .content_type(&metadata.mime)
+        .into_response()
 }
 
 async fn get_file(
