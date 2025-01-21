@@ -52,6 +52,14 @@ pub fn build_router(state: ServerState) -> Router {
         .with_state(main_state);
 
     // Router that serves wjfiles
+    //
+    // NOTE: For all GET routes, axum automatically handles HEAD requests.
+    //       The same logic is run, but the body is removed, which is very
+    //       convenient for us.
+    //
+    //       If we can avoid an expensive operation in a HEAD, then add
+    //       a "method: http::Method" parameter in the request then check
+    //       that before doing the relevant operation.
     let files_router = Router::new()
         // Wikidot routes
         .route(
