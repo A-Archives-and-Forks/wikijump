@@ -28,6 +28,7 @@ use axum::{
     response::{Redirect, Response, IntoResponse},
 };
 use axum_extra::response::Attachment;
+use s3::request::request_trait::ResponseDataStream;
 use wikidot_normalize::normalize;
 
 pub async fn handle_file_redirect(Path((page_slug, filename)): Path<(String, String)>) -> Redirect {
@@ -81,8 +82,8 @@ async fn get_file(
         None => return Ok(None),
     };
 
-    let s3_result = state.s3_bucket.get_object_stream(&file_info.s3_hash).await?;
-    assert_eq!(s3_result.status_code, 200, "get_object_stream() succeeded but did not reply 200");
-    let body = Body::from_stream(s3_result.bytes);
+    let ResponseDataStream { bytes, status_code } = state.s3_bucket.get_object_stream(&file_info.s3_hash).await?;
+    assert_eq!(status_code, 200, "get_object_stream() succeeded but did not reply 200");
+    let body = Body::from_stream(bytes);
     Ok(Some((file_info, body)))
 }
