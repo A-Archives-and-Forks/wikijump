@@ -18,7 +18,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use super::HEADER_SITE_SLUG;
+use super::get_site_info;
 use crate::{host::DEFAULT_SITE_SLUG, path::get_path, state::ServerState};
 use axum::{
     extract::State,
@@ -34,7 +34,7 @@ pub async fn redirect_to_files(
     // xyz.wikijump.com -> xyz.wjfiles.com
     // customdomain.com -> xyz.wjfiles.com
 
-    let site_slug = get_site_slug(&headers);
+    let (_, site_slug) = get_site_info(&headers);
     let path = get_path(&uri);
     let domain = &state.domains.files_domain;
     let destination = format!("https://{site_slug}{domain}{path}");
@@ -46,7 +46,7 @@ pub async fn redirect_to_main(
     headers: HeaderMap,
     uri: Uri,
 ) -> Redirect {
-    let site_slug = get_site_slug(&headers);
+    let (_, site_slug) = get_site_info(&headers);
     let path = get_path(&uri);
 
     // Only remove www for the main site.
@@ -60,12 +60,4 @@ pub async fn redirect_to_main(
     };
 
     Redirect::permanent(&destination)
-}
-
-fn get_site_slug(headers: &HeaderMap) -> &str {
-    headers
-        .get(HEADER_SITE_SLUG)
-        .expect("Site slug header not set by parent rounter")
-        .to_str()
-        .expect("Unable to convert site slug header to string")
 }
