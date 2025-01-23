@@ -25,6 +25,7 @@ use axum::{
     http::{header::HeaderMap, Uri},
     response::Redirect,
 };
+use paste::paste;
 
 pub async fn redirect_to_files(
     State(state): State<ServerState>,
@@ -62,35 +63,30 @@ pub async fn redirect_to_main(
     Redirect::permanent(&destination)
 }
 
-pub async fn redirect_to_file_route(
-    State(state): State<ServerState>,
-    Path((page_slug, filename)): Path<(String, String)>,
-    headers: HeaderMap,
-) -> Redirect {
-    let (_, site_slug) = get_site_info(&headers);
-    let domain = &state.domains.files_domain;
-    let destination = format!("https://{site_slug}{domain}/-/file/{page_slug}/{filename}");
-    Redirect::permanent(&destination)
+/// Code generation macro to create the "page convenience redirect routes".
+///
+/// These are routes on the main server like `/my-page/code/1` which really
+/// go to `/-/code/my-page/1` on the files server. Since they are identical
+/// aside from what special route they go to, we can have a macro generate
+/// them for us.
+macro_rules! make_redirect_to_route {
+    ($name:ident) => {
+        paste! {
+            pub async fn [<redirect_to_ $name _route>](
+                State(state): State<ServerState>,
+                Path((page_slug, extra)): Path<(String, String)>,
+                headers: HeaderMap,
+            ) -> Redirect {
+                let (_, site_slug) = get_site_info(&headers);
+                let domain = &state.domains.files_domain;
+                let route = stringify!($name);
+                let destination = format!("https://{site_slug}{domain}/-/{route}/{page_slug}/{extra}");
+                Redirect::permanent(&destination)
+            }
+        }
+    };
 }
 
-pub async fn redirect_to_code_route(
-    State(state): State<ServerState>,
-    Path((page_slug, index)): Path<(String, String)>,
-    headers: HeaderMap,
-) -> Redirect {
-    let (_, site_slug) = get_site_info(&headers);
-    let domain = &state.domains.files_domain;
-    let destination = format!("https://{site_slug}{domain}/-/code/{page_slug}/{index}");
-    Redirect::permanent(&destination)
-}
-
-pub async fn redirect_to_html_route(
-    State(state): State<ServerState>,
-    Path((page_slug, id)): Path<(String, String)>,
-    headers: HeaderMap,
-) -> Redirect {
-    let (_, site_slug) = get_site_info(&headers);
-    let domain = &state.domains.files_domain;
-    let destination = format!("https://{site_slug}{domain}/-/html/{page_slug}/{id}");
-    Redirect::permanent(&destination)
-}
+make_redirect_to_route!(file);
+make_redirect_to_route!(code);
+make_redirect_to_route!(html);
