@@ -21,7 +21,7 @@
 use super::get_site_info;
 use crate::{host::DEFAULT_SITE_SLUG, path::get_path, state::ServerState};
 use axum::{
-    extract::State,
+    extract::{Path, State},
     http::{header::HeaderMap, Uri},
     response::Redirect,
 };
@@ -59,5 +59,38 @@ pub async fn redirect_to_main(
         format!("https://{site_slug}{domain}{path}")
     };
 
+    Redirect::permanent(&destination)
+}
+
+pub async fn redirect_to_file_route(
+    State(state): State<ServerState>,
+    Path((page_slug, filename)): Path<(String, String)>,
+    headers: HeaderMap,
+) -> Redirect {
+    let (_, site_slug) = get_site_info(&headers);
+    let domain = &state.domains.files_domain;
+    let destination = format!("https://{site_slug}{domain}/-/file/{page_slug}/{filename}");
+    Redirect::permanent(&destination)
+}
+
+pub async fn redirect_to_code_route(
+    State(state): State<ServerState>,
+    Path((page_slug, index)): Path<(String, String)>,
+    headers: HeaderMap,
+) -> Redirect {
+    let (_, site_slug) = get_site_info(&headers);
+    let domain = &state.domains.files_domain;
+    let destination = format!("https://{site_slug}{domain}/-/code/{page_slug}/{index}");
+    Redirect::permanent(&destination)
+}
+
+pub async fn redirect_to_html_route(
+    State(state): State<ServerState>,
+    Path((page_slug, id)): Path<(String, String)>,
+    headers: HeaderMap,
+) -> Redirect {
+    let (_, site_slug) = get_site_info(&headers);
+    let domain = &state.domains.files_domain;
+    let destination = format!("https://{site_slug}{domain}/-/html/{page_slug}/{id}");
     Redirect::permanent(&destination)
 }
