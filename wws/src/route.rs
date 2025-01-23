@@ -101,7 +101,9 @@ pub fn build_router(state: ServerState) -> Router {
                 handle_host_delegation(state, hostname, request, main_router, files_router).await
             }
         )
-        // Easter egg
+        // General routes
+        .route("/robots.txt", get(handle_robots_txt))
+        .route("/.well-known", any(handle_well_known))
         .route("/-/teapot", any(handle_teapot))
         // Middleware
         .layer(TraceLayer::new_for_http())

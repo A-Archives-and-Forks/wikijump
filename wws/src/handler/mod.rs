@@ -24,6 +24,8 @@ mod framerail;
 mod html;
 mod misc;
 mod redirect;
+mod robots;
+mod well_known;
 
 pub use self::code::*;
 pub use self::file::*;
@@ -31,6 +33,8 @@ pub use self::framerail::*;
 pub use self::html::*;
 pub use self::misc::*;
 pub use self::redirect::*;
+pub use self::robots::*;
+pub use self::well_known::*;
 
 use crate::{
     host::{lookup_host, SiteAndHost},
