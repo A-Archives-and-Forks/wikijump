@@ -102,8 +102,8 @@ pub fn build_router(state: ServerState) -> Router {
             }
         )
         // General routes
-        .route("/robots.txt", get(handle_robots_txt))
-        .route("/.well-known", any(handle_well_known))
+        .route("/robots.txt", get(handle_robots_txt)) // TODO
+        .route("/.well-known", any(handle_well_known)) // TODO
         .route("/-/teapot", any(handle_teapot))
         // Middleware
         .layer(TraceLayer::new_for_http())
