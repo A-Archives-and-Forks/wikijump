@@ -41,9 +41,13 @@ pub fn build_router(state: ServerState) -> Router {
     // Router that serves framerail
     let main_router = Router::new()
         // Convenience redirect routes
-        .route("/{page_slug}/file/{filename}", any(redirect_to_file_route))
         .route("/{page_slug}/code/{index}", any(redirect_to_code_route))
         .route("/{page_slug}/html/{id}", any(redirect_to_html_route))
+        .route("/{page_slug}/file/{filename}", any(redirect_to_file_route))
+        .route(
+            "/{page_slug}/download/{filename}",
+            any(redirect_to_download_route),
+        )
         // Routes that are really on wjfiles
         .route("/local--files/{*rest}", any(redirect_to_files))
         .route("/local--code/{*rest}", any(redirect_to_files))

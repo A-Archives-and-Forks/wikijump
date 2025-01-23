@@ -87,6 +87,7 @@ macro_rules! make_redirect_to_route {
     };
 }
 
-make_redirect_to_route!(file);
 make_redirect_to_route!(code);
 make_redirect_to_route!(html);
+make_redirect_to_route!(file);
+make_redirect_to_route!(download);
