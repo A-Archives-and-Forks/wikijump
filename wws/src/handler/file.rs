@@ -19,7 +19,11 @@
  */
 
 use super::get_site_info;
-use crate::{deepwell::FileData, error::Result, state::ServerState};
+use crate::{
+    deepwell::FileData,
+    error::{Result, ServerErrorCode},
+    state::ServerState,
+};
 use axum::{
     body::Body,
     extract::{Path, State},
@@ -49,8 +53,7 @@ macro_rules! fetch_file {
                     page_slug = page_slug,
                     "Cannot get file, no such page",
                 );
-
-                return StatusCode::NOT_FOUND.into_response();
+                return ServerErrorCode::PageNotFound { site_id, page_slug }.into_response();
             }
             Err(error) => {
                 error!(
@@ -58,8 +61,7 @@ macro_rules! fetch_file {
                     page_slug = page_slug,
                     "Cannot get page info: {error}",
                 );
-
-                return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+                return ServerErrorCode::PageFetch { site_id, page_slug }.into_response();
             }
         };
 
@@ -72,17 +74,26 @@ macro_rules! fetch_file {
                     filename = filename,
                     "Cannot get file, none with filename",
                 );
-
-                return StatusCode::NOT_FOUND.into_response();
+                return ServerErrorCode::FileNotFound {
+                    site_id,
+                    page_id,
+                    filename,
+                }
+                .into_response();
             }
             Err(error) => {
                 error!(
                     site_id = site_id,
-                    page_slug = page_slug,
+                    page_id = page_id,
+                    filename = filename,
                     "Cannot get file info: {error}",
                 );
-
-                return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+                return ServerErrorCode::FileFetch {
+                    site_id,
+                    page_id,
+                    filename,
+                }
+                .into_response();
             }
         };
 
@@ -93,7 +104,6 @@ macro_rules! fetch_file {
                     StatusCode::OK,
                     "get_object_stream() succeeded but did not reply 200",
                 );
-
                 Body::from_stream(bytes)
             }
             Err(error) => {
@@ -104,7 +114,6 @@ macro_rules! fetch_file {
                 //
                 //       If it doesn't, the data invariant is not being met,
                 //       which is an unexpected error.
-
                 error!(
                     site_id = site_id,
                     page_slug = page_slug,
@@ -112,8 +121,12 @@ macro_rules! fetch_file {
                     s3_hash = &file_info.s3_hash,
                     "Cannot get blob data: {error}",
                 );
-
-                return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+                return ServerErrorCode::BlobFetch {
+                    site_id,
+                    page_slug,
+                    filename,
+                }
+                .into_response();
             }
         };
 

@@ -33,6 +33,7 @@ tower = "0.5"
 tower-http = { version = "0.6.1", features = ["add-extension", "compression-br", "compression-deflate", "compression-gzip", "compression-zstd", "normalize-path", "set-header", "trace"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+v_htmlescape = "0.15"
 wikidot-normalize = "0.12"
 
 [build-dependencies]

@@ -1,5 +1,5 @@
 /*
- * error.rs
+ * error/rust.rs
  *
  * Wilson's Web Server - Serves a zoo of content (framerail, user files, code, etc)
  * Copyright (C) 2019-2025 Wikijump Team
@@ -17,6 +17,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
+
+//! Structures for error handling within Rust.
 
 use jsonrpsee::core::ClientError;
 use s3::error::S3Error;
