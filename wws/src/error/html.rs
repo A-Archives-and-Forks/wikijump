@@ -29,7 +29,14 @@
 //! more fancy in the future, then feel free to replace this with
 //! something better.
 
-use axum::{body::Body, http::{header::{self, HeaderValue}, StatusCode}, response::{Response}};
+use axum::{
+    body::Body,
+    http::{
+        header::{self, HeaderValue},
+        StatusCode,
+    },
+    response::Response,
+};
 use v_htmlescape::escape as html_escape;
 
 const HTML_BEGIN: &str = r"<html><head><title>";
@@ -40,11 +47,29 @@ const HTML_END: &str = "</body></html>";
 /// These must match the corresponding errors in deepwell (`src/service/error.rs`)
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum ServerErrorCode<'a> {
-    PageNotFound { site_id: i64, page_slug: &'a str },
-    FileNotFound { site_id: i64, page_id: i64, filename: &'a str },
-    PageFetch { site_id: i64, page_slug: &'a str },
-    FileFetch { site_id: i64, page_id: i64, filename: &'a str },
-    BlobFetch { site_id: i64, page_slug: &'a str, filename: &'a str },
+    PageNotFound {
+        site_id: i64,
+        page_slug: &'a str,
+    },
+    FileNotFound {
+        site_id: i64,
+        page_id: i64,
+        filename: &'a str,
+    },
+    PageFetch {
+        site_id: i64,
+        page_slug: &'a str,
+    },
+    FileFetch {
+        site_id: i64,
+        page_id: i64,
+        filename: &'a str,
+    },
+    BlobFetch {
+        site_id: i64,
+        page_slug: &'a str,
+        filename: &'a str,
+    },
 }
 
 impl ServerErrorCode<'_> {
@@ -67,8 +92,12 @@ impl ServerErrorCode<'_> {
     /// Returns the HTTP status code for this error.
     pub fn status_code(self) -> StatusCode {
         match self {
-            ServerErrorCode::PageNotFound { .. } | ServerErrorCode::FileNotFound { .. } => StatusCode::NOT_FOUND,
-            ServerErrorCode::PageFetch { .. } | ServerErrorCode::FileFetch { .. } | ServerErrorCode::BlobFetch { .. } => StatusCode::INTERNAL_SERVER_ERROR,
+            ServerErrorCode::PageNotFound { .. } | ServerErrorCode::FileNotFound { .. } => {
+                StatusCode::NOT_FOUND
+            }
+            ServerErrorCode::PageFetch { .. }
+            | ServerErrorCode::FileFetch { .. }
+            | ServerErrorCode::BlobFetch { .. } => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 
@@ -103,7 +132,11 @@ impl ServerErrorCode<'_> {
                     site_id,
                 );
             }
-            ServerErrorCode::FileNotFound { site_id, page_id, filename } => {
+            ServerErrorCode::FileNotFound {
+                site_id,
+                page_id,
+                filename,
+            } => {
                 str_write!(
                     body,
                     "Cannot find file \"<code>{}</code>\" in page ID {} in site ID {}",
@@ -120,7 +153,11 @@ impl ServerErrorCode<'_> {
                     site_id,
                 );
             }
-            ServerErrorCode::FileFetch { site_id, page_id, filename } => {
+            ServerErrorCode::FileFetch {
+                site_id,
+                page_id,
+                filename,
+            } => {
                 str_write!(
                     body,
                     "Cannot load file \"<code>{}</code>\", in page ID {} in site ID {}",
@@ -129,7 +166,11 @@ impl ServerErrorCode<'_> {
                     site_id,
                 );
             }
-            ServerErrorCode::BlobFetch { site_id, page_slug, filename } => {
+            ServerErrorCode::BlobFetch {
+                site_id,
+                page_slug,
+                filename,
+            } => {
                 str_write!(
                     body,
                     "Cannot load file data for \"<code>{}</code>\", in page \"<code>{}</code>\" in site ID {}",
