@@ -98,7 +98,7 @@ impl ServerErrorCode<'_> {
             ServerErrorCode::PageNotFound { site_id, page_slug } => {
                 str_write!(
                     body,
-                    "Cannot find page '{}' in site ID {}",
+                    "Cannot find page \"<code>{}</code>\" in site ID {}",
                     html_escape(page_slug),
                     site_id,
                 );
@@ -106,7 +106,7 @@ impl ServerErrorCode<'_> {
             ServerErrorCode::FileNotFound { site_id, page_id, filename } => {
                 str_write!(
                     body,
-                    "Cannot find file '{}' in page ID {} in site ID {}",
+                    "Cannot find file \"<code>{}</code>\" in page ID {} in site ID {}",
                     html_escape(filename),
                     page_id,
                     site_id,
@@ -115,7 +115,7 @@ impl ServerErrorCode<'_> {
             ServerErrorCode::PageFetch { site_id, page_slug } => {
                 str_write!(
                     body,
-                    "Cannot load page '{}' in site ID {}",
+                    "Cannot load page \"<code>{}</code>\" in site ID {}",
                     html_escape(page_slug),
                     site_id,
                 );
@@ -123,7 +123,7 @@ impl ServerErrorCode<'_> {
             ServerErrorCode::FileFetch { site_id, page_id, filename } => {
                 str_write!(
                     body,
-                    "Cannot load file '{}', in page ID {} in site ID {}",
+                    "Cannot load file \"<code>{}</code>\", in page ID {} in site ID {}",
                     html_escape(filename),
                     page_id,
                     site_id,
@@ -132,7 +132,7 @@ impl ServerErrorCode<'_> {
             ServerErrorCode::BlobFetch { site_id, page_slug, filename } => {
                 str_write!(
                     body,
-                    "Cannot load file data for '{}', in page '{}' in site ID {}",
+                    "Cannot load file data for \"<code>{}</code>\", in page \"<code>{}</code>\" in site ID {}",
                     html_escape(filename),
                     html_escape(page_slug),
                     site_id,
