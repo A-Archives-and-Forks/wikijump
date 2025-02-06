@@ -32,7 +32,7 @@
 use axum::{body::Body, http::{header::{self, HeaderValue}, StatusCode}, response::{Response}};
 use v_htmlescape::escape as html_escape;
 
-const HTML_BEGIN: &str = r"<html><head>";
+const HTML_BEGIN: &str = r"<html><head><title>";
 const HTML_MIDDLE: &str = "</title><body>";
 const HTML_END: &str = "</body></html>";
 
