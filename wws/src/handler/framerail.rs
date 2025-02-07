@@ -26,19 +26,17 @@ use axum::{
     response::Html,
 };
 
+const FRAMERAIL_HOST: &str = "framerail:3000";
+
 pub async fn proxy_framerail(
     State(state): State<ServerState>,
     mut req: Request,
 ) -> Html<&'static str> {
     info!("Proxying request to framerail");
 
-    // Get path and query
+    // Create framerail URL we're proxying to
     let path = get_path(req.uri());
-
-    // Create and set framerail URL
-    let framerail_host = "framerail"; // TODO
-    let framerail_port = 3000; // TODO
-    let uri = format!("http://{framerail_host}:{framerail_port}{path}");
+    let uri = format!("http://{FRAMERAIL_HOST}{path}");
     *req.uri_mut() = Uri::try_from(uri).expect("Internal framerail URI is invalid");
 
     // TODO
