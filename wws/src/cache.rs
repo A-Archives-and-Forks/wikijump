@@ -71,10 +71,26 @@ impl Cache {
     }
 
     pub async fn get_site_from_domain(&self, domain: &str) -> Result<Option<(i64, String)>> {
+        type SiteDataTuple = (Option<i64>, Option<String>);
+
         let mut conn = get_connection!(self.client);
         let key = format!("site_domain:{domain}");
-        let value = conn.hget(key, &["id", "slug"]).await?;
-        Ok(value)
+        let fields = &["id", "slug"];
+        let values = conn.hget::<_, _, SiteDataTuple>(&key, fields).await?;
+        match values {
+            // Ideally, all of these should be non-null, if it's a cache hit.
+            (Some(site_id), Some(site_slug)) => Ok(Some((site_id, site_slug))),
+
+            // Cache miss
+            (None, None) => Ok(None),
+
+            // Some fields are set and others aren't. Let's clear all them out.
+            _ => {
+                warn!(key = key, "Inconsistent cache data, deleting");
+                hdel!(conn, key, fields);
+                Ok(None)
+            }
+        }
     }
 
     pub async fn set_site_from_domain(
@@ -117,7 +133,7 @@ impl Cache {
         let fields = &["id", "mime", "size", "s3_hash"];
         let values = conn.hget::<_, _, FileDataTuple>(&key, fields).await?;
         match values {
-            // Ideally, all of these should be non-null, if it's a cache hit.
+            // Cache hit
             (Some(file_id), Some(mime), Some(size), Some(s3_hash)) => Ok(Some(FileData {
                 file_id,
                 mime,
@@ -128,7 +144,7 @@ impl Cache {
             // Cache miss
             (None, None, None, None) => Ok(None),
 
-            // Some fields are set and others aren't. Let's clear all them out.
+            // Like above, we clear out inconsistent fields
             _ => {
                 warn!(key = key, "Inconsistent cache data, deleting");
                 hdel!(conn, key, fields);
