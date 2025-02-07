@@ -132,7 +132,7 @@ impl ServerErrorCode<'_> {
         body.push_str(HTML_MIDDLE);
 
         let error_code = self.error_code();
-        str_write!(&mut body, "<strong>[Error {error_code}]</strong> ");
+        str_write!(&mut body, "<strong>[Error #{error_code}]</strong> ");
 
         // Write error body
         match self {
