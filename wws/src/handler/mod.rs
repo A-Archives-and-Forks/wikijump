@@ -37,6 +37,7 @@ pub use self::robots::*;
 pub use self::well_known::*;
 
 use crate::{
+    error::ServerErrorCode,
     host::{lookup_host, SiteAndHost},
     path::get_path,
     state::ServerState,
@@ -156,11 +157,10 @@ pub async fn handle_host_delegation(
         }
         // Main site missing
         SiteAndHost::MainMissing { site_slug } => {
-            add_headers!(site_slug);
-            forward_request!(main_router)
+            ServerErrorCode::SiteNotFound { site_slug }.into_response()
         }
         SiteAndHost::MainCustomMissing => {
-            forward_request!(main_router)
+            ServerErrorCode::CustomDomainNotFound { domain: &hostname }.into_response()
         }
         // Default site redirect
         // e.g. "www.wikijump.com/foo" -> "wikijump.com/foo"
@@ -178,8 +178,7 @@ pub async fn handle_host_delegation(
             forward_request!(files_router)
         }
         SiteAndHost::FileMissing { site_slug } => {
-            add_headers!(site_slug);
-            forward_request!(files_router)
+            ServerErrorCode::SiteNotFound { site_slug }.into_response()
         }
         // Files site by itself
         // See the case in host.rs for an explanation
