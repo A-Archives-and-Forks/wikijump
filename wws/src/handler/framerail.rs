@@ -23,7 +23,7 @@ use crate::state::ServerState;
 use axum::{
     extract::{Request, State},
     http::{status::StatusCode, Uri},
-    response::Response,
+    response::{IntoResponse, Response},
 };
 
 const FRAMERAIL_HOST: &str = "framerail:3000";
@@ -37,6 +37,13 @@ pub async fn proxy_framerail(
     let uri = format!("http://{FRAMERAIL_HOST}{path}");
     *req.uri_mut() = Uri::try_from(uri).expect("Internal framerail URI is invalid");
 
-    // TODO
-    todo!()
+    state
+        .client
+        .request(req)
+        .await
+        .map_err(|error| {
+            error!("Reverse proxy to framerail failed: {error}");
+            StatusCode::BAD_GATEWAY
+        })
+        .into_response()
 }
