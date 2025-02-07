@@ -26,15 +26,36 @@ use crate::{deepwell::Domains, error::Result, state::ServerState};
 /// with no subdomain component.
 pub const DEFAULT_SITE_SLUG: &str = "www";
 
+/// Describes which Wikijump site and router this request is pointed towards.
+///
+/// * "Main" refers to the framerail handler, i.e. `[site-slug].wikijump.com`.
+/// * "Files" refers to the wjfiles handlers, i.e. `[site-slug].wjfiles.com`.
 #[derive(Debug)]
 pub enum SiteAndHost<'a> {
+    /// Main router existent site, canonical domain.
     Main { site_id: i64, site_slug: &'a str },
+
+    /// Main router, non-existent site, canonical domain.
     MainMissing { site_slug: &'a str },
+
+    /// Main router, existent site, custom domain.
     MainCustom { site_id: i64, site_slug: String },
+
+    /// Main router, non-existent site, custom domain.
     MainCustomMissing,
-    DefaultRedirect,
+
+    /// Files router, existent site.
     File { site_id: i64, site_slug: &'a str },
+
+    /// Files router, non-existent site.
     FileMissing { site_slug: &'a str },
+
+    /// Main router, request to canonical `www`, should be redirected to the root domain.
+    /// Special case.
+    DefaultRedirect,
+
+    /// Request is the root domain on the files router, which has no meaning.
+    /// Special case.
     FileRoot,
 }
 
