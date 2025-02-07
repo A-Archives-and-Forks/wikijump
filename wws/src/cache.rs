@@ -24,7 +24,7 @@
 //! compatible with DEEPWELL's Redis code.
 
 use crate::{deepwell::FileData, error::Result};
-use redis::AsyncCommands;
+use redis::{aio::MultiplexedConnection, AsyncCommands};
 
 macro_rules! get_connection {
     ($client:expr) => {
@@ -86,8 +86,7 @@ impl Cache {
 
             // Some fields are set and others aren't. Let's clear all them out.
             _ => {
-                warn!(key = key, "Inconsistent cache data, deleting");
-                hdel!(conn, key, fields);
+                clear_inconsistent_fields(&mut conn, &key, fields).await?;
                 Ok(None)
             }
         }
@@ -146,8 +145,7 @@ impl Cache {
 
             // Like above, we clear out inconsistent fields
             _ => {
-                warn!(key = key, "Inconsistent cache data, deleting");
-                hdel!(conn, key, fields);
+                clear_inconsistent_fields(&mut conn, &key, fields).await?;
                 Ok(None)
             }
         }
@@ -168,4 +166,14 @@ impl Cache {
         hset!(conn, key, "s3_hash", &data.s3_hash);
         Ok(())
     }
+}
+
+async fn clear_inconsistent_fields(
+    conn: &mut MultiplexedConnection,
+    key: &str,
+    fields: &[&str],
+) -> Result<()> {
+    warn!(key = key, "Inconsistent cache data, deleting");
+    hdel!(conn, key, fields);
+    Ok(())
 }
