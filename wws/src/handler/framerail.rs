@@ -23,7 +23,7 @@ use crate::state::ServerState;
 use axum::{
     extract::{Request, State},
     http::{status::StatusCode, Uri},
-    response::Html,
+    response::Response,
 };
 
 const FRAMERAIL_HOST: &str = "framerail:3000";
@@ -31,11 +31,9 @@ const FRAMERAIL_HOST: &str = "framerail:3000";
 pub async fn proxy_framerail(
     State(state): State<ServerState>,
     mut req: Request,
-) -> Html<&'static str> {
-    info!("Proxying request to framerail");
-
-    // Create framerail URL we're proxying to
+) -> Response {
     let path = get_path(req.uri());
+    info!(path = path, "Proxying request to framerail");
     let uri = format!("http://{FRAMERAIL_HOST}{path}");
     *req.uri_mut() = Uri::try_from(uri).expect("Internal framerail URI is invalid");
 
