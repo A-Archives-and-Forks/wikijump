@@ -69,7 +69,6 @@ pub async fn lookup_host<'a>(state: &ServerState, hostname: &'a str) -> Result<S
                     site_id = site_id,
                     "Routing files site request",
                 );
-
                 Ok(SiteAndHost::File { site_id, site_slug })
             }
             None => {
@@ -79,7 +78,6 @@ pub async fn lookup_host<'a>(state: &ServerState, hostname: &'a str) -> Result<S
                     site_slug = site_slug,
                     "No such site with slug (files)",
                 );
-
                 Ok(SiteAndHost::FileMissing { site_slug })
             }
         }
@@ -106,7 +104,6 @@ pub async fn lookup_host<'a>(state: &ServerState, hostname: &'a str) -> Result<S
                     site_id = site_id,
                     "Routing main site request (custom)",
                 );
-
                 Ok(SiteAndHost::MainCustom { site_id, site_slug })
             }
             None => {
@@ -146,7 +143,6 @@ async fn main_site_slug<'a>(
                 "Routing main site request ({})",
                 if is_default { "default" } else { "slug" },
             );
-
             Ok(SiteAndHost::Main { site_id, site_slug })
         }
         None => {
@@ -156,7 +152,6 @@ async fn main_site_slug<'a>(
                 site_slug = site_slug,
                 "No such site with slug (main)",
             );
-
             Ok(SiteAndHost::MainMissing { site_slug })
         }
     }
