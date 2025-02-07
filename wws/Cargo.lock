@@ -2696,6 +2696,7 @@ dependencies = [
  "clap",
  "color-backtrace",
  "dotenvy",
+ "hyper-util",
  "jsonrpsee",
  "once_cell",
  "paste",

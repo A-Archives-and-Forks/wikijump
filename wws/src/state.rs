@@ -24,17 +24,21 @@ use crate::{
     deepwell::{Deepwell, Domains, FileData, PageData, SiteData},
     error::Result,
 };
+use axum::body::Body;
 use s3::bucket::Bucket;
 use std::sync::Arc;
 use std::time::Duration;
+use hyper_util::{client::legacy::{Client as HyperClient, connect::HttpConnector}, rt::TokioExecutor};
 
 const BUCKET_REQUEST_TIMEOUT: Duration = Duration::from_millis(200);
 
 pub type ServerState = Arc<ServerStateInner>;
+pub type Client = HyperClient<HttpConnector, Body>;
 
 #[derive(Debug)]
 pub struct ServerStateInner {
     pub domains: Domains,
+    pub client: Client,
     pub deepwell: Deepwell,
     pub cache: Cache,
     pub s3_bucket: Box<Bucket>,
@@ -45,6 +49,7 @@ pub async fn build_server_state(secrets: Secrets) -> Result<ServerState> {
     deepwell.check().await;
     let domains = deepwell.domains().await?;
     let cache = Cache::connect(&secrets.redis_url)?;
+    let client = HyperClient::builder(TokioExecutor::new()).build(HttpConnector::new());
     let s3_bucket = {
         let mut bucket = Bucket::new(
             &secrets.s3_bucket,
@@ -62,6 +67,7 @@ pub async fn build_server_state(secrets: Secrets) -> Result<ServerState> {
 
     Ok(Arc::new(ServerStateInner {
         domains,
+        client,
         deepwell,
         cache,
         s3_bucket,
