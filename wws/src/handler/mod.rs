@@ -113,7 +113,6 @@ pub async fn handle_host_delegation(
     }
 
     macro_rules! add_headers {
-        // Add both headers
         ($site_id:expr, $site_slug:expr) => {{
             // Validate types
             let _: i64 = $site_id;
@@ -122,13 +121,6 @@ pub async fn handle_host_delegation(
             // Add headers
             let headers = request.headers_mut();
             headers.insert(HEADER_SITE_ID, header_value!(str!($site_id)));
-            headers.insert(HEADER_SITE_SLUG, header_value!($site_slug));
-        }};
-
-        // Add only slug (site doesn't exist)
-        ($site_slug:expr) => {{
-            let _: &str = &$site_slug;
-            let headers = request.headers_mut();
             headers.insert(HEADER_SITE_SLUG, header_value!($site_slug));
         }};
     }
