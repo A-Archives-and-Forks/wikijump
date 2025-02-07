@@ -129,7 +129,7 @@ pub async fn lookup_host<'a>(state: &ServerState, hostname: &'a str) -> Result<S
             }
             None => {
                 // No such site
-                warn!(domain = hostname, "No such site with slug (custom)");
+                warn!(domain = hostname, "No such site with domain (custom)");
                 Ok(SiteAndHost::MainCustomMissing)
             }
         }
