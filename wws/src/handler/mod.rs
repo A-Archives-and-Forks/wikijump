@@ -160,7 +160,7 @@ pub async fn handle_host_delegation(
             forward_request!(main_router)
         }
         SiteAndHost::MainCustomMissing => {
-            todo!()
+            forward_request!(main_router)
         }
         // Default site redirect
         // e.g. "www.wikijump.com/foo" -> "wikijump.com/foo"
