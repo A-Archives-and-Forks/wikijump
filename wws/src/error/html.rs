@@ -139,21 +139,21 @@ impl ServerErrorCode<'_> {
             ServerErrorCode::SiteNotFound { site_slug } => {
                 str_write!(
                     body,
-                    "No site exists at \"<code>{}</code>\"",
+                    "No site exists at \"<code>{}</code>\".",
                     html_escape(site_slug),
                 )
             }
             ServerErrorCode::CustomDomainNotFound { domain } => {
                 str_write!(
                     body,
-                    "No site exists with the custom domain \"<code>{}</code>\"",
+                    "No site exists with the custom domain \"<code>{}</code>\".",
                     html_escape(domain),
                 )
             }
             ServerErrorCode::PageNotFound { site_id, page_slug } => {
                 str_write!(
                     body,
-                    "Cannot find page \"<code>{}</code>\" in site ID {}",
+                    "Cannot find page \"<code>{}</code>\" in site ID <code>{}</code>.",
                     html_escape(page_slug),
                     site_id,
                 );
@@ -165,7 +165,7 @@ impl ServerErrorCode<'_> {
             } => {
                 str_write!(
                     body,
-                    "Cannot find file \"<code>{}</code>\" in page ID {} in site ID {}",
+                    "Cannot find file \"<code>{}</code>\" in page ID <code>{}</code> in site ID <code>{}</code>",
                     html_escape(filename),
                     page_id,
                     site_id,
@@ -174,7 +174,7 @@ impl ServerErrorCode<'_> {
             ServerErrorCode::PageFetch { site_id, page_slug } => {
                 str_write!(
                     body,
-                    "Cannot load page \"<code>{}</code>\" in site ID {}",
+                    "Cannot load page \"<code>{}</code>\" in site ID <code>{}</code>.",
                     html_escape(page_slug),
                     site_id,
                 );
@@ -186,7 +186,7 @@ impl ServerErrorCode<'_> {
             } => {
                 str_write!(
                     body,
-                    "Cannot load file \"<code>{}</code>\", in page ID {} in site ID {}",
+                    "Cannot load file \"<code>{}</code>\", in page ID <code>{}</code> in site ID <code>{}</code>.",
                     html_escape(filename),
                     page_id,
                     site_id,
@@ -199,7 +199,7 @@ impl ServerErrorCode<'_> {
             } => {
                 str_write!(
                     body,
-                    "Cannot load file data for \"<code>{}</code>\", in page \"<code>{}</code>\" in site ID {}",
+                    "Cannot load file data for \"<code>{}</code>\", in page \"<code>{}</code>\" in site ID <code>{}</code>.",
                     html_escape(filename),
                     html_escape(page_slug),
                     site_id,
