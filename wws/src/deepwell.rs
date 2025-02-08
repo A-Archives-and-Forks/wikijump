@@ -178,16 +178,11 @@ pub struct Domains {
 pub struct SiteData {
     pub site_id: i64,
     pub slug: String,
-    pub name: String,
-    pub custom_domain: Option<String>,
 }
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct PageData {
     pub page_id: i64,
-    pub title: String,
-    pub alt_title: Option<String>,
-    pub hidden_fields: Vec<String>,
 }
 
 #[derive(Deserialize, Debug, Clone)]
