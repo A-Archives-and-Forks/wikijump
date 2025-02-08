@@ -65,8 +65,8 @@ pub fn load_config() -> (Config, Secrets) {
 
     // Process secrets
     let deepwell_url = get_env!("DEEPWELL_URL");
-
     let redis_url = get_env!("REDIS_URL");
+    let framerail_host = get_env!("FRAMERAIL_HOST");
 
     let s3_bucket = get_env!("S3_BUCKET");
     let s3_region = match env::var("S3_AWS_REGION") {
@@ -134,6 +134,7 @@ pub fn load_config() -> (Config, Secrets) {
     let secrets = Secrets {
         deepwell_url,
         redis_url,
+        framerail_host,
         s3_bucket,
         s3_region,
         s3_path_style,
