@@ -68,7 +68,7 @@ pub async fn lookup_host<'a>(state: &ServerState, hostname: &'a str) -> Result<S
         ..
     } = state.domains;
 
-    if &hostname == main_domain_no_dot {
+    if hostname == main_domain_no_dot {
         // First, check if it's the default domain by itself.
         main_site_slug(state, hostname, None).await
     } else if let Some(site_slug) = hostname.strip_suffix(main_domain) {
@@ -102,7 +102,7 @@ pub async fn lookup_host<'a>(state: &ServerState, hostname: &'a str) -> Result<S
                 Ok(SiteAndHost::FileMissing { site_slug })
             }
         }
-    } else if &hostname == files_domain_no_dot {
+    } else if hostname == files_domain_no_dot {
         // Finally, check if it's the files domain by itself.
         //
         // This is weird, wjfiles should always a site slug subdomain,
@@ -117,7 +117,7 @@ pub async fn lookup_host<'a>(state: &ServerState, hostname: &'a str) -> Result<S
         // If it's anything else, it must be a custom domain.
         // Do a lookup, then set the site data as appropriate.
 
-        match state.get_site_from_domain(&hostname).await? {
+        match state.get_site_from_domain(hostname).await? {
             Some((site_id, site_slug)) => {
                 // Site exists
                 info!(
