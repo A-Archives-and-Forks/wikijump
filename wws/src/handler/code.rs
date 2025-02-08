@@ -40,5 +40,6 @@ pub async fn handle_code_block(
     );
 
     // TODO
+    let _ = state;
     todo!()
 }

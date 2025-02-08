@@ -23,11 +23,7 @@
 //! Many different standard paths are served here, and each
 //! should be implemented as a separate handler.
 
-use axum::{
-    body::Body,
-    http::{header, status::StatusCode},
-    response::Response,
-};
+use axum::http::status::StatusCode;
 
 // TODO
 

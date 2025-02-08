@@ -20,11 +20,7 @@
 
 //! Handling for the robots.txt file.
 
-use axum::{
-    body::Body,
-    http::{header, status::StatusCode},
-    response::Response,
-};
+use axum::http::status::StatusCode;
 
 // TODO
 

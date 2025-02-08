@@ -34,5 +34,8 @@ pub async fn handle_html_block(
     Path((page_slug, id)): Path<(String, String)>,
 ) -> Html<&'static str> {
     // TODO
+    let _ = state;
+    let _ = page_slug;
+    let _ = id;
     todo!()
 }
