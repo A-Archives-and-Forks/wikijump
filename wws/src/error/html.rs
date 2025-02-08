@@ -62,6 +62,9 @@ pub enum ServerErrorCode<'a> {
         page_id: i64,
         filename: &'a str,
     },
+    SiteFetch {
+        domain: &'a str,
+    },
     PageFetch {
         site_id: i64,
         page_slug: &'a str,
@@ -91,9 +94,10 @@ impl ServerErrorCode<'_> {
             ServerErrorCode::CustomDomainNotFound { .. } => 2013,
             ServerErrorCode::PageNotFound { .. } => 2005,
             ServerErrorCode::FileNotFound { .. } => 2009,
-            ServerErrorCode::PageFetch { .. } => 6001,
-            ServerErrorCode::FileFetch { .. } => 6002,
-            ServerErrorCode::BlobFetch { .. } => 6003,
+            ServerErrorCode::SiteFetch { .. } => 6001,
+            ServerErrorCode::PageFetch { .. } => 6002,
+            ServerErrorCode::FileFetch { .. } => 6003,
+            ServerErrorCode::BlobFetch { .. } => 6004,
         }
     }
 
@@ -104,7 +108,8 @@ impl ServerErrorCode<'_> {
             | ServerErrorCode::CustomDomainNotFound { .. }
             | ServerErrorCode::PageNotFound { .. }
             | ServerErrorCode::FileNotFound { .. } => StatusCode::NOT_FOUND,
-            ServerErrorCode::PageFetch { .. }
+            ServerErrorCode::SiteFetch { .. }
+            | ServerErrorCode::PageFetch { .. }
             | ServerErrorCode::FileFetch { .. }
             | ServerErrorCode::BlobFetch { .. } => StatusCode::INTERNAL_SERVER_ERROR,
         }
@@ -118,6 +123,7 @@ impl ServerErrorCode<'_> {
             }
             ServerErrorCode::PageNotFound { .. } => "Page not found",
             ServerErrorCode::FileNotFound { .. } => "File not found",
+            ServerErrorCode::SiteFetch { .. } => "Cannot load site information",
             ServerErrorCode::PageFetch { .. } => "Cannot load page",
             ServerErrorCode::FileFetch { .. } => "Cannot load file",
             ServerErrorCode::BlobFetch { .. } => "Cannot load file data",
@@ -169,6 +175,13 @@ impl ServerErrorCode<'_> {
                     html_escape(filename),
                     page_id,
                     site_id,
+                );
+            }
+            ServerErrorCode::SiteFetch { domain } => {
+                str_write!(
+                    body,
+                    "Cannot load site information for domain \"<code>{}</code>\".",
+                    html_escape(domain),
                 );
             }
             ServerErrorCode::PageFetch { site_id, page_slug } => {

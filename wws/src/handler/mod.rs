@@ -129,8 +129,8 @@ pub async fn handle_host_delegation(
     let host_data = match lookup_host(&state, &hostname).await {
         Ok(host_data) => host_data,
         Err(error) => {
-            // TODO error page response in case of an internal issue
-            todo!()
+            error!("Unable to fetch site/host information: {error}");
+            return ServerErrorCode::SiteFetch { domain: &hostname }.into_response();
         }
     };
 

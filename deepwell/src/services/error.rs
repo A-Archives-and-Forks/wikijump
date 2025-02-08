@@ -308,6 +308,9 @@ pub enum Error {
     #[error("The web server failed to process the request")]
     WebServerFailure,
 
+    #[error("The web server cannot fetch site information")]
+    SiteFetch,
+
     #[error("The web server cannot fetch page information")]
     PageFetch,
 
@@ -453,9 +456,10 @@ impl Error {
             //
             //        WebServerFailure is pretty general, avoid using it if possible.
             Error::WebServerFailure => 6000,
-            Error::PageFetch => 6001,
-            Error::FileFetch => 6002,
-            Error::BlobFetch => 6003,
+            Error::SiteFetch => 6001,
+            Error::PageFetch => 6002,
+            Error::FileFetch => 6003,
+            Error::BlobFetch => 6004,
         }
     }
 
