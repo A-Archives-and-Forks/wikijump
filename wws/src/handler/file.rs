@@ -20,8 +20,7 @@
 
 use super::get_site_info;
 use crate::{
-    deepwell::FileData,
-    error::{Result, ServerErrorCode},
+    error::ServerErrorCode,
     state::ServerState,
 };
 use axum::{
