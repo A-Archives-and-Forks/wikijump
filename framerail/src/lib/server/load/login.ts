@@ -1,12 +1,12 @@
 import defaults from "$lib/defaults"
 import { parseAcceptLangHeader } from "$lib/locales"
 import { translate } from "$lib/server/deepwell/translate"
+import { loadSiteInfo } from "$lib/server/load/site-info"
 import type { TranslateKeys } from "$lib/types"
 
 export async function loadLoginPage(request, cookies) {
   // Set up parameters
-  const url = new URL(request.url)
-  const domain = url.hostname
+  const { siteId } = loadSiteInfo(request.headers)
   const sessionToken = cookies.get("wikijump_token")
   let locales = parseAcceptLangHeader(request)
 
