@@ -143,7 +143,6 @@ impl Deepwell {
         };
 
         let page_data: Option<PageData> = self.client.request("page_get", params).await?;
-
         Ok(page_data)
     }
 
