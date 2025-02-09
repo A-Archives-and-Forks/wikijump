@@ -304,7 +304,6 @@ pub enum Error {
 
     // Errors for wws
     // See the 8000 section in the error codes table
-
     #[error("The web server failed to process the request")]
     WebServerFailure,
 

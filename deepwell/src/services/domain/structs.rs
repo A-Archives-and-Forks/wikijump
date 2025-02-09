@@ -27,7 +27,14 @@ pub enum SiteDomainResult<'a> {
     CustomDomain(&'a str),
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Debug, Clone)]
+pub struct SiteDomainData {
+    pub site_id: i64,
+    pub site_slug: String,
+    pub should_redirect: Option<String>,
+}
+
+#[derive(Deserialize, Debug, Clone)]
 pub struct CreateCustomDomain {
     pub domain: String,
     pub site_id: i64,

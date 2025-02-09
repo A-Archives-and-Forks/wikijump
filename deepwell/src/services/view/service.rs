@@ -74,11 +74,7 @@ impl ViewService {
 
         // Attempt to get a viewer helper structure, but if the site doesn't exist
         // then return right away with the "no such site" response.
-        let Viewer {
-            site,
-            redirect_site,
-            user_session,
-        } = match Self::get_viewer(
+        let Viewer { site, user_session } = match Self::get_viewer(
             ctx,
             &mut locales,
             &domain,
@@ -260,12 +256,7 @@ impl ViewService {
 
         // TODO Check if user-agent and IP match?
 
-        let viewer = Viewer {
-            site,
-            redirect_site,
-            user_session,
-        };
-
+        let viewer = Viewer { site, user_session };
         let output = match status {
             PageStatus::Found {
                 page,
@@ -520,32 +511,21 @@ impl ViewService {
         }
 
         // Get site data
-        let (site, redirect_site) =
-            match DomainService::parse_site_from_domain(ctx, domain).await? {
-                SiteDomainResult::Found(site) => {
-                    let redirect_site = Self::should_redirect_site(ctx, &site, domain);
-                    (site, redirect_site)
-                }
-                SiteDomainResult::Slug(slug) => {
-                    let html =
-                        Self::missing_site_output(ctx, locales, domain, Some(slug))
-                            .await?;
+        let site = match DomainService::parse_site_from_domain(ctx, domain).await? {
+            SiteDomainResult::Found(site) => site,
+            SiteDomainResult::Slug(slug) => {
+                let html =
+                    Self::missing_site_output(ctx, locales, domain, Some(slug)).await?;
 
-                    return Ok(ViewerResult::MissingSite(html));
-                }
-                SiteDomainResult::CustomDomain(domain) => {
-                    let html =
-                        Self::missing_site_output(ctx, locales, domain, None).await?;
+                return Ok(ViewerResult::MissingSite(html));
+            }
+            SiteDomainResult::CustomDomain(domain) => {
+                let html = Self::missing_site_output(ctx, locales, domain, None).await?;
+                return Ok(ViewerResult::MissingSite(html));
+            }
+        };
 
-                    return Ok(ViewerResult::MissingSite(html));
-                }
-            };
-
-        Ok(ViewerResult::FoundSite(Viewer {
-            site,
-            redirect_site,
-            user_session,
-        }))
+        Ok(ViewerResult::FoundSite(Viewer { site, user_session }))
     }
 
     /// Produce output for cases where a site does not exist.
@@ -619,21 +599,6 @@ impl ViewService {
         debug!("TODO: stub");
         // TODO perform permission checks
         Ok(true)
-    }
-
-    fn should_redirect_site(
-        ctx: &ServiceContext,
-        site: &SiteModel,
-        domain: &str,
-    ) -> Option<String> {
-        // NOTE: We have to pass an owned string here, since the Cow borrows from
-        //       SiteModel, which we are also passing in the final output struct.
-        let preferred_domain = DomainService::domain_for_site(ctx.config(), site);
-        if domain == preferred_domain {
-            None
-        } else {
-            Some(preferred_domain.into_owned())
-        }
     }
 
     fn should_redirect_page(slug: &str) -> Option<String> {

@@ -116,7 +116,6 @@ pub async fn lookup_host<'a>(state: &ServerState, hostname: &'a str) -> Result<S
     } else {
         // If it's anything else, it must be a custom domain.
         // Do a lookup, then set the site data as appropriate.
-
         match state.get_site_from_domain(hostname).await? {
             Some((site_id, site_slug)) => {
                 // Site exists

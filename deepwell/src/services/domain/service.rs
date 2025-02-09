@@ -223,6 +223,20 @@ impl DomainService {
         }
     }
 
+    /// Returns `None` if the given domain is already the preferred domain for this site.
+    pub fn should_redirect_site<'a>(
+        config: &'a Config,
+        site: &'a SiteModel,
+        domain: &str,
+    ) -> Option<Cow<'a, str>> {
+        let preferred_domain = Self::domain_for_site(config, site);
+        if domain == preferred_domain {
+            None
+        } else {
+            Some(preferred_domain)
+        }
+    }
+
     /// Return the preferred domain for the `www` site.
     ///
     /// This site is a special exception, instead of visiting `www.wikijump.com`

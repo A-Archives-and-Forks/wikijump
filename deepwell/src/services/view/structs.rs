@@ -150,7 +150,6 @@ pub enum ViewerResult {
 #[derive(Serialize, Debug, Clone)]
 pub struct Viewer {
     pub site: SiteModel,
-    pub redirect_site: Option<String>,
     pub user_session: Option<UserSession>,
 }
 

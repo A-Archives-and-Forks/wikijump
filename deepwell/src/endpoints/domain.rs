@@ -20,14 +20,30 @@
 
 use super::prelude::*;
 use crate::models::site::Model as SiteModel;
-use crate::services::domain::CreateCustomDomain;
+use crate::services::domain::{CreateCustomDomain, SiteDomainData};
+use std::borrow::Cow;
 
 pub async fn site_get_from_domain(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<Option<SiteModel>> {
+) -> Result<Option<SiteDomainData>> {
     let domain: String = params.one()?;
-    DomainService::site_from_domain_optional(ctx, &domain).await
+    match DomainService::site_from_domain_optional(ctx, &domain).await? {
+        None => Ok(None),
+        Some(site) => {
+            let config = ctx.config();
+            let should_redirect =
+                DomainService::should_redirect_site(config, &site, &domain)
+                    .map(Cow::into_owned);
+
+            let SiteModel { site_id, slug, .. } = site;
+            Ok(Some(SiteDomainData {
+                site_id,
+                site_slug: slug,
+                should_redirect,
+            }))
+        }
+    }
 }
 
 pub async fn site_custom_domain_create(

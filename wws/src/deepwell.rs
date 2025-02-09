@@ -176,7 +176,8 @@ pub struct Domains {
 #[derive(Deserialize, Debug, Clone)]
 pub struct SiteData {
     pub site_id: i64,
-    pub slug: String,
+    pub site_slug: String,
+    pub should_redirect: Option<String>,
 }
 
 #[derive(Deserialize, Debug, Clone)]

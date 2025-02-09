@@ -105,7 +105,7 @@ impl ServerStateInner {
                 None => Ok(None),
                 Some(SiteData {
                     site_id,
-                    slug: site_slug,
+                    site_slug,
                     ..
                 }) => {
                     self.cache
