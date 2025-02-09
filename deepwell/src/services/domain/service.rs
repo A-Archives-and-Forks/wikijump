@@ -24,6 +24,7 @@
 //! and custom domains (e.g. `scpwiki.com`).
 
 // TODO disallow custom domains that are subdomains of the main domain or files domain
+// TODO disallow custom domain for default site (www)
 
 use super::prelude::*;
 use crate::models::site::{self, Entity as Site, Model as SiteModel};
