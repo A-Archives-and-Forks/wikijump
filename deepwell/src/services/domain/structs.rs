@@ -29,9 +29,9 @@ pub enum SiteDomainResult<'a> {
 
 #[derive(Serialize, Debug, Clone)]
 pub struct SiteDomainData {
-    pub site_id: i64,
-    pub site_slug: String,
-    pub should_redirect: Option<String>,
+    #[serde(flatten)]
+    pub site: SiteModel,
+    pub preferred_domain: String,
 }
 
 #[derive(Deserialize, Debug, Clone)]

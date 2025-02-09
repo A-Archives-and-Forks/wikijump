@@ -31,6 +31,8 @@ use crate::models::site_domain::{self, Entity as SiteDomain, Model as SiteDomain
 use crate::services::SiteService;
 use std::borrow::Cow;
 
+pub const DEFAULT_SITE_SLUG: &str = "www";
+
 #[derive(Debug)]
 pub struct DomainService;
 
@@ -185,7 +187,7 @@ impl DomainService {
 
         // Special case, see if it's the root domain (i.e. 'wikijump.com')
         if domain == main_domain_no_dot {
-            return Some("www");
+            return Some(DEFAULT_SITE_SLUG);
         }
 
         // Remove the '.wikijump.com' suffix, get slug
@@ -210,7 +212,7 @@ impl DomainService {
     }
 
     /// Gets the preferred domain for the given site.
-    pub fn domain_for_site<'a>(config: &'a Config, site: &'a SiteModel) -> Cow<'a, str> {
+    pub fn preferred_domain<'a>(config: &'a Config, site: &'a SiteModel) -> Cow<'a, str> {
         debug!(
             "Getting preferred domain for site '{}' (ID {})",
             site.slug, site.site_id,
@@ -218,22 +220,8 @@ impl DomainService {
 
         match &site.custom_domain {
             Some(domain) => cow!(domain),
-            None if site.slug == "www" => Self::www_domain(config),
+            None if site.slug == DEFAULT_SITE_SLUG => Self::www_domain(config),
             None => Cow::Owned(Self::get_canonical(config, &site.slug)),
-        }
-    }
-
-    /// Returns `None` if the given domain is already the preferred domain for this site.
-    pub fn should_redirect_site<'a>(
-        config: &'a Config,
-        site: &'a SiteModel,
-        domain: &str,
-    ) -> Option<Cow<'a, str>> {
-        let preferred_domain = Self::domain_for_site(config, site);
-        if domain == preferred_domain {
-            None
-        } else {
-            Some(preferred_domain)
         }
     }
 
