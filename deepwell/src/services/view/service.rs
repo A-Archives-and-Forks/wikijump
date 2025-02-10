@@ -515,14 +515,16 @@ impl ViewService {
             SiteDomainInfo::SiteFound(site) => {
                 Ok(ViewerResult::FoundSite(Viewer { site, user_session }))
             }
-            SiteDomainInfo::SiteRedirect(_preferred_domain) => todo!(),
-            SiteDomainInfo::MissingSiteSlug(slug) => {
+            SiteDomainInfo::SiteRedirect {
+                domain: _preferred_domain,
+            } => todo!(),
+            SiteDomainInfo::MissingSiteSlug { slug } => {
                 let html =
                     Self::missing_site_output(ctx, locales, domain, Some(&slug)).await?;
 
                 Ok(ViewerResult::MissingSite(html))
             }
-            SiteDomainInfo::MissingCustomDomain(domain) => {
+            SiteDomainInfo::MissingCustomDomain { domain } => {
                 let html = Self::missing_site_output(ctx, locales, &domain, None).await?;
                 Ok(ViewerResult::MissingSite(html))
             }

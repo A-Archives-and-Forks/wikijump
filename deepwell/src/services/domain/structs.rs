@@ -24,15 +24,9 @@ use crate::models::site::Model as SiteModel;
 #[serde(rename_all = "snake_case", tag = "result", content = "data")]
 pub enum SiteDomainInfo {
     SiteFound(SiteModel),
-    SiteRedirect {
-        domain: String,
-    },
-    MissingSiteSlug {
-        slug: String,
-    },
-    MissingCustomDomain {
-        domain: String,
-    },
+    SiteRedirect { domain: String },
+    MissingSiteSlug { slug: String },
+    MissingCustomDomain { domain: String },
 }
 
 #[derive(Deserialize, Debug, Clone)]

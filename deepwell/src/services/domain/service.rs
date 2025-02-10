@@ -142,7 +142,9 @@ impl DomainService {
                 if domain == &preferred_domain {
                     SiteDomainInfo::SiteFound($site)
                 } else {
-                    SiteDomainInfo::SiteRedirect(preferred_domain)
+                    SiteDomainInfo::SiteRedirect {
+                        domain: preferred_domain,
+                    }
                 }
             }};
         }
@@ -158,7 +160,9 @@ impl DomainService {
 
                 match result {
                     Ok(Some(site)) => Ok(found!(site)),
-                    Ok(None) => Ok(SiteDomainInfo::MissingSiteSlug(str!(subdomain))),
+                    Ok(None) => Ok(SiteDomainInfo::MissingSiteSlug {
+                        slug: str!(subdomain),
+                    }),
                     Err(error) => Err(error),
                 }
             }
@@ -170,7 +174,9 @@ impl DomainService {
                 let result = Self::site_from_custom_domain_optional(ctx, domain).await;
                 match result {
                     Ok(Some(site)) => Ok(found!(site)),
-                    Ok(None) => Ok(SiteDomainInfo::MissingCustomDomain(str!(domain))),
+                    Ok(None) => Ok(SiteDomainInfo::MissingCustomDomain {
+                        domain: str!(domain),
+                    }),
                     Err(error) => Err(error),
                 }
             }
