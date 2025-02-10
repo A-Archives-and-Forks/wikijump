@@ -25,6 +25,7 @@
 
 // TODO disallow custom domains that are subdomains of the main domain or files domain
 // TODO disallow custom domain for default site (www)
+// TODO expire redis cache on change to domains
 
 use super::prelude::*;
 use crate::models::site::{self, Entity as Site, Model as SiteModel};

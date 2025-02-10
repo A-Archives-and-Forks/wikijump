@@ -18,6 +18,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+// TODO expire redis cache on change to domains
+
 use wikidot_normalize::normalize;
 
 use super::prelude::*;
