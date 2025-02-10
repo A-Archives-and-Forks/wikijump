@@ -128,7 +128,7 @@ impl DomainService {
     pub async fn parse_site_from_domain(
         ctx: &ServiceContext<'_>,
         domain: &str,
-    ) -> Result<SiteDomainResult> {
+    ) -> Result<SiteDomainInfo> {
         info!("Getting site for domain '{domain}'");
 
         /// Helper macro to produce the result when the site exists.
@@ -140,9 +140,9 @@ impl DomainService {
                     DomainService::preferred_domain(config, &$site).into_owned();
 
                 if domain == &preferred_domain {
-                    SiteDomainResult::SiteFound($site)
+                    SiteDomainInfo::SiteFound($site)
                 } else {
-                    SiteDomainResult::SiteRedirect(preferred_domain)
+                    SiteDomainInfo::SiteRedirect(preferred_domain)
                 }
             }};
         }
@@ -158,7 +158,7 @@ impl DomainService {
 
                 match result {
                     Ok(Some(site)) => Ok(found!(site)),
-                    Ok(None) => Ok(SiteDomainResult::MissingSiteSlug(str!(subdomain))),
+                    Ok(None) => Ok(SiteDomainInfo::MissingSiteSlug(str!(subdomain))),
                     Err(error) => Err(error),
                 }
             }
@@ -170,7 +170,7 @@ impl DomainService {
                 let result = Self::site_from_custom_domain_optional(ctx, domain).await;
                 match result {
                     Ok(Some(site)) => Ok(found!(site)),
-                    Ok(None) => Ok(SiteDomainResult::MissingCustomDomain(str!(domain))),
+                    Ok(None) => Ok(SiteDomainInfo::MissingCustomDomain(str!(domain))),
                     Err(error) => Err(error),
                 }
             }

@@ -22,7 +22,7 @@ use crate::models::site::Model as SiteModel;
 
 #[derive(Serialize, Debug, Clone)]
 #[serde(rename_all = "snake_case", tag = "result", content = "data")]
-pub enum SiteDomainResult {
+pub enum SiteDomainInfo {
     SiteFound(SiteModel),
     SiteRedirect {
         domain: String,

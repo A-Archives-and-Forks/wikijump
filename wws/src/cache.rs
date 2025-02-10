@@ -24,7 +24,7 @@
 //! compatible with DEEPWELL's Redis code.
 
 use crate::{
-    deepwell::{FileData, SiteData, SiteDomainResult},
+    deepwell::{FileData, SiteData, SiteDomainInfo},
     error::Result,
 };
 use redis::{aio::MultiplexedConnection, AsyncCommands};
@@ -74,7 +74,7 @@ impl Cache {
         Ok(())
     }
 
-    pub async fn get_site_from_domain(&self, domain: &str) -> Result<Option<SiteDomainResult>> {
+    pub async fn get_site_from_domain(&self, domain: &str) -> Result<Option<SiteDomainInfo>> {
         type SiteDomainDataTuple = (Option<String>, Option<i64>, Option<String>, Option<String>);
 
         let mut conn = get_connection!(self.client);
@@ -87,16 +87,16 @@ impl Cache {
             // Each variant value has a set of fields that should be set for it
             // If a different group of fields are set, then it's invalid
             (Some("site_found"), Some(site_id), Some(slug), None) => {
-                Ok(Some(SiteDomainResult::SiteFound { site_id, slug }))
+                Ok(Some(SiteDomainInfo::SiteFound { site_id, slug }))
             }
             (Some("site_redirect"), None, None, Some(domain)) => {
-                Ok(Some(SiteDomainResult::SiteRedirect { domain }))
+                Ok(Some(SiteDomainInfo::SiteRedirect { domain }))
             }
             (Some("missing_site_slug"), None, Some(slug), None) => {
-                Ok(Some(SiteDomainResult::MissingSiteSlug { slug }))
+                Ok(Some(SiteDomainInfo::MissingSiteSlug { slug }))
             }
             (Some("missing_custom_domain"), None, None, Some(domain)) => {
-                Ok(Some(SiteDomainResult::MissingCustomDomain { domain }))
+                Ok(Some(SiteDomainInfo::MissingCustomDomain { domain }))
             }
 
             // Cache miss
@@ -113,7 +113,7 @@ impl Cache {
     pub async fn set_site_from_domain(
         &self,
         domain: &str,
-        domain_data: &SiteDomainResult,
+        domain_data: &SiteDomainInfo,
     ) -> Result<()> {
         let mut conn = get_connection!(self.client);
         let key = format!("site_domain:{domain}");
@@ -124,16 +124,14 @@ impl Cache {
             Option<&str>,
             Option<&str>,
         ) = match domain_data {
-            SiteDomainResult::SiteFound { site_id, slug } => {
+            SiteDomainInfo::SiteFound { site_id, slug } => {
                 ("site_found", Some(*site_id), Some(slug), Some(domain))
             }
-            SiteDomainResult::SiteRedirect { domain } => {
-                ("site_redirect", None, None, Some(domain))
-            }
-            SiteDomainResult::MissingSiteSlug { slug } => {
+            SiteDomainInfo::SiteRedirect { domain } => ("site_redirect", None, None, Some(domain)),
+            SiteDomainInfo::MissingSiteSlug { slug } => {
                 ("missing_site_slug", None, Some(slug), None)
             }
-            SiteDomainResult::MissingCustomDomain { domain } => {
+            SiteDomainInfo::MissingCustomDomain { domain } => {
                 ("missing_custom_domain", None, None, Some(domain))
             }
         };

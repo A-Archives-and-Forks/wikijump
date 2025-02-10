@@ -125,8 +125,8 @@ impl Deepwell {
         Ok(site_data)
     }
 
-    pub async fn get_site_from_domain(&self, domain: &str) -> Result<SiteDomainResult> {
-        let site_data: SiteDomainResult = self
+    pub async fn get_site_from_domain(&self, domain: &str) -> Result<SiteDomainInfo> {
+        let site_data: SiteDomainInfo = self
             .client
             .request("site_from_domain", rpc_params![domain])
             .await?;
@@ -181,7 +181,7 @@ pub struct SiteData {
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "snake_case", tag = "result", content = "data")]
-pub enum SiteDomainResult {
+pub enum SiteDomainInfo {
     SiteFound { site_id: i64, slug: String },
     SiteRedirect { domain: String },
     MissingSiteSlug { slug: String },
