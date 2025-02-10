@@ -512,17 +512,17 @@ impl ViewService {
 
         // Get site data
         match DomainService::parse_site_from_domain(ctx, domain).await? {
-            SiteDomainResult::Found {
-                site,
-                preferred_domain,
-            } => Ok(ViewerResult::FoundSite(Viewer { site, user_session })),
-            SiteDomainResult::Slug(slug) => {
+            SiteDomainResult::SiteFound(site) => {
+                Ok(ViewerResult::FoundSite(Viewer { site, user_session }))
+            }
+            SiteDomainResult::SiteRedirect(_preferred_domain) => todo!(),
+            SiteDomainResult::MissingSiteSlug(slug) => {
                 let html =
                     Self::missing_site_output(ctx, locales, domain, Some(&slug)).await?;
 
                 Ok(ViewerResult::MissingSite(html))
             }
-            SiteDomainResult::CustomDomain(domain) => {
+            SiteDomainResult::MissingCustomDomain(domain) => {
                 let html = Self::missing_site_output(ctx, locales, &domain, None).await?;
                 Ok(ViewerResult::MissingSite(html))
             }

@@ -120,25 +120,28 @@ impl DomainService {
     /// Gets the site corresponding with the given domain.
     ///
     /// Returns one of three variants:
-    /// * `Found` &mdash; Site retrieved from the domain.
-    /// * `Slug` &mdash; Site does not exist. If it did, domain would be a canonical domain.
-    /// * `CustomDomain` &mdash; Site does not exist. If it did, domain would be a custom domain.
+    /// * `SiteFound` &mdash; Site information retrieved from the domain.
+    /// * `SiteRedirect` &mdash; Site found, but needs a redirect to the preferred domain.
+    /// * `MissingSlug` &mdash; Site does not exist. If it did, domain would be a canonical domain.
+    /// * `MissingCustomDomain` &mdash; Site does not exist. If it did, domain would be a custom domain.
     pub async fn parse_site_from_domain(
         ctx: &ServiceContext<'_>,
         domain: &str,
     ) -> Result<SiteDomainResult> {
         info!("Getting site for domain '{domain}'");
 
-        /// Helper macro to produce a `Found` enum case.
-        /// This is needed to get the preferred domain for the return value.
+        /// Helper macro to produce the result when the site exists.
+        /// This gets the preferred domain for the return value.
         macro_rules! found {
             ($site:expr) => {{
                 let config = ctx.config();
                 let preferred_domain =
                     DomainService::preferred_domain(config, &$site).into_owned();
-                SiteDomainResult::Found {
-                    site: $site,
-                    preferred_domain,
+
+                if domain == &preferred_domain {
+                    SiteDomainResult::SiteFound($site)
+                } else {
+                    SiteDomainResult::SiteRedirect(preferred_domain)
                 }
             }};
         }
@@ -154,7 +157,7 @@ impl DomainService {
 
                 match result {
                     Ok(Some(site)) => Ok(found!(site)),
-                    Ok(None) => Ok(SiteDomainResult::Slug(str!(subdomain))),
+                    Ok(None) => Ok(SiteDomainResult::MissingSiteSlug(str!(subdomain))),
                     Err(error) => Err(error),
                 }
             }
@@ -166,7 +169,7 @@ impl DomainService {
                 let result = Self::site_from_custom_domain_optional(ctx, domain).await;
                 match result {
                     Ok(Some(site)) => Ok(found!(site)),
-                    Ok(None) => Ok(SiteDomainResult::CustomDomain(str!(domain))),
+                    Ok(None) => Ok(SiteDomainResult::MissingCustomDomain(str!(domain))),
                     Err(error) => Err(error),
                 }
             }
