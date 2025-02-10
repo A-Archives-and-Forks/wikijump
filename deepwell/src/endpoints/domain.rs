@@ -19,22 +19,15 @@
  */
 
 use super::prelude::*;
-use crate::models::site::Model as SiteModel;
+use crate::models::site_domain::Model as SiteDomainModel;
 use crate::services::domain::{CreateCustomDomain, DomainService, SiteDomainResult};
 
 pub async fn site_get_from_domain(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<Option<SiteDomainData>> {
+) -> Result<SiteDomainResult> {
     let domain: String = params.one()?;
-    match DomainService::site_from_domain_optional(ctx, &domain).await? {
-        None => Ok(None),
-        Some(site) => {
-            let config = ctx.config();
-            let preferred_domain = DomainService::preferred_domain(config, &site).into_owned();
-            Ok(Some(SiteDomainData { site, preferred_domain }))
-        }
-    }
+    DomainService::parse_site_from_domain(ctx, &domain).await
 }
 
 pub async fn site_custom_domain_create(

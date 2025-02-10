@@ -511,21 +511,22 @@ impl ViewService {
         }
 
         // Get site data
-        let site = match DomainService::parse_site_from_domain(ctx, domain).await? {
-            SiteDomainResult::Found(site) => site,
+        match DomainService::parse_site_from_domain(ctx, domain).await? {
+            SiteDomainResult::Found {
+                site,
+                preferred_domain,
+            } => Ok(ViewerResult::FoundSite(Viewer { site, user_session })),
             SiteDomainResult::Slug(slug) => {
                 let html =
-                    Self::missing_site_output(ctx, locales, domain, Some(slug)).await?;
+                    Self::missing_site_output(ctx, locales, domain, Some(&slug)).await?;
 
-                return Ok(ViewerResult::MissingSite(html));
+                Ok(ViewerResult::MissingSite(html))
             }
             SiteDomainResult::CustomDomain(domain) => {
-                let html = Self::missing_site_output(ctx, locales, domain, None).await?;
-                return Ok(ViewerResult::MissingSite(html));
+                let html = Self::missing_site_output(ctx, locales, &domain, None).await?;
+                Ok(ViewerResult::MissingSite(html))
             }
-        };
-
-        Ok(ViewerResult::FoundSite(Viewer { site, user_session }))
+        }
     }
 
     /// Produce output for cases where a site does not exist.
