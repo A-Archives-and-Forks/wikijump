@@ -20,7 +20,7 @@
 
 use crate::error::Result;
 use jsonrpsee::{core::client::ClientT, http_client::HttpClient, rpc_params};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
 const JSONRPC_MAX_REQUEST: u32 = 16 * 1024;
@@ -125,8 +125,8 @@ impl Deepwell {
         Ok(site_data)
     }
 
-    pub async fn get_site_from_domain(&self, domain: &str) -> Result<Option<SiteData>> {
-        let site_data: Option<SiteData> = self
+    pub async fn get_site_from_domain(&self, domain: &str) -> Result<SiteDomainResult> {
+        let site_data: SiteDomainResult = self
             .client
             .request("site_from_domain", rpc_params![domain])
             .await?;
@@ -176,8 +176,25 @@ pub struct Domains {
 #[derive(Deserialize, Debug, Clone)]
 pub struct SiteData {
     pub site_id: i64,
-    pub site_slug: String,
-    pub should_redirect: Option<String>,
+    pub slug: String,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+#[serde(rename_all = "snake_case", tag = "result", content = "data")]
+pub enum SiteDomainResult {
+    SiteFound {
+        site_id: i64,
+        slug: String,
+    },
+    SiteRedirect {
+        domain: String,
+    },
+    MissingSiteSlug {
+        slug: String,
+    },
+    MissingCustomDomain {
+        domain: String,
+    },
 }
 
 #[derive(Deserialize, Debug, Clone)]
