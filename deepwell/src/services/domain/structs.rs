@@ -35,13 +35,6 @@ pub enum SiteDomainResult {
     },
 }
 
-#[derive(Serialize, Debug, Clone)]
-pub struct SiteDomainData {
-    #[serde(flatten)]
-    pub site: SiteModel,
-    pub preferred_domain: String,
-}
-
 #[derive(Deserialize, Debug, Clone)]
 pub struct CreateCustomDomain {
     pub domain: String,
