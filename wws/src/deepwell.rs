@@ -182,19 +182,10 @@ pub struct SiteData {
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "snake_case", tag = "result", content = "data")]
 pub enum SiteDomainResult {
-    SiteFound {
-        site_id: i64,
-        slug: String,
-    },
-    SiteRedirect {
-        domain: String,
-    },
-    MissingSiteSlug {
-        slug: String,
-    },
-    MissingCustomDomain {
-        domain: String,
-    },
+    SiteFound { site_id: i64, slug: String },
+    SiteRedirect { domain: String },
+    MissingSiteSlug { slug: String },
+    MissingCustomDomain { domain: String },
 }
 
 #[derive(Deserialize, Debug, Clone)]

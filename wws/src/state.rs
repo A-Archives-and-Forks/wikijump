@@ -21,7 +21,7 @@
 use crate::{
     cache::Cache,
     config::Secrets,
-    deepwell::{Deepwell, Domains, FileData, PageData, SiteData},
+    deepwell::{Deepwell, Domains, FileData, PageData, SiteData, SiteDomainResult},
     error::Result,
     framerail::Framerail,
 };
@@ -98,23 +98,17 @@ impl ServerStateInner {
         }
     }
 
-    pub async fn get_site_from_domain(&self, site_domain: &str) -> Result<Option<(i64, String)>> {
+    pub async fn get_site_from_domain(&self, site_domain: &str) -> Result<SiteDomainResult> {
         match self.cache.get_site_from_domain(site_domain).await? {
-            Some((site_id, site_slug)) => Ok(Some((site_id, site_slug))),
-            None => match self.deepwell.get_site_from_domain(site_domain).await? {
-                None => Ok(None),
-                Some(SiteData {
-                    site_id,
-                    site_slug,
-                    ..
-                }) => {
-                    self.cache
-                        .set_site_from_domain(site_domain, site_id, &site_slug)
-                        .await?;
+            Some(domain_data) => Ok(domain_data),
+            None => {
+                let domain_data = self.deepwell.get_site_from_domain(site_domain).await?;
+                self.cache
+                    .set_site_from_domain(site_domain, &domain_data)
+                    .await?;
 
-                    Ok(Some((site_id, site_slug)))
-                }
-            },
+                Ok(domain_data)
+            }
         }
     }
 

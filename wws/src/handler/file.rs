@@ -19,10 +19,7 @@
  */
 
 use super::get_site_info;
-use crate::{
-    error::ServerErrorCode,
-    state::ServerState,
-};
+use crate::{error::ServerErrorCode, state::ServerState};
 use axum::{
     body::Body,
     extract::{Path, State},

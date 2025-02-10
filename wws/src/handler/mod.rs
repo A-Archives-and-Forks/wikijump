@@ -156,12 +156,8 @@ pub async fn handle_host_delegation(
         }
         // Default site redirect
         // e.g. "www.wikijump.com/foo" -> "wikijump.com/foo"
-        SiteAndHost::DefaultRedirect => {
-            let destination = format!(
-                "https://{}{}",
-                state.domains.main_domain_no_dot,
-                get_path(request.uri()),
-            );
+        SiteAndHost::MainSiteRedirect { domain } => {
+            let destination = format!("https://{}{}", domain, get_path(request.uri()),);
             Redirect::permanent(&destination).into_response()
         }
         // Files site route handling

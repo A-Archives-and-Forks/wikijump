@@ -18,7 +18,11 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use crate::{deepwell::Domains, error::Result, state::ServerState};
+use crate::{
+    deepwell::{Domains, SiteData},
+    error::Result,
+    state::ServerState,
+};
 
 /// The slug for the default site.
 ///
@@ -44,15 +48,14 @@ pub enum SiteAndHost<'a> {
     /// Main router, non-existent site, custom domain.
     MainCustomMissing,
 
+    /// Main router, request to preferred domain for the site.
+    MainSiteRedirect { domain: &'a str },
+
     /// Files router, existent site.
     File { site_id: i64, site_slug: &'a str },
 
     /// Files router, non-existent site.
     FileMissing { site_slug: &'a str },
-
-    /// Main router, request to canonical `www`, should be redirected to the root domain.
-    /// Special case.
-    DefaultRedirect,
 
     /// Request is the root domain on the files router, which has no meaning.
     /// Special case.
@@ -68,17 +71,7 @@ pub async fn lookup_host<'a>(state: &ServerState, hostname: &'a str) -> Result<S
         ..
     } = state.domains;
 
-    if hostname == main_domain_no_dot {
-        // First, check if it's the default domain by itself.
-        main_site_slug(state, hostname, None).await
-    } else if let Some(site_slug) = hostname.strip_suffix(main_domain) {
-        if site_slug == DEFAULT_SITE_SLUG {
-            // We should be redirecting to the non-www version of the link
-            return Ok(SiteAndHost::DefaultRedirect);
-        }
-
-        main_site_slug(state, hostname, Some(site_slug)).await
-    } else if let Some(site_slug) = hostname.strip_suffix(files_domain) {
+    if let Some(site_slug) = hostname.strip_suffix(files_domain) {
         // Determine if it's a files domain.
         let site_id = state.get_site_from_slug(site_slug).await?;
         match site_id {
@@ -114,17 +107,23 @@ pub async fn lookup_host<'a>(state: &ServerState, hostname: &'a str) -> Result<S
         info!(domain = hostname, "Handling lone files site request");
         Ok(SiteAndHost::FileRoot)
     } else {
-        // If it's anything else, it must be a custom domain.
-        // Do a lookup, then set the site data as appropriate.
+        // If it's anything else, it must be a canonical or custom domain.
+        // Let's do a lookup and let DomainService handle it for us.
+
+        /*
+         TODO
         match state.get_site_from_domain(hostname).await? {
-            Some((site_id, site_slug)) => {
+            Some(SiteData { site_id, slug: site_slug }) => {
                 // Site exists
                 info!(
                     domain = hostname,
                     site_id = site_id,
                     "Routing main site request (custom)",
                 );
-                Ok(SiteAndHost::MainCustom { site_id, site_slug })
+                match should_redirect_site(hostname, preferred_domain) {
+                    Some(preferred_domain) => Ok(SiteAndHost::MainSiteRedirect { domain: &preferred_domain }),
+                    None => Ok(SiteAndHost::MainCustom { site_id, site_slug }),
+                }
             }
             None => {
                 // No such site
@@ -132,6 +131,8 @@ pub async fn lookup_host<'a>(state: &ServerState, hostname: &'a str) -> Result<S
                 Ok(SiteAndHost::MainCustomMissing)
             }
         }
+        */
+        todo!()
     }
 }
 
