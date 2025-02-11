@@ -18,13 +18,11 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use crate::models::site::Model as SiteModel;
-
 #[derive(Serialize, Debug, Clone)]
 #[serde(rename_all = "snake_case", tag = "result", content = "data")]
 pub enum SiteAndHost {
-    SiteFound(SiteModel),
-    SiteRedirect { domain: String },
+    MainSite { site_id: i64, site_slug: String },
+    MainSiteRedirect { domain: String },
     MissingSiteSlug { slug: String },
     MissingCustomDomain { domain: String },
 }

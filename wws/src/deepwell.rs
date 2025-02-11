@@ -18,7 +18,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use crate::error::Result;
+use crate::{error::Result, host::SiteAndHost};
 use jsonrpsee::{core::client::ClientT, http_client::HttpClient, rpc_params};
 use serde::Deserialize;
 use std::time::Duration;
@@ -125,13 +125,13 @@ impl Deepwell {
         Ok(site_data)
     }
 
-    pub async fn get_site_from_domain(&self, domain: &str) -> Result<SiteDomainInfo> {
-        let site_data: SiteDomainInfo = self
+    pub async fn get_site_from_domain(&self, domain: &str) -> Result<SiteAndHost> {
+        let host: SiteAndHost = self
             .client
             .request("site_from_domain", rpc_params![domain])
             .await?;
 
-        Ok(site_data)
+        Ok(host)
     }
 
     pub async fn get_page(&self, site_id: i64, page_slug: &str) -> Result<Option<PageData>> {
@@ -177,15 +177,6 @@ pub struct Domains {
 pub struct SiteData {
     pub site_id: i64,
     pub slug: String,
-}
-
-#[derive(Deserialize, Debug, Clone)]
-#[serde(rename_all = "snake_case", tag = "result", content = "data")]
-pub enum SiteDomainInfo {
-    SiteFound { site_id: i64, slug: String },
-    SiteRedirect { domain: String },
-    MissingSiteSlug { slug: String },
-    MissingCustomDomain { domain: String },
 }
 
 #[derive(Deserialize, Debug, Clone)]

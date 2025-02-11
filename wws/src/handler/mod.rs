@@ -138,36 +138,68 @@ pub async fn handle_host_delegation(
     // give it to the right place to be processed.
     match host_data {
         // Main site route handling
-        SiteAndHost::Main { site_id, site_slug } => {
+        SiteAndHost::MainSite { site_id, site_slug } => {
+            info!(
+                r#type = "main",
+                domain = hostname,
+                site_id = site_id,
+                site_slug = site_slug,
+                "Routing site request",
+            );
             add_headers!(site_id, site_slug);
             forward_request!(main_router)
         }
         // Main site redirect
         SiteAndHost::MainSiteRedirect { domain } => {
+            info!(
+                r#type = "main",
+                domain = domain,
+                "Found site, but needs redirect to preferred domain",
+            );
             let destination = format!("https://{}{}", domain, get_path(request.uri()));
             Redirect::permanent(&destination).into_response()
         }
-        // Main site missing
-        SiteAndHost::MainSiteSlugMissing { ref site_slug } => {
-            ServerErrorCode::SiteNotFound { site_slug }.into_response()
-        }
-        SiteAndHost::MainCustomMissing { ref domain } => {
-            ServerErrorCode::CustomDomainNotFound { domain }.into_response()
-        }
         // Files site route handling
-        SiteAndHost::File { site_id, site_slug } => {
+        SiteAndHost::FileSite { site_id, site_slug } => {
+            info!(
+                r#type = "files",
+                domain = hostname,
+                site_slug = site_slug,
+                site_id = site_id,
+                "Routing site request",
+            );
             add_headers!(site_id, site_slug);
             forward_request!(files_router)
-        }
-        // Files site missing
-        SiteAndHost::FileMissing { site_slug } => {
-            ServerErrorCode::SiteNotFound { site_slug }.into_response()
         }
         // Files site by itself
         // See the case in host.rs for an explanation
         SiteAndHost::FileRoot => {
+            info!(
+                r#type = "files",
+                domain = hostname,
+                "Handling lone files site request",
+            );
             let destination = format!("https://{}", state.domains.main_domain_no_dot);
             Redirect::temporary(&destination).into_response()
+        }
+        // Canonical domain, site missing
+        SiteAndHost::MissingSiteSlug { ref site_slug } => {
+            info!(
+                r#type = "main",
+                domain = hostname,
+                site_slug = site_slug,
+                "No such site with slug",
+            );
+            ServerErrorCode::SiteNotFound { site_slug }.into_response()
+        }
+        // Custom domain missing
+        SiteAndHost::MissingCustomDomain { ref domain } => {
+            info!(
+                r#type = "main",
+                domain = domain,
+                "No such site with custom domain",
+            );
+            ServerErrorCode::CustomDomainNotFound { domain }.into_response()
         }
     }
 }

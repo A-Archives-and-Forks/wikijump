@@ -18,11 +18,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use crate::{
-    deepwell::{Domains, SiteDomainInfo},
-    error::Result,
-    state::ServerState,
-};
+use crate::{deepwell::Domains, error::Result, state::ServerState};
+use serde::Deserialize;
 
 /// The slug for the default site.
 ///
@@ -31,35 +28,34 @@ use crate::{
 pub const DEFAULT_SITE_SLUG: &str = "www";
 
 /// Describes which Wikijump site and router this request is pointed towards.
+/// Gets the data from DEEPWELL, but adds fields for the files server routing.
 ///
 /// * "Main" refers to the framerail handler, i.e. `[site-slug].wikijump.com`.
 /// * "Files" refers to the wjfiles handlers, i.e. `[site-slug].wjfiles.com`.
-#[derive(Debug)]
-pub enum SiteAndHost<'a> {
-    /// Main router existent site, canonical domain.
-    Main { site_id: i64, site_slug: String },
+#[derive(Deserialize, Debug, Clone)]
+#[serde(rename_all = "snake_case", tag = "result", content = "data")]
+pub enum SiteAndHost {
+    /// Main router existent site, ready to process request.
+    MainSite { site_id: i64, site_slug: String },
 
-    /// Main router, non-existent site, canonical domain.
-    MainSiteSlugMissing { site_slug: String },
-
-    /// Main router, non-existent site, custom domain.
-    MainCustomMissing { domain: String },
-
-    /// Main router, request to preferred domain for the site.
+    /// Main router existent site, request to preferred domain.
     MainSiteRedirect { domain: String },
 
     /// Files router, existent site.
-    File { site_id: i64, site_slug: &'a str },
-
-    /// Files router, non-existent site.
-    FileMissing { site_slug: &'a str },
+    FileSite { site_id: i64, site_slug: String },
 
     /// Request is the root domain on the files router, which has no meaning.
     /// Special case.
     FileRoot,
+
+    /// Any router, non-existent site, canonical domain.
+    MissingSiteSlug { site_slug: String },
+
+    /// Any router, non-existent site, custom domain.
+    MissingCustomDomain { domain: String },
 }
 
-pub async fn lookup_host<'a>(state: &ServerState, hostname: &'a str) -> Result<SiteAndHost<'a>> {
+pub async fn lookup_host(state: &ServerState, hostname: &str) -> Result<SiteAndHost> {
     let Domains {
         ref files_domain,
         ref files_domain_no_dot,
@@ -69,92 +65,28 @@ pub async fn lookup_host<'a>(state: &ServerState, hostname: &'a str) -> Result<S
     if let Some(site_slug) = hostname.strip_suffix(files_domain) {
         // Determine if it's a files domain.
         let site_id = state.get_site_from_slug(site_slug).await?;
+        let site_slug = site_slug.to_owned(); // We cannot use the borrowed version because
+                                              // the struct is Deserialize.
         match site_id {
-            Some(site_id) => {
-                // Site exists
-                info!(
-                    r#type = "files",
-                    domain = hostname,
-                    site_slug = site_slug,
-                    site_id = site_id,
-                    "Routing site request",
-                );
-                Ok(SiteAndHost::File { site_id, site_slug })
-            }
-            None => {
-                // No such site
-                warn!(
-                    r#type = "files",
-                    domain = hostname,
-                    site_slug = site_slug,
-                    "No such site with slug",
-                );
-                Ok(SiteAndHost::FileMissing { site_slug })
-            }
+            // Site exists
+            Some(site_id) => Ok(SiteAndHost::FileSite { site_id, site_slug }),
+            // Site missing
+            None => Ok(SiteAndHost::MissingSiteSlug { site_slug }),
         }
     } else if hostname == files_domain_no_dot {
-        // Finally, check if it's the files domain by itself.
+        // Check if it's the files domain by itself.
         //
         // This is weird, wjfiles should always a site slug subdomain,
         // so in this case we just temporary redirect to the main domain,
         // stripping the path.
-        //
-        // Since this is expected to be uncommon, we're putting it after
-        // the site files check.
-        info!(
-            r#type = "files",
-            domain = hostname,
-            "Handling lone files site request",
-        );
         Ok(SiteAndHost::FileRoot)
     } else {
         // If it's anything else, it must be a canonical or custom domain.
-        // Let's do a lookup and let DomainService handle it for us.
+        // That means it's the main site. Let's do a lookup and let
+        // DomainService handle it for us.
         //
         // This also caches the lookup, to avoid us having to talk to
         // DEEPWELL more than necessary.
-        //
-        // Then we map it to the corresponding SiteAndHost variant.
-
-        match state.get_site_from_domain(hostname).await? {
-            SiteDomainInfo::SiteFound {
-                site_id,
-                slug: site_slug,
-            } => {
-                info!(
-                    r#type = "main",
-                    domain = hostname,
-                    site_id = site_id,
-                    site_slug = site_slug,
-                    "Routing site request",
-                );
-                Ok(SiteAndHost::Main { site_id, site_slug })
-            }
-            SiteDomainInfo::SiteRedirect { domain } => {
-                info!(
-                    r#type = "main",
-                    domain = domain,
-                    "Found site, but needs redirect to preferred",
-                );
-                Ok(SiteAndHost::MainSiteRedirect { domain })
-            }
-            SiteDomainInfo::MissingSiteSlug { slug: site_slug } => {
-                info!(
-                    r#type = "main",
-                    domain = hostname,
-                    site_slug = site_slug,
-                    "No such site with slug",
-                );
-                Ok(SiteAndHost::MainSiteSlugMissing { site_slug })
-            }
-            SiteDomainInfo::MissingCustomDomain { domain } => {
-                info!(
-                    r#type = "main",
-                    domain = domain,
-                    "No such site with custom domain",
-                );
-                Ok(SiteAndHost::MainCustomMissing { domain })
-            }
-        }
+        state.get_host_from_domain(hostname).await
     }
 }

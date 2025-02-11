@@ -511,11 +511,13 @@ impl ViewService {
         }
 
         // Get site data
+        // TODO
         match DomainService::parse_site_from_domain(ctx, domain).await? {
-            SiteAndHost::SiteFound(site) => {
+            SiteAndHost::MainSite { site_id, site_slug } => {
+                let site = todo!();
                 Ok(ViewerResult::FoundSite(Viewer { site, user_session }))
             }
-            SiteAndHost::SiteRedirect {
+            SiteAndHost::MainSiteRedirect {
                 domain: _preferred_domain,
             } => todo!(),
             SiteAndHost::MissingSiteSlug { slug } => {

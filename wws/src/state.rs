@@ -21,9 +21,10 @@
 use crate::{
     cache::Cache,
     config::Secrets,
-    deepwell::{Deepwell, Domains, FileData, PageData, SiteData, SiteDomainInfo},
+    deepwell::{Deepwell, Domains, FileData, PageData, SiteData},
     error::Result,
     framerail::Framerail,
+    host::SiteAndHost,
 };
 use axum::body::Body;
 use hyper_util::{
@@ -98,16 +99,14 @@ impl ServerStateInner {
         }
     }
 
-    pub async fn get_site_from_domain(&self, site_domain: &str) -> Result<SiteDomainInfo> {
-        match self.cache.get_site_from_domain(site_domain).await? {
-            Some(domain_data) => Ok(domain_data),
+    pub async fn get_host_from_domain(&self, domain: &str) -> Result<SiteAndHost> {
+        match self.cache.get_host_from_domain(domain).await? {
+            Some(host) => Ok(host),
             None => {
-                let domain_data = self.deepwell.get_site_from_domain(site_domain).await?;
-                self.cache
-                    .set_site_from_domain(site_domain, &domain_data)
-                    .await?;
+                let host = self.deepwell.get_site_from_domain(domain).await?;
+                self.cache.set_host_from_domain(domain, &host).await?;
 
-                Ok(domain_data)
+                Ok(host)
             }
         }
     }

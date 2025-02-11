@@ -140,9 +140,15 @@ impl DomainService {
                     DomainService::preferred_domain(config, &$site).into_owned();
 
                 if domain == &preferred_domain {
-                    SiteAndHost::SiteFound($site)
+                    let SiteModel {
+                        site_id,
+                        slug: site_slug,
+                        ..
+                    } = $site;
+
+                    SiteAndHost::MainSite { site_id, site_slug }
                 } else {
-                    SiteAndHost::SiteRedirect {
+                    SiteAndHost::MainSiteRedirect {
                         domain: preferred_domain,
                     }
                 }
