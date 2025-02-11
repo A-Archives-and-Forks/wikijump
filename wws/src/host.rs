@@ -18,11 +18,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use crate::{
-    deepwell::{Domains, SiteData},
-    error::Result,
-    state::ServerState,
-};
+use crate::{deepwell::Domains, error::Result, state::ServerState};
 
 /// The slug for the default site.
 ///
@@ -64,8 +60,6 @@ pub enum SiteAndHost<'a> {
 
 pub async fn lookup_host<'a>(state: &ServerState, hostname: &'a str) -> Result<SiteAndHost<'a>> {
     let Domains {
-        ref main_domain,
-        ref main_domain_no_dot,
         ref files_domain,
         ref files_domain_no_dot,
         ..
@@ -133,47 +127,5 @@ pub async fn lookup_host<'a>(state: &ServerState, hostname: &'a str) -> Result<S
         }
         */
         todo!()
-    }
-}
-
-/// Process a request from `[site-slug].wikijump.com`.
-///
-/// Because `wikijump.com` (default) and specifying a slug
-/// have essentially the same code paths, we avoid code
-/// duplication by using this helper function.
-async fn main_site_slug<'a>(
-    state: &ServerState,
-    hostname: &str,
-    site_slug: Option<&'a str>,
-) -> Result<SiteAndHost<'a>> {
-    // This is our way of passing in "is default site" or not.
-    // If it's None, it's 'wikijump.com', if it's Some(_), it's 'xxx.wikijump.com'.
-    let (site_slug, is_default) = match site_slug {
-        Some(site_slug) => (site_slug, false),
-        None => (DEFAULT_SITE_SLUG, true),
-    };
-
-    // Return site present or missing response based on site ID.
-    let site_id = state.get_site_from_slug(site_slug).await?;
-    match site_id {
-        Some(site_id) => {
-            // Site exists
-            info!(
-                domain = hostname,
-                site_id = site_id,
-                "Routing main site request ({})",
-                if is_default { "default" } else { "slug" },
-            );
-            Ok(SiteAndHost::Main { site_id, site_slug })
-        }
-        None => {
-            // No such site
-            warn!(
-                domain = hostname,
-                site_slug = site_slug,
-                "No such site with slug (main)",
-            );
-            Ok(SiteAndHost::MainMissing { site_slug })
-        }
     }
 }

@@ -24,9 +24,6 @@
 //! or given to logic to serve wjfiles data.
 
 #[macro_use]
-extern crate serde;
-
-#[macro_use]
 extern crate str_macro;
 
 #[macro_use]

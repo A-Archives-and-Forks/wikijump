@@ -24,7 +24,7 @@
 //! compatible with DEEPWELL's Redis code.
 
 use crate::{
-    deepwell::{FileData, SiteData, SiteDomainInfo},
+    deepwell::{FileData, SiteDomainInfo},
     error::Result,
 };
 use redis::{aio::MultiplexedConnection, AsyncCommands};

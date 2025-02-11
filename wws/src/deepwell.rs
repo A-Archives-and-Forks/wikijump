@@ -20,7 +20,7 @@
 
 use crate::error::Result;
 use jsonrpsee::{core::client::ClientT, http_client::HttpClient, rpc_params};
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::time::Duration;
 
 const JSONRPC_MAX_REQUEST: u32 = 16 * 1024;
