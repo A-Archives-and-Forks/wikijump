@@ -41,12 +41,12 @@ impl SpecialErrorService {
         let config = ctx.config();
         let mut args = FluentArgs::new();
         args.set("slug", fluent_str!(site_slug));
-        args.set("main-domain", fluent_str!(config.main_domain_no_dot));
-        args.set("files-domain", fluent_str!(config.files_domain_no_dot));
+        args.set("main_domain", fluent_str!(config.main_domain_no_dot));
+        args.set("files_domain", fluent_str!(config.files_domain_no_dot));
 
         let html = ctx
             .localization()
-            .translate(locales, "wiki-page-site-slug", &args)?;
+            .translate(locales, "special-error-site-slug", &args)?;
 
         Ok(html.to_string())
     }
@@ -60,12 +60,12 @@ impl SpecialErrorService {
         let config = ctx.config();
         let mut args = FluentArgs::new();
         args.set("custom_domain", fluent_str!(domain));
-        args.set("main-domain", fluent_str!(config.main_domain_no_dot));
-        args.set("files-domain", fluent_str!(config.files_domain_no_dot));
+        args.set("main_domain", fluent_str!(config.main_domain_no_dot));
+        args.set("files_domain", fluent_str!(config.files_domain_no_dot));
 
         let html =
             ctx.localization()
-                .translate(locales, "wiki-page-site-custom", &args)?;
+                .translate(locales, "special-error-site-custom", &args)?;
 
         Ok(html.to_string())
     }
