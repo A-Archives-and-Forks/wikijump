@@ -468,8 +468,7 @@ impl ViewService {
 
         // Get user data from session token (if present)
         let user_session = match session_token {
-            None => None,
-            Some("") => None,
+            Some("") | None => None,
             Some(token) => {
                 let session = SessionService::get(ctx, token).await?;
                 let user = UserService::get(ctx, Reference::Id(session.user_id)).await?;
