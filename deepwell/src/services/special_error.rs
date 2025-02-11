@@ -32,46 +32,41 @@ use unic_langid::LanguageIdentifier;
 pub struct SpecialErrorService;
 
 impl SpecialErrorService {
-    /// Produce output for cases where a site does not exist.
-    pub async fn missing_site(
+    /// Produce output for a canonical site that does not exist.
+    pub async fn missing_site_slug(
+        ctx: &ServiceContext<'_>,
+        locales: &[LanguageIdentifier],
+        site_slug: &str,
+    ) -> Result<String> {
+        let config = ctx.config();
+        let mut args = FluentArgs::new();
+        args.set("slug", fluent_str!(site_slug));
+        args.set("main-domain", fluent_str!(config.main_domain_no_dot));
+        args.set("files-domain", fluent_str!(config.files_domain_no_dot));
+
+        let html = ctx
+            .localization()
+            .translate(locales, "wiki-page-site-slug", &args)?;
+
+        Ok(html.to_string())
+    }
+
+    /// Produce output for a custom domain that does not exist.
+    pub async fn missing_custom_domain(
         ctx: &ServiceContext<'_>,
         locales: &[LanguageIdentifier],
         domain: &str,
-        site_slug: Option<&str>,
     ) -> Result<String> {
         let config = ctx.config();
-        match site_slug {
-            // No site with slug error
-            Some(site_slug) => {
-                let mut args = FluentArgs::new();
-                args.set("slug", fluent_str!(site_slug));
-                args.set("domain", fluent_str!(config.main_domain_no_dot));
-                args.set("files-domain", fluent_str!(config.files_domain_no_dot));
+        let mut args = FluentArgs::new();
+        args.set("custom_domain", fluent_str!(domain));
+        args.set("main-domain", fluent_str!(config.main_domain_no_dot));
+        args.set("files-domain", fluent_str!(config.files_domain_no_dot));
 
-                let html = ctx.localization().translate(
-                    locales,
-                    "wiki-page-site-slug",
-                    &args,
-                )?;
+        let html =
+            ctx.localization()
+                .translate(locales, "wiki-page-site-custom", &args)?;
 
-                Ok(html.to_string())
-            }
-
-            // Custom domain missing error
-            None => {
-                let mut args = FluentArgs::new();
-                args.set("custom_domain", fluent_str!(domain));
-                args.set("domain", fluent_str!(config.main_domain_no_dot));
-                args.set("files-domain", fluent_str!(config.files_domain_no_dot));
-
-                let html = ctx.localization().translate(
-                    locales,
-                    "wiki-page-site-custom",
-                    &args,
-                )?;
-
-                Ok(html.to_string())
-            }
-        }
+        Ok(html.to_string())
     }
 }
