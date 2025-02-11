@@ -41,7 +41,6 @@ use crate::services::{
     SpecialPageService, TextService, UserService,
 };
 use crate::utils::split_category;
-use fluent::{FluentArgs, FluentValue};
 use ftml::prelude::*;
 use ftml::render::html::HtmlOutput;
 use ref_map::*;
@@ -486,49 +485,6 @@ impl ViewService {
 
         // Return
         Ok(Viewer { site, user_session })
-    }
-
-    /// Produce output for cases where a site does not exist.
-    async fn missing_site_output(
-        ctx: &ServiceContext<'_>,
-        locales: &[LanguageIdentifier],
-        domain: &str,
-        site_slug: Option<&str>,
-    ) -> Result<String> {
-        let config = ctx.config();
-        match site_slug {
-            // No site with slug error
-            Some(site_slug) => {
-                let mut args = FluentArgs::new();
-                args.set("slug", fluent_str!(site_slug));
-                args.set("domain", fluent_str!(config.main_domain_no_dot));
-                args.set("files-domain", fluent_str!(config.files_domain_no_dot));
-
-                let html = ctx.localization().translate(
-                    locales,
-                    "wiki-page-site-slug",
-                    &args,
-                )?;
-
-                Ok(html.to_string())
-            }
-
-            // Custom domain missing error
-            None => {
-                let mut args = FluentArgs::new();
-                args.set("custom_domain", fluent_str!(domain));
-                args.set("domain", fluent_str!(config.main_domain_no_dot));
-                args.set("files-domain", fluent_str!(config.files_domain_no_dot));
-
-                let html = ctx.localization().translate(
-                    locales,
-                    "wiki-page-site-custom",
-                    &args,
-                )?;
-
-                Ok(html.to_string())
-            }
-        }
     }
 
     async fn can_access_page(
