@@ -30,7 +30,8 @@ use crate::config::{Config, Secrets};
 use crate::endpoints::{
     auth::*, blob::*, category::*, domain::*, email::*, file::*, file_revision::*,
     info::*, link::*, locale::*, message::*, misc::*, page::*, page_revision::*,
-    parent::*, site::*, site_member::*, text::*, user::*, user_bot::*, view::*, vote::*,
+    parent::*, site::*, site_member::*, special_error::*, text::*, user::*, user_bot::*,
+    view::*, vote::*,
 };
 use crate::locales::Localizations;
 use crate::services::blob::MimeAnalyzer;
@@ -193,6 +194,16 @@ async fn build_module(app_state: ServerState) -> anyhow::Result<RpcModule<Server
     register!("page_view", page_view);
     register!("user_view", user_view);
     register!("admin_view", admin_view);
+
+    // Special errors
+    register!(
+        "special_error_missing_site_slug",
+        special_error_missing_site_slug,
+    );
+    register!(
+        "special_error_missing_custom_domain",
+        special_error_missing_custom_domain,
+    );
 
     // Authentication
     register!("login", auth_login);

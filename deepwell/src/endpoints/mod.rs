@@ -59,6 +59,7 @@ pub mod page_revision;
 pub mod parent;
 pub mod site;
 pub mod site_member;
+pub mod special_error;
 pub mod text;
 pub mod user;
 pub mod user_bot;

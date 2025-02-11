@@ -44,9 +44,9 @@ impl SpecialErrorService {
         args.set("main_domain", fluent_str!(config.main_domain_no_dot));
         args.set("files_domain", fluent_str!(config.files_domain_no_dot));
 
-        let html = ctx
-            .localization()
-            .translate(locales, "special-error-site-slug", &args)?;
+        let html =
+            ctx.localization()
+                .translate(locales, "special-error-site-slug", &args)?;
 
         Ok(html.to_string())
     }
