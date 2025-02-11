@@ -18,7 +18,11 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use crate::{deepwell::Domains, error::Result, state::ServerState};
+use crate::{
+    deepwell::{Domains, SiteDomainInfo},
+    error::Result,
+    state::ServerState,
+};
 
 /// The slug for the default site.
 ///
@@ -33,19 +37,16 @@ pub const DEFAULT_SITE_SLUG: &str = "www";
 #[derive(Debug)]
 pub enum SiteAndHost<'a> {
     /// Main router existent site, canonical domain.
-    Main { site_id: i64, site_slug: &'a str },
+    Main { site_id: i64, site_slug: String },
 
     /// Main router, non-existent site, canonical domain.
-    MainMissing { site_slug: &'a str },
-
-    /// Main router, existent site, custom domain.
-    MainCustom { site_id: i64, site_slug: String },
+    MainSiteSlugMissing { site_slug: String },
 
     /// Main router, non-existent site, custom domain.
-    MainCustomMissing,
+    MainCustomMissing { domain: String },
 
     /// Main router, request to preferred domain for the site.
-    MainSiteRedirect { domain: &'a str },
+    MainSiteRedirect { domain: String },
 
     /// Files router, existent site.
     File { site_id: i64, site_slug: &'a str },
@@ -72,19 +73,21 @@ pub async fn lookup_host<'a>(state: &ServerState, hostname: &'a str) -> Result<S
             Some(site_id) => {
                 // Site exists
                 info!(
+                    r#type = "files",
                     domain = hostname,
                     site_slug = site_slug,
                     site_id = site_id,
-                    "Routing files site request",
+                    "Routing site request",
                 );
                 Ok(SiteAndHost::File { site_id, site_slug })
             }
             None => {
                 // No such site
                 warn!(
+                    r#type = "files",
                     domain = hostname,
                     site_slug = site_slug,
-                    "No such site with slug (files)",
+                    "No such site with slug",
                 );
                 Ok(SiteAndHost::FileMissing { site_slug })
             }
@@ -98,34 +101,60 @@ pub async fn lookup_host<'a>(state: &ServerState, hostname: &'a str) -> Result<S
         //
         // Since this is expected to be uncommon, we're putting it after
         // the site files check.
-        info!(domain = hostname, "Handling lone files site request");
+        info!(
+            r#type = "files",
+            domain = hostname,
+            "Handling lone files site request",
+        );
         Ok(SiteAndHost::FileRoot)
     } else {
         // If it's anything else, it must be a canonical or custom domain.
         // Let's do a lookup and let DomainService handle it for us.
+        //
+        // This also caches the lookup, to avoid us having to talk to
+        // DEEPWELL more than necessary.
+        //
+        // Then we map it to the corresponding SiteAndHost variant.
 
-        /*
-         TODO
         match state.get_site_from_domain(hostname).await? {
-            Some(SiteData { site_id, slug: site_slug }) => {
-                // Site exists
+            SiteDomainInfo::SiteFound {
+                site_id,
+                slug: site_slug,
+            } => {
                 info!(
+                    r#type = "main",
                     domain = hostname,
                     site_id = site_id,
-                    "Routing main site request (custom)",
+                    site_slug = site_slug,
+                    "Routing site request",
                 );
-                match should_redirect_site(hostname, preferred_domain) {
-                    Some(preferred_domain) => Ok(SiteAndHost::MainSiteRedirect { domain: &preferred_domain }),
-                    None => Ok(SiteAndHost::MainCustom { site_id, site_slug }),
-                }
+                Ok(SiteAndHost::Main { site_id, site_slug })
             }
-            None => {
-                // No such site
-                warn!(domain = hostname, "No such site with domain (custom)");
-                Ok(SiteAndHost::MainCustomMissing)
+            SiteDomainInfo::SiteRedirect { domain } => {
+                info!(
+                    r#type = "main",
+                    domain = domain,
+                    "Found site, but needs redirect to preferred",
+                );
+                Ok(SiteAndHost::MainSiteRedirect { domain })
+            }
+            SiteDomainInfo::MissingSiteSlug { slug: site_slug } => {
+                info!(
+                    r#type = "main",
+                    domain = hostname,
+                    site_slug = site_slug,
+                    "No such site with slug",
+                );
+                Ok(SiteAndHost::MainSiteSlugMissing { site_slug })
+            }
+            SiteDomainInfo::MissingCustomDomain { domain } => {
+                info!(
+                    r#type = "main",
+                    domain = domain,
+                    "No such site with custom domain",
+                );
+                Ok(SiteAndHost::MainCustomMissing { domain })
             }
         }
-        */
-        todo!()
     }
 }

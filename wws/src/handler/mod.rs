@@ -142,29 +142,24 @@ pub async fn handle_host_delegation(
             add_headers!(site_id, site_slug);
             forward_request!(main_router)
         }
-        SiteAndHost::MainCustom { site_id, site_slug } => {
-            // NOTE: The difference here is site_slug here is String not &str
-            add_headers!(site_id, site_slug);
-            forward_request!(main_router)
+        // Main site redirect
+        SiteAndHost::MainSiteRedirect { domain } => {
+            let destination = format!("https://{}{}", domain, get_path(request.uri()));
+            Redirect::permanent(&destination).into_response()
         }
         // Main site missing
-        SiteAndHost::MainMissing { site_slug } => {
+        SiteAndHost::MainSiteSlugMissing { ref site_slug } => {
             ServerErrorCode::SiteNotFound { site_slug }.into_response()
         }
-        SiteAndHost::MainCustomMissing => {
-            ServerErrorCode::CustomDomainNotFound { domain: &hostname }.into_response()
-        }
-        // Default site redirect
-        // e.g. "www.wikijump.com/foo" -> "wikijump.com/foo"
-        SiteAndHost::MainSiteRedirect { domain } => {
-            let destination = format!("https://{}{}", domain, get_path(request.uri()),);
-            Redirect::permanent(&destination).into_response()
+        SiteAndHost::MainCustomMissing { ref domain } => {
+            ServerErrorCode::CustomDomainNotFound { domain }.into_response()
         }
         // Files site route handling
         SiteAndHost::File { site_id, site_slug } => {
             add_headers!(site_id, site_slug);
             forward_request!(files_router)
         }
+        // Files site missing
         SiteAndHost::FileMissing { site_slug } => {
             ServerErrorCode::SiteNotFound { site_slug }.into_response()
         }
