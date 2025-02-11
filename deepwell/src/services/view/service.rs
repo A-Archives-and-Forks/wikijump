@@ -40,7 +40,7 @@ use crate::services::{
     DomainService, PageRevisionService, PageService, SessionService, SiteService,
     SpecialPageService, TextService, UserService,
 };
-use crate::utils::split_category;
+use crate::utils::{parse_locales, split_category};
 use ftml::prelude::*;
 use ftml::render::html::HtmlOutput;
 use ref_map::*;
@@ -533,17 +533,4 @@ impl ViewService {
             Some(target)
         }
     }
-}
-
-/// Converts an array of strings to a list of locales.
-///
-/// Empty locales lists _are_ allowed, since we have not
-/// yet checked the user's locale preferences.
-fn parse_locales<S: AsRef<str>>(locales_str: &[S]) -> Result<Vec<LanguageIdentifier>> {
-    let mut locales = Vec::with_capacity(locales_str.len());
-    for locale_str in locales_str {
-        let locale = LanguageIdentifier::from_bytes(locale_str.as_ref().as_bytes())?;
-        locales.push(locale);
-    }
-    Ok(locales)
 }

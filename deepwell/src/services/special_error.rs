@@ -25,6 +25,7 @@
 //! missing site or unknown custom domain.
 
 use super::prelude::*;
+use crate::utils::parse_locales;
 use fluent::{FluentArgs, FluentValue};
 use unic_langid::LanguageIdentifier;
 
