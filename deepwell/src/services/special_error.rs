@@ -27,6 +27,7 @@
 use super::prelude::*;
 use crate::utils::parse_locales;
 use fluent::{FluentArgs, FluentValue};
+use serde::Deserialize;
 use unic_langid::LanguageIdentifier;
 
 #[derive(Debug)]
