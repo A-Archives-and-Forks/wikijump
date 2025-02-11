@@ -37,8 +37,8 @@ use crate::services::domain::SiteAndHost;
 use crate::services::render::RenderOutput;
 use crate::services::special_page::{GetSpecialPageOutput, SpecialPageType};
 use crate::services::{
-    DomainService, PageRevisionService, PageService, SessionService, SpecialPageService,
-    TextService, UserService,
+    DomainService, PageRevisionService, PageService, SessionService, SiteService,
+    SpecialPageService, TextService, UserService,
 };
 use crate::utils::split_category;
 use fluent::{FluentArgs, FluentValue};
@@ -57,36 +57,26 @@ impl ViewService {
     pub async fn page(
         ctx: &ServiceContext<'_>,
         GetPageView {
-            domain,
+            site_id,
             locales: locales_str,
             route,
             session_token,
         }: GetPageView,
     ) -> Result<GetPageViewOutput> {
         info!(
-            "Getting page view data for domain '{}', route '{:?}', locales '{:?}'",
-            domain, route, locales_str,
+            "Getting page view data for site ID {}, route '{:?}', locales '{:?}'",
+            site_id, route, locales_str,
         );
 
-        // Parse all locales
         let mut locales = parse_locales(&locales_str)?;
         let config = ctx.config();
-
-        // Attempt to get a viewer helper structure, but if the site doesn't exist
-        // then return right away with the "no such site" response.
-        let Viewer { site, user_session } = match Self::get_viewer(
+        let Viewer { site, user_session } = Self::get_viewer(
             ctx,
             &mut locales,
-            &domain,
+            site_id,
             session_token.ref_map(|s| s.as_str()),
         )
-        .await?
-        {
-            ViewerResult::FoundSite(viewer) => viewer,
-            ViewerResult::MissingSite(html) => {
-                return Ok(GetPageViewOutput::SiteMissing { html });
-            }
-        };
+        .await?;
 
         // If None, means the main page for the site. Pull from site data.
         let (page_full_slug, page_extra): (&str, &str) = match &route {
@@ -299,35 +289,25 @@ impl ViewService {
     pub async fn user(
         ctx: &ServiceContext<'_>,
         GetUserView {
-            domain,
+            site_id,
             locales: locales_str,
             user: user_ref,
             session_token,
         }: GetUserView<'_>,
     ) -> Result<GetUserViewOutput> {
         info!(
-            "Getting user view data for domain '{}', user '{:?}', locales '{:?}'",
-            domain, user_ref, locales_str,
+            "Getting user view data for site ID {}, user '{:?}', locales '{:?}'",
+            site_id, user_ref, locales_str,
         );
 
-        // Parse all locales
         let mut locales = parse_locales(&locales_str)?;
-
-        // Attempt to get a viewer helper structure, but if the site doesn't exist
-        // then return right away with the "no such site" response.
-        let viewer = match Self::get_viewer(
+        let viewer = Self::get_viewer(
             ctx,
             &mut locales,
-            &domain,
+            site_id,
             session_token.ref_map(|s| s.as_str()),
         )
-        .await?
-        {
-            ViewerResult::FoundSite(viewer) => viewer,
-            ViewerResult::MissingSite(html) => {
-                return Ok(GetUserViewOutput::SiteMissing { html });
-            }
-        };
+        .await?;
 
         // TODO Check if user-agent and IP match?
 
@@ -352,35 +332,25 @@ impl ViewService {
     pub async fn admin(
         ctx: &ServiceContext<'_>,
         GetAdminView {
-            domain,
+            site_id,
             locales: locales_str,
             session_token,
         }: GetAdminView,
     ) -> Result<GetAdminViewOutput> {
         info!(
-            "Getting site view data for domain '{}', locales '{:?}'",
-            domain, locales_str,
+            "Getting site view data for site ID {}, locales '{:?}'",
+            site_id, locales_str,
         );
 
-        // Parse all locales
         let mut locales = parse_locales(&locales_str)?;
         let config = ctx.config();
-
-        // Attempt to get a viewer helper structure, but if the site doesn't exist
-        // then return right away with the "no such site" response.
-        let viewer = match Self::get_viewer(
+        let viewer = Self::get_viewer(
             ctx,
             &mut locales,
-            &domain,
+            site_id,
             session_token.ref_map(|s| s.as_str()),
         )
-        .await?
-        {
-            ViewerResult::FoundSite(viewer) => viewer,
-            ViewerResult::MissingSite(html) => {
-                return Ok(GetAdminViewOutput::SiteMissing { html });
-            }
-        };
+        .await?;
 
         let page_info = PageInfo {
             page: cow!(""),
@@ -424,7 +394,6 @@ impl ViewService {
             Some(ref session) => session.user_permissions,
             None => {
                 debug!("No user for session, disallow admin access");
-
                 return Ok(GetAdminViewOutput::AdminPermissions {
                     viewer,
                     html: compiled_html,
@@ -453,18 +422,21 @@ impl ViewService {
     /// All views seen by end users require a few translations before
     /// a request can be serviced:
     ///
-    /// * Hostname of request → Site ID and data
+    /// * Site ID → Site data
     /// * Session token → User ID and their permissions
+    ///
+    /// Note that we do *not* need to get the site ID from the domain
+    /// since WWS has already done the domain lookup logic for ups.
     ///
     /// Then using this information, the caller can perform some common
     /// operations, such as slug normalization or redirect site aliases.
     pub async fn get_viewer(
         ctx: &ServiceContext<'_>,
         locales: &mut Vec<LanguageIdentifier>,
-        domain: &str,
+        site_id: i64,
         session_token: Option<&str>,
-    ) -> Result<ViewerResult> {
-        info!("Getting viewer data from domain '{domain}' and session token");
+    ) -> Result<Viewer> {
+        info!("Getting viewer data site ID {site_id} and session token");
 
         // Get user data from session token (if present)
         let user_session = match session_token {
@@ -509,27 +481,11 @@ impl ViewService {
             return Err(Error::NoLocalesSpecified);
         }
 
-        // Get site data
-        // TODO
-        match DomainService::parse_site_from_domain(ctx, domain).await? {
-            SiteAndHost::MainSite { site_id, site_slug } => {
-                let site = todo!();
-                Ok(ViewerResult::FoundSite(Viewer { site, user_session }))
-            }
-            SiteAndHost::MainSiteRedirect {
-                domain: _preferred_domain,
-            } => todo!(),
-            SiteAndHost::MissingSiteSlug { slug } => {
-                let html =
-                    Self::missing_site_output(ctx, locales, domain, Some(&slug)).await?;
+        // Get site information
+        let site = SiteService::get(ctx, Reference::Id(site_id)).await?;
 
-                Ok(ViewerResult::MissingSite(html))
-            }
-            SiteAndHost::MissingCustomDomain { domain } => {
-                let html = Self::missing_site_output(ctx, locales, &domain, None).await?;
-                Ok(ViewerResult::MissingSite(html))
-            }
-        }
+        // Return
+        Ok(Viewer { site, user_session })
     }
 
     /// Produce output for cases where a site does not exist.
