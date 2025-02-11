@@ -22,6 +22,7 @@ use crate::services::{Error, Result};
 use unic_langid::LanguageIdentifier;
 
 /// Ensure the given locale string is valid, returning the parsed locale.
+/// If it is invalid, then the appropriate `Error` variant is returned.
 pub fn validate_locale(locale_str: &str) -> Result<LanguageIdentifier> {
     LanguageIdentifier::from_bytes(locale_str.as_bytes()).map_err(|error| {
         warn!("Invalid locale '{}' passed: {:?}", locale_str, error);
