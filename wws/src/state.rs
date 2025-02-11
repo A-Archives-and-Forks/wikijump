@@ -91,7 +91,7 @@ impl ServerStateInner {
             Some(site_id) => Ok(Some(site_id)),
             None => match self.deepwell.get_site_from_slug(site_slug).await? {
                 None => Ok(None),
-                Some(SiteData { site_id, .. }) => {
+                Some(SiteData { site_id }) => {
                     self.cache.set_site_from_slug(site_slug, site_id).await?;
                     Ok(Some(site_id))
                 }
