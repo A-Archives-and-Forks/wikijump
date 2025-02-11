@@ -20,12 +20,12 @@
 
 use super::prelude::*;
 use crate::models::site_domain::Model as SiteDomainModel;
-use crate::services::domain::{CreateCustomDomain, DomainService, SiteDomainInfo};
+use crate::services::domain::{CreateCustomDomain, DomainService, SiteAndHost};
 
 pub async fn site_get_from_domain(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<SiteDomainInfo> {
+) -> Result<SiteAndHost> {
     let domain: String = params.one()?;
     DomainService::parse_site_from_domain(ctx, &domain).await
 }

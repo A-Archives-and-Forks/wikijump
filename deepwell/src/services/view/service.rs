@@ -33,7 +33,7 @@ use super::prelude::*;
 use crate::models::page::Model as PageModel;
 use crate::models::page_revision::Model as PageRevisionModel;
 use crate::models::site::Model as SiteModel;
-use crate::services::domain::SiteDomainInfo;
+use crate::services::domain::SiteAndHost;
 use crate::services::render::RenderOutput;
 use crate::services::special_page::{GetSpecialPageOutput, SpecialPageType};
 use crate::services::{
@@ -512,19 +512,19 @@ impl ViewService {
 
         // Get site data
         match DomainService::parse_site_from_domain(ctx, domain).await? {
-            SiteDomainInfo::SiteFound(site) => {
+            SiteAndHost::SiteFound(site) => {
                 Ok(ViewerResult::FoundSite(Viewer { site, user_session }))
             }
-            SiteDomainInfo::SiteRedirect {
+            SiteAndHost::SiteRedirect {
                 domain: _preferred_domain,
             } => todo!(),
-            SiteDomainInfo::MissingSiteSlug { slug } => {
+            SiteAndHost::MissingSiteSlug { slug } => {
                 let html =
                     Self::missing_site_output(ctx, locales, domain, Some(&slug)).await?;
 
                 Ok(ViewerResult::MissingSite(html))
             }
-            SiteDomainInfo::MissingCustomDomain { domain } => {
+            SiteAndHost::MissingCustomDomain { domain } => {
                 let html = Self::missing_site_output(ctx, locales, &domain, None).await?;
                 Ok(ViewerResult::MissingSite(html))
             }
