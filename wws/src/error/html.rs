@@ -94,10 +94,11 @@ impl ServerErrorCode<'_> {
             ServerErrorCode::CustomDomainNotFound { .. } => 2013,
             ServerErrorCode::PageNotFound { .. } => 2005,
             ServerErrorCode::FileNotFound { .. } => 2009,
-            ServerErrorCode::SiteFetch { .. } => 6001,
-            ServerErrorCode::PageFetch { .. } => 6002,
-            ServerErrorCode::FileFetch { .. } => 6003,
-            ServerErrorCode::BlobFetch { .. } => 6004,
+            ServerErrorCode::DeepwellFailure => 6001,
+            ServerErrorCode::SiteFetch { .. } => 6002,
+            ServerErrorCode::PageFetch { .. } => 6003,
+            ServerErrorCode::FileFetch { .. } => 6004,
+            ServerErrorCode::BlobFetch { .. } => 6005,
         }
     }
 

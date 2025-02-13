@@ -307,6 +307,9 @@ pub enum Error {
     #[error("The web server failed to process the request")]
     WebServerFailure,
 
+    #[error("The web server did not get a successful DEEPWELL response")]
+    DeepwellFailure,
+
     #[error("The web server cannot fetch site information")]
     SiteFetch,
 
@@ -455,10 +458,11 @@ impl Error {
             //
             //        WebServerFailure is pretty general, avoid using it if possible.
             Error::WebServerFailure => 6000,
-            Error::SiteFetch => 6001,
-            Error::PageFetch => 6002,
-            Error::FileFetch => 6003,
-            Error::BlobFetch => 6004,
+            Error::DeepwellFailure => 6001,
+            Error::SiteFetch => 6002,
+            Error::PageFetch => 6003,
+            Error::FileFetch => 6004,
+            Error::BlobFetch => 6005,
         }
     }
 
