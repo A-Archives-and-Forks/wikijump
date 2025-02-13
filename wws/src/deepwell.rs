@@ -162,6 +162,42 @@ impl Deepwell {
         let file_data: Option<FileData> = self.client.request("file_get", params).await?;
         Ok(file_data)
     }
+
+    pub async fn get_special_error_missing_site_slug(
+        &self,
+        locales: &[&str],
+        site_slug: &str,
+    ) -> Result<String> {
+        let params = rpc_object! {
+            "locales" => locales,
+            "site_slug" => site_slug,
+        };
+
+        let html: String = self
+            .client
+            .request("special_error_missing_site_slug", params)
+            .await?;
+
+        Ok(html)
+    }
+
+    pub async fn get_special_error_missing_custom_domain(
+        &self,
+        locales: &[&str],
+        domain: &str,
+    ) -> Result<String> {
+        let params = rpc_object! {
+            "locales" => locales,
+            "domain" => domain,
+        };
+
+        let html: String = self
+            .client
+            .request("special_error_missing_custom_domain", params)
+            .await?;
+
+        Ok(html)
+    }
 }
 
 #[derive(Debug, Clone)]

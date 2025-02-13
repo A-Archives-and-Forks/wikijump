@@ -203,3 +203,26 @@ pub async fn handle_host_delegation(
         }
     }
 }
+
+/// Parse the `Accept-Language` header.
+/// If there are no languages, or there is no header, then use English.
+fn parse_accept_language(headers: &HeaderMap) -> Vec<String> {
+    fn get_header_value(headers: &HeaderMap) -> Option<&str> {
+        match headers.get("accept-language") {
+            Some(value) => value.to_str().ok(),
+            None => None,
+        }
+    }
+
+    let header_value = match get_header_value(headers) {
+        Some(value) => value,
+        None => return vec![str!("en")],
+    };
+
+    let mut languages = accept_language::parse(header_value);
+    if languages.is_empty() {
+        languages.push(str!("en"));
+    }
+
+    languages
+}
