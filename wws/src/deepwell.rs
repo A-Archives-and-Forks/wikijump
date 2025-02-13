@@ -165,7 +165,7 @@ impl Deepwell {
 
     pub async fn get_special_error_missing_site_slug(
         &self,
-        locales: &[&str],
+        locales: &[String],
         site_slug: &str,
     ) -> Result<String> {
         let params = rpc_object! {
@@ -183,7 +183,7 @@ impl Deepwell {
 
     pub async fn get_special_error_missing_custom_domain(
         &self,
-        locales: &[&str],
+        locales: &[String],
         domain: &str,
     ) -> Result<String> {
         let params = rpc_object! {

@@ -37,7 +37,7 @@ pub use self::robots::*;
 pub use self::well_known::*;
 
 use crate::{
-    error::ServerErrorCode,
+    error::{Result, ServerErrorCode},
     host::{lookup_host, SiteAndHost},
     path::get_path,
     state::ServerState,
@@ -46,9 +46,10 @@ use axum::{
     body::Body,
     extract::Request,
     http::header::{HeaderMap, HeaderName},
-    response::{IntoResponse, Redirect, Response},
+    response::{Html, IntoResponse, Redirect, Response},
     Router,
 };
+use std::future::Future;
 use tower::util::ServiceExt;
 
 pub const HEADER_SITE_ID: HeaderName = HeaderName::from_static("x-wikijump-site-id");
@@ -99,6 +100,22 @@ fn parse_accept_language(headers: &HeaderMap) -> Vec<String> {
     }
 
     languages
+}
+
+/// Helper function to return a special error response.
+async fn special_error<F, Fut>(headers: &HeaderMap, f: F) -> Response
+where
+    F: FnOnce(Vec<String>) -> Fut,
+    Fut: Future<Output = Result<String>>,
+{
+    let locales = parse_accept_language(headers);
+    match f(locales).await {
+        Ok(html) => Html(html).into_response(),
+        Err(error) => {
+            error!("Unable to get special error HTML: {error}");
+            todo!() // TODO error/html return
+        }
+    }
 }
 
 /// Entry route handler to first process host information.
@@ -213,7 +230,13 @@ pub async fn handle_host_delegation(
                 site_slug = site_slug,
                 "No such site with slug",
             );
-            ServerErrorCode::SiteNotFound { site_slug }.into_response()
+            special_error(request.headers(), |locales| async move {
+                state
+                    .deepwell
+                    .get_special_error_missing_site_slug(&locales, site_slug)
+                    .await
+            })
+            .await
         }
         // Custom domain missing
         SiteAndHost::MissingCustomDomain { ref domain } => {
@@ -222,7 +245,13 @@ pub async fn handle_host_delegation(
                 domain = domain,
                 "No such site with custom domain",
             );
-            ServerErrorCode::CustomDomainNotFound { domain }.into_response()
+            special_error(request.headers(), |locales| async move {
+                state
+                    .deepwell
+                    .get_special_error_missing_custom_domain(&locales, domain)
+                    .await
+            })
+            .await
         }
     }
 }
