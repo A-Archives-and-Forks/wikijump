@@ -93,7 +93,7 @@ services:
       - "DEEPWELL_HOST=api"
     restart: always
     healthcheck:
-      test: ["CMD", "curl", "-If", "http://localhost:3000/"]
+      test: ["CMD", "curl", "-If", "-H", "x-wikijump-site-slug: www", "-H", "x-wikijump-site-id: 1", "http://localhost:3000/"]
       interval: 120s
       timeout: 2s
       retries: 3
