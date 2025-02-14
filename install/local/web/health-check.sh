@@ -1,0 +1,1 @@
+../../common/router/health-check.sh

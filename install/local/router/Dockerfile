@@ -13,6 +13,7 @@ RUN cargo install cargo-watch sqlx-cli
 
 # Install files
 COPY ./install/local/router/wws-start /usr/local/bin/wikijump-wws-start
+COPY ./install/local/router/health-check.sh /usr/local/bin/wikijump-health-check
 
 # Copy source
 # Don't build until container execution (see cargo-watch)

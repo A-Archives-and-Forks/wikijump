@@ -69,7 +69,7 @@ services:
       - "S3_SECRET_ACCESS_KEY=defaultpassword"
     restart: always
     healthcheck:
-      test: ["CMD", "/bin/wikijump-health-check"]
+      test: ["CMD", "wikijump-health-check"]
       interval: 120s
       timeout: 2s
       retries: 3
@@ -93,7 +93,7 @@ services:
       - "DEEPWELL_HOST=api"
     restart: always
     healthcheck:
-      test: ["CMD", "curl", "-If", "-H", "x-wikijump-site-slug: www", "-H", "x-wikijump-site-id: 1", "http://localhost:3000/"]
+      test: ["CMD", "wikijump-health-check"]
       interval: 120s
       timeout: 2s
       retries: 3
