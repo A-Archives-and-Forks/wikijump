@@ -115,6 +115,7 @@ pub fn build_router(state: ServerState) -> Router {
         .route("/robots.txt", get(handle_robots_txt)) // TODO
         .route("/.well-known", any(handle_well_known)) // TODO
         .route("/-/teapot", any(handle_teapot))
+        .route("/-/health-check", any(handle_health_check))
         // Middleware
         .layer(TraceLayer::new_for_http())
         .layer(NormalizePathLayer::trim_trailing_slash())
