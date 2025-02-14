@@ -27,7 +27,7 @@ use axum::{
 pub async fn handle_teapot() -> Response {
     Response::builder()
         .status(StatusCode::IM_A_TEAPOT)
-        .header(header::CONTENT_TYPE, "text/html; charset=utf-8")
+        .header(header::CONTENT_TYPE, "text/plain; charset=utf-8")
         .body(Body::from("🫖"))
         .expect("Unable to convert response data")
 }
