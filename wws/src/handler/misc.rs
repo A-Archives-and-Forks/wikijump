@@ -41,9 +41,7 @@ pub async fn handle_teapot() -> Response {
 pub async fn handle_health_check(State(state): State<ServerState>) -> Response {
     // DEEPWELL's ping ensures both Postgres and Redis are connected
     match state.deepwell.ping().await {
-        Ok(()) => {
-            text_response("✅", StatusCode::OK)
-        }
+        Ok(()) => text_response("✅", StatusCode::OK),
         Err(error) => {
             error!("Unable to perform health check: {error}");
             text_response("❌", StatusCode::SERVICE_UNAVAILABLE)
