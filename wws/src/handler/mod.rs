@@ -54,7 +54,6 @@ use tower::util::ServiceExt;
 
 pub const HEADER_SITE_ID: HeaderName = HeaderName::from_static("x-wikijump-site-id");
 pub const HEADER_SITE_SLUG: HeaderName = HeaderName::from_static("x-wikijump-site-slug");
-pub const HEADER_DOMAIN: HeaderName = HeaderName::from_static("x-wikijump-domain");
 
 pub const HEADER_IS_WIKIJUMP: HeaderName = HeaderName::from_static("x-wikijump");
 pub const HEADER_WWS_VERSION: HeaderName = HeaderName::from_static("x-wikijump-wws-ver");
@@ -132,15 +131,10 @@ pub async fn handle_host_delegation(
     files_router: Router,
 ) -> Response {
     {
-        let headers = request.headers_mut();
-
         // Strip internal headers, just to be safe.
+        let headers = request.headers_mut();
         headers.remove(HEADER_SITE_ID);
         headers.remove(HEADER_SITE_SLUG);
-        headers.remove(HEADER_DOMAIN);
-
-        // Also add the domain header since that is the same before lookup_host()
-        headers.insert(HEADER_DOMAIN, header_value!(hostname));
     }
 
     macro_rules! forward_request {

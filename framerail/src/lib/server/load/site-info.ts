@@ -4,12 +4,10 @@
 // If the headers are first set by the client, those values
 // get erased.
 
-const DOMAIN_HEADER = "x-wikijump-domain"
 const SITE_ID_HEADER = "x-wikijump-site-id"
 const SITE_SLUG_HEADER = "x-wikijump-site-slug"
 
 export interface SiteInfo {
-  domain: string
   siteId: number
   siteSlug: string
 }
@@ -24,7 +22,6 @@ function getHeader(headers: Headers, key: string): string {
 }
 
 export function loadSiteInfo(headers: Headers): SiteInfo {
-  const domain = getHeader(headers, DOMAIN_HEADER)
   const siteSlug = getHeader(headers, SITE_SLUG_HEADER)
   const siteId = parseInt(getHeader(headers, SITE_ID_HEADER))
   return { domain, siteId, siteSlug }
