@@ -198,6 +198,24 @@ impl Deepwell {
 
         Ok(html)
     }
+
+    pub async fn get_special_error_site_fetch(
+        &self,
+        locales: &[String],
+        domain: &str,
+    ) -> Result<String> {
+        let params = rpc_object! {
+            "locales" => locales,
+            "domain" => domain,
+        };
+
+        let html: String = self
+            .client
+            .request("special_error_missing_custom_domain", params)
+            .await?;
+
+        Ok(html)
+    }
 }
 
 #[derive(Debug, Clone)]

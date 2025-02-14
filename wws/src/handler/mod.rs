@@ -170,13 +170,13 @@ pub async fn handle_host_delegation(
         Ok(host_data) => host_data,
         Err(error) => {
             error!("Unable to fetch site/host information: {error}");
-            special_error(request.headers(), |locales| async move {
+            return special_error(request.headers(), |locales| async move {
                 state
                     .deepwell
                     .get_special_error_site_fetch(&locales, &hostname)
                     .await
             })
-            .await
+            .await;
         }
     };
 
