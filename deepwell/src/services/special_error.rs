@@ -43,9 +43,9 @@ impl SpecialErrorService {
         assert!(!locales.is_empty(), "No languages specified");
         let config = ctx.config();
         let mut args = FluentArgs::new();
-        args.set("slug", fluent_str!(site_slug));
         args.set("main_domain", fluent_str!(config.main_domain_no_dot));
         args.set("files_domain", fluent_str!(config.files_domain_no_dot));
+        args.set("slug", fluent_str!(site_slug));
 
         let html =
             ctx.localization()
@@ -63,9 +63,9 @@ impl SpecialErrorService {
         assert!(!locales.is_empty(), "No languages specified");
         let config = ctx.config();
         let mut args = FluentArgs::new();
-        args.set("custom_domain", fluent_str!(domain));
         args.set("main_domain", fluent_str!(config.main_domain_no_dot));
         args.set("files_domain", fluent_str!(config.files_domain_no_dot));
+        args.set("custom_domain", fluent_str!(domain));
 
         let html =
             ctx.localization()
