@@ -178,7 +178,7 @@ export async function loadPage(
 
   // TODO remove checkRedirect when errorStatus is fixed
   if (checkRedirect) {
-    runRedirect(viewData, domain, slug, extra)
+    runRedirect(viewData, slug, extra)
   }
 
   // Return to page for rendering
@@ -187,7 +187,6 @@ export async function loadPage(
 
 function runRedirect(
   viewData,
-  originalDomain: string,
   originalSlug: Optional<string>,
   extra: Optional<string>
 ): void {
@@ -196,10 +195,9 @@ function runRedirect(
     return
   }
 
-  const domain: string = viewData.redirectSite || originalDomain
   const slug: Optional<string> = viewData.redirectPage || originalSlug
   const route: string = buildRoute(slug, extra)
-  redirect(308, `https://${domain}/${route}`)
+  redirect(308, `/${route}`)
 }
 
 function buildRoute(slug: Optional<string>, extra: Optional<string>): string {
