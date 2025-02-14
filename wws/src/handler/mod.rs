@@ -113,7 +113,7 @@ where
         Ok(html) => Html(html).into_response(),
         Err(error) => {
             error!("Unable to get special error HTML: {error}");
-            todo!() // TODO error/html return
+            ServerErrorCode::DeepwellFailure.into_response()
         }
     }
 }
