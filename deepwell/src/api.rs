@@ -204,6 +204,7 @@ async fn build_module(app_state: ServerState) -> anyhow::Result<RpcModule<Server
         "special_error_missing_custom_domain",
         special_error_missing_custom_domain,
     );
+    register!("special_error_site_fetch", special_error_site_fetch);
 
     // Authentication
     register!("login", auth_login);
