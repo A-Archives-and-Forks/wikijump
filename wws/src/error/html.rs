@@ -28,6 +28,10 @@
 //! This is very basic HTML generation. If we need to do anything
 //! more fancy in the future, then feel free to replace this with
 //! something better.
+//!
+//! Alternatively, you may want to move these error cases to
+//! `SpecialErrorService` in DEEPWELL, where they can benefit
+//! from localization.
 
 use axum::{
     body::Body,
