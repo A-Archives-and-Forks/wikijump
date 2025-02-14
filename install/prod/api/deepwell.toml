@@ -1,6 +1,6 @@
 [logger]
 enable = true
-level = "debug"
+level = "info"
 
 [server]
 address = "[::]:2747"
