@@ -47,12 +47,6 @@ const HTML_END: &str = "</body></html>";
 /// These must match the corresponding errors in deepwell (`src/service/error.rs`)
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum ServerErrorCode<'a> {
-    SiteNotFound {
-        site_slug: &'a str,
-    },
-    CustomDomainNotFound {
-        domain: &'a str,
-    },
     PageNotFound {
         site_id: i64,
         page_slug: &'a str,
@@ -91,8 +85,6 @@ impl ServerErrorCode<'_> {
     /// the same type (`i32`) is used here as in DEEPWELL.
     pub fn error_code(self) -> i32 {
         match self {
-            ServerErrorCode::SiteNotFound { .. } => 2004,
-            ServerErrorCode::CustomDomainNotFound { .. } => 2013,
             ServerErrorCode::PageNotFound { .. } => 2005,
             ServerErrorCode::FileNotFound { .. } => 2009,
             ServerErrorCode::DeepwellFailure => 6001,
@@ -106,10 +98,9 @@ impl ServerErrorCode<'_> {
     /// Returns the HTTP status code for this error.
     pub fn status_code(self) -> StatusCode {
         match self {
-            ServerErrorCode::SiteNotFound { .. }
-            | ServerErrorCode::CustomDomainNotFound { .. }
-            | ServerErrorCode::PageNotFound { .. }
-            | ServerErrorCode::FileNotFound { .. } => StatusCode::NOT_FOUND,
+            ServerErrorCode::PageNotFound { .. } | ServerErrorCode::FileNotFound { .. } => {
+                StatusCode::NOT_FOUND
+            }
             ServerErrorCode::DeepwellFailure
             | ServerErrorCode::SiteFetch { .. }
             | ServerErrorCode::PageFetch { .. }
@@ -121,9 +112,6 @@ impl ServerErrorCode<'_> {
     /// Returns the HTML title for this error.
     fn title(self) -> &'static str {
         match self {
-            ServerErrorCode::SiteNotFound { .. } | ServerErrorCode::CustomDomainNotFound { .. } => {
-                "Site not found"
-            }
             ServerErrorCode::PageNotFound { .. } => "Page not found",
             ServerErrorCode::FileNotFound { .. } => "File not found",
             ServerErrorCode::DeepwellFailure => "Server error",
@@ -146,20 +134,6 @@ impl ServerErrorCode<'_> {
 
         // Write error body
         match self {
-            ServerErrorCode::SiteNotFound { site_slug } => {
-                str_write!(
-                    body,
-                    "No site exists at \"<code>{}</code>\".",
-                    html_escape(site_slug),
-                )
-            }
-            ServerErrorCode::CustomDomainNotFound { domain } => {
-                str_write!(
-                    body,
-                    "No site exists with the custom domain \"<code>{}</code>\".",
-                    html_escape(domain),
-                )
-            }
             ServerErrorCode::PageNotFound { site_id, page_slug } => {
                 str_write!(
                     body,
