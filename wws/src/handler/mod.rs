@@ -109,6 +109,7 @@ where
 {
     let locales = parse_accept_language(headers);
     match f(locales).await {
+        // TODO wrap HTML output into body
         Ok(html) => Html(html).into_response(),
         Err(error) => {
             error!("Unable to get special error HTML: {error}");
