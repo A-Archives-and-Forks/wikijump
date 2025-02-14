@@ -62,6 +62,7 @@ pub enum ServerErrorCode<'a> {
         page_id: i64,
         filename: &'a str,
     },
+    DeepwellFailure,
     SiteFetch {
         domain: &'a str,
     },
@@ -109,7 +110,8 @@ impl ServerErrorCode<'_> {
             | ServerErrorCode::CustomDomainNotFound { .. }
             | ServerErrorCode::PageNotFound { .. }
             | ServerErrorCode::FileNotFound { .. } => StatusCode::NOT_FOUND,
-            ServerErrorCode::SiteFetch { .. }
+            ServerErrorCode::DeepwellFailure
+            | ServerErrorCode::SiteFetch { .. }
             | ServerErrorCode::PageFetch { .. }
             | ServerErrorCode::FileFetch { .. }
             | ServerErrorCode::BlobFetch { .. } => StatusCode::INTERNAL_SERVER_ERROR,
@@ -124,6 +126,7 @@ impl ServerErrorCode<'_> {
             }
             ServerErrorCode::PageNotFound { .. } => "Page not found",
             ServerErrorCode::FileNotFound { .. } => "File not found",
+            ServerErrorCode::DeepwellFailure => "Server error",
             ServerErrorCode::SiteFetch { .. } => "Cannot load site information",
             ServerErrorCode::PageFetch { .. } => "Cannot load page",
             ServerErrorCode::FileFetch { .. } => "Cannot load file",
@@ -177,6 +180,9 @@ impl ServerErrorCode<'_> {
                     page_id,
                     site_id,
                 );
+            }
+            ServerErrorCode::DeepwellFailure => {
+                str_write!(body, "Fatal: Cannot process request from backend server");
             }
             ServerErrorCode::SiteFetch { domain } => {
                 str_write!(
