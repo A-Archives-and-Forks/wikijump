@@ -12,8 +12,7 @@ FROM rust:latest AS rust
 RUN cargo install cargo-watch sqlx-cli
 
 # Install files
-COPY ./install/local/api/wws-start /usr/local/bin/wikijump-wws-start
-COPY ./install/local/api/health-check.sh /usr/local/bin/wikijump-health-check
+COPY ./install/local/router/wws-start /usr/local/bin/wikijump-wws-start
 
 # Copy source
 # Don't build until container execution (see cargo-watch)

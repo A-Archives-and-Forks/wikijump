@@ -98,18 +98,22 @@ services:
       timeout: 2s
       retries: 3
 
-  nginx:
+  router:
     build:
       context: ../..
-      dockerfile: install/local/nginx/Dockerfile
+      dockerfile: install/local/router/Dockerfile
     ports:
-      - "80:80"
-      - "443:443"
+      - "8080:80"
     links:
+      - api
+      - cache
       - web
     restart: always
     healthcheck:
-      test: ["CMD", "curl", "-If", "http://localhost/"]
+      test: ["CMD", "curl", "-If", "http://localhost/-/health-check"]
       interval: 120s
-      timeout: 1s
+      timeout: 2s
       retries: 3
+    depends_on:
+      api:
+        condition: service_healthy

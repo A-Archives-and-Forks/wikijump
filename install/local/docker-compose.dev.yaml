@@ -64,3 +64,18 @@ services:
         source: ../../assets
         target: /app/src/assets
         read_only: true
+  router:
+    volumes:
+      # Rust sources
+      - type: bind
+        source: ../../wws/src
+        target: /src/wws/src
+        read_only: true
+      - type: bind
+        source: ../../wws/build.rs
+        target: /src/wws/build.rs
+        read_only: true
+      - type: bind
+        source: ../../wws/Cargo.toml
+        target: /src/wws/Cargo.toml
+        read_only: true
