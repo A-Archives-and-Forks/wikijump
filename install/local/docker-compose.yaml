@@ -127,3 +127,7 @@ services:
     depends_on:
       api:
         condition: service_healthy
+      cache:
+        condition: service_healthy
+      files:
+        condition: service_healthy
