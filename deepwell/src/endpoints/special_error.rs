@@ -51,3 +51,18 @@ pub async fn special_error_missing_custom_domain(
     let locales = parse_locales(&locales)?;
     SpecialErrorService::missing_custom_domain(ctx, &locales, &domain).await
 }
+
+pub async fn special_error_site_fetch(
+    ctx: &ServiceContext<'_>,
+    params: Params<'static>,
+) -> Result<String> {
+    #[derive(Deserialize, Debug)]
+    struct Input {
+        locales: Vec<String>,
+        domain: String,
+    }
+
+    let Input { locales, domain } = params.parse()?;
+    let locales = parse_locales(&locales)?;
+    SpecialErrorService::site_fetch(ctx, &locales, &domain).await
+}

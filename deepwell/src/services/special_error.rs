@@ -34,7 +34,7 @@ use unic_langid::LanguageIdentifier;
 pub struct SpecialErrorService;
 
 impl SpecialErrorService {
-    /// Produce output for a canonical site that does not exist.
+    /// Error for when a canonical site does not exist.
     pub async fn missing_site_slug(
         ctx: &ServiceContext<'_>,
         locales: &[LanguageIdentifier],
@@ -54,7 +54,7 @@ impl SpecialErrorService {
         Ok(html.to_string())
     }
 
-    /// Produce output for a custom domain that does not exist.
+    /// Error for when a custom domain does not exist.
     pub async fn missing_custom_domain(
         ctx: &ServiceContext<'_>,
         locales: &[LanguageIdentifier],
@@ -70,6 +70,26 @@ impl SpecialErrorService {
         let html =
             ctx.localization()
                 .translate(locales, "special-error-site-custom", &args)?;
+
+        Ok(html.to_string())
+    }
+
+    /// Error for when fetching host information fails.
+    pub async fn site_fetch(
+        ctx: &ServiceContext<'_>,
+        locales: &[LanguageIdentifier],
+        domain: &str,
+    ) -> Result<String> {
+        assert!(!locales.is_empty(), "No languages specified");
+        let config = ctx.config();
+        let mut args = FluentArgs::new();
+        args.set("main_domain", fluent_str!(config.main_domain_no_dot));
+        args.set("files_domain", fluent_str!(config.files_domain_no_dot));
+        args.set("domain", fluent_str!(domain));
+
+        let html =
+            ctx.localization()
+                .translate(locales, "special-error-site-fetch", &args)?;
 
         Ok(html.to_string())
     }
