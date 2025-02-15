@@ -39,6 +39,14 @@ macro_rules! hset {
     };
 }
 
+macro_rules! hset_opt {
+    ($conn:expr, $key:expr, $field:expr, $value:expr $(,)?) => {
+        if let Some(value) = $value {
+            hset!($conn, $key, $field, value)
+        }
+    };
+}
+
 macro_rules! hdel {
     ($conn:expr, $key:expr, $field:expr $(,)?) => {
         $conn.hdel::<_, _, ()>(&$key, $field).await?
@@ -136,9 +144,9 @@ impl Cache {
         };
 
         hset!(conn, key, "variant", variant);
-        hset!(conn, key, "id", site_id);
-        hset!(conn, key, "slug", slug);
-        hset!(conn, key, "domain", domain);
+        hset_opt!(conn, key, "id", site_id);
+        hset_opt!(conn, key, "slug", slug);
+        hset_opt!(conn, key, "domain", domain);
         Ok(())
     }
 
