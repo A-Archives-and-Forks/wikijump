@@ -129,7 +129,9 @@ impl Cache {
             SiteAndHost::MainSite { site_id, site_slug } => {
                 ("site_found", Some(*site_id), Some(site_slug), Some(domain))
             }
-            SiteAndHost::MainSiteRedirect { domain } => ("site_redirect", None, None, Some(domain)),
+            SiteAndHost::MainSiteRedirect { domain } => {
+                ("main_site_redirect", None, None, Some(domain))
+            }
             SiteAndHost::MissingSiteSlug { site_slug } => {
                 ("missing_site_slug", None, Some(site_slug), None)
             }
