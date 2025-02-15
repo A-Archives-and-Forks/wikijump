@@ -136,9 +136,7 @@ impl DomainService {
         macro_rules! found {
             ($site:expr) => {{
                 let config = ctx.config();
-                let preferred_domain =
-                    DomainService::preferred_domain(config, &$site).into_owned();
-
+                let preferred_domain = Self::preferred_domain(config, &$site).into_owned();
                 if domain == &preferred_domain {
                     let SiteModel {
                         site_id,
