@@ -24,5 +24,5 @@ function getHeader(headers: Headers, key: string): string {
 export function loadSiteInfo(headers: Headers): SiteInfo {
   const siteSlug = getHeader(headers, SITE_SLUG_HEADER)
   const siteId = parseInt(getHeader(headers, SITE_ID_HEADER))
-  return { domain, siteId, siteSlug }
+  return { siteId, siteSlug }
 }
