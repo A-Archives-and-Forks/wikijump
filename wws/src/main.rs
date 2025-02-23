@@ -52,6 +52,7 @@ use self::trace::setup_tracing;
 use anyhow::Result;
 use std::fs::File;
 use std::io::Write;
+use std::net::SocketAddr;
 use std::process;
 use tokio::net::TcpListener;
 
@@ -73,7 +74,7 @@ async fn main() -> Result<()> {
 
     // Connect to services, build server state and then run
     let state = build_server_state(secrets).await?;
-    let app = build_router(state);
+    let app = build_router(state).into_make_service_with_connect_info::<SocketAddr>();
     let listener = TcpListener::bind(config.address).await?;
 
     // Begin listening
