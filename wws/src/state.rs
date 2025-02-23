@@ -27,6 +27,7 @@ use crate::{
     host::SiteAndHost,
 };
 use axum::body::Body;
+use axum_client_ip::SecureClientIpSource;
 use hyper_util::{
     client::legacy::{connect::HttpConnector, Client as HyperClient},
     rt::TokioExecutor,
@@ -48,23 +49,31 @@ pub struct ServerStateInner {
     pub framerail: Framerail,
     pub cache: Cache,
     pub s3_bucket: Box<Bucket>,
+    pub client_ip_source: SecureClientIpSource,
 }
 
-pub async fn build_server_state(secrets: Secrets) -> Result<ServerState> {
-    let framerail = Framerail::new(secrets.framerail_host);
-    let deepwell = Deepwell::connect(&secrets.deepwell_url)?;
+pub async fn build_server_state(
+    Secrets {
+        framerail_host,
+        deepwell_url,
+        redis_url,
+        s3_bucket,
+        s3_region,
+        s3_credentials,
+        s3_path_style,
+        client_ip_source,
+    }: Secrets,
+) -> Result<ServerState> {
+    let framerail = Framerail::new(framerail_host);
+    let deepwell = Deepwell::connect(&deepwell_url)?;
     deepwell.check().await;
     let domains = deepwell.domains().await?;
-    let cache = Cache::connect(&secrets.redis_url)?;
+    let cache = Cache::connect(&redis_url)?;
     let client = HyperClient::builder(TokioExecutor::new()).build(HttpConnector::new());
     let s3_bucket = {
-        let mut bucket = Bucket::new(
-            &secrets.s3_bucket,
-            secrets.s3_region.clone(),
-            secrets.s3_credentials.clone(),
-        )?;
+        let mut bucket = Bucket::new(&s3_bucket, s3_region.clone(), s3_credentials.clone())?;
 
-        if secrets.s3_path_style {
+        if s3_path_style {
             bucket = bucket.with_path_style();
         }
 
@@ -79,6 +88,7 @@ pub async fn build_server_state(secrets: Secrets) -> Result<ServerState> {
         framerail,
         cache,
         s3_bucket,
+        client_ip_source,
     }))
 }
 

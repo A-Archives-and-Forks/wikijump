@@ -124,6 +124,14 @@ pub fn load_config() -> (Config, Secrets) {
         }
     };
 
+    let client_ip_source = match get_env!("CLIENT_IP_SOURCE").parse() {
+        Ok(ip_source) => ip_source,
+        Err(_) => {
+            eprintln!("CLIENT_IP_SOURCE variable does not have a valid enum value");
+            process::exit(1);
+        }
+    };
+
     // Build and return
     let config = Config {
         enable_trace,
@@ -139,6 +147,7 @@ pub fn load_config() -> (Config, Secrets) {
         s3_region,
         s3_path_style,
         s3_credentials,
+        client_ip_source,
     };
 
     (config, secrets)

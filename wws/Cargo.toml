@@ -16,6 +16,7 @@ edition = "2021"
 accept-language = "3"
 anyhow = "1"
 axum = { version = "0.8", features = ["http1", "http2", "macros", "tokio", "tower-log", "tracing"], default-features = false }
+axum-client-ip = "0.7"
 axum-extra = { version = "0.10", features = ["attachment"] }
 clap = "4"
 color-backtrace = "0.6"

@@ -126,6 +126,7 @@ pub fn build_router(state: ServerState) -> Router {
                 .br(true)
                 .zstd(true),
         )
+        .layer(state.client_ip_source.clone().into_extension())
         .layer(SetResponseHeaderLayer::overriding(
             HEADER_IS_WIKIJUMP,
             Some(HeaderValue::from_static("1")),

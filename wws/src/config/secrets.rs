@@ -18,6 +18,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+use axum_client_ip::SecureClientIpSource;
 use s3::{creds::Credentials, region::Region};
 
 #[derive(Debug, Clone)]
@@ -62,4 +63,23 @@ pub struct Secrets {
     /// Alternatively you can have it read from the AWS credentials file.
     /// The profile to read from can be set in the `AWS_PROFILE_NAME` environment variable.
     pub s3_credentials: Credentials,
+
+    /// Specify how client IP addresses are determined.
+    ///
+    /// In the crate `axum-client-ip`, you need to specify hoow `SecureClientIp` sources its
+    /// information, since it depends on the exact stack your web application is in.
+    ///
+    /// Set using environment variable `CLIENT_IP_SOURCE`, must have one of the following values:
+    /// (see [`SecureClientIpSource`])
+    /// * `RightmostForwarded`
+    /// * `RightmostXForwardedFor`
+    /// * `XRealIp`
+    /// * `FlyClientIp`
+    /// * `TrueClientIp`
+    /// * `CfConnectingIp`
+    /// * `ConnectInfo`
+    /// * `CloudFrontViewerAddress`
+    ///
+    /// [`SecureClientIpSource`]: https://docs.rs/axum-client-ip/latest/axum_client_ip/enum.SecureClientIpSource.html))
+    pub client_ip_source: SecureClientIpSource,
 }
