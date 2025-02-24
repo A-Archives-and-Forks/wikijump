@@ -49,7 +49,7 @@ use axum::{
     response::{Html, IntoResponse, Redirect, Response},
     Router,
 };
-use std::future::Future;
+use std::{future::Future, net::IpAddr};
 use tower::util::ServiceExt;
 
 pub const HEADER_SITE_ID: HeaderName = HeaderName::from_static("x-wikijump-site-id");
@@ -58,6 +58,8 @@ pub const HEADER_SITE_SLUG: HeaderName = HeaderName::from_static("x-wikijump-sit
 pub const HEADER_IS_WIKIJUMP: HeaderName = HeaderName::from_static("x-wikijump");
 pub const HEADER_WWS_VERSION: HeaderName = HeaderName::from_static("x-wikijump-wws-ver");
 pub const HEADER_DEEPWELL_VERSION: HeaderName = HeaderName::from_static("x-wikijump-deepwell-ver");
+
+pub const HEADER_X_REAL_IP: HeaderName = HeaderName::from_static("x-real-ip");
 
 /// Helper function to get the site ID and slug from headers.
 fn get_site_info(headers: &HeaderMap) -> (i64, &str) {
@@ -127,6 +129,7 @@ where
 pub async fn handle_host_delegation(
     state: ServerState,
     hostname: String,
+    ip: IpAddr,
     mut request: Request<Body>,
     main_router: Router,
     files_router: Router,
@@ -136,6 +139,7 @@ pub async fn handle_host_delegation(
         let headers = request.headers_mut();
         headers.remove(HEADER_SITE_ID);
         headers.remove(HEADER_SITE_SLUG);
+        headers.remove(HEADER_X_REAL_IP);
     }
 
     macro_rules! forward_request {
@@ -157,6 +161,7 @@ pub async fn handle_host_delegation(
             let headers = request.headers_mut();
             headers.insert(HEADER_SITE_ID, header_value!(str!($site_id)));
             headers.insert(HEADER_SITE_SLUG, header_value!($site_slug));
+            headers.insert(HEADER_X_REAL_IP, header_value!(str!(ip)));
         }};
     }
 

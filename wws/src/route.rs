@@ -26,6 +26,7 @@ use axum::{
     routing::{any, get},
     Router,
 };
+use axum_client_ip::SecureClientIp;
 use axum_extra::extract::Host;
 use std::sync::Arc;
 use tower_http::{
@@ -106,10 +107,12 @@ pub fn build_router(state: ServerState) -> Router {
         // Forward requests to the appropriate sub-router depending on the hostname
         .fallback(
             |State(state): State<ServerState>,
-            Host(hostname): Host,
-            request: Request<Body>| async move {
-                handle_host_delegation(state, hostname, request, main_router, files_router).await
-            }
+             Host(hostname): Host,
+             SecureClientIp(ip): SecureClientIp,
+             request: Request<Body>| async move {
+                handle_host_delegation(state, hostname, ip, request, main_router, files_router)
+                    .await
+            },
         )
         // General routes
         .route("/robots.txt", get(handle_robots_txt)) // TODO

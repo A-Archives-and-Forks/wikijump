@@ -30,7 +30,6 @@ pub async fn proxy_framerail(State(state): State<ServerState>, mut req: Request)
     let path = get_path(req.uri());
     info!(path = path, "Proxying request to framerail");
 
-    // TODO add X-Real-IP and X-Forwarded-For
     *req.uri_mut() = state.framerail.proxy_uri(path);
 
     state
