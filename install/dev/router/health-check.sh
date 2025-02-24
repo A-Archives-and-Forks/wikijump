@@ -1,2 +1,1 @@
-#!/bin/sh
-curl -i http://localhost/-/health-check
+../../common/router/health-check.sh
