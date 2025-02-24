@@ -250,7 +250,7 @@ impl ViewService {
             PageStatus::Found {
                 page,
                 page_revision,
-            } => GetPageViewOutput::PageFound {
+            } => GetPageViewOutput::Found {
                 viewer,
                 options,
                 page,
@@ -259,21 +259,21 @@ impl ViewService {
                 wikitext,
                 compiled_html,
             },
-            PageStatus::Missing => GetPageViewOutput::PageMissing {
+            PageStatus::Missing => GetPageViewOutput::Missing {
                 viewer,
                 options,
                 redirect_page,
                 wikitext,
                 compiled_html,
             },
-            PageStatus::Private => GetPageViewOutput::PagePermissions {
+            PageStatus::Private => GetPageViewOutput::Permissions {
                 viewer,
                 options,
                 redirect_page,
                 compiled_html,
                 banned: false,
             },
-            PageStatus::Banned => GetPageViewOutput::PagePermissions {
+            PageStatus::Banned => GetPageViewOutput::Permissions {
                 viewer,
                 options,
                 redirect_page,

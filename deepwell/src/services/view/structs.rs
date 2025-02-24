@@ -54,7 +54,7 @@ pub struct PageRoute {
 #[derive(Serialize, Debug, Clone)]
 #[serde(rename_all = "snake_case", tag = "type", content = "data")]
 pub enum GetPageViewOutput {
-    PageFound {
+    Found {
         #[serde(flatten)]
         viewer: Viewer,
         options: PageOptions,
@@ -65,7 +65,7 @@ pub enum GetPageViewOutput {
         compiled_html: String,
     },
 
-    PageMissing {
+    Missing {
         #[serde(flatten)]
         viewer: Viewer,
         options: PageOptions,
@@ -74,7 +74,7 @@ pub enum GetPageViewOutput {
         compiled_html: String,
     },
 
-    PagePermissions {
+    Permissions {
         #[serde(flatten)]
         viewer: Viewer,
         options: PageOptions,
