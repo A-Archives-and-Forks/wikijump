@@ -31,6 +31,9 @@ services:
       - key: DEEPWELL_HOST
         value: '${deepwell.PRIVATE_DOMAIN}'
         scope: RUN_TIME
+      - key: DEEPWELL_PORT
+        value: '${deepwell.PRIVATE_PORT}'
+        scope: RUN_TIME
 
   - name: deepwell
     source_dir: .
