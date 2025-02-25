@@ -50,6 +50,7 @@ use self::route::build_router;
 use self::state::build_server_state;
 use self::trace::setup_tracing;
 use anyhow::Result;
+use axum::Router;
 use std::fs::File;
 use std::io::Write;
 use std::net::SocketAddr;
@@ -74,8 +75,7 @@ async fn main() -> Result<()> {
 
     // Connect to services, build server state and then run
     let state = build_server_state(secrets).await?;
-    let app = build_router(state).into_make_service_with_connect_info::<SocketAddr>();
-    let listener = TcpListener::bind(config.address).await?;
+    let router = build_router(state);
 
     // Begin listening
     info!(
@@ -83,6 +83,37 @@ async fn main() -> Result<()> {
         "Listening to connections...",
     );
 
+    serve(config.address, router).await?;
+    Ok(())
+}
+
+// Snake oil TLS
+// For local
+#[cfg(feature = "tls")]
+async fn serve(address: SocketAddr, router: Router) -> Result<()> {
+    use axum_server::tls_rustls::RustlsConfig;
+
+    let app = router.into_make_service_with_connect_info::<SocketAddr>();
+    let tls_config = RustlsConfig::from_pem_file(
+        // Added in Docker container
+        "/etc/ssl/self-signed-cert.pem",
+        "/etc/ssl/self-signed-key.pem",
+    )
+    .await?;
+
+    axum_server::bind_rustls(address, tls_config)
+        .serve(app)
+        .await?;
+
+    Ok(())
+}
+
+// TLS-terminated HTTP server
+// For dev and prod
+#[cfg(not(feature = "tls"))]
+async fn serve(address: SocketAddr, router: Router) -> Result<()> {
+    let app = router.into_make_service_with_connect_info::<SocketAddr>();
+    let listener = TcpListener::bind(address).await?;
     axum::serve(listener, app).await?;
     Ok(())
 }
