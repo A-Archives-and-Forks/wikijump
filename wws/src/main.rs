@@ -55,7 +55,6 @@ use std::fs::File;
 use std::io::Write;
 use std::net::SocketAddr;
 use std::process;
-use tokio::net::TcpListener;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -112,6 +111,8 @@ async fn serve(address: SocketAddr, router: Router) -> Result<()> {
 // For dev and prod
 #[cfg(not(feature = "tls"))]
 async fn serve(address: SocketAddr, router: Router) -> Result<()> {
+    use tokio::net::TcpListener;
+
     let app = router.into_make_service_with_connect_info::<SocketAddr>();
     let listener = TcpListener::bind(address).await?;
     axum::serve(listener, app).await?;
