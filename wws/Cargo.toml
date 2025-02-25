@@ -12,12 +12,17 @@ version = "2025.2.6"
 authors = ["Emmie Smith <emmie.maeda@gmail.com>"]
 edition = "2021"
 
+[features]
+default = []
+tls = ["axum-server"]
+
 [dependencies]
 accept-language = "3"
 anyhow = "1"
 axum = { version = "0.8", features = ["http1", "http2", "macros", "tokio", "tower-log", "tracing"], default-features = false }
 axum-client-ip = "0.7"
 axum-extra = { version = "0.10", features = ["attachment"] }
+axum-server = { version = "0.7", features = ["tls-rustls"], optional = true }
 clap = "4"
 color-backtrace = "0.6"
 dotenvy = "0.15"
