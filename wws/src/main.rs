@@ -45,7 +45,7 @@ mod route;
 mod state;
 mod trace;
 
-use self::config::load_config;
+use self::config::{load_config, Config};
 use self::route::build_router;
 use self::state::build_server_state;
 use self::trace::setup_tracing;
@@ -82,25 +82,25 @@ async fn main() -> Result<()> {
         "Listening to connections...",
     );
 
-    serve(config.address, router).await?;
+    serve(&config, router).await?;
     Ok(())
 }
 
 // Snake oil TLS
 // For local
 #[cfg(feature = "tls")]
-async fn serve(address: SocketAddr, router: Router) -> Result<()> {
+async fn serve(config: &Config, router: Router) -> Result<()> {
     use axum_server::tls_rustls::RustlsConfig;
 
     let app = router.into_make_service_with_connect_info::<SocketAddr>();
     let tls_config = RustlsConfig::from_pem_file(
         // Added in Docker container
-        "/etc/ssl/self-signed-cert.pem",
-        "/etc/ssl/self-signed-key.pem",
+        &config.tls_certificate,
+        &config.tls_secret_key,
     )
     .await?;
 
-    axum_server::bind_rustls(address, tls_config)
+    axum_server::bind_rustls(config.address, tls_config)
         .serve(app)
         .await?;
 
@@ -110,11 +110,11 @@ async fn serve(address: SocketAddr, router: Router) -> Result<()> {
 // TLS-terminated HTTP server
 // For dev and prod
 #[cfg(not(feature = "tls"))]
-async fn serve(address: SocketAddr, router: Router) -> Result<()> {
+async fn serve(config: &Config, router: Router) -> Result<()> {
     use tokio::net::TcpListener;
 
     let app = router.into_make_service_with_connect_info::<SocketAddr>();
-    let listener = TcpListener::bind(address).await?;
+    let listener = TcpListener::bind(config.address).await?;
     axum::serve(listener, app).await?;
     Ok(())
 }
