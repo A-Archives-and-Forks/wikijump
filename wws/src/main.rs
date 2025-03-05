@@ -92,6 +92,7 @@ async fn main() -> Result<()> {
 async fn serve(config: &Config, router: Router) -> Result<()> {
     use axum_server::tls_rustls::RustlsConfig;
 
+    // NOTE: This does not include a HTTP -> HTTPS redirector
     let app = router.into_make_service_with_connect_info::<SocketAddr>();
     let tls_config = RustlsConfig::from_pem_file(
         // Added in Docker container
