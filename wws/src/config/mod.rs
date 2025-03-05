@@ -26,6 +26,7 @@ pub use self::object::Config;
 pub use self::secrets::Secrets;
 
 use self::args::Arguments;
+use cfg_if::cfg_if;
 use dotenvy::dotenv;
 use ref_map::*;
 use s3::{creds::Credentials, region::Region};
@@ -42,6 +43,20 @@ pub fn load_config() -> (Config, Secrets) {
                 Ok(value) => value,
                 Err(error) => {
                     eprintln!("Unable to read environment variable {}: {}", $name, error);
+                    process::exit(1);
+                }
+            }
+        };
+    }
+
+    // The OsString version of get_env!()
+    #[cfg(feature = "tls")]
+    macro_rules! get_env_os {
+        ($name:expr) => {
+            match env::var_os($name) {
+                Some(value) => value,
+                None => {
+                    eprintln!("Unable to read environment variable {}", $name);
                     process::exit(1);
                 }
             }
@@ -132,12 +147,32 @@ pub fn load_config() -> (Config, Secrets) {
         }
     };
 
+    cfg_if! {
+        if #[cfg(feature = "tls")] {
+            let tls_certificate = PathBuf::from(get_env_os!("TLS_CERTIFICATE"));
+            let tls_secret_key = PathBuf::from(get_env_os!("TLS_SECRET_KEY"));
+        }
+    }
+
     // Build and return
-    let config = Config {
-        enable_trace,
-        pid_file,
-        address,
-    };
+
+    cfg_if! {
+        if #[cfg(feature = "tls")] {
+            let config = Config {
+                enable_trace,
+                pid_file,
+                address,
+                tls_certificate,
+                tls_secret_key,
+            };
+        } else {
+            let config = Config {
+                enable_trace,
+                pid_file,
+                address,
+            };
+        }
+    }
 
     let secrets = Secrets {
         deepwell_url,
