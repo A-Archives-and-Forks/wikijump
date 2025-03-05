@@ -22,7 +22,7 @@ anyhow = "1"
 axum = { version = "0.8", features = ["http1", "http2", "macros", "tokio", "tower-log", "tracing"], default-features = false }
 axum-client-ip = "0.7"
 axum-extra = { version = "0.10", features = ["attachment"] }
-axum-server = { version = "0.7", features = ["tls-rustls"], optional = true }
+axum-server = { version = "0.7", features = ["tls-rustls-no-provider"], optional = true }
 cfg-if = "1"
 clap = "4"
 color-backtrace = "0.6"
@@ -34,6 +34,7 @@ paste = "1"
 redis = { version = "0.25", features = ["aio", "connection-manager", "keep-alive", "r2d2", "tokio-comp", "tokio-rustls-comp"], default-features = false }
 ref-map = "0.1"
 rust-s3 = { version = "0.35", features = ["with-tokio", "tokio-rustls-tls"], default-features = false }
+rustls = { version = "0.23", features = ["logging", "std", "ring", "tls12"], default-features = false }  # see https://github.com/programatik29/axum-server/issues/153#issuecomment-2605740256
 serde = { version = "1", features = ["derive"] }
 str-macro = "1"
 thiserror = "2"
