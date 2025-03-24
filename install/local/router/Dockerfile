@@ -21,5 +21,5 @@ RUN mkdir /src
 COPY ./wws /src/wws
 WORKDIR /src/wws
 
-EXPOSE 2747
+EXPOSE 8000
 CMD ["/usr/local/bin/wikijump-wws-start"]

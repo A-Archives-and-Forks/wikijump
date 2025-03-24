@@ -103,12 +103,13 @@ services:
       context: ../..
       dockerfile: install/local/router/Dockerfile
     ports:
-      - "80:8080"
+      - "80:8000"
     links:
       - api
       - cache
       - web
     environment:
+      - "ADDRESS=[::]:8000"
       - "DEEPWELL_URL=http://api:2747"
       - "REDIS_URL=redis://cache"
       - "FRAMERAIL_HOST=web:3000"
