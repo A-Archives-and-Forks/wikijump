@@ -1,1 +1,2 @@
-../../common/router/health-check.sh
+#!/bin/sh
+curl -If -k https://localhost:8000/-/health-check

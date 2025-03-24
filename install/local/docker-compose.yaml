@@ -103,7 +103,7 @@ services:
       context: ../..
       dockerfile: install/local/router/Dockerfile
     ports:
-      - "80:8000"
+      - "443:8000"
     links:
       - api
       - cache
