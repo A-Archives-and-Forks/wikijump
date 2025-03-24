@@ -12,6 +12,7 @@ ftml/test
 ftml/target
 ftml/pkg
 deepwell/target
+wws/target
 **/__pycache__
 **/dist
 **/node_modules
