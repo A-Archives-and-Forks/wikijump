@@ -121,7 +121,7 @@ services:
       - "CLIENT_IP_SOURCE=ConnectInfo"
     restart: always
     healthcheck:
-      test: ["CMD", "curl", "-If", "http://localhost/-/health-check"]
+      test: ["CMD", "wikijump-health-check"]
       interval: 120s
       timeout: 2s
       retries: 3
