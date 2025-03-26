@@ -17,20 +17,48 @@
 #
 
 (serve_main) {
+    # Routes that exist on the files server
+    @files {
+        path /*/code/*
+        path /*/html/*
+        path /*/file/*
+        path /*/download/*
+        path /local--files/*
+        path /local--code/*
+        path /local--html/*
+        path /-/files/*
+        path /-/file/*
+        path /-/download/*
+        path /-/code/*
+        path /-/html/*
+
+    }
+    redir @files https://{vars.site_slug}.wjfiles.localhost{uri}
+
     reverse_proxy http://localhost:3000
 }
 
 # Preferred domain
 scpwiki.localhost {
-    request_header X-Wikijump-Site-Id 4
-    request_header X-Wikijump-Site-Slug scp-wiki
+    vars {
+        site_id 4
+        site_slug scp-wiki
+    }
+
+    request_header X-Wikijump-Site-Id {vars.site_id}
+    request_header X-Wikijump-Site-Slug {vars.site_slug}
 
     import serve_main
 }
 
 test.wikijump.localhost {
-    request_header X-Wikijump-Site-Id 2
-    request_header X-Wikijump-Site-Slug test
+    vars {
+        site_id 2
+        site_slug test
+    }
+
+    request_header X-Wikijump-Site-Id {vars.site_id}
+    request_header X-Wikijump-Site-Slug {vars.site_slug}
 
     import serve_main
 }
@@ -52,15 +80,25 @@ testdomain.localhost {
 
 # Other sites
 wikijump.localhost {
-    request_header X-Wikijump-Site-Id 1
-    request_header X-Wikijump-Site-Slug www
+    vars {
+        site_id 1
+        site_slug www
+    }
+
+    request_header X-Wikijump-Site-Id {vars.site_id}
+    request_header X-Wikijump-Site-Slug {vars.site_slug}
 
     import serve_main
 }
 
 template-en.wikijump.localhost {
-    request_header X-Wikijump-Site-Id 3
-    request_header X-Wikijump-Site-Slug template-en
+    vars {
+        site_id 3
+        site_slug template-en
+    }
+
+    request_header X-Wikijump-Site-Id {vars.site_id}
+    request_header X-Wikijump-Site-Slug {vars.site_slug}
 
     import serve_main
 }
@@ -74,19 +112,20 @@ template-en.wikijump.localhost {
 }
 
 *.wjfiles.localhost {
-    request_header X-Wikijump-Site-Slug {labels.2}
-
     @www host www.wjfiles.localhost
-    request_header @www X-Wikijump-Site-Id 1
+    vars @www site_id 1
 
     @test host test.wjfiles.localhost
-    request_header @test X-Wikijump-Site-Id 2
+    vars @test site_id 2
 
     @template-en host test.wjfiles.localhost
-    request_header @template-en X-Wikijump-Site-Id 3
+    vars @template-en site_id 3
 
     @scp-wiki host scp-wiki.wjfiles.localhost
-    request_header @scp-wiki X-Wikijump-Site-Id 4
+    vars @scp-wiki site_id 4
+
+    request_header X-Wikijump-Site-Slug {labels.2}
+    request_header X-Wikijump-Site-Id {vars.site_id}
 
     import serve_files
 }
