@@ -65,6 +65,7 @@ services:
         source: ../../assets
         target: /app/src/assets
         read_only: true
+
   wws:
     volumes:
       # Rust sources
