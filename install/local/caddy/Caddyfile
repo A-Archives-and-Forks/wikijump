@@ -143,5 +143,6 @@ www.scpwiki.localhost {
 http://,
 https://,
 localhost {
-	respond "fallback"
+	rewrite * /-/special-error
+	reverse_proxy http://localhost:3000
 }
