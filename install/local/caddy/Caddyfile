@@ -1,0 +1,109 @@
+# Global options
+{
+    debug
+
+    http_port 8000
+    https_port 8443
+
+    metrics {
+        per_host
+    }
+
+    skip_install_trust
+}
+
+#
+# MAIN
+#
+
+(serve_main) {
+    reverse_proxy http://localhost:3000
+}
+
+# Preferred domain
+scpwiki.localhost {
+    request_header X-Wikijump-Site-Id 4
+    request_header X-Wikijump-Site-Slug scp-wiki
+
+    import serve_main
+}
+
+test.wikijump.localhost {
+    request_header X-Wikijump-Site-Id 2
+    request_header X-Wikijump-Site-Slug test
+
+    import serve_main
+}
+
+# Alternate domain (canonical)
+scp-wiki.wikijump.localhost {
+    redir https://scpwiki.localhost{uri}
+}
+
+# Alternate domain (alias)
+scpwiki.wikijump.localhost {
+    redir https://scpwiki.localhost{uri}
+}
+
+# Alternate domain (custom)
+testdomain.localhost {
+    redir https://test.wikijump.localhost{uri}
+}
+
+# Other sites
+wikijump.localhost {
+    request_header X-Wikijump-Site-Id 1
+    request_header X-Wikijump-Site-Slug www
+
+    import serve_main
+}
+
+template-en.wikijump.localhost {
+    request_header X-Wikijump-Site-Id 3
+    request_header X-Wikijump-Site-Slug template-en
+
+    import serve_main
+}
+
+#
+# FILES
+#
+
+(serve_files) {
+    reverse_proxy http://localhost:7000
+}
+
+*.wjfiles.localhost {
+    request_header X-Wikijump-Site-Slug {labels.2}
+
+    @www host www.wjfiles.localhost
+    request_header @www X-Wikijump-Site-Id 1
+
+    @test host test.wjfiles.localhost
+    request_header @test X-Wikijump-Site-Id 2
+
+    @template-en host test.wjfiles.localhost
+    request_header @template-en X-Wikijump-Site-Id 3
+
+    @scp-wiki host scp-wiki.wjfiles.localhost
+    request_header @scp-wiki X-Wikijump-Site-Id 4
+
+    import serve_files
+}
+
+#
+# OTHER
+#
+
+# Remove www
+www.wikijump.localhost,
+www.scpwiki.localhost {
+    redir {labels.1}.{labels.0}{uri}
+}
+
+# Fallback route
+http://,
+https://,
+localhost {
+    respond "fallback"
+}
