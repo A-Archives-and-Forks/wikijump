@@ -1,11 +1,11 @@
-name: '[backend] Docker build API (local)'
+name: '[backend] Docker build DEEPWELL (local)'
 
 on:
   pull_request:
     paths:
       - 'deepwell/**'
-      - 'install/local/api/Dockerfile'
-      - '.github/workflows/docker-build-api.local.yaml'
+      - 'install/local/deepwell/Dockerfile'
+      - '.github/workflows/docker-build-deepwell.local.yaml'
 
 jobs:
   build:
@@ -15,6 +15,6 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Build image
-        run: docker build -f install/local/api/Dockerfile .
+        run: docker build -f install/local/deepwell/Dockerfile .
         env:
           DOCKER_BUILDKIT: 1
