@@ -103,13 +103,13 @@ services:
       context: ../..
       dockerfile: install/local/wws/Dockerfile
     ports:
-      - "443:8000"
+      - "7000:7000"
     links:
       - deepwell
       - cache
       - framerail
     environment:
-      - "ADDRESS=[::]:8000"
+      - "ADDRESS=[::]:7000"
       - "DEEPWELL_URL=http://deepwell:2747"
       - "REDIS_URL=redis://cache"
       - "FRAMERAIL_HOST=framerail:3000"
