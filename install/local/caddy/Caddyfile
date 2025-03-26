@@ -1,15 +1,15 @@
 # Global options
 {
-    debug
+	debug
 
-    http_port 8000
-    https_port 8443
+	http_port 8000
+	https_port 8443
 
-    metrics {
-        per_host
-    }
+	metrics {
+		per_host
+	}
 
-    skip_install_trust
+	skip_install_trust
 }
 
 #
@@ -17,90 +17,89 @@
 #
 
 (serve_main) {
-    # Routes that exist on the files server
-    @files {
-        path /*/code/*
-        path /*/html/*
-        path /*/file/*
-        path /*/download/*
-        path /local--files/*
-        path /local--code/*
-        path /local--html/*
-        path /-/files/*
-        path /-/file/*
-        path /-/download/*
-        path /-/code/*
-        path /-/html/*
+	# Routes that exist on the files server
+	@files {
+		path /*/code/*
+		path /*/html/*
+		path /*/file/*
+		path /*/download/*
+		path /local--files/*
+		path /local--code/*
+		path /local--html/*
+		path /-/files/*
+		path /-/file/*
+		path /-/download/*
+		path /-/code/*
+		path /-/html/*
+	}
+	redir @files https://{vars.site_slug}.wjfiles.localhost{uri}
 
-    }
-    redir @files https://{vars.site_slug}.wjfiles.localhost{uri}
-
-    reverse_proxy http://localhost:3000
+	reverse_proxy http://localhost:3000
 }
 
 # Preferred domain
 scpwiki.localhost {
-    vars {
-        site_id 4
-        site_slug scp-wiki
-    }
+	vars {
+		site_id 4
+		site_slug scp-wiki
+	}
 
-    request_header X-Wikijump-Site-Id {vars.site_id}
-    request_header X-Wikijump-Site-Slug {vars.site_slug}
+	request_header X-Wikijump-Site-Id {vars.site_id}
+	request_header X-Wikijump-Site-Slug {vars.site_slug}
 
-    import serve_main
+	import serve_main
 }
 
 test.wikijump.localhost {
-    vars {
-        site_id 2
-        site_slug test
-    }
+	vars {
+		site_id 2
+		site_slug test
+	}
 
-    request_header X-Wikijump-Site-Id {vars.site_id}
-    request_header X-Wikijump-Site-Slug {vars.site_slug}
+	request_header X-Wikijump-Site-Id {vars.site_id}
+	request_header X-Wikijump-Site-Slug {vars.site_slug}
 
-    import serve_main
+	import serve_main
 }
 
 # Alternate domain (canonical)
 scp-wiki.wikijump.localhost {
-    redir https://scpwiki.localhost{uri}
+	redir https://scpwiki.localhost{uri}
 }
 
 # Alternate domain (alias)
 scpwiki.wikijump.localhost {
-    redir https://scpwiki.localhost{uri}
+	redir https://scpwiki.localhost{uri}
 }
 
 # Alternate domain (custom)
 testdomain.localhost {
-    redir https://test.wikijump.localhost{uri}
+	redir https://test.wikijump.localhost{uri}
 }
 
 # Other sites
 wikijump.localhost {
-    vars {
-        site_id 1
-        site_slug www
-    }
+	vars {
+		site_id 1
+		site_slug www
+	}
 
-    request_header X-Wikijump-Site-Id {vars.site_id}
-    request_header X-Wikijump-Site-Slug {vars.site_slug}
+	request_header X-Wikijump-Site-Id {vars.site_id}
+	request_header X-Wikijump-Site-Slug {vars.site_slug}
 
-    import serve_main
+	import serve_main
 }
 
 template-en.wikijump.localhost {
-    vars {
-        site_id 3
-        site_slug template-en
-    }
+	vars {
+		site_id 3
+		site_slug template-en
+	}
 
-    request_header X-Wikijump-Site-Id {vars.site_id}
-    request_header X-Wikijump-Site-Slug {vars.site_slug}
+	request_header X-Wikijump-Site-Id {vars.site_id}
+	request_header X-Wikijump-Site-Slug {vars.site_slug}
 
-    import serve_main
+	import serve_main
 }
 
 #
@@ -108,26 +107,26 @@ template-en.wikijump.localhost {
 #
 
 (serve_files) {
-    reverse_proxy http://localhost:7000
+	reverse_proxy http://localhost:7000
 }
 
 *.wjfiles.localhost {
-    @www host www.wjfiles.localhost
-    vars @www site_id 1
+	@www host www.wjfiles.localhost
+	vars @www site_id 1
 
-    @test host test.wjfiles.localhost
-    vars @test site_id 2
+	@test host test.wjfiles.localhost
+	vars @test site_id 2
 
-    @template-en host test.wjfiles.localhost
-    vars @template-en site_id 3
+	@template-en host test.wjfiles.localhost
+	vars @template-en site_id 3
 
-    @scp-wiki host scp-wiki.wjfiles.localhost
-    vars @scp-wiki site_id 4
+	@scp-wiki host scp-wiki.wjfiles.localhost
+	vars @scp-wiki site_id 4
 
-    request_header X-Wikijump-Site-Slug {labels.2}
-    request_header X-Wikijump-Site-Id {vars.site_id}
+	request_header X-Wikijump-Site-Slug {labels.2}
+	request_header X-Wikijump-Site-Id {vars.site_id}
 
-    import serve_files
+	import serve_files
 }
 
 #
@@ -137,12 +136,12 @@ template-en.wikijump.localhost {
 # Remove www
 www.wikijump.localhost,
 www.scpwiki.localhost {
-    redir {labels.1}.{labels.0}{uri}
+	redir {labels.1}.{labels.0}{uri}
 }
 
 # Fallback route
 http://,
 https://,
 localhost {
-    respond "fallback"
+	respond "fallback"
 }
