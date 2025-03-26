@@ -30,8 +30,8 @@ ENV LOCALIZATION_PATH="/opt/locales"
 RUN apt update
 RUN apt install -y curl libmagic1 libmagic-mgc
 COPY --from=rust /src/deepwell/target/release/deepwell /usr/local/bin/deepwell
-COPY ./install/prod/api/health-check.sh /bin/wikijump-health-check
-COPY ./install/prod/api/deepwell.toml /etc/deepwell.toml
+COPY ./install/prod/deepwell/health-check.sh /bin/wikijump-health-check
+COPY ./install/prod/deepwell/deepwell.toml /etc/deepwell.toml
 COPY ./locales/fluent /opt/locales/fluent
 
 USER daemon

@@ -11,7 +11,7 @@ COPY assets /app/src/assets
 WORKDIR /app
 
 # Install files
-COPY ./install/local/web/health-check.sh /usr/local/bin/wikijump-health-check
+COPY ./install/local/framerail/health-check.sh /usr/local/bin/wikijump-health-check
 
 # Install node dependencies
 RUN pnpm install
