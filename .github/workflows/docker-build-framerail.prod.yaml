@@ -4,8 +4,8 @@ on:
   pull_request:
     paths:
       - 'framerail/**'
-      - 'install/prod/web/Dockerfile'
-      - '.github/workflows/docker-build-web.prod.yaml'
+      - 'install/prod/framerail/Dockerfile'
+      - '.github/workflows/docker-build-framerail.prod.yaml'
 
 jobs:
   build:
@@ -15,6 +15,6 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Build image
-        run: docker build -f install/prod/web/Dockerfile .
+        run: docker build -f install/prod/framerail/Dockerfile .
         env:
           DOCKER_BUILDKIT: 1
