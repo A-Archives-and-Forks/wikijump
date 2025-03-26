@@ -1,11 +1,11 @@
-name: '[backend] Docker build router (dev)'
+name: '[backend] Docker build WWS (dev)'
 
 on:
   pull_request:
     paths:
       - 'deepwell/**'
-      - 'install/dev/router/Dockerfile'
-      - '.github/workflows/docker-build-router.dev.yaml'
+      - 'install/dev/wws/Dockerfile'
+      - '.github/workflows/docker-build-wws.dev.yaml'
 
 jobs:
   build:
@@ -15,6 +15,6 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Build image
-        run: docker build -f install/dev/router/Dockerfile .
+        run: docker build -f install/dev/wws/Dockerfile .
         env:
           DOCKER_BUILDKIT: 1
