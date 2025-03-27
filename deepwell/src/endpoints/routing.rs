@@ -36,6 +36,7 @@ struct CaddyfileOptions {
 
     // Infra information
     framerail_host: String,
+    wws_host: String,
 }
 
 pub async fn generate_caddyfile(
@@ -51,6 +52,7 @@ pub async fn generate_caddyfile(
         http_port,
         https_port,
         framerail_host,
+        wws_host,
     } = params.parse()?;
 
     let config = ctx.config();
@@ -110,7 +112,7 @@ pub async fn generate_caddyfile(
 	}}
 	redir @files https://{{vars.site_slug}}{files_domain}{{uri}}
 
-	reverse_proxy http://localhost:3000
+	reverse_proxy http://{framerail_host}
 }}
 "
     );
@@ -125,7 +127,7 @@ pub async fn generate_caddyfile(
 #
 
 (serve_files) {{
-	reverse_proxy http://{framerail_host}
+	reverse_proxy http://{wws_host}
 }}
 
 *{files_domain} {{
@@ -144,7 +146,7 @@ pub async fn generate_caddyfile(
 {} {{
 	request_header X-Wikijump-Special-Error 1
 	rewrite * /-/special-error/missing-site
-	reverse_proxy http://localhost:3000
+	reverse_proxy http://{framerail_host}
 }}",
         if local {
             "http://,\nhttps://,\nlocalhost"
