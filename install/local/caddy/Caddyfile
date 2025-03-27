@@ -1,13 +1,13 @@
 # Global options
 {
-	debug
+	metrics {
+		per_host
+	}
 
 	http_port 8000
 	https_port 8443
 
-	metrics {
-		per_host
-	}
+	debug
 
 	skip_install_trust
 }
@@ -21,7 +21,7 @@
 	@files {
 		path /*/code/*
 		path /*/html/*
-		path /*/file/*
+		path /*/file/*  # for the /{slug}/file/{filename} convenience routes
 		path /*/download/*
 		path /local--files/*
 		path /local--code/*
@@ -143,6 +143,7 @@ www.scpwiki.localhost {
 http://,
 https://,
 localhost {
-	rewrite * /-/special-error
+	request_header X-Wikijump-Special-Error 1
+	rewrite * /-/special-error/missing-site
 	reverse_proxy http://localhost:3000
 }
