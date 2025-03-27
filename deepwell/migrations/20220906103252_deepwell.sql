@@ -89,7 +89,22 @@ CREATE TABLE site (
     description TEXT NOT NULL,
     locale TEXT NOT NULL,
     default_page TEXT NOT NULL DEFAULT 'start',
-    custom_domain TEXT,  -- Dependency cycle, add foreign key constraint after
+
+    -- Dependency cycle, add foreign key constraint after.
+    --
+    -- This field describes what the preferred domain is for this site.
+    --
+    -- Say we have a site with the slug 'foo' and the main domain is 'wikijump.dev'.
+    -- Therefore, the canonical domain for this site is 'foo.wikijump.dev'.
+    --
+    -- What is the preferred domain? It depends on the value of this column.
+    -- * NULL          - This means the canonical domain is also the preferred domain.
+    -- * 'example.com' - This means that the custom domain 'example.com' is preferred.
+    --
+    -- Observe that a site may have many custom domains, and this is unrelated to what
+    -- its preferred domain is. Of course, if the custom_domain column is not NULL,
+    -- then it must be one of these site domains, it cannot belong to another site.
+    custom_domain TEXT,
     layout TEXT,  -- Default page layout for the site
 
     -- Special condition
