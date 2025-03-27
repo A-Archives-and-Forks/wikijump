@@ -184,7 +184,39 @@ pub fn generate_caddyfile(
 "
     );
 
-    // TODO generate *.wjfiles.com interior
+    for (site_id, site_slug, _) in sites {
+        str_writeln!(&mut caddyfile, "@{site_slug} host {site_slug}{files_domain}");
+        str_writeln!(&mut caddyfile, "vars @{site_slug} site_id {site_id}");
+    }
+
+    str_writeln!(
+        &mut caddyfile,
+        "
+	request_header X-Wikijump-Site-Slug {{labels.{}}}
+	request_header X-Wikijump-Site-Id {{vars.site_id}}
+
+	import serve_files
+}}",
+        // What part of the domain to split
+        //
+        // So if the files domain (with dot) is ".wjfiles.com", there are 2 periods.
+        // Any site slugs would be before that first dot, such as in "foo.wjfiles.com",
+        // which would be index 2 using Caddy's domain addressing system:
+        //
+        // 0 - "com"
+        // 1 - "wjfiles"
+        // 2 - "foo"      <-- what we want
+        //
+        // An additional example, say the files domain is ".host.wikijump.example.com",
+        // then there are 4 dots in the files domain, and thus the zero-based index is 4:
+        //
+        // 0 - "com"
+        // 1 - "example"
+        // 2 - "wikijump"
+        // 3 - "host"
+        // 4 - "foo"      <-- what we want
+        files_domain.chars().filter(|&c| c == '.').count(),
+    );
 
     str_writeln!(
         &mut caddyfile,
