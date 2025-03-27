@@ -92,6 +92,13 @@ CREATE TABLE site (
     custom_domain TEXT,  -- Dependency cycle, add foreign key constraint after
     layout TEXT,  -- Default page layout for the site
 
+    -- Special condition
+    -- The preferred site for the special 'www' site (the main page) must always be the
+    -- canonical domain. That is, if the main domain is "wikijump.com", then the
+    -- preferred site is "wikijump.com" (since the "www" is elided as a special case).
+    CHECK (slug != 'www' OR custom_domain IS NULL),
+
+    -- Enforce site slug uniqueness
     UNIQUE (slug, deleted_at)
 );
 
