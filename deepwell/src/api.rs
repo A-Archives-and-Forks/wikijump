@@ -191,7 +191,7 @@ async fn build_module(app_state: ServerState) -> anyhow::Result<RpcModule<Server
     register!("translate", translate_strings);
 
     // Web routing
-    register!("caddyfile", generate_caddyfile);
+    register!("caddyfile", caddyfile_endpoint);
 
     // Web server
     register!("page_view", page_view);

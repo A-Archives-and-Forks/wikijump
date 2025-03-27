@@ -19,43 +19,93 @@
  */
 
 use super::prelude::*;
+use crate::config::Config;
+use crate::models::alias::Model as AliasModel;
+use crate::models::sea_orm_active_enums::AliasType;
+use crate::models::site::{self, Entity as Site};
+use crate::models::site_domain::Model as SiteDomainModel;
+use sea_orm::{EntityTrait, QuerySelect};
+use std::collections::HashMap;
 
 #[derive(Deserialize, Debug)]
-struct CaddyfileOptions {
+pub struct CaddyfileOptions {
     #[serde(default)]
-    debug: bool,
+    pub debug: bool,
 
     #[serde(default)]
-    local: bool,
+    pub local: bool,
 
     #[serde(default)]
-    http_port: Option<i64>,
+    pub http_port: Option<i64>,
 
     #[serde(default)]
-    https_port: Option<i64>,
+    pub https_port: Option<i64>,
 
     // Infra information
-    framerail_host: String,
-    wws_host: String,
+    pub framerail_host: String,
+    pub wws_host: String,
 }
 
-pub async fn generate_caddyfile(
+#[derive(Debug)]
+pub struct SiteDomainData {
+    sites: Vec<(i64, String, Option<String>)>,
+    domains: HashMap<i64, (Vec<AliasModel>, Vec<SiteDomainModel>)>,
+}
+
+pub async fn caddyfile_endpoint(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
 ) -> Result<String> {
-    // TODO split into pure function
-    info!("Generating Caddyfile for current sites");
+    let options: CaddyfileOptions = params.parse()?;
+    let config = ctx.config();
 
-    let CaddyfileOptions {
+    // Gather necessary site data
+    let txn = ctx.transaction();
+
+    let sites: Vec<(i64, String, Option<String>)> = Site::find()
+        .select_only()
+        .column(site::Column::SiteId)
+        .column(site::Column::Slug)
+        .column(site::Column::CustomDomain)
+        .into_tuple()
+        .all(txn)
+        .await?;
+
+    let domains = {
+        let mut extras = HashMap::with_capacity(sites.len());
+
+        for &(site_id, _, _) in &sites {
+            let site_aliases =
+                AliasService::get_all(ctx, AliasType::Site, site_id).await?;
+
+            let site_domains = DomainService::list_custom(ctx, site_id).await?;
+            extras.insert(site_id, (site_aliases, site_domains));
+        }
+
+        extras
+    };
+
+    Ok(generate_caddyfile(
+        config,
+        options,
+        &SiteDomainData { sites, domains },
+    ))
+}
+
+pub fn generate_caddyfile(
+    config: &Config,
+    CaddyfileOptions {
         debug,
         local,
         http_port,
         https_port,
         framerail_host,
         wws_host,
-    } = params.parse()?;
+    }: CaddyfileOptions,
+    SiteDomainData { sites, domains }: &SiteDomainData,
+) -> String {
+    info!("Generating Caddyfile for {} sites", sites.len());
 
-    let config = ctx.config();
     let main_domain = &config.main_domain;
     let files_domain = &config.files_domain;
 
@@ -155,5 +205,5 @@ pub async fn generate_caddyfile(
         }
     );
 
-    Ok(caddyfile)
+    caddyfile
 }
