@@ -93,6 +93,8 @@ CREATE TABLE site (
     -- Dependency cycle, add foreign key constraint after.
     --
     -- This field describes what the preferred domain is for this site.
+    -- All sites have one preferred domain, and so a value of NULL is
+    -- also meaningful here.
     --
     -- Say we have a site with the slug 'foo' and the main domain is 'wikijump.dev'.
     -- Therefore, the canonical domain for this site is 'foo.wikijump.dev'.
@@ -101,17 +103,20 @@ CREATE TABLE site (
     -- * NULL          - This means the canonical domain is also the preferred domain.
     -- * 'example.com' - This means that the custom domain 'example.com' is preferred.
     --
+    -- This value should NEVER have a main domain component. It must match a corresponding
+    -- row in the site_domain (custom domains) table.
+    --
     -- Observe that a site may have many custom domains, and this is unrelated to what
-    -- its preferred domain is. Of course, if the custom_domain column is not NULL,
+    -- its preferred domain is. Of course, if the preferred_domain column is not NULL,
     -- then it must be one of these site domains, it cannot belong to another site.
-    custom_domain TEXT,
+    preferred_domain TEXT,
     layout TEXT,  -- Default page layout for the site
 
     -- Special condition
     -- The preferred site for the special 'www' site (the main page) must always be the
     -- canonical domain. That is, if the main domain is "wikijump.com", then the
     -- preferred site is "wikijump.com" (since the "www" is elided as a special case).
-    CHECK (slug != 'www' OR custom_domain IS NULL),
+    CHECK (slug != 'www' OR preferred_domain IS NULL),
 
     -- Enforce site slug uniqueness
     UNIQUE (slug, deleted_at)
@@ -126,8 +131,8 @@ CREATE TABLE site_domain (
 );
 
 ALTER TABLE site
-    ADD CONSTRAINT site_custom_domain_fk
-    FOREIGN KEY (custom_domain) REFERENCES site_domain(domain);
+    ADD CONSTRAINT site_preferred_domain_fk
+    FOREIGN KEY (preferred_domain) REFERENCES site_domain(domain);
 
 --
 -- Aliases

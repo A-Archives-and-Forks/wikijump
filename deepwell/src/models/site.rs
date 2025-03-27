@@ -28,7 +28,7 @@ pub struct Model {
     #[sea_orm(column_type = "Text")]
     pub default_page: String,
     #[sea_orm(column_type = "Text", nullable)]
-    pub custom_domain: Option<String>,
+    pub preferred_domain: Option<String>,
     #[sea_orm(column_type = "Text", nullable)]
     pub layout: Option<String>,
 }
@@ -55,12 +55,12 @@ pub enum Relation {
     SiteDomain,
     #[sea_orm(
         belongs_to = "super::site_domain::Entity",
-        from = "Column::CustomDomain",
+        from = "Column::PreferredDomain",
         to = "super::site_domain::Column::Domain",
         on_update = "NoAction",
         on_delete = "NoAction"
     )]
-    SiteDomainCustomDomain,
+    SiteDomainPreferredDomain,
 }
 
 impl Related<super::file::Entity> for Entity {

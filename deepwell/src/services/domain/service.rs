@@ -227,7 +227,7 @@ impl DomainService {
             site.slug, site.site_id,
         );
 
-        match &site.custom_domain {
+        match &site.preferred_domain {
             Some(domain) => cow!(domain),
             None if site.slug == DEFAULT_SITE_SLUG => Self::www_domain(config),
             None => Cow::Owned(Self::get_canonical(config, &site.slug)),

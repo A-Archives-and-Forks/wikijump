@@ -66,7 +66,7 @@ pub async fn caddyfile_endpoint(
         .select_only()
         .column(site::Column::SiteId)
         .column(site::Column::Slug)
-        .column(site::Column::CustomDomain)
+        .column(site::Column::PreferredDomain)
         .into_tuple()
         .all(txn)
         .await?;
