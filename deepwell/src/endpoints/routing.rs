@@ -239,3 +239,9 @@ pub fn generate_caddyfile(
 
     caddyfile
 }
+
+#[test]
+fn test_caddyfile_gen() {
+    // TODO
+    todo!()
+}
