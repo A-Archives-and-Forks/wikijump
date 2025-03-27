@@ -57,6 +57,7 @@ pub mod misc;
 pub mod page;
 pub mod page_revision;
 pub mod parent;
+pub mod routing;
 pub mod site;
 pub mod site_member;
 pub mod special_error;
