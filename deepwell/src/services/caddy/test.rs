@@ -171,10 +171,22 @@ fn generate_caddyfiles() {
     macro_rules! check {
         ($expected:expr, $sites:expr, $options:expr $(,)?) => {{
             let actual = CaddyService::generate_custom(&config, &$options, &$sites);
-            assert_eq!(
-                actual, $expected,
-                "Actual generated Caddyfile does not match",
-            );
+            let expected = $expected;
+
+            // We do this check ourselves instead of using assert_eq! for a cleaner error message.
+            if actual != expected {
+                eprintln!("Unit test failure!");
+                eprintln!();
+                eprintln!("ACTUAL generated Caddyfile:\n{actual:?}\n[BEGIN]\n{actual}\n[END]");
+                eprintln!();
+                eprintln!("EXPECTED generated Caddyfile:\n{expected:?}\n[BEGIN]\n{expected}\n[END]");
+                eprintln!();
+                eprintln!("UNIT TEST INFO:");
+                eprintln!("* Expected output: {}", stringify!($expected));
+                eprintln!("* Site data: {}", stringify!($sites));
+                eprintln!("* Options: {:#?}", $options);
+                panic!("Generated Caddy file did not match!");
+            }
         }};
     }
 
