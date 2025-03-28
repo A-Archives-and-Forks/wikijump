@@ -22,6 +22,10 @@
 //!
 //! This is primarily concerned with generating the `Caddyfile` that
 //! powers the server, which is where host → site mapping is performed.
+//!
+//! NOTE: This file contains hard tabs, as this is what we want to use for
+//!       `Caddyfile` generation. If you're opening this file, mind the git
+//!       diff! If your editor munges the tabs please discard those changes.
 
 use super::prelude::*;
 use crate::models::alias::Model as AliasModel;
