@@ -164,6 +164,8 @@ pub fn generate_caddyfile(
 	}}
 	redir @files https://{{vars.site_slug}}{files_domain}{{uri}}
 
+	# Finally, proxy to framerail to get the actual HTML
+	# Note, the x-wikijump-site-* headers have already been set at this point
 	reverse_proxy http://{framerail_host}
 }}
 "
