@@ -52,6 +52,7 @@ impl CaddyService {
         let txn = ctx.transaction();
 
         let sites: Vec<(i64, String, Option<String>)> = Site::find()
+            .order_by_asc(site::Column::SiteId)
             .select_only()
             .column(site::Column::SiteId)
             .column(site::Column::Slug)
@@ -71,6 +72,7 @@ impl CaddyService {
                     .collect();
 
                 let custom_domains = SiteDomain::find()
+                    .order_by_asc(site_domain::Column::Domain)
                     .select_only()
                     .column(site_domain::Column::Domain)
                     .filter(site_domain::Column::SiteId.eq(site_id))
