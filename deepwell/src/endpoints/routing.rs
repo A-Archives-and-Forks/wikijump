@@ -137,7 +137,7 @@ pub fn generate_caddyfile(
         str_writeln!(&mut caddyfile, "\tskip_install_trust");
     }
 
-    str_writeln!(
+    str_write!(
         &mut caddyfile,
         "\
 }}
@@ -193,7 +193,7 @@ pub fn generate_caddyfile(
             if domain == preferred_domain {
                 // Main content, for a preferred domain.
                 // This is where the request is actually reverse proxied through.
-                str_writeln!(
+                str_write!(
                     &mut caddyfile,
                     "
 {domain} {{
@@ -215,7 +215,7 @@ www.{domain} {{
                 );
             } else {
                 // Generate a redirect to the preferred domain.
-                str_writeln!(
+                str_write!(
                     &mut caddyfile,
                     "
 {domain},
@@ -242,7 +242,7 @@ www.{domain} {{
         }
     }
 
-    str_writeln!(
+    str_write!(
         &mut caddyfile,
         "
 #
@@ -253,12 +253,11 @@ www.{domain} {{
 	reverse_proxy http://{wws_host}
 }}
 
-*{files_domain} {{
-"
+*{files_domain} {{"
     );
 
     for (site_id, site_slug, _) in sites {
-        str_writeln!(
+        str_write!(
             &mut caddyfile,
             "
 	@{site_slug} host {site_slug}{files_domain}
@@ -267,14 +266,15 @@ www.{domain} {{
         );
     }
 
-    str_writeln!(
+    str_write!(
         &mut caddyfile,
         "
 	request_header X-Wikijump-Site-Slug {{labels.{}}}
 	request_header X-Wikijump-Site-Id {{vars.site_id}}
 
 	import serve_files
-}}",
+}}
+",
         // What part of the domain to split
         //
         // So if the files domain (with dot) is ".wjfiles.com", there are 2 periods.
@@ -296,7 +296,7 @@ www.{domain} {{
         files_domain.chars().filter(|&c| c == '.').count(),
     );
 
-    str_writeln!(
+    str_write!(
         &mut caddyfile,
         "
 #
