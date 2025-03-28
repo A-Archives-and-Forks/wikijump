@@ -4,8 +4,8 @@
 // If the headers are first set by the client, those values
 // get erased.
 
-const SITE_ID_HEADER = "x-wikijump-site-id"
-const SITE_SLUG_HEADER = "x-wikijump-site-slug"
+const SITE_ID_HEADER = "X-Wikijump-Site-Id"
+const SITE_SLUG_HEADER = "X-Wikijump-Site-Slug"
 
 export interface SiteInfo {
   siteId: number
