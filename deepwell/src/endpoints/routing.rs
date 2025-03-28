@@ -24,7 +24,9 @@ use crate::models::alias::Model as AliasModel;
 use crate::models::sea_orm_active_enums::AliasType;
 use crate::models::site::{self, Entity as Site};
 use crate::models::site_domain::Model as SiteDomainModel;
+use crate::services::domain::DEFAULT_SITE_SLUG;
 use sea_orm::{EntityTrait, QuerySelect};
+use std::borrow::Cow;
 use std::collections::HashMap;
 
 #[derive(Deserialize, Debug)]
@@ -106,7 +108,7 @@ pub fn generate_caddyfile(
 ) -> String {
     info!("Generating Caddyfile for {} sites", sites.len());
 
-    let main_domain = &config.main_domain;
+    let main_domain_no_dot = &config.main_domain_no_dot;
     let files_domain = &config.files_domain;
 
     let mut caddyfile = str!(
@@ -167,7 +169,61 @@ pub fn generate_caddyfile(
 "
     );
 
-    // TODO generate main site sections
+    for (site_id, site_slug, preferred_domain) in sites {
+        let (aliases, domains) = &domains[site_id];
+
+        // Get canonical and preferred domains, for later generation
+        let canonical_domain = if site_slug == DEFAULT_SITE_SLUG {
+            Cow::Borrowed(main_domain_no_dot)
+        } else {
+            Cow::Owned(DomainService::get_canonical(config, site_slug))
+        };
+
+        let preferred_domain: &str = preferred_domain.as_ref().unwrap_or(&canonical_domain);
+
+        // Closure to generate a domain entry
+        let mut generate_entry = |domain: &str| {
+            if domain == preferred_domain {
+                str_writeln!(
+                    &mut caddyfile,
+                    "
+{domain} {{
+	vars {{
+		site_id {site_id}
+		site_slug {site_slug}
+	}}
+
+	request_header X-Wikijump-Site-Id {{vars.site_id}}
+	request_header X-Wikijump-Site-Slug {{vars.site_slug}}
+
+	import serve_main
+}}
+");
+            } else {
+                str_writeln!(
+                    &mut caddyfile,
+                    "
+{domain} {{
+	redir https://{preferred_domain}{{uri}}
+}}
+");
+            }
+        };
+
+        // Canonical domain
+        generate_entry(&canonical_domain);
+
+        // Custom domains
+        for model in domains {
+            generate_entry(&model.domain);
+        }
+
+        // Aliases (all redirects)
+        for alias in aliases {
+            let domain = DomainService::get_canonical(config, &alias.slug);
+             generate_entry(&domain);
+        }
+    }
 
     str_writeln!(
         &mut caddyfile,
