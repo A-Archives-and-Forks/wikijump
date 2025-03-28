@@ -27,7 +27,7 @@ use super::prelude::*;
 use crate::models::alias::Model as AliasModel;
 use crate::models::sea_orm_active_enums::AliasType;
 use crate::models::site::{self, Entity as Site};
-use crate::models::site_domain::Model as SiteDomainModel;
+use crate::models::site_domain::{self, Entity as SiteDomain};
 use crate::services::{AliasService, DomainService};
 use crate::services::domain::DEFAULT_SITE_SLUG;
 use sea_orm::{EntityTrait, QuerySelect};
@@ -63,11 +63,13 @@ impl CaddyService {
                     .map(|AliasModel { slug, .. }| slug)
                     .collect();
 
-                let custom_domains = DomainService::list_custom(ctx, site_id)
-                    .await?
-                    .into_iter()
-                    .map(|SiteDomainModel { domain, .. }| domain)
-                    .collect();
+                let custom_domains = SiteDomain::find()
+                    .select_only()
+                    .column(site_domain::Column::Domain)
+                    .filter(site_domain::Column::SiteId.eq(site_id))
+                    .into_tuple()
+                    .all(txn)
+                    .await?;
 
                 domains.insert(
                     site_id,
