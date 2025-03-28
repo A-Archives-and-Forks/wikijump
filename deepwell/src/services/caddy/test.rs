@@ -151,11 +151,18 @@ const CADDYFILE_BASIC_PROD: &str = "\
 	}
 }
 
+(strip_headers) {
+	# Strip internal headers used by Wikijump
+	request_header -X-Wikijump-*
+}
+
 #
 # MAIN
 #
 
 (serve_main) {
+	import strip_headers
+
 	# Redirect, route is on the files server
 	@files {
 		path /*/code/*
@@ -223,6 +230,7 @@ www.example.com {
 #
 
 (serve_files) {
+	import strip_headers
 	encode
 	reverse_proxy http://wws:7000
 }
@@ -260,11 +268,18 @@ const CADDYFILE_BASIC_LOCAL: &str = "\
 	skip_install_trust
 }
 
+(strip_headers) {
+	# Strip internal headers used by Wikijump
+	request_header -X-Wikijump-*
+}
+
 #
 # MAIN
 #
 
 (serve_main) {
+	import strip_headers
+
 	# Redirect, route is on the files server
 	@files {
 		path /*/code/*
@@ -332,6 +347,7 @@ www.example.com {
 #
 
 (serve_files) {
+	import strip_headers
 	encode
 	reverse_proxy http://wws:7000
 }
@@ -373,11 +389,18 @@ const CADDYFILE_BASIC_LOCAL_DEV: &str = "\
 	skip_install_trust
 }
 
+(strip_headers) {
+	# Strip internal headers used by Wikijump
+	request_header -X-Wikijump-*
+}
+
 #
 # MAIN
 #
 
 (serve_main) {
+	import strip_headers
+
 	# Redirect, route is on the files server
 	@files {
 		path /*/code/*
@@ -445,6 +468,7 @@ www.example.com {
 #
 
 (serve_files) {
+	import strip_headers
 	encode
 	reverse_proxy http://wws:7000
 }
@@ -482,11 +506,18 @@ const CADDYFILE_BASIC_DIFFERENT_PROXIES: &str = "\
 	}
 }
 
+(strip_headers) {
+	# Strip internal headers used by Wikijump
+	request_header -X-Wikijump-*
+}
+
 #
 # MAIN
 #
 
 (serve_main) {
+	import strip_headers
+
 	# Redirect, route is on the files server
 	@files {
 		path /*/code/*
@@ -554,6 +585,7 @@ www.example.com {
 #
 
 (serve_files) {
+	import strip_headers
 	encode
 	reverse_proxy http://wws_proxy_host
 }
@@ -590,11 +622,18 @@ const CADDYFILE_FULL_PROD: &str = "\
 	}
 }
 
+(strip_headers) {
+	# Strip internal headers used by Wikijump
+	request_header -X-Wikijump-*
+}
+
 #
 # MAIN
 #
 
 (serve_main) {
+	import strip_headers
+
 	# Redirect, route is on the files server
 	@files {
 		path /*/code/*
@@ -750,6 +789,7 @@ www.scpwiki.wikijump.test {
 #
 
 (serve_files) {
+	import strip_headers
 	encode
 	reverse_proxy http://wws:7000
 }
@@ -795,11 +835,18 @@ const CADDYFILE_LONG_DOMAIN: &str = "\
 	}
 }
 
+(strip_headers) {
+	# Strip internal headers used by Wikijump
+	request_header -X-Wikijump-*
+}
+
 #
 # MAIN
 #
 
 (serve_main) {
+	import strip_headers
+
 	# Redirect, route is on the files server
 	@files {
 		path /*/code/*
@@ -867,6 +914,7 @@ www.example.com {
 #
 
 (serve_files) {
+	import strip_headers
 	encode
 	reverse_proxy http://wws:7000
 }

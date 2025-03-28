@@ -147,11 +147,18 @@ impl CaddyService {
             "\
 }}
 
+(strip_headers) {{
+	# Strip internal headers used by Wikijump
+	request_header -X-Wikijump-*
+}}
+
 #
 # MAIN
 #
 
 (serve_main) {{
+	import strip_headers
+
 	# Redirect, route is on the files server
 	@files {{
 		path /*/code/*
@@ -263,6 +270,7 @@ www.{domain} {{
 #
 
 (serve_files) {{
+	import strip_headers
 	encode
 	reverse_proxy http://{wws_host}
 }}
