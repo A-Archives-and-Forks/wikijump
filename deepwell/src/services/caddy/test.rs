@@ -18,10 +18,13 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+//! Unit testing for our generated `Caddyfile`s.
+
 use super::prelude::*;
 use crate::config::Config;
+use crate::services::CaddyService;
+use maplit::hashmap;
 
-/// Produce a `Config` struct for use in `CaddyService` testing.
 fn build_config() -> Config {
     use femme::LevelFilter;
     use ftml::layout::Layout;
@@ -91,8 +94,165 @@ fn build_config() -> Config {
     }
 }
 
+fn build_site_data() -> (SiteData, SiteData) {
+    let basic = SiteData {
+        sites: vec![
+            (1, str!("foo"), None),
+            (2, str!("bar"), Some(str!("example.com"))),
+        ],
+        domains: hashmap! {
+            1 => SiteDomainData::default(),
+            2 => SiteDomainData {
+                aliases: vec![],
+                custom_domains: vec![str!("example.com")],
+            },
+        },
+    };
+
+    let full = SiteData {
+        sites: vec![
+            (1, str!("www"), None),
+            (2, str!("empty"), None),
+            (3, str!("test"), None),
+            (
+                4,
+                str!("wanderers-library"),
+                Some(str!("wandererslibrary.com")),
+            ),
+            (5, str!("scp-wiki"), Some(str!("scpwiki.com"))),
+        ],
+        domains: hashmap! {
+            1 => SiteDomainData::default(),
+            2 => SiteDomainData::default(),
+            3 => SiteDomainData {
+                aliases: vec![str!("check")],
+                custom_domains: vec![str!("example.com"), str!("example.net")],
+            },
+            4 => SiteDomainData {
+                aliases: vec![],
+                custom_domains: vec![str!("wandererslibrary.com")],
+            },
+            5 => SiteDomainData {
+                aliases: vec![str!("scpwiki")],
+                custom_domains: vec![str!("scpwiki.com"), str!("scp-wiki.net"), str!("scp.foundation"), str!("foundation.scp")],
+            },
+        },
+    };
+
+    (basic, full)
+}
+
+const CADDYFILE_BASIC_PROD: &str = "
+";
+
+const CADDYFILE_BASIC_LOCAL: &str = "
+";
+
+const CADDYFILE_BASIC_LOCAL_DEV: &str = "
+";
+
+const CADDYFILE_BASIC_DIFFERENT_PROXIES: &str = "
+";
+
+const CADDYFILE_FULL_PROD: &str = "
+";
+
+const CADDYFILE_FULL_LOCAL: &str = "
+";
+
 #[test]
-fn test_caddyfile_gen() {
-    // TODO
-    todo!()
+fn generate_caddyfiles() {
+    const FRAMERAIL_HOST: &str = "framerail:3000";
+    const WWS_HOST: &str = "wws:7000";
+
+    let config = build_config();
+    let (sites_basic, sites_full) = build_site_data();
+
+    macro_rules! check {
+        ($expected:expr, $sites:expr, $options:expr $(,)?) => {{
+            let actual = CaddyService::generate_custom(&config, &$options, &$sites);
+            assert_eq!(
+                actual, $expected,
+                "Actual generated Caddyfile does not match",
+            );
+        }};
+    }
+
+    check!(
+        CADDYFILE_BASIC_PROD,
+        sites_basic,
+        CaddyfileOptions {
+            debug: false,
+            local: false,
+            http_port: None,
+            https_port: None,
+            framerail_host: cow!(FRAMERAIL_HOST),
+            wws_host: cow!(WWS_HOST),
+        },
+    );
+
+    check!(
+        CADDYFILE_BASIC_LOCAL,
+        sites_basic,
+        CaddyfileOptions {
+            debug: false,
+            local: true,
+            http_port: None,
+            https_port: None,
+            framerail_host: cow!(FRAMERAIL_HOST),
+            wws_host: cow!(WWS_HOST),
+        },
+    );
+
+    check!(
+        CADDYFILE_BASIC_LOCAL_DEV,
+        sites_basic,
+        CaddyfileOptions {
+            debug: true,
+            local: true,
+            http_port: Some(8000),
+            https_port: Some(8443),
+            framerail_host: cow!(FRAMERAIL_HOST),
+            wws_host: cow!(WWS_HOST),
+        },
+    );
+
+    check!(
+        CADDYFILE_BASIC_DIFFERENT_PROXIES,
+        sites_basic,
+        CaddyfileOptions {
+            debug: false,
+            local: false,
+            http_port: None,
+            https_port: None,
+            framerail_host: cow!("web_proxy_host"),
+            wws_host: cow!("wws_proxy_host"),
+        },
+    );
+
+    check!(
+        CADDYFILE_FULL_PROD,
+        sites_full,
+        CaddyfileOptions {
+            debug: false,
+            local: false,
+            http_port: None,
+            https_port: None,
+            framerail_host: cow!(FRAMERAIL_HOST),
+            wws_host: cow!(WWS_HOST),
+        },
+    );
+
+    check!(
+        CADDYFILE_FULL_LOCAL,
+        sites_basic,
+        CaddyfileOptions {
+            debug: true,
+            local: true,
+            http_port: None,
+            https_port: None,
+            framerail_host: cow!(FRAMERAIL_HOST),
+            wws_host: cow!(WWS_HOST),
+        },
+    );
 }

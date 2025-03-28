@@ -799,6 +799,7 @@ dependencies = [
  "intl-memoizer",
  "jsonrpsee",
  "log",
+ "maplit",
  "notify",
  "once_cell",
  "paste",
