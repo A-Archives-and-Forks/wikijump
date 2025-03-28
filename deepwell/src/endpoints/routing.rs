@@ -184,6 +184,8 @@ pub fn generate_caddyfile(
         // Closure to generate a domain entry
         let mut generate_entry = |domain: &str| {
             if domain == preferred_domain {
+                // Main content, for a preferred domain.
+                // This is where the request is actually reverse proxied through.
                 str_writeln!(
                     &mut caddyfile,
                     "
@@ -200,6 +202,7 @@ pub fn generate_caddyfile(
 }}
 ");
             } else {
+                // Generate a redirect to the preferred domain.
                 str_writeln!(
                     &mut caddyfile,
                     "
@@ -208,6 +211,17 @@ pub fn generate_caddyfile(
 }}
 ");
             }
+
+            // Generate a redirect for the corresponding "www" domain.
+            // This shouldn't be used so we can redirect for all of them.
+            // This also naturally captures www.wikijump.com -> wikijump.com.
+            str_writeln!(
+                &mut caddyfile,
+                "
+www.{domain} {{
+	redir https://{preferred_domain}{{uri}}
+}}
+");
         };
 
         // Canonical domain
