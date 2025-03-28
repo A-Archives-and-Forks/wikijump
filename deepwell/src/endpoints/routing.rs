@@ -113,7 +113,7 @@ pub fn generate_caddyfile(
 
     let mut caddyfile = str!(
         "\
-# Globals option
+# Global options
 {
 	metrics {
 		per_host
