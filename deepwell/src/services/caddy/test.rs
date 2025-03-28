@@ -286,6 +286,15 @@ fn generate_caddyfiles() {
                 actual.pop();
             }
 
+            // Meanwhile, if the 'expected' string ends with newline(s),
+            // it's never going to match the above.
+            // Such constant strings should be fixed.
+            assert!(
+                !expected.ends_with('\n'),
+                "Expected test string {} ends in a newline! Fix the test case.",
+                stringify!($expected),
+            );
+
             // We do this check ourselves instead of using assert_eq! for a cleaner error message.
             if actual != expected {
                 eprintln!("Unit test failure!");
