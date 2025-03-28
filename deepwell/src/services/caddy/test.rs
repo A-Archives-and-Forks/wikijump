@@ -173,6 +173,9 @@ const CADDYFILE_BASIC_PROD: &str = "\
 	}
 	redir @files https://{vars.site_slug}.wjfiles.test{uri}
 
+	# Enable default compression settings
+	encode
+
 	# Finally, proxy to framerail to get the actual HTML
 	# Note, the x-wikijump-site-* headers have already been set at this point
 	reverse_proxy http://framerail:3000
@@ -220,6 +223,7 @@ www.example.com {
 #
 
 (serve_files) {
+	encode
 	reverse_proxy http://wws:7000
 }
 
@@ -278,6 +282,9 @@ const CADDYFILE_BASIC_LOCAL: &str = "\
 	}
 	redir @files https://{vars.site_slug}.wjfiles.localhost{uri}
 
+	# Enable default compression settings
+	encode
+
 	# Finally, proxy to framerail to get the actual HTML
 	# Note, the x-wikijump-site-* headers have already been set at this point
 	reverse_proxy http://framerail:3000
@@ -325,6 +332,7 @@ www.example.com {
 #
 
 (serve_files) {
+	encode
 	reverse_proxy http://wws:7000
 }
 
@@ -387,6 +395,9 @@ const CADDYFILE_BASIC_LOCAL_DEV: &str = "\
 	}
 	redir @files https://{vars.site_slug}.wjfiles.localhost{uri}
 
+	# Enable default compression settings
+	encode
+
 	# Finally, proxy to framerail to get the actual HTML
 	# Note, the x-wikijump-site-* headers have already been set at this point
 	reverse_proxy http://framerail:3000
@@ -434,6 +445,7 @@ www.example.com {
 #
 
 (serve_files) {
+	encode
 	reverse_proxy http://wws:7000
 }
 
@@ -492,6 +504,9 @@ const CADDYFILE_BASIC_DIFFERENT_PROXIES: &str = "\
 	}
 	redir @files https://{vars.site_slug}.wjfiles.test{uri}
 
+	# Enable default compression settings
+	encode
+
 	# Finally, proxy to framerail to get the actual HTML
 	# Note, the x-wikijump-site-* headers have already been set at this point
 	reverse_proxy http://web_proxy_host
@@ -539,6 +554,7 @@ www.example.com {
 #
 
 (serve_files) {
+	encode
 	reverse_proxy http://wws_proxy_host
 }
 
@@ -595,6 +611,9 @@ const CADDYFILE_FULL_PROD: &str = "\
 		path /-/html/*
 	}
 	redir @files https://{vars.site_slug}.wjfiles.test{uri}
+
+	# Enable default compression settings
+	encode
 
 	# Finally, proxy to framerail to get the actual HTML
 	# Note, the x-wikijump-site-* headers have already been set at this point
@@ -731,6 +750,7 @@ www.scpwiki.wikijump.test {
 #
 
 (serve_files) {
+	encode
 	reverse_proxy http://wws:7000
 }
 
@@ -797,6 +817,9 @@ const CADDYFILE_LONG_DOMAIN: &str = "\
 	}
 	redir @files https://{vars.site_slug}.wjfiles.host.site.somedomain.example.com{uri}
 
+	# Enable default compression settings
+	encode
+
 	# Finally, proxy to framerail to get the actual HTML
 	# Note, the x-wikijump-site-* headers have already been set at this point
 	reverse_proxy http://framerail:3000
@@ -844,6 +867,7 @@ www.example.com {
 #
 
 (serve_files) {
+	encode
 	reverse_proxy http://wws:7000
 }
 
@@ -869,8 +893,7 @@ https:// {
 	request_header X-Wikijump-Special-Error 1
 	rewrite * /-/special-error/missing-site
 	reverse_proxy http://framerail:3000
-}
-";
+}";
 
 #[test]
 fn generate_caddyfiles() {

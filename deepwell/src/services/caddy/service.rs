@@ -169,6 +169,9 @@ impl CaddyService {
 	}}
 	redir @files https://{{vars.site_slug}}{files_domain}{{uri}}
 
+	# Enable default compression settings
+	encode
+
 	# Finally, proxy to framerail to get the actual HTML
 	# Note, the x-wikijump-site-* headers have already been set at this point
 	reverse_proxy http://{framerail_host}
@@ -260,6 +263,7 @@ www.{domain} {{
 #
 
 (serve_files) {{
+	encode
 	reverse_proxy http://{wws_host}
 }}
 
