@@ -231,12 +231,12 @@ www.{domain} {{
 
             // Custom domains
             for domain in custom_domains {
-                generate_entry(&domain);
+                generate_entry(domain);
             }
 
             // Aliases (all redirects)
             for alias_slug in aliases {
-                let domain = DomainService::get_canonical(config, &alias_slug);
+                let domain = DomainService::get_canonical(config, alias_slug);
                 generate_entry(&domain);
             }
         }
