@@ -179,7 +179,8 @@ pub fn generate_caddyfile(
             Cow::Owned(DomainService::get_canonical(config, site_slug))
         };
 
-        let preferred_domain: &str = preferred_domain.as_ref().unwrap_or(&canonical_domain);
+        let preferred_domain: &str =
+            preferred_domain.as_ref().unwrap_or(&canonical_domain);
 
         // Closure to generate a domain entry
         let mut generate_entry = |domain: &str| {
@@ -200,7 +201,8 @@ pub fn generate_caddyfile(
 
 	import serve_main
 }}
-");
+"
+                );
             } else {
                 // Generate a redirect to the preferred domain.
                 str_writeln!(
@@ -209,7 +211,8 @@ pub fn generate_caddyfile(
 {domain} {{
 	redir https://{preferred_domain}{{uri}}
 }}
-");
+"
+                );
             }
 
             // Generate a redirect for the corresponding "www" domain.
@@ -221,7 +224,8 @@ pub fn generate_caddyfile(
 www.{domain} {{
 	redir https://{preferred_domain}{{uri}}
 }}
-");
+"
+            );
         };
 
         // Canonical domain
@@ -235,7 +239,7 @@ www.{domain} {{
         // Aliases (all redirects)
         for alias in aliases {
             let domain = DomainService::get_canonical(config, &alias.slug);
-             generate_entry(&domain);
+            generate_entry(&domain);
         }
     }
 
@@ -255,7 +259,10 @@ www.{domain} {{
     );
 
     for (site_id, site_slug, _) in sites {
-        str_writeln!(&mut caddyfile, "@{site_slug} host {site_slug}{files_domain}");
+        str_writeln!(
+            &mut caddyfile,
+            "@{site_slug} host {site_slug}{files_domain}",
+        );
         str_writeln!(&mut caddyfile, "vars @{site_slug} site_id {site_id}");
     }
 
