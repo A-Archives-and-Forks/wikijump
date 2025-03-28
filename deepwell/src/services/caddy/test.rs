@@ -114,7 +114,7 @@ fn build_site_data() -> (SiteData, SiteData) {
         sites: vec![
             (1, str!("www"), None),
             (2, str!("empty"), None),
-            (3, str!("test"), None),
+            (3, str!("mytest"), None),
             (
                 4,
                 str!("wanderers-library"),
@@ -245,25 +245,631 @@ https:// {
 	request_header X-Wikijump-Special-Error 1
 	rewrite * /-/special-error/missing-site
 	reverse_proxy http://framerail:3000
+}";
+
+const CADDYFILE_BASIC_LOCAL: &str = "\
+# Global options
+{
+	metrics {
+		per_host
+	}
+	skip_install_trust
 }
-";
 
-const CADDYFILE_BASIC_LOCAL: &str = "
-";
+#
+# MAIN
+#
 
-const CADDYFILE_BASIC_LOCAL_DEV: &str = "
-";
+(serve_main) {
+	# Redirect, route is on the files server
+	@files {
+		path /*/code/*
+		path /*/html/*
+		path /*/file/*  # for the /{slug}/file/{filename} convenience routes
+		path /*/download/*
+		path /local--files/*
+		path /local--code/*
+		path /local--html/*
+		path /-/files/*
+		path /-/file/*
+		path /-/download/*
+		path /-/code/*
+		path /-/html/*
+	}
+	redir @files https://{vars.site_slug}.wjfiles.localhost{uri}
 
-const CADDYFILE_BASIC_DIFFERENT_PROXIES: &str = "
-";
+	# Finally, proxy to framerail to get the actual HTML
+	# Note, the x-wikijump-site-* headers have already been set at this point
+	reverse_proxy http://framerail:3000
+}
 
-const CADDYFILE_FULL_PROD: &str = "
-";
+foo.wikijump.localhost {
+	vars {
+		site_id 1
+		site_slug foo
+	}
 
-const CADDYFILE_FULL_LOCAL: &str = "
-";
+	request_header X-Wikijump-Site-Id {vars.site_id}
+	request_header X-Wikijump-Site-Slug {vars.site_slug}
 
-const CADDYFILE_LONG_DOMAIN: &str = "
+	import serve_main
+}
+
+www.foo.wikijump.localhost {
+	redir https://foo.wikijump.localhost{uri}
+}
+
+bar.wikijump.localhost,
+www.bar.wikijump.localhost {
+	redir https://example.com{uri}
+}
+
+example.com {
+	vars {
+		site_id 2
+		site_slug bar
+	}
+
+	request_header X-Wikijump-Site-Id {vars.site_id}
+	request_header X-Wikijump-Site-Slug {vars.site_slug}
+
+	import serve_main
+}
+
+www.example.com {
+	redir https://example.com{uri}
+}
+
+#
+# FILES
+#
+
+(serve_files) {
+	reverse_proxy http://wws:7000
+}
+
+*.wjfiles.localhost {
+	@foo host foo.wjfiles.localhost
+	vars @foo site_id 1
+
+	@bar host bar.wjfiles.localhost
+	vars @bar site_id 2
+
+	request_header X-Wikijump-Site-Slug {labels.2}
+	request_header X-Wikijump-Site-Id {vars.site_id}
+
+	import serve_files
+}
+
+#
+# FALLBACK
+#
+
+http://,
+https://,
+localhost {
+	request_header X-Wikijump-Special-Error 1
+	rewrite * /-/special-error/missing-site
+	reverse_proxy http://framerail:3000
+}";
+
+const CADDYFILE_BASIC_LOCAL_DEV: &str = "\
+# Global options
+{
+	metrics {
+		per_host
+	}
+	http_port 8000
+	https_port 8443
+	debug
+	skip_install_trust
+}
+
+#
+# MAIN
+#
+
+(serve_main) {
+	# Redirect, route is on the files server
+	@files {
+		path /*/code/*
+		path /*/html/*
+		path /*/file/*  # for the /{slug}/file/{filename} convenience routes
+		path /*/download/*
+		path /local--files/*
+		path /local--code/*
+		path /local--html/*
+		path /-/files/*
+		path /-/file/*
+		path /-/download/*
+		path /-/code/*
+		path /-/html/*
+	}
+	redir @files https://{vars.site_slug}.wjfiles.localhost{uri}
+
+	# Finally, proxy to framerail to get the actual HTML
+	# Note, the x-wikijump-site-* headers have already been set at this point
+	reverse_proxy http://framerail:3000
+}
+
+foo.wikijump.localhost {
+	vars {
+		site_id 1
+		site_slug foo
+	}
+
+	request_header X-Wikijump-Site-Id {vars.site_id}
+	request_header X-Wikijump-Site-Slug {vars.site_slug}
+
+	import serve_main
+}
+
+www.foo.wikijump.localhost {
+	redir https://foo.wikijump.localhost{uri}
+}
+
+bar.wikijump.localhost,
+www.bar.wikijump.localhost {
+	redir https://example.com{uri}
+}
+
+example.com {
+	vars {
+		site_id 2
+		site_slug bar
+	}
+
+	request_header X-Wikijump-Site-Id {vars.site_id}
+	request_header X-Wikijump-Site-Slug {vars.site_slug}
+
+	import serve_main
+}
+
+www.example.com {
+	redir https://example.com{uri}
+}
+
+#
+# FILES
+#
+
+(serve_files) {
+	reverse_proxy http://wws:7000
+}
+
+*.wjfiles.localhost {
+	@foo host foo.wjfiles.localhost
+	vars @foo site_id 1
+
+	@bar host bar.wjfiles.localhost
+	vars @bar site_id 2
+
+	request_header X-Wikijump-Site-Slug {labels.2}
+	request_header X-Wikijump-Site-Id {vars.site_id}
+
+	import serve_files
+}
+
+#
+# FALLBACK
+#
+
+http://,
+https://,
+localhost {
+	request_header X-Wikijump-Special-Error 1
+	rewrite * /-/special-error/missing-site
+	reverse_proxy http://framerail:3000
+}";
+
+const CADDYFILE_BASIC_DIFFERENT_PROXIES: &str = "\
+# Global options
+{
+	metrics {
+		per_host
+	}
+}
+
+#
+# MAIN
+#
+
+(serve_main) {
+	# Redirect, route is on the files server
+	@files {
+		path /*/code/*
+		path /*/html/*
+		path /*/file/*  # for the /{slug}/file/{filename} convenience routes
+		path /*/download/*
+		path /local--files/*
+		path /local--code/*
+		path /local--html/*
+		path /-/files/*
+		path /-/file/*
+		path /-/download/*
+		path /-/code/*
+		path /-/html/*
+	}
+	redir @files https://{vars.site_slug}.wjfiles.test{uri}
+
+	# Finally, proxy to framerail to get the actual HTML
+	# Note, the x-wikijump-site-* headers have already been set at this point
+	reverse_proxy http://web_proxy_host
+}
+
+foo.wikijump.test {
+	vars {
+		site_id 1
+		site_slug foo
+	}
+
+	request_header X-Wikijump-Site-Id {vars.site_id}
+	request_header X-Wikijump-Site-Slug {vars.site_slug}
+
+	import serve_main
+}
+
+www.foo.wikijump.test {
+	redir https://foo.wikijump.test{uri}
+}
+
+bar.wikijump.test,
+www.bar.wikijump.test {
+	redir https://example.com{uri}
+}
+
+example.com {
+	vars {
+		site_id 2
+		site_slug bar
+	}
+
+	request_header X-Wikijump-Site-Id {vars.site_id}
+	request_header X-Wikijump-Site-Slug {vars.site_slug}
+
+	import serve_main
+}
+
+www.example.com {
+	redir https://example.com{uri}
+}
+
+#
+# FILES
+#
+
+(serve_files) {
+	reverse_proxy http://wws_proxy_host
+}
+
+*.wjfiles.test {
+	@foo host foo.wjfiles.test
+	vars @foo site_id 1
+
+	@bar host bar.wjfiles.test
+	vars @bar site_id 2
+
+	request_header X-Wikijump-Site-Slug {labels.2}
+	request_header X-Wikijump-Site-Id {vars.site_id}
+
+	import serve_files
+}
+
+#
+# FALLBACK
+#
+
+http://,
+https:// {
+	request_header X-Wikijump-Special-Error 1
+	rewrite * /-/special-error/missing-site
+	reverse_proxy http://web_proxy_host
+}";
+
+const CADDYFILE_FULL_PROD: &str = "\
+# Global options
+{
+	metrics {
+		per_host
+	}
+}
+
+#
+# MAIN
+#
+
+(serve_main) {
+	# Redirect, route is on the files server
+	@files {
+		path /*/code/*
+		path /*/html/*
+		path /*/file/*  # for the /{slug}/file/{filename} convenience routes
+		path /*/download/*
+		path /local--files/*
+		path /local--code/*
+		path /local--html/*
+		path /-/files/*
+		path /-/file/*
+		path /-/download/*
+		path /-/code/*
+		path /-/html/*
+	}
+	redir @files https://{vars.site_slug}.wjfiles.test{uri}
+
+	# Finally, proxy to framerail to get the actual HTML
+	# Note, the x-wikijump-site-* headers have already been set at this point
+	reverse_proxy http://framerail:3000
+}
+
+wikijump.test {
+	vars {
+		site_id 1
+		site_slug www
+	}
+
+	request_header X-Wikijump-Site-Id {vars.site_id}
+	request_header X-Wikijump-Site-Slug {vars.site_slug}
+
+	import serve_main
+}
+
+www.wikijump.test {
+	redir https://wikijump.test{uri}
+}
+
+empty.wikijump.test {
+	vars {
+		site_id 2
+		site_slug empty
+	}
+
+	request_header X-Wikijump-Site-Id {vars.site_id}
+	request_header X-Wikijump-Site-Slug {vars.site_slug}
+
+	import serve_main
+}
+
+www.empty.wikijump.test {
+	redir https://empty.wikijump.test{uri}
+}
+
+mytest.wikijump.test {
+	vars {
+		site_id 3
+		site_slug mytest
+	}
+
+	request_header X-Wikijump-Site-Id {vars.site_id}
+	request_header X-Wikijump-Site-Slug {vars.site_slug}
+
+	import serve_main
+}
+
+www.mytest.wikijump.test {
+	redir https://mytest.wikijump.test{uri}
+}
+
+example.com,
+www.example.com {
+	redir https://mytest.wikijump.test{uri}
+}
+
+example.net,
+www.example.net {
+	redir https://mytest.wikijump.test{uri}
+}
+
+check.wikijump.test,
+www.check.wikijump.test {
+	redir https://mytest.wikijump.test{uri}
+}
+
+wanderers-library.wikijump.test,
+www.wanderers-library.wikijump.test {
+	redir https://wandererslibrary.com{uri}
+}
+
+wandererslibrary.com {
+	vars {
+		site_id 4
+		site_slug wanderers-library
+	}
+
+	request_header X-Wikijump-Site-Id {vars.site_id}
+	request_header X-Wikijump-Site-Slug {vars.site_slug}
+
+	import serve_main
+}
+
+www.wandererslibrary.com {
+	redir https://wandererslibrary.com{uri}
+}
+
+scp-wiki.wikijump.test,
+www.scp-wiki.wikijump.test {
+	redir https://scpwiki.com{uri}
+}
+
+scpwiki.com {
+	vars {
+		site_id 5
+		site_slug scp-wiki
+	}
+
+	request_header X-Wikijump-Site-Id {vars.site_id}
+	request_header X-Wikijump-Site-Slug {vars.site_slug}
+
+	import serve_main
+}
+
+www.scpwiki.com {
+	redir https://scpwiki.com{uri}
+}
+
+scp-wiki.net,
+www.scp-wiki.net {
+	redir https://scpwiki.com{uri}
+}
+
+scp.foundation,
+www.scp.foundation {
+	redir https://scpwiki.com{uri}
+}
+
+foundation.scp,
+www.foundation.scp {
+	redir https://scpwiki.com{uri}
+}
+
+scpwiki.wikijump.test,
+www.scpwiki.wikijump.test {
+	redir https://scpwiki.com{uri}
+}
+
+#
+# FILES
+#
+
+(serve_files) {
+	reverse_proxy http://wws:7000
+}
+
+*.wjfiles.test {
+	@www host www.wjfiles.test
+	vars @www site_id 1
+
+	@empty host empty.wjfiles.test
+	vars @empty site_id 2
+
+	@mytest host mytest.wjfiles.test
+	vars @mytest site_id 3
+
+	@wanderers-library host wanderers-library.wjfiles.test
+	vars @wanderers-library site_id 4
+
+	@scp-wiki host scp-wiki.wjfiles.test
+	vars @scp-wiki site_id 5
+
+	request_header X-Wikijump-Site-Slug {labels.2}
+	request_header X-Wikijump-Site-Id {vars.site_id}
+
+	import serve_files
+}
+
+#
+# FALLBACK
+#
+
+http://,
+https:// {
+	request_header X-Wikijump-Special-Error 1
+	rewrite * /-/special-error/missing-site
+	reverse_proxy http://framerail:3000
+}";
+
+const CADDYFILE_LONG_DOMAIN: &str = "\
+# Global options
+{
+	metrics {
+		per_host
+	}
+}
+
+#
+# MAIN
+#
+
+(serve_main) {
+	# Redirect, route is on the files server
+	@files {
+		path /*/code/*
+		path /*/html/*
+		path /*/file/*  # for the /{slug}/file/{filename} convenience routes
+		path /*/download/*
+		path /local--files/*
+		path /local--code/*
+		path /local--html/*
+		path /-/files/*
+		path /-/file/*
+		path /-/download/*
+		path /-/code/*
+		path /-/html/*
+	}
+	redir @files https://{vars.site_slug}.wjfiles.host.site.somedomain.example.com{uri}
+
+	# Finally, proxy to framerail to get the actual HTML
+	# Note, the x-wikijump-site-* headers have already been set at this point
+	reverse_proxy http://framerail:3000
+}
+
+foo.site.wikijump.com {
+	vars {
+		site_id 1
+		site_slug foo
+	}
+
+	request_header X-Wikijump-Site-Id {vars.site_id}
+	request_header X-Wikijump-Site-Slug {vars.site_slug}
+
+	import serve_main
+}
+
+www.foo.site.wikijump.com {
+	redir https://foo.site.wikijump.com{uri}
+}
+
+bar.site.wikijump.com,
+www.bar.site.wikijump.com {
+	redir https://example.com{uri}
+}
+
+example.com {
+	vars {
+		site_id 2
+		site_slug bar
+	}
+
+	request_header X-Wikijump-Site-Id {vars.site_id}
+	request_header X-Wikijump-Site-Slug {vars.site_slug}
+
+	import serve_main
+}
+
+www.example.com {
+	redir https://example.com{uri}
+}
+
+#
+# FILES
+#
+
+(serve_files) {
+	reverse_proxy http://wws:7000
+}
+
+*.wjfiles.host.site.somedomain.example.com {
+	@foo host foo.wjfiles.host.site.somedomain.example.com
+	vars @foo site_id 1
+
+	@bar host bar.wjfiles.host.site.somedomain.example.com
+	vars @bar site_id 2
+
+	request_header X-Wikijump-Site-Slug {labels.6}
+	request_header X-Wikijump-Site-Id {vars.site_id}
+
+	import serve_files
+}
+
+#
+# FALLBACK
+#
+
+http://,
+https:// {
+	request_header X-Wikijump-Special-Error 1
+	rewrite * /-/special-error/missing-site
+	reverse_proxy http://framerail:3000
+}
 ";
 
 #[test]
@@ -273,7 +879,10 @@ fn generate_caddyfiles() {
 
     let config_basic = build_config("wikijump.test", "wjfiles.test");
     let config_local = build_config("wikijump.localhost", "wjfiles.localhost");
-    let config_long = build_config("site.wikijump.com", "host.wjfiles.example.org");
+    let config_long = build_config(
+        "site.wikijump.com",
+        "wjfiles.host.site.somedomain.example.com",
+    );
     let (sites_basic, sites_full) = build_site_data();
 
     macro_rules! check {
@@ -382,20 +991,6 @@ UNIT TEST INFO:
         CaddyfileOptions {
             debug: false,
             local: false,
-            http_port: None,
-            https_port: None,
-            framerail_host: cow!(FRAMERAIL_HOST),
-            wws_host: cow!(WWS_HOST),
-        },
-    );
-
-    check!(
-        CADDYFILE_FULL_LOCAL,
-        config_local,
-        sites_basic,
-        CaddyfileOptions {
-            debug: true,
-            local: true,
             http_port: None,
             https_port: None,
             framerail_host: cow!(FRAMERAIL_HOST),
