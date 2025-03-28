@@ -290,9 +290,9 @@ fn generate_caddyfiles() {
             if actual != expected {
                 eprintln!("Unit test failure!");
                 eprintln!();
-                eprintln!("ACTUAL generated Caddyfile:\n{actual:?}\n[BEGIN]\n{actual}\n[END]");
+                eprintln!("Actual generated Caddyfile:\n{actual:?}\n[BEGIN ACTUAL]\n{actual}\n[END ACTUAL]");
                 eprintln!();
-                eprintln!("EXPECTED generated Caddyfile:\n{expected:?}\n[BEGIN]\n{expected}\n[END]");
+                eprintln!("Expected generated Caddyfile:\n{expected:?}\n[BEGIN EXPECTED]\n{expected}\n[END EXPECTED]");
                 eprintln!();
                 eprintln!("UNIT TEST INFO:");
                 eprintln!("* Expected output: {}", stringify!($expected));
