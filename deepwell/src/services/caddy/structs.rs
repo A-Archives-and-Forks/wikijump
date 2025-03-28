@@ -18,8 +18,6 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use crate::models::alias::Model as AliasModel;
-use crate::models::site_domain::Model as SiteDomainModel;
 use std::collections::HashMap;
 
 #[derive(Deserialize, Debug)]
@@ -41,8 +39,14 @@ pub struct CaddyfileOptions {
     pub wws_host: String,
 }
 
-#[derive(Debug)]
-pub struct SiteDomainData {
+#[derive(Deserialize, Debug)]
+pub struct SiteData {
     pub sites: Vec<(i64, String, Option<String>)>,
-    pub domains: HashMap<i64, (Vec<AliasModel>, Vec<SiteDomainModel>)>,
+    pub domains: HashMap<i64, SiteDomainData>,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct SiteDomainData {
+    pub aliases: Vec<String>,
+    pub custom_domains: Vec<String>,
 }

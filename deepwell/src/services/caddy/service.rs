@@ -24,8 +24,10 @@
 //! powers the server, which is where host → site mapping is performed.
 
 use super::prelude::*;
+use crate::models::alias::Model as AliasModel;
 use crate::models::sea_orm_active_enums::AliasType;
 use crate::models::site::{self, Entity as Site};
+use crate::models::site_domain::Model as SiteDomainModel;
 use crate::services::{AliasService, DomainService};
 use crate::services::domain::DEFAULT_SITE_SLUG;
 use sea_orm::{EntityTrait, QuerySelect};
@@ -52,23 +54,37 @@ impl CaddyService {
             .await?;
 
         let domains = {
-            let mut extras = HashMap::with_capacity(sites.len());
+            let mut domains = HashMap::with_capacity(sites.len());
 
             for &(site_id, _, _) in &sites {
-                let site_aliases =
-                    AliasService::get_all(ctx, AliasType::Site, site_id).await?;
+                let aliases = AliasService::get_all(ctx, AliasType::Site, site_id)
+                    .await?
+                    .into_iter()
+                    .map(|AliasModel { slug, .. }| slug)
+                    .collect();
 
-                let site_domains = DomainService::list_custom(ctx, site_id).await?;
-                extras.insert(site_id, (site_aliases, site_domains));
+                let custom_domains = DomainService::list_custom(ctx, site_id)
+                    .await?
+                    .into_iter()
+                    .map(|SiteDomainModel { domain, .. }| domain)
+                    .collect();
+
+                domains.insert(
+                    site_id,
+                    SiteDomainData {
+                        aliases,
+                        custom_domains,
+                    },
+                );
             }
 
-            extras
+            domains
         };
 
         Ok(Self::generate_custom(
             config,
             options,
-            &SiteDomainData { sites, domains },
+            &SiteData { sites, domains },
         ))
     }
 
@@ -82,7 +98,7 @@ impl CaddyService {
             framerail_host,
             wws_host,
         }: &CaddyfileOptions,
-        SiteDomainData { sites, domains }: &SiteDomainData,
+        SiteData { sites, domains }: &SiteData,
     ) -> String {
         info!("Generating Caddyfile for {} sites", sites.len());
 
@@ -150,7 +166,10 @@ impl CaddyService {
         );
 
         for (site_id, site_slug, preferred_domain) in sites {
-            let (aliases, domains) = &domains[site_id];
+            let SiteDomainData {
+                aliases,
+                custom_domains,
+            } = &domains[site_id];
 
             // Get canonical and preferred domains, for later generation
             let canonical_domain = if site_slug == DEFAULT_SITE_SLUG {
@@ -211,13 +230,13 @@ www.{domain} {{
             generate_entry(&canonical_domain);
 
             // Custom domains
-            for model in domains {
-                generate_entry(&model.domain);
+            for domain in custom_domains {
+                generate_entry(&domain);
             }
 
             // Aliases (all redirects)
-            for alias in aliases {
-                let domain = DomainService::get_canonical(config, &alias.slug);
+            for alias_slug in aliases {
+                let domain = DomainService::get_canonical(config, &alias_slug);
                 generate_entry(&domain);
             }
         }
