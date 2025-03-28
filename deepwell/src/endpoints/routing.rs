@@ -25,6 +25,6 @@ pub async fn generate_caddyfile(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
 ) -> Result<String> {
-    let options: CaddyfileOptions = params.parse()?;
+    let options: CaddyfileOptions<'static> = params.parse()?;
     CaddyService::generate(ctx, &options).await
 }

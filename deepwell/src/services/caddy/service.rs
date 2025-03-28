@@ -40,7 +40,7 @@ pub struct CaddyService;
 impl CaddyService {
     pub async fn generate(
         ctx: &ServiceContext<'_>,
-        options: &CaddyfileOptions,
+        options: &CaddyfileOptions<'_>,
     ) -> Result<String> {
         let config = ctx.config();
 
@@ -102,7 +102,7 @@ impl CaddyService {
             https_port,
             framerail_host,
             wws_host,
-        }: &CaddyfileOptions,
+        }: &CaddyfileOptions<'_>,
         SiteData { sites, domains }: &SiteData,
     ) -> String {
         info!("Generating Caddyfile for {} sites", sites.len());

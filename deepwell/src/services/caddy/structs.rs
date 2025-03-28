@@ -18,10 +18,11 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+use std::borrow::Cow;
 use std::collections::HashMap;
 
 #[derive(Deserialize, Debug, Clone)]
-pub struct CaddyfileOptions {
+pub struct CaddyfileOptions<'a> {
     #[serde(default)]
     pub debug: bool,
 
@@ -35,8 +36,8 @@ pub struct CaddyfileOptions {
     pub https_port: Option<i64>,
 
     // Infra information
-    pub framerail_host: String,
-    pub wws_host: String,
+    pub framerail_host: Cow<'a, str>,
+    pub wws_host: Cow<'a, str>,
 }
 
 #[derive(Deserialize, Debug, Clone)]
