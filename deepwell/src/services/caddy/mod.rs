@@ -1,5 +1,5 @@
 /*
- * endpoints/routing.rs
+ * services/caddy/mod.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
  * Copyright (C) 2019-2025 Wikijump Team
@@ -18,13 +18,17 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use super::prelude::*;
-use crate::services::caddy::CaddyfileOptions;
-
-pub async fn generate_caddyfile(
-    ctx: &ServiceContext<'_>,
-    params: Params<'static>,
-) -> Result<String> {
-    let options: CaddyfileOptions = params.parse()?;
-    CaddyService::generate(ctx, &options).await
+#[allow(unused_imports)]
+mod prelude {
+    pub use super::super::prelude::*;
+    pub use super::structs::*;
 }
+
+mod service;
+mod structs;
+
+#[cfg(test)]
+mod test;
+
+pub use self::service::CaddyService;
+pub use self::structs::*;

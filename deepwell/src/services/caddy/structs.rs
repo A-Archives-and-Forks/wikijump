@@ -1,5 +1,5 @@
 /*
- * endpoints/routing.rs
+ * services/caddy/structs.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
  * Copyright (C) 2019-2025 Wikijump Team
@@ -18,13 +18,31 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use super::prelude::*;
-use crate::services::caddy::CaddyfileOptions;
+use crate::models::alias::Model as AliasModel;
+use crate::models::site_domain::Model as SiteDomainModel;
+use std::collections::HashMap;
 
-pub async fn generate_caddyfile(
-    ctx: &ServiceContext<'_>,
-    params: Params<'static>,
-) -> Result<String> {
-    let options: CaddyfileOptions = params.parse()?;
-    CaddyService::generate(ctx, &options).await
+#[derive(Deserialize, Debug)]
+pub struct CaddyfileOptions {
+    #[serde(default)]
+    pub debug: bool,
+
+    #[serde(default)]
+    pub local: bool,
+
+    #[serde(default)]
+    pub http_port: Option<i64>,
+
+    #[serde(default)]
+    pub https_port: Option<i64>,
+
+    // Infra information
+    pub framerail_host: String,
+    pub wws_host: String,
+}
+
+#[derive(Debug)]
+pub struct SiteDomainData {
+    pub sites: Vec<(i64, String, Option<String>)>,
+    pub domains: HashMap<i64, (Vec<AliasModel>, Vec<SiteDomainModel>)>,
 }

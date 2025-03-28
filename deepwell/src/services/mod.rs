@@ -60,6 +60,7 @@ pub mod alias;
 // TODO create audit
 pub mod authentication;
 pub mod blob;
+pub mod caddy;
 pub mod category;
 pub mod domain;
 pub mod email;
@@ -95,6 +96,7 @@ pub mod vote;
 pub use self::alias::AliasService;
 pub use self::authentication::AuthenticationService;
 pub use self::blob::BlobService;
+pub use self::caddy::CaddyService;
 pub use self::category::CategoryService;
 pub use self::context::ServiceContext;
 pub use self::domain::DomainService;

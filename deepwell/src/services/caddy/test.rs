@@ -1,5 +1,5 @@
 /*
- * endpoints/routing.rs
+ * services/caddy/test.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
  * Copyright (C) 2019-2025 Wikijump Team
@@ -18,13 +18,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use super::prelude::*;
-use crate::services::caddy::CaddyfileOptions;
-
-pub async fn generate_caddyfile(
-    ctx: &ServiceContext<'_>,
-    params: Params<'static>,
-) -> Result<String> {
-    let options: CaddyfileOptions = params.parse()?;
-    CaddyService::generate(ctx, &options).await
+#[test]
+fn test_caddyfile_gen() {
+    // TODO
+    todo!()
 }
