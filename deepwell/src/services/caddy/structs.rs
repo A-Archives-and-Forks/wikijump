@@ -20,7 +20,7 @@
 
 use std::collections::HashMap;
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct CaddyfileOptions {
     #[serde(default)]
     pub debug: bool,
@@ -39,13 +39,13 @@ pub struct CaddyfileOptions {
     pub wws_host: String,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct SiteData {
     pub sites: Vec<(i64, String, Option<String>)>,
     pub domains: HashMap<i64, SiteDomainData>,
 }
 
-#[derive(Deserialize, Debug, Default)]
+#[derive(Deserialize, Debug, Default, Clone)]
 pub struct SiteDomainData {
     pub aliases: Vec<String>,
     pub custom_domains: Vec<String>,
