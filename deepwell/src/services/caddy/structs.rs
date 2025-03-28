@@ -45,7 +45,7 @@ pub struct SiteData {
     pub domains: HashMap<i64, SiteDomainData>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Default)]
 pub struct SiteDomainData {
     pub aliases: Vec<String>,
     pub custom_domains: Vec<String>,
