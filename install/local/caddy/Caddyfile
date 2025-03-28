@@ -3,12 +3,7 @@
 	metrics {
 		per_host
 	}
-
-	http_port 8000
-	https_port 8443
-
 	debug
-
 	skip_install_trust
 }
 
@@ -17,7 +12,7 @@
 #
 
 (serve_main) {
-	# Routes that exist on the files server
+	# Redirect, route is on the files server
 	@files {
 		path /*/code/*
 		path /*/html/*
@@ -34,20 +29,25 @@
 	}
 	redir @files https://{vars.site_slug}.wjfiles.localhost{uri}
 
-	reverse_proxy http://localhost:3000
+	# Finally, proxy to framerail to get the actual HTML
+	# Note, the x-wikijump-site-* headers have already been set at this point
+	reverse_proxy http://framerail:3000
 }
 
-# Preferred domain
-scpwiki.localhost {
+wikijump.localhost {
 	vars {
-		site_id 4
-		site_slug scp-wiki
+		site_id 1
+		site_slug www
 	}
 
 	request_header X-Wikijump-Site-Id {vars.site_id}
 	request_header X-Wikijump-Site-Slug {vars.site_slug}
 
 	import serve_main
+}
+
+www.wikijump.localhost {
+	redir https://wikijump.localhost{uri}
 }
 
 test.wikijump.localhost {
@@ -62,32 +62,18 @@ test.wikijump.localhost {
 	import serve_main
 }
 
-# Alternate domain (canonical)
-scp-wiki.wikijump.localhost {
-	redir https://scpwiki.localhost{uri}
-}
-
-# Alternate domain (alias)
-scpwiki.wikijump.localhost {
-	redir https://scpwiki.localhost{uri}
-}
-
-# Alternate domain (custom)
-testdomain.localhost {
+www.test.wikijump.localhost {
 	redir https://test.wikijump.localhost{uri}
 }
 
-# Other sites
-wikijump.localhost {
-	vars {
-		site_id 1
-		site_slug www
-	}
+wikijump-qdpi9.ondigitalocean.app,
+www.wikijump-qdpi9.ondigitalocean.app {
+	redir https://test.wikijump.localhost{uri}
+}
 
-	request_header X-Wikijump-Site-Id {vars.site_id}
-	request_header X-Wikijump-Site-Slug {vars.site_slug}
-
-	import serve_main
+check.wikijump.localhost,
+www.check.wikijump.localhost {
+	redir https://test.wikijump.localhost{uri}
 }
 
 template-en.wikijump.localhost {
@@ -102,12 +88,42 @@ template-en.wikijump.localhost {
 	import serve_main
 }
 
+www.template-en.wikijump.localhost {
+	redir https://template-en.wikijump.localhost{uri}
+}
+
+scp-wiki.wikijump.localhost,
+www.scp-wiki.wikijump.localhost {
+	redir https://scpwiki.localhost{uri}
+}
+
+scpwiki.dev,
+www.scpwiki.dev {
+	redir https://scpwiki.localhost{uri}
+}
+
+scpwiki.localhost {
+	vars {
+		site_id 4
+		site_slug scp-wiki
+	}
+
+	request_header X-Wikijump-Site-Id {vars.site_id}
+	request_header X-Wikijump-Site-Slug {vars.site_slug}
+
+	import serve_main
+}
+
+www.scpwiki.localhost {
+	redir https://scpwiki.localhost{uri}
+}
+
 #
 # FILES
 #
 
 (serve_files) {
-	reverse_proxy http://localhost:7000
+	reverse_proxy http://wws:7000
 }
 
 *.wjfiles.localhost {
@@ -117,7 +133,7 @@ template-en.wikijump.localhost {
 	@test host test.wjfiles.localhost
 	vars @test site_id 2
 
-	@template-en host test.wjfiles.localhost
+	@template-en host template-en.wjfiles.localhost
 	vars @template-en site_id 3
 
 	@scp-wiki host scp-wiki.wjfiles.localhost
@@ -130,20 +146,13 @@ template-en.wikijump.localhost {
 }
 
 #
-# OTHER
+# FALLBACK
 #
 
-# Remove www
-www.wikijump.localhost,
-www.scpwiki.localhost {
-	redir {labels.1}.{labels.0}{uri}
-}
-
-# Fallback route
 http://,
 https://,
 localhost {
 	request_header X-Wikijump-Special-Error 1
 	rewrite * /-/special-error/missing-site
-	reverse_proxy http://localhost:3000
+	reverse_proxy http://framerail:3000
 }
