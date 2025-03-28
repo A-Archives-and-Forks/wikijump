@@ -24,6 +24,7 @@ use super::prelude::*;
 use crate::config::Config;
 use crate::services::CaddyService;
 use maplit::hashmap;
+use pretty_assertions::assert_eq;
 
 fn build_config(main_domain: &str, files_domain: &str) -> Config {
     use femme::LevelFilter;
@@ -295,22 +296,26 @@ fn generate_caddyfiles() {
                 stringify!($expected),
             );
 
-            // We do this check ourselves instead of using assert_eq! for a cleaner error message.
-            if actual != expected {
-                eprintln!("Unit test failure!");
-                eprintln!();
-                eprintln!("Actual generated Caddyfile:\n{actual:?}\n[BEGIN ACTUAL]\n{actual}\n[END ACTUAL]");
-                eprintln!();
-                eprintln!("Expected generated Caddyfile:\n{expected:?}\n[BEGIN EXPECTED]\n{expected}\n[END EXPECTED]");
-                eprintln!();
-                eprintln!("UNIT TEST INFO:");
-                eprintln!("* Expected output: {}", stringify!($expected));
-                eprintln!("* Main domain: {}", $config.main_domain_no_dot);
-                eprintln!("* Files domain: {}", $config.files_domain_no_dot);
-                eprintln!("* Site data: {}", stringify!($sites));
-                eprintln!("* Options: {:#?}", $options);
-                panic!("Generated Caddy file did not match!");
-            }
+            assert_eq!(
+                expected,
+                actual,
+                "\
+Generated Caddy file did not match!
+
+
+UNIT TEST INFO:
+* Expected output: {}
+* Main domain: {}
+* Files domain: {}
+* Site data: {}
+* Options: {:#?}
+",
+                stringify!($expected),
+                $config.main_domain_no_dot,
+                $config.files_domain_no_dot,
+                stringify!($sites),
+                $options,
+            );
         }};
     }
 
