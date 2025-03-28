@@ -261,9 +261,11 @@ www.{domain} {{
     for (site_id, site_slug, _) in sites {
         str_writeln!(
             &mut caddyfile,
-            "@{site_slug} host {site_slug}{files_domain}",
+            "
+	@{site_slug} host {site_slug}{files_domain}
+	vars @{site_slug} site_id {site_id}
+"
         );
-        str_writeln!(&mut caddyfile, "vars @{site_slug} site_id {site_id}");
     }
 
     str_writeln!(
