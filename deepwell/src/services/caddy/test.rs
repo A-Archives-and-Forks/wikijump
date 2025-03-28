@@ -277,8 +277,14 @@ fn generate_caddyfiles() {
 
     macro_rules! check {
         ($expected:expr, $config:expr, $sites:expr, $options:expr $(,)?) => {{
-            let actual = CaddyService::generate_custom(&$config, &$options, &$sites);
+            let mut actual = CaddyService::generate_custom(&$config, &$options, &$sites);
             let expected = $expected;
+
+            // Strip off trailing newlines, not something we care about,
+            // and precisely managing them is a waste of time.
+            while actual.ends_with('\n') {
+                actual.pop();
+            }
 
             // We do this check ourselves instead of using assert_eq! for a cleaner error message.
             if actual != expected {
