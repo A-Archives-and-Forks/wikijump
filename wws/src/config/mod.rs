@@ -26,7 +26,6 @@ pub use self::object::Config;
 pub use self::secrets::Secrets;
 
 use self::args::Arguments;
-use cfg_if::cfg_if;
 use dotenvy::dotenv;
 use ref_map::*;
 use s3::{creds::Credentials, region::Region};
@@ -43,20 +42,6 @@ pub fn load_config() -> (Config, Secrets) {
                 Ok(value) => value,
                 Err(error) => {
                     eprintln!("Unable to read environment variable {}: {}", $name, error);
-                    process::exit(1);
-                }
-            }
-        };
-    }
-
-    // The OsString version of get_env!()
-    #[cfg(feature = "tls")]
-    macro_rules! get_env_os {
-        ($name:expr) => {
-            match env::var_os($name) {
-                Some(value) => value,
-                None => {
-                    eprintln!("Unable to read environment variable {}", $name);
                     process::exit(1);
                 }
             }
@@ -139,40 +124,12 @@ pub fn load_config() -> (Config, Secrets) {
         }
     };
 
-    let client_ip_source = match get_env!("CLIENT_IP_SOURCE").parse() {
-        Ok(ip_source) => ip_source,
-        Err(_) => {
-            eprintln!("CLIENT_IP_SOURCE variable does not have a valid enum value");
-            process::exit(1);
-        }
-    };
-
-    cfg_if! {
-        if #[cfg(feature = "tls")] {
-            let tls_certificate = PathBuf::from(get_env_os!("TLS_CERTIFICATE"));
-            let tls_secret_key = PathBuf::from(get_env_os!("TLS_SECRET_KEY"));
-        }
-    }
-
     // Build and return
-
-    cfg_if! {
-        if #[cfg(feature = "tls")] {
-            let config = Config {
-                enable_trace,
-                pid_file,
-                address,
-                tls_certificate,
-                tls_secret_key,
-            };
-        } else {
-            let config = Config {
-                enable_trace,
-                pid_file,
-                address,
-            };
-        }
-    }
+    let config = Config {
+        enable_trace,
+        pid_file,
+        address,
+    };
 
     let secrets = Secrets {
         deepwell_url,
@@ -182,7 +139,6 @@ pub fn load_config() -> (Config, Secrets) {
         s3_region,
         s3_path_style,
         s3_credentials,
-        client_ip_source,
     };
 
     (config, secrets)

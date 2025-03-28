@@ -27,7 +27,6 @@ use crate::{
     host::SiteAndHost,
 };
 use axum::body::Body;
-use axum_client_ip::SecureClientIpSource;
 use hyper_util::{
     client::legacy::{connect::HttpConnector, Client as HyperClient},
     rt::TokioExecutor,
@@ -49,7 +48,6 @@ pub struct ServerStateInner {
     pub framerail: Framerail,
     pub cache: Cache,
     pub s3_bucket: Box<Bucket>,
-    pub client_ip_source: SecureClientIpSource,
 }
 
 pub async fn build_server_state(
@@ -61,7 +59,6 @@ pub async fn build_server_state(
         s3_region,
         s3_credentials,
         s3_path_style,
-        client_ip_source,
     }: Secrets,
 ) -> Result<ServerState> {
     let framerail = Framerail::new(framerail_host);
@@ -88,7 +85,6 @@ pub async fn build_server_state(
         framerail,
         cache,
         s3_bucket,
-        client_ip_source,
     }))
 }
 

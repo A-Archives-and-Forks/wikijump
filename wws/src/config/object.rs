@@ -32,12 +32,4 @@ pub struct Config {
 
     /// The address the server will be hosted on.
     pub address: SocketAddr,
-
-    /// Specify where to get the certificate PEM file for TLS.
-    #[cfg(feature = "tls")]
-    pub tls_certificate: PathBuf,
-
-    /// Specify where to get the secret key PEM file for TLS.
-    #[cfg(feature = "tls")]
-    pub tls_secret_key: PathBuf,
 }

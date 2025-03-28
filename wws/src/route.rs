@@ -26,13 +26,18 @@ use axum::{
     routing::{any, get},
     Router,
 };
-use axum_client_ip::SecureClientIp;
+use axum_client_ip::{SecureClientIp, SecureClientIpSource};
 use axum_extra::extract::Host;
 use std::sync::Arc;
 use tower_http::{
     compression::CompressionLayer, normalize_path::NormalizePathLayer,
     set_header::SetResponseHeaderLayer, trace::TraceLayer,
 };
+
+/// How we determine what the "real IP" of the user is, since this service sits behind a reverse proxy.
+/// Here, since we are using [Caddy](https://caddyserver.com), which sets `X-Forwarded-For`, we
+/// should use `SecureClientIpSource::RightmostXForwardedFor`.
+pub const REAL_IP_SOURCE: SecureClientIpSource = SecureClientIpSource::RightmostXForwardedFor;
 
 pub fn build_router(state: ServerState) -> Router {
     let main_state = Arc::clone(&state);
@@ -129,7 +134,7 @@ pub fn build_router(state: ServerState) -> Router {
                 .br(true)
                 .zstd(true),
         )
-        .layer(state.client_ip_source.clone().into_extension())
+        .layer(REAL_IP_SOURCE.clone().into_extension())
         .layer(SetResponseHeaderLayer::overriding(
             HEADER_IS_WIKIJUMP,
             Some(HeaderValue::from_static("1")),

@@ -284,30 +284,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "axum-server"
-version = "0.7.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "56bac90848f6a9393ac03c63c640925c4b7c8ca21654de40d53f55964667c7d8"
-dependencies = [
- "arc-swap",
- "bytes",
- "futures-util",
- "http 1.2.0",
- "http-body 1.0.1",
- "http-body-util",
- "hyper 1.5.2",
- "hyper-util",
- "pin-project-lite",
- "rustls 0.23.20",
- "rustls-pemfile 2.2.0",
- "rustls-pki-types",
- "tokio",
- "tokio-rustls 0.26.1",
- "tower 0.4.13",
- "tower-service",
-]
-
-[[package]]
 name = "backtrace"
 version = "0.3.74"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2751,9 +2727,7 @@ dependencies = [
  "axum",
  "axum-client-ip",
  "axum-extra",
- "axum-server",
  "built",
- "cfg-if",
  "clap",
  "color-backtrace",
  "dotenvy",
@@ -2764,7 +2738,6 @@ dependencies = [
  "redis",
  "ref-map",
  "rust-s3",
- "rustls 0.23.20",
  "serde",
  "str-macro",
  "thiserror 2.0.11",
