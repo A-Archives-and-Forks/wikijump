@@ -28,8 +28,8 @@ use crate::models::alias::Model as AliasModel;
 use crate::models::sea_orm_active_enums::AliasType;
 use crate::models::site::{self, Entity as Site};
 use crate::models::site_domain::{self, Entity as SiteDomain};
-use crate::services::{AliasService, DomainService};
 use crate::services::domain::DEFAULT_SITE_SLUG;
+use crate::services::{AliasService, DomainService};
 use sea_orm::{EntityTrait, QuerySelect};
 use std::borrow::Cow;
 use std::collections::HashMap;
@@ -38,7 +38,10 @@ use std::collections::HashMap;
 pub struct CaddyService;
 
 impl CaddyService {
-    pub async fn generate(ctx: &ServiceContext<'_>, options: &CaddyfileOptions) -> Result<String> {
+    pub async fn generate(
+        ctx: &ServiceContext<'_>,
+        options: &CaddyfileOptions,
+    ) -> Result<String> {
         let config = ctx.config();
 
         // Gather necessary site data
