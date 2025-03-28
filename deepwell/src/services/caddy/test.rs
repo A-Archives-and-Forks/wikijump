@@ -25,7 +25,7 @@ use crate::config::Config;
 use crate::services::CaddyService;
 use maplit::hashmap;
 
-fn build_config() -> Config {
+fn build_config(main_domain: &str, files_domain: &str) -> Config {
     use femme::LevelFilter;
     use ftml::layout::Layout;
     use std::num::NonZeroU16;
@@ -33,14 +33,14 @@ fn build_config() -> Config {
     use std::time::Duration as StdDuration;
     use time::Duration as TimeDuration;
 
-    const MAIN_DOMAIN: &str = "wikijump.test";
-    const FILES_DOMAIN: &str = "wjfiles.test";
+    assert!(!main_domain.starts_with('.'));
+    assert!(!files_domain.starts_with('.'));
 
     Config {
-        main_domain_no_dot: str!(MAIN_DOMAIN),
-        main_domain: format!(".{MAIN_DOMAIN}"),
-        files_domain_no_dot: str!(FILES_DOMAIN),
-        files_domain: format!(".{FILES_DOMAIN}"),
+        main_domain_no_dot: str!(main_domain),
+        main_domain: format!(".{main_domain}"),
+        files_domain_no_dot: str!(files_domain),
+        files_domain: format!(".{files_domain}"),
 
         // Unused fields
         raw_toml: String::new(),
@@ -262,17 +262,22 @@ const CADDYFILE_FULL_PROD: &str = "
 const CADDYFILE_FULL_LOCAL: &str = "
 ";
 
+const CADDYFILE_LONG_DOMAIN: &str = "
+";
+
 #[test]
 fn generate_caddyfiles() {
     const FRAMERAIL_HOST: &str = "framerail:3000";
     const WWS_HOST: &str = "wws:7000";
 
-    let config = build_config();
+    let config_basic = build_config("wikijump.test", "wjfiles.test");
+    let config_local = build_config("wikijump.localhost", "wjfiles.localhost");
+    let config_long = build_config("site.wikijump.com", "host.wjfiles.example.org");
     let (sites_basic, sites_full) = build_site_data();
 
     macro_rules! check {
-        ($expected:expr, $sites:expr, $options:expr $(,)?) => {{
-            let actual = CaddyService::generate_custom(&config, &$options, &$sites);
+        ($expected:expr, $config:expr, $sites:expr, $options:expr $(,)?) => {{
+            let actual = CaddyService::generate_custom(&$config, &$options, &$sites);
             let expected = $expected;
 
             // We do this check ourselves instead of using assert_eq! for a cleaner error message.
@@ -285,6 +290,8 @@ fn generate_caddyfiles() {
                 eprintln!();
                 eprintln!("UNIT TEST INFO:");
                 eprintln!("* Expected output: {}", stringify!($expected));
+                eprintln!("* Main domain: {}", $config.main_domain_no_dot);
+                eprintln!("* Files domain: {}", $config.files_domain_no_dot);
                 eprintln!("* Site data: {}", stringify!($sites));
                 eprintln!("* Options: {:#?}", $options);
                 panic!("Generated Caddy file did not match!");
@@ -294,6 +301,7 @@ fn generate_caddyfiles() {
 
     check!(
         CADDYFILE_BASIC_PROD,
+        config_basic,
         sites_basic,
         CaddyfileOptions {
             debug: false,
@@ -307,6 +315,7 @@ fn generate_caddyfiles() {
 
     check!(
         CADDYFILE_BASIC_LOCAL,
+        config_local,
         sites_basic,
         CaddyfileOptions {
             debug: false,
@@ -320,6 +329,7 @@ fn generate_caddyfiles() {
 
     check!(
         CADDYFILE_BASIC_LOCAL_DEV,
+        config_local,
         sites_basic,
         CaddyfileOptions {
             debug: true,
@@ -333,6 +343,7 @@ fn generate_caddyfiles() {
 
     check!(
         CADDYFILE_BASIC_DIFFERENT_PROXIES,
+        config_basic,
         sites_basic,
         CaddyfileOptions {
             debug: false,
@@ -346,6 +357,7 @@ fn generate_caddyfiles() {
 
     check!(
         CADDYFILE_FULL_PROD,
+        config_basic,
         sites_full,
         CaddyfileOptions {
             debug: false,
@@ -359,10 +371,25 @@ fn generate_caddyfiles() {
 
     check!(
         CADDYFILE_FULL_LOCAL,
+        config_local,
         sites_basic,
         CaddyfileOptions {
             debug: true,
             local: true,
+            http_port: None,
+            https_port: None,
+            framerail_host: cow!(FRAMERAIL_HOST),
+            wws_host: cow!(WWS_HOST),
+        },
+    );
+
+    check!(
+        CADDYFILE_LONG_DOMAIN,
+        config_long,
+        sites_basic,
+        CaddyfileOptions {
+            debug: false,
+            local: false,
             http_port: None,
             https_port: None,
             framerail_host: cow!(FRAMERAIL_HOST),
