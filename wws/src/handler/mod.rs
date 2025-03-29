@@ -20,7 +20,6 @@
 
 mod code;
 mod file;
-mod framerail;
 mod html;
 mod misc;
 mod redirect;
@@ -29,35 +28,18 @@ mod well_known;
 
 pub use self::code::*;
 pub use self::file::*;
-pub use self::framerail::*;
 pub use self::html::*;
 pub use self::misc::*;
 pub use self::redirect::*;
 pub use self::robots::*;
 pub use self::well_known::*;
 
-use crate::{
-    error::{Result, ServerErrorCode},
-    host::{lookup_host, SiteAndHost},
-    path::get_path,
-    state::ServerState,
-};
-use axum::{
-    body::Body,
-    extract::Request,
-    http::header::{HeaderMap, HeaderName},
-    response::{Html, IntoResponse, Redirect, Response},
-    Router,
-};
-use std::{future::Future, net::IpAddr};
-use tower::util::ServiceExt;
+use axum::http::header::{HeaderMap, HeaderName};
 
 pub const HEADER_IS_WIKIJUMP: HeaderName = HeaderName::from_static("x-wikijump");
 
 pub const HEADER_SITE_ID: HeaderName = HeaderName::from_static("x-wikijump-site-id");
 pub const HEADER_SITE_SLUG: HeaderName = HeaderName::from_static("x-wikijump-site-slug");
-
-pub const HEADER_X_REAL_IP: HeaderName = HeaderName::from_static("x-real-ip");
 
 /// Helper function to get the site ID and slug from headers.
 fn get_site_info(headers: &HeaderMap) -> (i64, &str) {
@@ -76,186 +58,4 @@ fn get_site_info(headers: &HeaderMap) -> (i64, &str) {
         .expect("Site slug header is not UTF-8");
 
     (site_id, site_slug)
-}
-
-/// Parse the `Accept-Language` header.
-/// If there are no languages, or there is no header, then use English.
-fn parse_accept_language(headers: &HeaderMap) -> Vec<String> {
-    fn get_header_value(headers: &HeaderMap) -> Option<&str> {
-        match headers.get("accept-language") {
-            Some(value) => value.to_str().ok(),
-            None => None,
-        }
-    }
-
-    let header_value = match get_header_value(headers) {
-        Some(value) => value,
-        None => return vec![str!("en")],
-    };
-
-    let mut languages = accept_language::parse(header_value);
-    if languages.is_empty() {
-        languages.push(str!("en"));
-    }
-
-    languages
-}
-
-/// Helper function to return a special error response.
-async fn special_error<F, Fut>(headers: &HeaderMap, f: F) -> Response
-where
-    F: FnOnce(Vec<String>) -> Fut,
-    Fut: Future<Output = Result<String>>,
-{
-    let locales = parse_accept_language(headers);
-    match f(locales).await {
-        // TODO wrap HTML output into body
-        Ok(html) => Html(html).into_response(),
-        Err(error) => {
-            error!("Unable to get special error HTML: {error}");
-            ServerErrorCode::DeepwellFailure.into_response()
-        }
-    }
-}
-
-/// Entry route handler to first process host information.
-///
-/// Before we can give this request to the right place,
-/// we first must determine if it's a main or files request,
-/// and then what site it corresponds to. Then we can pass
-/// it to the appropriate location.
-pub async fn handle_host_delegation(
-    state: ServerState,
-    hostname: String,
-    ip: IpAddr,
-    mut request: Request<Body>,
-    main_router: Router,
-    files_router: Router,
-) -> Response {
-    {
-        // Strip internal headers, just to be safe.
-        let headers = request.headers_mut();
-        headers.remove(HEADER_SITE_ID);
-        headers.remove(HEADER_SITE_SLUG);
-        headers.remove(HEADER_X_REAL_IP);
-    }
-
-    macro_rules! forward_request {
-        ($router:expr) => {
-            match $router.oneshot(request).await {
-                Ok(response) => response,
-                Err(infallible) => match infallible {},
-            }
-        };
-    }
-
-    macro_rules! add_headers {
-        ($site_id:expr, $site_slug:expr) => {{
-            // Validate types
-            let _: i64 = $site_id;
-            let _: &str = &$site_slug;
-
-            // Add headers
-            let headers = request.headers_mut();
-            headers.insert(HEADER_SITE_ID, header_value!(str!($site_id)));
-            headers.insert(HEADER_SITE_SLUG, header_value!($site_slug));
-            headers.insert(HEADER_X_REAL_IP, header_value!(str!(ip)));
-        }};
-    }
-
-    // Determine what host and site (e.g. main vs files, what site slug and ID)
-    let host_data = match lookup_host(&state, &hostname).await {
-        Ok(host_data) => host_data,
-        Err(error) => {
-            error!("Unable to fetch site/host information: {error}");
-            return special_error(request.headers(), |locales| async move {
-                state
-                    .deepwell
-                    .get_special_error_site_fetch(&locales, &hostname)
-                    .await
-            })
-            .await;
-        }
-    };
-
-    // Now that we have the general category of request type, we can
-    // give it to the right place to be processed.
-    match host_data {
-        // Main site route handling
-        SiteAndHost::MainSite { site_id, site_slug } => {
-            info!(
-                r#type = "main",
-                domain = hostname,
-                site_id = site_id,
-                site_slug = site_slug,
-                "Routing site request",
-            );
-            add_headers!(site_id, site_slug);
-            forward_request!(main_router)
-        }
-        // Main site redirect
-        SiteAndHost::MainSiteRedirect { domain } => {
-            info!(
-                r#type = "main",
-                domain = domain,
-                "Found site, but needs redirect to preferred domain",
-            );
-            let destination = format!("https://{}{}", domain, get_path(request.uri()));
-            Redirect::permanent(&destination).into_response()
-        }
-        // Files site route handling
-        SiteAndHost::FileSite { site_id, site_slug } => {
-            info!(
-                r#type = "files",
-                domain = hostname,
-                site_slug = site_slug,
-                site_id = site_id,
-                "Routing site request",
-            );
-            add_headers!(site_id, site_slug);
-            forward_request!(files_router)
-        }
-        // Files site by itself
-        // See the case in host.rs for an explanation
-        SiteAndHost::FileRoot => {
-            info!(
-                r#type = "files",
-                domain = hostname,
-                "Handling lone files site request",
-            );
-            let destination = format!("https://{}", state.domains.main_domain_no_dot);
-            Redirect::temporary(&destination).into_response()
-        }
-        // Canonical domain, site missing
-        SiteAndHost::MissingSiteSlug { ref site_slug } => {
-            info!(
-                r#type = "main",
-                domain = hostname,
-                site_slug = site_slug,
-                "No such site with slug",
-            );
-            special_error(request.headers(), |locales| async move {
-                state
-                    .deepwell
-                    .get_special_error_missing_site_slug(&locales, site_slug)
-                    .await
-            })
-            .await
-        }
-        // Custom domain missing
-        SiteAndHost::MissingCustomDomain { ref domain } => {
-            info!(
-                r#type = "main",
-                domain = domain,
-                "No such site with custom domain",
-            );
-            special_error(request.headers(), |locales| async move {
-                state
-                    .deepwell
-                    .get_special_error_missing_custom_domain(&locales, domain)
-                    .await
-            })
-            .await
-        }
-    }
 }

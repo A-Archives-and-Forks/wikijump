@@ -112,7 +112,6 @@ services:
       - "ADDRESS=[::]:7000"
       - "DEEPWELL_URL=http://deepwell:2747"
       - "REDIS_URL=redis://cache"
-      - "FRAMERAIL_HOST=framerail:3000"
       - "S3_BUCKET=deepwell-files"
       - "S3_REGION_NAME=local"
       - "S3_PATH_STYLE=true"

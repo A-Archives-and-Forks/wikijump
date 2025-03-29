@@ -301,26 +301,6 @@ pub enum Error {
 
     #[error("The rate limit for an external API has been reached")]
     RateLimited,
-
-    // Errors for wws
-    // See the 8000 section in the error codes table
-    #[error("The web server failed to process the request")]
-    WebServerFailure,
-
-    #[error("The web server did not get a successful DEEPWELL response")]
-    DeepwellFailure,
-
-    #[error("The web server cannot fetch site information")]
-    SiteFetch,
-
-    #[error("The web server cannot fetch page information")]
-    PageFetch,
-
-    #[error("The web server cannot fetch file information")]
-    FileFetch,
-
-    #[error("The web server cannot fetch blob data")]
-    BlobFetch,
 }
 
 impl Error {
@@ -450,19 +430,6 @@ impl Error {
             Error::InvalidSessionToken => 5001,
             Error::SessionUserId { .. } => 5002,
             // TODO: permission errors (e.g. locked page, cannot apply bans)
-
-            // 8000 - Web Server / Routing errors
-            //
-            //        This block is reserved for errors exclusively returned by WWS.
-            //        These errors are not be used by DEEPWELL.
-            //
-            //        WebServerFailure is pretty general, avoid using it if possible.
-            Error::WebServerFailure => 6000,
-            Error::DeepwellFailure => 6001,
-            Error::SiteFetch => 6002,
-            Error::PageFetch => 6003,
-            Error::FileFetch => 6004,
-            Error::BlobFetch => 6005,
         }
     }
 

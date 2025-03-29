@@ -18,7 +18,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use crate::{error::Result, host::SiteAndHost};
+use crate::error::Result;
 use jsonrpsee::{core::client::ClientT, http_client::HttpClient, rpc_params};
 use serde::Deserialize;
 use std::time::Duration;
@@ -116,24 +116,6 @@ impl Deepwell {
         })
     }
 
-    pub async fn get_site_from_slug(&self, slug: &str) -> Result<Option<SiteData>> {
-        let site_data: Option<SiteData> = self
-            .client
-            .request("site_get", rpc_object! { "site" => slug })
-            .await?;
-
-        Ok(site_data)
-    }
-
-    pub async fn get_site_from_domain(&self, domain: &str) -> Result<SiteAndHost> {
-        let host: SiteAndHost = self
-            .client
-            .request("site_from_domain", rpc_params![domain])
-            .await?;
-
-        Ok(host)
-    }
-
     pub async fn get_page(&self, site_id: i64, page_slug: &str) -> Result<Option<PageData>> {
         let params = rpc_object! {
             "site_id" => site_id,
@@ -162,60 +144,6 @@ impl Deepwell {
         let file_data: Option<FileData> = self.client.request("file_get", params).await?;
         Ok(file_data)
     }
-
-    pub async fn get_special_error_missing_site_slug(
-        &self,
-        locales: &[String],
-        site_slug: &str,
-    ) -> Result<String> {
-        let params = rpc_object! {
-            "locales" => locales,
-            "site_slug" => site_slug,
-        };
-
-        let html: String = self
-            .client
-            .request("special_error_missing_site_slug", params)
-            .await?;
-
-        Ok(html)
-    }
-
-    pub async fn get_special_error_missing_custom_domain(
-        &self,
-        locales: &[String],
-        domain: &str,
-    ) -> Result<String> {
-        let params = rpc_object! {
-            "locales" => locales,
-            "domain" => domain,
-        };
-
-        let html: String = self
-            .client
-            .request("special_error_missing_custom_domain", params)
-            .await?;
-
-        Ok(html)
-    }
-
-    pub async fn get_special_error_site_fetch(
-        &self,
-        locales: &[String],
-        domain: &str,
-    ) -> Result<String> {
-        let params = rpc_object! {
-            "locales" => locales,
-            "domain" => domain,
-        };
-
-        let html: String = self
-            .client
-            .request("special_error_missing_custom_domain", params)
-            .await?;
-
-        Ok(html)
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -225,11 +153,6 @@ pub struct Domains {
     pub files_domain: String,
     pub files_domain_no_dot: String,
     pub deepwell_version: String,
-}
-
-#[derive(Deserialize, Debug, Clone)]
-pub struct SiteData {
-    pub site_id: i64,
 }
 
 #[derive(Deserialize, Debug, Clone)]

@@ -32,12 +32,6 @@ pub struct Secrets {
     /// Set using environment variable `REDIS_URL`.
     pub redis_url: String,
 
-    /// The host of the framerail server to reverse proxy from.
-    /// This includes the port number, if it's not `80`.
-    ///
-    /// Set using environment variable `FRAMERAIL_HOST`.
-    pub framerail_host: String,
-
     /// The name of the S3 bucket that file blobs are kept in.
     /// The bucket must already exist prior to program invocation.
     ///

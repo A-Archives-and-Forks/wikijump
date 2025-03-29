@@ -3,12 +3,6 @@
 version = 4
 
 [[package]]
-name = "accept-language"
-version = "3.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8f27d075294830fcab6f66e320dab524bc6d048f4a151698e153205559113772"
-
-[[package]]
 name = "addr2line"
 version = "0.24.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2722,7 +2716,6 @@ checksum = "1e9df38ee2d2c3c5948ea468a8406ff0db0b29ae1ffde1bcf20ef305bcc95c51"
 name = "wws"
 version = "2025.2.6"
 dependencies = [
- "accept-language",
  "anyhow",
  "axum",
  "axum-client-ip",
@@ -2731,9 +2724,7 @@ dependencies = [
  "clap",
  "color-backtrace",
  "dotenvy",
- "hyper-util",
  "jsonrpsee",
- "once_cell",
  "paste",
  "redis",
  "ref-map",

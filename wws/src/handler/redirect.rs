@@ -19,28 +19,13 @@
  */
 
 use super::get_site_info;
-use crate::{host::DEFAULT_SITE_SLUG, path::get_path, state::ServerState};
+use crate::{path::get_path, state::ServerState};
 use axum::{
     extract::{Path, State},
     http::{header::HeaderMap, Uri},
     response::Redirect,
 };
 use paste::paste;
-
-pub async fn redirect_to_files(
-    State(state): State<ServerState>,
-    headers: HeaderMap,
-    uri: Uri,
-) -> Redirect {
-    // xyz.wikijump.com -> xyz.wjfiles.com
-    // customdomain.com -> xyz.wjfiles.com
-
-    let (_, site_slug) = get_site_info(&headers);
-    let path = get_path(&uri);
-    let domain = &state.domains.files_domain;
-    let destination = format!("https://{site_slug}{domain}{path}");
-    Redirect::permanent(&destination)
-}
 
 pub async fn redirect_to_main(
     State(state): State<ServerState>,
@@ -52,6 +37,8 @@ pub async fn redirect_to_main(
 
     // Only remove www for the main site.
     // The files site should always have an explicit site slug.
+
+    const DEFAULT_SITE_SLUG: &str = "www"; // TODO
     let destination = if site_slug == DEFAULT_SITE_SLUG {
         let domain = &state.domains.main_domain_no_dot;
         format!("https://{domain}{path}")

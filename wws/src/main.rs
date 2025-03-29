@@ -29,16 +29,11 @@ extern crate str_macro;
 #[macro_use]
 extern crate tracing;
 
-#[macro_use]
-mod macros;
-
 mod cache;
 mod config;
 mod deepwell;
 mod error;
-mod framerail;
 mod handler;
-mod host;
 mod info;
 mod path;
 mod route;

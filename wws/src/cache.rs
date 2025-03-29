@@ -23,9 +23,8 @@
 //! Whenever you make changes to this module, make sure that the code is
 //! compatible with DEEPWELL's Redis code.
 
-use crate::{deepwell::FileData, error::Result, host::SiteAndHost};
+use crate::{deepwell::FileData, error::Result};
 use redis::{aio::MultiplexedConnection, AsyncCommands};
-use ref_map::*;
 
 macro_rules! get_connection {
     ($client:expr) => {
@@ -36,14 +35,6 @@ macro_rules! get_connection {
 macro_rules! hset {
     ($conn:expr, $key:expr, $field:expr, $value:expr $(,)?) => {
         $conn.hset::<_, _, _, ()>(&$key, $field, $value).await?
-    };
-}
-
-macro_rules! hset_opt {
-    ($conn:expr, $key:expr, $field:expr, $value:expr $(,)?) => {
-        if let Some(value) = $value {
-            hset!($conn, $key, $field, value)
-        }
     };
 }
 
@@ -63,93 +54,6 @@ impl Cache {
     pub fn connect(redis_url: &str) -> Result<Self> {
         let client = redis::Client::open(redis_url)?;
         Ok(Cache { client })
-    }
-
-    pub async fn get_site_from_slug(&self, site_slug: &str) -> Result<Option<i64>> {
-        let mut conn = get_connection!(self.client);
-        let key = format!("site_slug:{site_slug}");
-        let value = conn.hget(key, "id").await?;
-        Ok(value)
-    }
-
-    pub async fn set_site_from_slug(&self, site_slug: &str, site_id: i64) -> Result<()> {
-        let mut conn = get_connection!(self.client);
-        let key = format!("site_slug:{site_slug}");
-        hset!(conn, key, "id", site_id);
-        Ok(())
-    }
-
-    pub async fn get_host_from_domain(&self, domain: &str) -> Result<Option<SiteAndHost>> {
-        type SiteDomainDataTuple = (Option<String>, Option<i64>, Option<String>, Option<String>);
-
-        let mut conn = get_connection!(self.client);
-        let key = format!("site_domain:{domain}");
-        let fields = &["variant", "id", "slug", "domain"];
-        let (variant, site_id, slug, domain) =
-            conn.hget::<_, _, SiteDomainDataTuple>(&key, fields).await?;
-
-        let variant = variant.ref_map(|s| s.as_str());
-        match (variant, site_id, slug, domain) {
-            // Each variant value has a set of fields that should be set for it
-            // If a different group of fields are set, then it's invalid
-            (Some("main_site"), Some(site_id), Some(site_slug), None) => {
-                Ok(Some(SiteAndHost::MainSite { site_id, site_slug }))
-            }
-            (Some("main_site_redirect"), None, None, Some(domain)) => {
-                Ok(Some(SiteAndHost::MainSiteRedirect { domain }))
-            }
-            (Some("missing_site_slug"), None, Some(site_slug), None) => {
-                Ok(Some(SiteAndHost::MissingSiteSlug { site_slug }))
-            }
-            (Some("missing_custom_domain"), None, None, Some(domain)) => {
-                Ok(Some(SiteAndHost::MissingCustomDomain { domain }))
-            }
-
-            // Cache miss
-            (None, None, None, None) => Ok(None),
-
-            // Not a valid variant or set of fields
-            _ => {
-                clear_inconsistent_fields(&mut conn, &key, fields).await?;
-                Ok(None)
-            }
-        }
-    }
-
-    pub async fn set_host_from_domain(&self, domain: &str, host: &SiteAndHost) -> Result<()> {
-        let mut conn = get_connection!(self.client);
-        let key = format!("site_domain:{domain}");
-
-        let (variant, site_id, slug, domain): (
-            &'static str,
-            Option<i64>,
-            Option<&str>,
-            Option<&str>,
-        ) = match host {
-            SiteAndHost::MainSite { site_id, site_slug } => {
-                ("site_found", Some(*site_id), Some(site_slug), Some(domain))
-            }
-            SiteAndHost::MainSiteRedirect { domain } => {
-                ("main_site_redirect", None, None, Some(domain))
-            }
-            SiteAndHost::MissingSiteSlug { site_slug } => {
-                ("missing_site_slug", None, Some(site_slug), None)
-            }
-            SiteAndHost::MissingCustomDomain { domain } => {
-                ("missing_custom_domain", None, None, Some(domain))
-            }
-            SiteAndHost::FileSite { .. } | SiteAndHost::FileRoot => {
-                panic!(
-                    "Cannot cache SiteAndHost value corresponding to the files router: {host:#?}"
-                );
-            }
-        };
-
-        hset!(conn, key, "variant", variant);
-        hset_opt!(conn, key, "id", site_id);
-        hset_opt!(conn, key, "slug", slug);
-        hset_opt!(conn, key, "domain", domain);
-        Ok(())
     }
 
     pub async fn get_page(&self, site_id: i64, page_slug: &str) -> Result<Option<i64>> {

@@ -19,7 +19,7 @@
  */
 
 use super::get_site_info;
-use crate::{error::ServerErrorCode, state::ServerState};
+use crate::state::ServerState;
 use axum::{
     body::Body,
     extract::{Path, State},
@@ -49,7 +49,8 @@ macro_rules! fetch_file {
                     page_slug = page_slug,
                     "Cannot get file, no such page",
                 );
-                return ServerErrorCode::PageNotFound { site_id, page_slug }.into_response();
+                // TODO
+                todo!()
             }
             Err(error) => {
                 error!(
@@ -57,7 +58,8 @@ macro_rules! fetch_file {
                     page_slug = page_slug,
                     "Cannot get page info: {error}",
                 );
-                return ServerErrorCode::PageFetch { site_id, page_slug }.into_response();
+                // TODO
+                todo!()
             }
         };
 
@@ -70,12 +72,8 @@ macro_rules! fetch_file {
                     filename = filename,
                     "Cannot get file, none with filename",
                 );
-                return ServerErrorCode::FileNotFound {
-                    site_id,
-                    page_id,
-                    filename,
-                }
-                .into_response();
+                // TODO
+                todo!()
             }
             Err(error) => {
                 error!(
@@ -84,12 +82,8 @@ macro_rules! fetch_file {
                     filename = filename,
                     "Cannot get file info: {error}",
                 );
-                return ServerErrorCode::FileFetch {
-                    site_id,
-                    page_id,
-                    filename,
-                }
-                .into_response();
+                // TODO
+                todo!()
             }
         };
 
@@ -117,12 +111,8 @@ macro_rules! fetch_file {
                     s3_hash = &file_info.s3_hash,
                     "Cannot get blob data: {error}",
                 );
-                return ServerErrorCode::BlobFetch {
-                    site_id,
-                    page_slug,
-                    filename,
-                }
-                .into_response();
+                // TODO
+                todo!()
             }
         };
 

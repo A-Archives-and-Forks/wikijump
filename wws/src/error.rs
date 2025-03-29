@@ -1,5 +1,5 @@
 /*
- * error/rust.rs
+ * error.rs
  *
  * Wilson's Web Server - Serves a zoo of content (framerail, user files, code, etc)
  * Copyright (C) 2019-2025 Wikijump Team

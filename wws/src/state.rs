@@ -21,15 +21,8 @@
 use crate::{
     cache::Cache,
     config::Secrets,
-    deepwell::{Deepwell, Domains, FileData, PageData, SiteData},
+    deepwell::{Deepwell, Domains, FileData, PageData},
     error::Result,
-    framerail::Framerail,
-    host::SiteAndHost,
-};
-use axum::body::Body;
-use hyper_util::{
-    client::legacy::{connect::HttpConnector, Client as HyperClient},
-    rt::TokioExecutor,
 };
 use s3::bucket::Bucket;
 use std::sync::Arc;
@@ -38,21 +31,17 @@ use std::time::Duration;
 const BUCKET_REQUEST_TIMEOUT: Duration = Duration::from_millis(200);
 
 pub type ServerState = Arc<ServerStateInner>;
-pub type Client = HyperClient<HttpConnector, Body>;
 
 #[derive(Debug)]
 pub struct ServerStateInner {
     pub domains: Domains,
-    pub client: Client,
     pub deepwell: Deepwell,
-    pub framerail: Framerail,
     pub cache: Cache,
     pub s3_bucket: Box<Bucket>,
 }
 
 pub async fn build_server_state(
     Secrets {
-        framerail_host,
         deepwell_url,
         redis_url,
         s3_bucket,
@@ -61,12 +50,10 @@ pub async fn build_server_state(
         s3_path_style,
     }: Secrets,
 ) -> Result<ServerState> {
-    let framerail = Framerail::new(framerail_host);
     let deepwell = Deepwell::connect(&deepwell_url)?;
     deepwell.check().await;
     let domains = deepwell.domains().await?;
     let cache = Cache::connect(&redis_url)?;
-    let client = HyperClient::builder(TokioExecutor::new()).build(HttpConnector::new());
     let s3_bucket = {
         let mut bucket = Bucket::new(&s3_bucket, s3_region.clone(), s3_credentials.clone())?;
 
@@ -80,9 +67,7 @@ pub async fn build_server_state(
 
     Ok(Arc::new(ServerStateInner {
         domains,
-        client,
         deepwell,
-        framerail,
         cache,
         s3_bucket,
     }))
@@ -91,31 +76,6 @@ pub async fn build_server_state(
 impl ServerStateInner {
     // Contains implementations for the common pattern of "check the cache,
     // if not present, get it from DEEPWELL and populate it".
-
-    pub async fn get_site_from_slug(&self, site_slug: &str) -> Result<Option<i64>> {
-        match self.cache.get_site_from_slug(site_slug).await? {
-            Some(site_id) => Ok(Some(site_id)),
-            None => match self.deepwell.get_site_from_slug(site_slug).await? {
-                None => Ok(None),
-                Some(SiteData { site_id }) => {
-                    self.cache.set_site_from_slug(site_slug, site_id).await?;
-                    Ok(Some(site_id))
-                }
-            },
-        }
-    }
-
-    pub async fn get_host_from_domain(&self, domain: &str) -> Result<SiteAndHost> {
-        match self.cache.get_host_from_domain(domain).await? {
-            Some(host) => Ok(host),
-            None => {
-                let host = self.deepwell.get_site_from_domain(domain).await?;
-                self.cache.set_host_from_domain(domain, &host).await?;
-
-                Ok(host)
-            }
-        }
-    }
 
     pub async fn get_page(&self, site_id: i64, page_slug: &str) -> Result<Option<i64>> {
         match self.cache.get_page(site_id, page_slug).await? {

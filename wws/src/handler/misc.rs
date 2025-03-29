@@ -34,10 +34,6 @@ fn text_response(body: &'static str, status: StatusCode) -> Response {
         .expect("Unable to convert response data")
 }
 
-pub async fn handle_teapot() -> Response {
-    text_response("🫖", StatusCode::IM_A_TEAPOT)
-}
-
 pub async fn handle_health_check(State(state): State<ServerState>) -> Response {
     // DEEPWELL's ping ensures both Postgres and Redis are connected
     match state.deepwell.ping().await {
