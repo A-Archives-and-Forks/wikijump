@@ -89,6 +89,12 @@ www.example.com {
 	reverse_proxy http://wws:7000
 }
 
+wjfiles.host.site.somedomain.example.com {
+	request_header X-Wikijump-Special-Error 1
+	rewrite * /-/special-error/file-root
+	reverse_proxy http://framerail:3000
+}
+
 *.wjfiles.host.site.somedomain.example.com {
 	@foo host foo.wjfiles.host.site.somedomain.example.com
 	vars @foo site_id 1

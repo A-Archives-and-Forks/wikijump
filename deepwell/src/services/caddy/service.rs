@@ -113,8 +113,9 @@ impl CaddyService {
     ) -> String {
         info!("Generating Caddyfile for {} sites", sites.len());
 
-        let main_domain_no_dot = &config.main_domain_no_dot;
         let files_domain = &config.files_domain;
+        let files_domain_no_dot = &config.files_domain_no_dot;
+        let main_domain_no_dot = &config.main_domain_no_dot;
 
         let mut caddyfile = str!(
             "\
@@ -273,6 +274,12 @@ www.{domain} {{
 	import strip_headers
 	encode
 	reverse_proxy http://{wws_host}
+}}
+
+{files_domain_no_dot} {{
+	request_header X-Wikijump-Special-Error 1
+	rewrite * /-/special-error/file-root
+	reverse_proxy http://{framerail_host}
 }}
 
 *{files_domain} {{"

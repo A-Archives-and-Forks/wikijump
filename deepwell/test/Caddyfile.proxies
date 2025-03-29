@@ -89,6 +89,12 @@ www.example.com {
 	reverse_proxy http://wws_proxy_host
 }
 
+wjfiles.test {
+	request_header X-Wikijump-Special-Error 1
+	rewrite * /-/special-error/file-root
+	reverse_proxy http://web_proxy_host
+}
+
 *.wjfiles.test {
 	@foo host foo.wjfiles.test
 	vars @foo site_id 1

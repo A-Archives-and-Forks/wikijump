@@ -177,6 +177,12 @@ www.scpwiki.wikijump.test {
 	reverse_proxy http://wws:7000
 }
 
+wjfiles.test {
+	request_header X-Wikijump-Special-Error 1
+	rewrite * /-/special-error/file-root
+	reverse_proxy http://framerail:3000
+}
+
 *.wjfiles.test {
 	@www host www.wjfiles.test
 	vars @www site_id 1
