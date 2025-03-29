@@ -52,12 +52,10 @@ use axum::{
 use std::{future::Future, net::IpAddr};
 use tower::util::ServiceExt;
 
+pub const HEADER_IS_WIKIJUMP: HeaderName = HeaderName::from_static("x-wikijump");
+
 pub const HEADER_SITE_ID: HeaderName = HeaderName::from_static("x-wikijump-site-id");
 pub const HEADER_SITE_SLUG: HeaderName = HeaderName::from_static("x-wikijump-site-slug");
-
-pub const HEADER_IS_WIKIJUMP: HeaderName = HeaderName::from_static("x-wikijump");
-pub const HEADER_WWS_VERSION: HeaderName = HeaderName::from_static("x-wikijump-wws-ver");
-pub const HEADER_DEEPWELL_VERSION: HeaderName = HeaderName::from_static("x-wikijump-deepwell-ver");
 
 pub const HEADER_X_REAL_IP: HeaderName = HeaderName::from_static("x-real-ip");
 

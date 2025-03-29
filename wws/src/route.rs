@@ -139,13 +139,5 @@ pub fn build_router(state: ServerState) -> Router {
             HEADER_IS_WIKIJUMP,
             Some(HeaderValue::from_static("1")),
         ))
-        .layer(SetResponseHeaderLayer::overriding(
-            HEADER_WWS_VERSION,
-            Some(header_value!(&*info::VERSION_INFO)),
-        ))
-        .layer(SetResponseHeaderLayer::overriding(
-            HEADER_DEEPWELL_VERSION,
-            Some(header_value!(&header_state.domains.deepwell_version)),
-        ))
         .with_state(state)
 }
