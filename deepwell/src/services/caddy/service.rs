@@ -160,6 +160,8 @@ impl CaddyService {
 (serve_main) {{
 	import strip_headers
 
+	respond /-/teapot '🫖' 418
+
 	# Redirect, route is on the files server
 	@files {{
 		path /*/code/*
@@ -273,6 +275,7 @@ www.{domain} {{
 (serve_files) {{
 	import strip_headers
 	encode
+	respond /-/teapot '🫖' 418
 	reverse_proxy http://{wws_host}
 }}
 
