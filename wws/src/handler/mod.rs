@@ -37,10 +37,8 @@ pub use self::well_known::*;
 use axum::http::header::{HeaderMap, HeaderName};
 
 pub const HEADER_IS_WIKIJUMP: HeaderName = HeaderName::from_static("x-wikijump");
-
 pub const HEADER_SITE_ID: HeaderName = HeaderName::from_static("x-wikijump-site-id");
 pub const HEADER_SITE_SLUG: HeaderName = HeaderName::from_static("x-wikijump-site-slug");
-
 pub const HEADER_TARGET_SERVER: HeaderName = HeaderName::from_static("x-wikijump-target-server");
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
