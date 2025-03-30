@@ -18,15 +18,18 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-//! Handling for the .well-known special discovery path.
+//! Handling for the `.well-known` special discovery path.
 //!
 //! Many different standard paths are served here, and each
 //! should be implemented as a separate handler.
 
-use axum::http::status::StatusCode;
+use super::get_target_server;
+use axum::http::{header::HeaderMap, status::StatusCode};
 
 // TODO
 
-pub async fn handle_well_known() -> StatusCode {
+pub async fn handle_well_known(headers: HeaderMap) -> StatusCode {
+    let _target_server = get_target_server(&headers);
+
     StatusCode::NOT_IMPLEMENTED
 }

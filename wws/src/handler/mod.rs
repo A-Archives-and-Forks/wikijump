@@ -41,6 +41,14 @@ pub const HEADER_IS_WIKIJUMP: HeaderName = HeaderName::from_static("x-wikijump")
 pub const HEADER_SITE_ID: HeaderName = HeaderName::from_static("x-wikijump-site-id");
 pub const HEADER_SITE_SLUG: HeaderName = HeaderName::from_static("x-wikijump-site-slug");
 
+pub const HEADER_TARGET_SERVER: HeaderName = HeaderName::from_static("x-wikijump-target-server");
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum TargetServer {
+    Main,
+    Files,
+}
+
 /// Helper function to get the site ID and slug from headers.
 fn get_site_info(headers: &HeaderMap) -> (i64, &str) {
     let site_id = headers
@@ -58,4 +66,21 @@ fn get_site_info(headers: &HeaderMap) -> (i64, &str) {
         .expect("Site slug header is not UTF-8");
 
     (site_id, site_slug)
+}
+
+/// Helper function to get which target server Caddy has told us we are.
+///
+/// This is either `main` or `files`, and refers to whether routes like
+/// `robots.txt` are `foo.wikijump.com` or `foo.wjfiles.com`.
+fn get_target_server(headers: &HeaderMap) -> TargetServer {
+    let value = headers
+        .get(HEADER_TARGET_SERVER)
+        .expect("No target server header in request")
+        .as_bytes();
+
+    match value {
+        b"main" => TargetServer::Main,
+        b"files" => TargetServer::Files,
+        _ => panic!("Invalid header value: {value:?}"),
+    }
 }

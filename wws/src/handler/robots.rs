@@ -18,12 +18,15 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-//! Handling for the robots.txt file.
+//! Handling for the `robots.txt` file.
 
-use axum::http::status::StatusCode;
+use super::get_target_server;
+use axum::http::{header::HeaderMap, status::StatusCode};
 
 // TODO
 
-pub async fn handle_robots_txt() -> StatusCode {
+pub async fn handle_robots_txt(headers: HeaderMap) -> StatusCode {
+    let _target_server = get_target_server(&headers);
+
     StatusCode::NOT_IMPLEMENTED
 }
