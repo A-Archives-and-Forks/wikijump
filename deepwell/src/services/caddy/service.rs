@@ -158,8 +158,6 @@ impl CaddyService {
 #
 
 (serve_main) {{
-	import strip_headers
-
 	respond /-/teapot '🫖' 418
 
 	# Redirect, route is on the files server
@@ -220,6 +218,8 @@ impl CaddyService {
                         &mut caddyfile,
                         "
 {domain} {{
+	import strip_headers
+
 	vars {{
 		site_id {site_id}
 		site_slug {site_slug}
@@ -285,7 +285,9 @@ www.{domain} {{
 	reverse_proxy http://{framerail_host}
 }}
 
-*{files_domain} {{"
+*{files_domain} {{
+	import strip_headers
+"
         );
 
         for (site_id, site_slug, _) in sites {
