@@ -21,11 +21,10 @@
 use super::get_site_info;
 use crate::{path::get_path, state::ServerState};
 use axum::{
-    extract::{Path, State},
+    extract::State,
     http::{header::HeaderMap, Uri},
     response::Redirect,
 };
-use paste::paste;
 
 pub async fn redirect_to_main(
     State(state): State<ServerState>,
@@ -38,8 +37,7 @@ pub async fn redirect_to_main(
     // Only remove www for the main site.
     // The files site should always have an explicit site slug.
 
-    const DEFAULT_SITE_SLUG: &str = "www"; // TODO
-    let destination = if site_slug == DEFAULT_SITE_SLUG {
+    let destination = if site_slug == "www" {
         let domain = &state.domains.main_domain_no_dot;
         format!("https://{domain}{path}")
     } else {
@@ -49,32 +47,3 @@ pub async fn redirect_to_main(
 
     Redirect::permanent(&destination)
 }
-
-/// Code generation macro to create the "page convenience redirect routes".
-///
-/// These are routes on the main server like `/my-page/code/1` which really
-/// go to `/-/code/my-page/1` on the files server. Since they are identical
-/// aside from what special route they go to, we can have a macro generate
-/// them for us.
-macro_rules! make_redirect_to_route {
-    ($name:ident) => {
-        paste! {
-            pub async fn [<redirect_to_ $name _route>](
-                State(state): State<ServerState>,
-                Path((page_slug, extra)): Path<(String, String)>,
-                headers: HeaderMap,
-            ) -> Redirect {
-                let (_, site_slug) = get_site_info(&headers);
-                let domain = &state.domains.files_domain;
-                let route = stringify!($name);
-                let destination = format!("https://{site_slug}{domain}/-/{route}/{page_slug}/{extra}");
-                Redirect::permanent(&destination)
-            }
-        }
-    };
-}
-
-make_redirect_to_route!(code);
-make_redirect_to_route!(html);
-make_redirect_to_route!(file);
-make_redirect_to_route!(download);
