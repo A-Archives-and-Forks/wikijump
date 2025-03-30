@@ -21,7 +21,7 @@
 use crate::{
     cache::Cache,
     config::Secrets,
-    deepwell::{Deepwell, Domains, FileData, PageData},
+    deepwell::{Deepwell, FileData, PageData},
     error::Result,
 };
 use s3::bucket::Bucket;
@@ -34,7 +34,6 @@ pub type ServerState = Arc<ServerStateInner>;
 
 #[derive(Debug)]
 pub struct ServerStateInner {
-    pub domains: Domains,
     pub deepwell: Deepwell,
     pub cache: Cache,
     pub s3_bucket: Box<Bucket>,
@@ -52,7 +51,7 @@ pub async fn build_server_state(
 ) -> Result<ServerState> {
     let deepwell = Deepwell::connect(&deepwell_url)?;
     deepwell.check().await;
-    let domains = deepwell.domains().await?;
+
     let cache = Cache::connect(&redis_url)?;
     let s3_bucket = {
         let mut bucket = Bucket::new(&s3_bucket, s3_region.clone(), s3_credentials.clone())?;
@@ -66,7 +65,6 @@ pub async fn build_server_state(
     };
 
     Ok(Arc::new(ServerStateInner {
-        domains,
         deepwell,
         cache,
         s3_bucket,

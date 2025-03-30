@@ -37,13 +37,6 @@ pub async fn redirect_to_main(
     // Only remove www for the main site.
     // The files site should always have an explicit site slug.
 
-    let destination = if site_slug == "www" {
-        let domain = &state.domains.main_domain_no_dot;
-        format!("https://{domain}{path}")
-    } else {
-        let domain = &state.domains.main_domain;
-        format!("https://{site_slug}{domain}{path}")
-    };
-
-    Redirect::permanent(&destination)
+    todo!()
+    // TODO Redirect::permanent(&destination)
 }

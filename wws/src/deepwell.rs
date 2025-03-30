@@ -70,52 +70,6 @@ impl Deepwell {
         Ok(())
     }
 
-    pub async fn domains(&self) -> Result<Domains> {
-        #[derive(Deserialize, Debug)]
-        struct Response {
-            main_domain_no_dot: String,
-            files_domain_no_dot: String,
-            deepwell_version: String,
-        }
-
-        let Response {
-            main_domain_no_dot,
-            files_domain_no_dot,
-            deepwell_version,
-        } = self.client.request("domains", rpc_params![]).await?;
-
-        assert!(
-            !main_domain_no_dot.starts_with('.'),
-            "Main domain returned from DEEPWELL starts with '.': {main_domain_no_dot:?}",
-        );
-        let main_domain = format!(".{main_domain_no_dot}");
-
-        assert!(
-            !files_domain_no_dot.starts_with('.'),
-            "Files domain returned from DEEPWELL starts with '.': {files_domain_no_dot:?}",
-        );
-        let files_domain = format!(".{files_domain_no_dot}");
-
-        assert_ne!(
-            main_domain, files_domain,
-            "Cannot set domain for main and files service!",
-        );
-
-        info!(
-            main_domain = main_domain_no_dot,
-            files_domain = files_domain_no_dot,
-            "Got domain information from DEEPWELL {deepwell_version}",
-        );
-
-        Ok(Domains {
-            main_domain,
-            main_domain_no_dot,
-            files_domain,
-            files_domain_no_dot,
-            deepwell_version,
-        })
-    }
-
     pub async fn get_page(&self, site_id: i64, page_slug: &str) -> Result<Option<PageData>> {
         let params = rpc_object! {
             "site_id" => site_id,
@@ -144,15 +98,6 @@ impl Deepwell {
         let file_data: Option<FileData> = self.client.request("file_get", params).await?;
         Ok(file_data)
     }
-}
-
-#[derive(Debug, Clone)]
-pub struct Domains {
-    pub main_domain: String,
-    pub main_domain_no_dot: String,
-    pub files_domain: String,
-    pub files_domain_no_dot: String,
-    pub deepwell_version: String,
 }
 
 #[derive(Deserialize, Debug, Clone)]
