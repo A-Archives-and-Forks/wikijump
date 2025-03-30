@@ -45,17 +45,17 @@ pub fn build_router(state: ServerState) -> Router {
     //       that before doing the relevant operation.
 
     Router::new()
-        // Wikidot routes
+        // Wikidot redirects
         .route(
             "/local--files/{page_slug}/{filename}",
-            get(handle_file_redirect),
+            any(handle_file_redirect),
         )
         .route(
             "/local--code/{page_slug}/{index}",
             any(handle_code_redirect),
         )
         .route("/local--html/{page_slug}/{id}", any(handle_html_redirect))
-        // Other redirects
+        // Wikijump redirects
         .route("/-/files/{page_slug}/{filename}", any(handle_file_redirect))
         // Files
         .route("/-/file/{page_slug}/{filename}", get(handle_file_fetch))
