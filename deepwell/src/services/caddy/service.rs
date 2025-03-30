@@ -158,10 +158,21 @@ impl CaddyService {
 #
 
 (serve_main) {{
+	# Special routes
 	respond /-/teapot '🫖' 418
 
-	# Redirect, route is on the files server
-	@files {{
+	# wjfiles-managed routes
+	# These are proxied to wws for it to handle, but shouldn't be redirected
+	@proxy {{
+		path /robots.txt
+		path /.well-known
+		path /-/health-check
+	}}
+	request_header @proxy X-Wikijump-Serve-Target main
+	reverse_proxy @proxy http://{{vars.site_slug}}{files_domain}{{uri}}
+
+	# Redirect, true route is on the files server
+	@redirect {{
 		path /*/code/*
 		path /*/html/*
 		path /*/file/*  # for the /{{slug}}/file/{{filename}} convenience routes
@@ -175,7 +186,7 @@ impl CaddyService {
 		path /-/code/*
 		path /-/html/*
 	}}
-	redir @files https://{{vars.site_slug}}{files_domain}{{uri}}
+	redir @redirect https://{{vars.site_slug}}{files_domain}{{uri}}
 
 	# Enable default compression settings
 	encode
@@ -276,6 +287,7 @@ www.{domain} {{
 	import strip_headers
 	encode
 	respond /-/teapot '🫖' 418
+	request_header X-Wikijump-Serve-Target files
 	reverse_proxy http://{wws_host}
 }}
 
