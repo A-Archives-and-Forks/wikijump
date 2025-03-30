@@ -18,9 +18,11 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+use super::get_site_info;
 use crate::state::ServerState;
 use axum::{
     extract::{Path, State},
+    http::header::HeaderMap,
     response::{Html, Redirect},
 };
 
@@ -31,11 +33,13 @@ pub async fn handle_html_redirect(Path((page_slug, id)): Path<(String, String)>)
 
 pub async fn handle_html_block(
     State(state): State<ServerState>,
-    Path((page_slug, id)): Path<(String, String)>,
+    Path((page_slug, html_id)): Path<(String, String)>,
+    headers: HeaderMap,
 ) -> Html<&'static str> {
     // TODO
     let _ = state;
     let _ = page_slug;
-    let _ = id;
+    let _ = html_id;
+    let (_site_id, _site_page) = get_site_info(&headers);
     todo!()
 }
