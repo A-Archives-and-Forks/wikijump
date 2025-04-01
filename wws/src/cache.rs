@@ -56,6 +56,21 @@ impl Cache {
         Ok(Cache { client })
     }
 
+    /// Gets the preferred domain for a given site.
+    pub async fn get_site_domain(&self, site_id: i64) -> Result<Option<String>> {
+        let mut conn = get_connection!(self.client);
+        let key = format!("site_domain:{site_id}");
+        let value = conn.get::<_, Option<String>>(key).await?;
+        Ok(value)
+    }
+
+    pub async fn set_site_domain(&self, site_id: i64, preferred_domain: &str) -> Result<()> {
+        let mut conn = get_connection!(self.client);
+        let key = format!("site_domain:{site_id}");
+        conn.set::<_, _, ()>(key, preferred_domain).await?;
+        Ok(())
+    }
+
     /// Gets the page ID for a site ID and page slug pair.
     pub async fn get_page(&self, site_id: i64, page_slug: &str) -> Result<Option<i64>> {
         let mut conn = get_connection!(self.client);
