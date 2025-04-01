@@ -70,6 +70,12 @@ impl Deepwell {
         Ok(())
     }
 
+    pub async fn get_site_domain(&self, site_id: i64) -> Result<String> {
+        let params = rpc_params![site_id];
+        let domain: String = self.client.request("site_domain", params).await?;
+        Ok(domain)
+    }
+
     pub async fn get_page(&self, site_id: i64, page_slug: &str) -> Result<Option<PageData>> {
         let params = rpc_object! {
             "site_id" => site_id,
