@@ -32,6 +32,22 @@ macro_rules! get_connection {
     };
 }
 
+/// Helper macro to build redis keys.
+///
+/// This way we avoid issues with inconsistent key names,
+/// forgetting to update its values or other footguns.
+macro_rules! redis_key {
+    (site_domain => $site_id:expr $(,)?) => {
+        format!("site_domain:{}", $site_id)
+    };
+    (page_slug => $site_id:expr, $page_slug:expr $(,)?) => {
+        format!("page_slug:{}:{}", $site_id, $page_slug)
+    };
+    (file_name => $site_id:expr, $page_id:expr, $filename:expr $(,)?) => {
+        format!("file_name:{}:{}:{}", $site_id, $page_id, $filename)
+    };
+}
+
 macro_rules! set {
     ($conn:expr, $key:expr, $value:expr $(,)?) => {
         $conn.set::<_, _, ()>($key, $value).await?
@@ -65,14 +81,14 @@ impl Cache {
     /// Gets the preferred domain for a given site.
     pub async fn get_site_domain(&self, site_id: i64) -> Result<Option<String>> {
         let mut conn = get_connection!(self.client);
-        let key = format!("site_domain:{site_id}");
+        let key = redis_key!(site_domain => site_id);
         let value = conn.get::<_, Option<String>>(key).await?;
         Ok(value)
     }
 
     pub async fn set_site_domain(&self, site_id: i64, preferred_domain: &str) -> Result<()> {
         let mut conn = get_connection!(self.client);
-        let key = format!("site_domain:{site_id}");
+        let key = redis_key!(site_domain => site_id);
         set!(conn, key, preferred_domain);
         Ok(())
     }
@@ -80,14 +96,14 @@ impl Cache {
     /// Gets the page ID for a site ID and page slug pair.
     pub async fn get_page(&self, site_id: i64, page_slug: &str) -> Result<Option<i64>> {
         let mut conn = get_connection!(self.client);
-        let key = format!("page_slug:{site_id}:{page_slug}");
+        let key = redis_key!(page_slug => site_id, page_slug);
         let value = conn.hget(key, "id").await?;
         Ok(value)
     }
 
     pub async fn set_page(&self, site_id: i64, page_slug: &str, page_id: i64) -> Result<()> {
         let mut conn = get_connection!(self.client);
-        let key = format!("page_slug:{site_id}:{page_slug}");
+        let key = redis_key!(page_slug => site_id, page_slug);
         hset!(conn, key, "id", page_id);
         Ok(())
     }
@@ -102,7 +118,7 @@ impl Cache {
         type FileDataTuple = (Option<i64>, Option<String>, Option<i64>, Option<String>);
 
         let mut conn = get_connection!(self.client);
-        let key = format!("file_name:{site_id}:{page_id}:{filename}");
+        let key = redis_key!(file_name => site_id, page_id, filename);
         let fields = &["id", "mime", "size", "s3_hash"];
         let values = conn.hget::<_, _, FileDataTuple>(&key, fields).await?;
         match values {
@@ -133,7 +149,7 @@ impl Cache {
         data: &FileData,
     ) -> Result<()> {
         let mut conn = get_connection!(self.client);
-        let key = format!("file_name:{site_id}:{page_id}:{filename}");
+        let key = redis_key!(file_name => site_id, page_id, filename);
         hset!(conn, key, "id", data.file_id);
         hset!(conn, key, "mime", &data.mime);
         hset!(conn, key, "size", data.size);
