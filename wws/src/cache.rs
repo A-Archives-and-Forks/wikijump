@@ -56,6 +56,7 @@ impl Cache {
         Ok(Cache { client })
     }
 
+    /// Gets the page ID for a site ID and page slug pair.
     pub async fn get_page(&self, site_id: i64, page_slug: &str) -> Result<Option<i64>> {
         let mut conn = get_connection!(self.client);
         let key = format!("page_slug:{site_id}:{page_slug}");
@@ -70,6 +71,7 @@ impl Cache {
         Ok(())
     }
 
+    /// Gets the file ID for a site ID, page ID, and filename triplet.
     pub async fn get_file(
         &self,
         site_id: i64,
