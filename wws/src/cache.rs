@@ -97,14 +97,14 @@ impl Cache {
     pub async fn get_page(&self, site_id: i64, page_slug: &str) -> Result<Option<i64>> {
         let mut conn = get_connection!(self.client);
         let key = redis_key!(page_slug => site_id, page_slug);
-        let value = conn.hget(key, "id").await?;
+        let value = conn.get(key).await?;
         Ok(value)
     }
 
     pub async fn set_page(&self, site_id: i64, page_slug: &str, page_id: i64) -> Result<()> {
         let mut conn = get_connection!(self.client);
         let key = redis_key!(page_slug => site_id, page_slug);
-        hset!(conn, key, "id", page_id);
+        set!(conn, key, page_id);
         Ok(())
     }
 
