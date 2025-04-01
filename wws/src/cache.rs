@@ -32,6 +32,12 @@ macro_rules! get_connection {
     };
 }
 
+macro_rules! set {
+    ($conn:expr, $key:expr, $value:expr $(,)?) => {
+        $conn.set::<_, _, ()>($key, $value).await?
+    };
+}
+
 macro_rules! hset {
     ($conn:expr, $key:expr, $field:expr, $value:expr $(,)?) => {
         $conn.hset::<_, _, _, ()>(&$key, $field, $value).await?
@@ -67,7 +73,7 @@ impl Cache {
     pub async fn set_site_domain(&self, site_id: i64, preferred_domain: &str) -> Result<()> {
         let mut conn = get_connection!(self.client);
         let key = format!("site_domain:{site_id}");
-        conn.set::<_, _, ()>(key, preferred_domain).await?;
+        set!(conn, key, preferred_domain);
         Ok(())
     }
 
