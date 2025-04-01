@@ -82,7 +82,7 @@ impl Cache {
     pub async fn get_site_domain(&self, site_id: i64) -> Result<Option<String>> {
         let mut conn = get_connection!(self.client);
         let key = redis_key!(site_domain => site_id);
-        let value = conn.get::<_, Option<String>>(key).await?;
+        let value = conn.get(key).await?;
         Ok(value)
     }
 
