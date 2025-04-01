@@ -75,6 +75,17 @@ impl ServerStateInner {
     // Contains implementations for the common pattern of "check the cache,
     // if not present, get it from DEEPWELL and populate it".
 
+    pub async fn get_site_domain(&self, site_id: i64) -> Result<String> {
+        match self.cache.get_site_domain(site_id).await? {
+            Some(preferred_domain) => Ok(preferred_domain),
+            None => {
+                let preferred_domain = self.deepwell.get_site_domain(site_id).await?;
+                self.cache.set_site_domain(site_id, &preferred_domain).await?;
+                Ok(preferred_domain)
+            }
+        }
+    }
+
     pub async fn get_page(&self, site_id: i64, page_slug: &str) -> Result<Option<i64>> {
         match self.cache.get_page(site_id, page_slug).await? {
             Some(page_id) => Ok(Some(page_id)),
