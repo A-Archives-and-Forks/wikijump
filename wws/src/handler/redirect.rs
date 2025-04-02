@@ -18,25 +18,30 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use super::get_site_info;
+use super::{get_site_info, FallbackError};
 use crate::{path::get_path, state::ServerState};
 use axum::{
     extract::State,
     http::{header::HeaderMap, Uri},
-    response::Redirect,
+    response::{IntoResponse, Redirect, Response},
 };
 
 pub async fn redirect_to_main(
     State(state): State<ServerState>,
     headers: HeaderMap,
     uri: Uri,
-) -> Redirect {
-    let (_, site_slug) = get_site_info(&headers);
+) -> Response {
+    let (site_id, _) = get_site_info(&headers);
     let path = get_path(&uri);
 
-    // Only remove www for the main site.
-    // The files site should always have an explicit site slug.
-
-    todo!()
-    // TODO Redirect::permanent(&destination)
+    match state.get_site_domain(site_id).await {
+        Ok(domain) => {
+            let destination = format!("https://{domain}{path}");
+            Redirect::permanent(&destination).into_response()
+        }
+        Err(error) => {
+            error!("Could not fetch preferred site domain for site ID {site_id}: {error}");
+            FallbackError::RedirectMain.into_response()
+        }
+    }
 }

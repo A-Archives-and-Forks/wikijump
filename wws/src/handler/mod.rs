@@ -19,6 +19,7 @@
  */
 
 mod code;
+mod error;
 mod file;
 mod html;
 mod misc;
@@ -27,6 +28,7 @@ mod robots;
 mod well_known;
 
 pub use self::code::*;
+pub use self::error::FallbackError;
 pub use self::file::*;
 pub use self::html::*;
 pub use self::misc::*;
