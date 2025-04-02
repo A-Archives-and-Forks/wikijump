@@ -1,6 +1,6 @@
 [package]
 name = "wws"
-description = "Wilson's Web Server - Serves a zoo of content (framerail, user files, code, etc)"
+description = "Wilson's Web Server - Serves a zoo of user-generated content"
 repository = "https://github.com/scpwiki/wikijump/tree/develop/wws"
 readme = "README.md"
 license = "AGPL-3.0-or-later"
