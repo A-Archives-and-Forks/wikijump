@@ -80,7 +80,10 @@ impl ServerStateInner {
             Some(preferred_domain) => Ok(preferred_domain),
             None => {
                 let preferred_domain = self.deepwell.get_site_domain(site_id).await?;
-                self.cache.set_site_domain(site_id, &preferred_domain).await?;
+                self.cache
+                    .set_site_domain(site_id, &preferred_domain)
+                    .await?;
+
                 Ok(preferred_domain)
             }
         }
