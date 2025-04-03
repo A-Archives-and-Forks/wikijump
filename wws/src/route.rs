@@ -25,8 +25,7 @@ use axum::{
     Router,
 };
 use tower_http::{
-    compression::CompressionLayer, normalize_path::NormalizePathLayer,
-    set_header::SetResponseHeaderLayer, trace::TraceLayer,
+    compression::CompressionLayer, normalize_path::NormalizePathLayer, trace::TraceLayer,
 };
 
 pub fn build_router(state: ServerState) -> Router {
@@ -82,9 +81,5 @@ pub fn build_router(state: ServerState) -> Router {
                 .br(true)
                 .zstd(true),
         )
-        .layer(SetResponseHeaderLayer::overriding(
-            HEADER_IS_WIKIJUMP,
-            Some(HeaderValue::from_static("1")),
-        ))
         .with_state(state)
 }
