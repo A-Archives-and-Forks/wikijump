@@ -1,5 +1,5 @@
 /*
- * handler/error.rs
+ * handler/fallback_error.rs
  *
  * Wilson's Web Server - Serves a zoo of user-generated content
  * Copyright (C) 2019-2025 Wikijump Team
@@ -18,7 +18,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-//! Basic error emission for low-level failures.
+//! Fallback errors, or what wws returns when there are no better errors to emit.
 //!
 //! When something goes very wrong, and we cannot contact
 //! DEEPWELL or read relevant data from the cache in order
