@@ -34,8 +34,11 @@ use axum::{
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum FallbackError {
+    /// No such special error code.
+    SpecialErrorCode,
+
     /// Unable to retrieve a special error response from DEEPWELL.
-    SpecialError,
+    SpecialErrorFetch,
 
     /// Unable to determine the preferred domain to redirect to for a site.
     RedirectMain,
@@ -48,8 +51,9 @@ impl FallbackError {
     /// We should generally avoid reusing prior error codes.
     pub fn error_code(self) -> u32 {
         match self {
-            FallbackError::SpecialError => 1000,
-            FallbackError::RedirectMain => 1001,
+            FallbackError::SpecialErrorCode => 1000,
+            FallbackError::SpecialErrorFetch => 1001,
+            FallbackError::RedirectMain => 1002,
         }
     }
 }
