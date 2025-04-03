@@ -19,7 +19,7 @@
  */
 
 use super::get_site_info;
-use crate::state::ServerState;
+use crate::{deepwell::FileData, state::ServerState};
 use axum::{
     body::Body,
     extract::{Path, State},
@@ -31,93 +31,91 @@ use axum_extra::response::Attachment;
 use s3::request::request_trait::ResponseDataStream;
 use wikidot_normalize::normalize;
 
-macro_rules! fetch_file {
-    ($state:expr, $headers:expr, $page_slug:expr, $filename:expr $(,)?) => {{
-        normalize(&mut $page_slug);
+async fn fetch_file(
+    state: &ServerState,
+    headers: &HeaderMap,
+    page_slug: &mut String,
+    filename: &str,
+) -> Result<(FileData, Body), Response> {
+    normalize(page_slug);
 
-        let (site_id, _) = get_site_info(&$headers);
+    let (site_id, _) = get_site_info(headers);
+    let page_id = match state.get_page(site_id, page_slug).await {
+        Ok(Some(page_id)) => page_id,
+        Ok(None) => {
+            error!(
+                site_id = site_id,
+                page_slug = page_slug,
+                "Cannot get file, no such page",
+            );
+            // TODO
+            todo!()
+        }
+        Err(error) => {
+            error!(
+                site_id = site_id,
+                page_slug = page_slug,
+                "Cannot get page info: {error}",
+            );
+            // TODO
+            todo!()
+        }
+    };
 
-        let state = &$state;
-        let page_slug = &$page_slug;
-        let filename = &$filename;
+    let file_info = match state.get_file(site_id, page_id, filename).await {
+        Ok(Some(file_info)) => file_info,
+        Ok(None) => {
+            error!(
+                site_id = site_id,
+                page_id = page_id,
+                filename = filename,
+                "Cannot get file, none with filename",
+            );
+            // TODO
+            todo!()
+        }
+        Err(error) => {
+            error!(
+                site_id = site_id,
+                page_id = page_id,
+                filename = filename,
+                "Cannot get file info: {error}",
+            );
+            // TODO
+            todo!()
+        }
+    };
 
-        let page_id = match state.get_page(site_id, page_slug).await {
-            Ok(Some(page_id)) => page_id,
-            Ok(None) => {
-                error!(
-                    site_id = site_id,
-                    page_slug = page_slug,
-                    "Cannot get file, no such page",
-                );
-                // TODO
-                todo!()
-            }
-            Err(error) => {
-                error!(
-                    site_id = site_id,
-                    page_slug = page_slug,
-                    "Cannot get page info: {error}",
-                );
-                // TODO
-                todo!()
-            }
-        };
+    let body = match state.s3_bucket.get_object_stream(&file_info.s3_hash).await {
+        Ok(ResponseDataStream { bytes, status_code }) => {
+            assert_eq!(
+                status_code,
+                StatusCode::OK,
+                "get_object_stream() succeeded but did not reply 200",
+            );
+            Body::from_stream(bytes)
+        }
+        Err(error) => {
+            // NOTE: If the error here is 404 we still return 500.
+            //
+            //       If we have a file record for a file, then the
+            //       corresponding blob *should* exist.
+            //
+            //       If it doesn't, the data invariant is not being met,
+            //       which is an unexpected error.
+            error!(
+                site_id = site_id,
+                page_slug = page_slug,
+                filename = filename,
+                s3_hash = &file_info.s3_hash,
+                "Cannot get blob data: {error}",
+            );
+            // TODO
+            todo!()
+        }
+    };
 
-        let file_info = match state.get_file(site_id, page_id, filename).await {
-            Ok(Some(file_info)) => file_info,
-            Ok(None) => {
-                error!(
-                    site_id = site_id,
-                    page_id = page_id,
-                    filename = filename,
-                    "Cannot get file, none with filename",
-                );
-                // TODO
-                todo!()
-            }
-            Err(error) => {
-                error!(
-                    site_id = site_id,
-                    page_id = page_id,
-                    filename = filename,
-                    "Cannot get file info: {error}",
-                );
-                // TODO
-                todo!()
-            }
-        };
-
-        let body = match state.s3_bucket.get_object_stream(&file_info.s3_hash).await {
-            Ok(ResponseDataStream { bytes, status_code }) => {
-                assert_eq!(
-                    status_code,
-                    StatusCode::OK,
-                    "get_object_stream() succeeded but did not reply 200",
-                );
-                Body::from_stream(bytes)
-            }
-            Err(error) => {
-                // NOTE: If the error here is 404 we still return 500.
-                //
-                //       If we have a file record for a file, then the
-                //       corresponding blob *should* exist.
-                //
-                //       If it doesn't, the data invariant is not being met,
-                //       which is an unexpected error.
-                error!(
-                    site_id = site_id,
-                    page_slug = page_slug,
-                    filename = filename,
-                    s3_hash = &file_info.s3_hash,
-                    "Cannot get blob data: {error}",
-                );
-                // TODO
-                todo!()
-            }
-        };
-
-        (file_info, body)
-    }};
+    Ok((file_info, body))
 }
 
 pub async fn handle_file_redirect(Path((page_slug, filename)): Path<(String, String)>) -> Redirect {
@@ -136,7 +134,10 @@ pub async fn handle_file_fetch(
         "Returning file data",
     );
 
-    let (file_info, body) = fetch_file!(state, headers, page_slug, filename);
+    let (file_info, body) = match fetch_file(&state, &headers, &mut page_slug, &filename).await {
+        Ok(output) => output,
+        Err(response) => return response,
+    };
 
     let result = Response::builder()
         .header(header::CONTENT_TYPE, &file_info.mime)
@@ -162,7 +163,10 @@ pub async fn handle_file_download(
         "Returning file download",
     );
 
-    let (file_info, body) = fetch_file!(state, headers, page_slug, filename);
+    let (file_info, body) = match fetch_file(&state, &headers, &mut page_slug, &filename).await {
+        Ok(output) => output,
+        Err(response) => return response,
+    };
 
     Attachment::new(body)
         .filename(&filename)
