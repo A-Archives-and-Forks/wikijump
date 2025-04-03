@@ -2,7 +2,7 @@
 
 special-error-site-slug = <h1>No { -service-name } site exists with this address.</h1>
     <p>
-      <a href="https://{ $slug }.{ $domain }/">{ $slug }.{ $domain }</a> does not exist.
+      <a href="https://{ $slug }.{ $main_domain }/">{ $slug }.{ $main_domain }</a> does not exist.
       Return to <a href="https://{ $main_domain }/">{ -service-name }</a>.
     </p>
 
