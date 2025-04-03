@@ -18,7 +18,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use super::{get_site_info, FallbackError};
+use super::{get_site_id, FallbackError};
 use crate::{path::get_path, state::ServerState};
 use axum::{
     extract::State,
@@ -31,7 +31,7 @@ pub async fn redirect_to_main(
     headers: HeaderMap,
     uri: Uri,
 ) -> Response {
-    let (site_id, _) = get_site_info(&headers);
+    let site_id = get_site_id(&headers);
     let path = get_path(&uri);
     redirect_to_main_inner(&state, site_id, path).await
 }

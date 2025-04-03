@@ -48,23 +48,41 @@ pub enum TargetServer {
     Files,
 }
 
-/// Helper function to get the site ID and slug from headers.
-fn get_site_info(headers: &HeaderMap) -> (i64, &str) {
-    let site_id = headers
-        .get(HEADER_SITE_ID)
-        .expect("No site ID header in request")
+/// Helper function to extract a string value from a header.
+/// This function asserts that the header does exist.
+fn get_header<'a>(
+    headers: &'a HeaderMap,
+    header: HeaderName,
+    missing_header_message: &'static str,
+    not_utf8_header_message: &'static str,
+) -> &'a str {
+    headers
+        .get(header)
+        .expect(missing_header_message)
         .to_str()
-        .expect("Site ID header is not UTF-8")
-        .parse()
-        .expect("Site ID is not a valid integer");
+        .expect(not_utf8_header_message)
+}
 
-    let site_slug = headers
-        .get(HEADER_SITE_SLUG)
-        .expect("No site slug header in request")
-        .to_str()
-        .expect("Site slug header is not UTF-8");
+/// Helper function to get the site ID from headers.
+fn get_site_id(headers: &HeaderMap) -> i64 {
+    get_header(
+        headers,
+        HEADER_SITE_ID,
+        "No site ID header in request",
+        "Site ID header is not UTF-8",
+    )
+    .parse()
+    .expect("Site ID is not a valid integer")
+}
 
-    (site_id, site_slug)
+/// Helper function to get the site slug from headers.
+fn get_site_slug(headers: &HeaderMap) -> &str {
+    get_header(
+        headers,
+        HEADER_SITE_SLUG,
+        "No site slug header in request",
+        "Site slug header is not UTF-8",
+    )
 }
 
 /// Helper function to get which target server Caddy has told us we are.

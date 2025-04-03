@@ -18,7 +18,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use super::get_site_info;
+use super::get_site_id;
 use crate::{deepwell::FileData, state::ServerState};
 use axum::{
     body::Body,
@@ -39,7 +39,7 @@ async fn fetch_file(
 ) -> Result<(FileData, Body), Response> {
     normalize(page_slug);
 
-    let (site_id, _) = get_site_info(headers);
+    let site_id = get_site_id(headers);
     let page_id = match state.get_page(site_id, page_slug).await {
         Ok(Some(page_id)) => page_id,
         Ok(None) => {

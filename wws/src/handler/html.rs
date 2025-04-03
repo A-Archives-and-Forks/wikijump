@@ -18,7 +18,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use super::get_site_info;
+use super::{get_site_id, get_site_slug};
 use crate::state::ServerState;
 use axum::{
     extract::{Path, State},
@@ -40,6 +40,7 @@ pub async fn handle_html_block(
     let _ = state;
     let _ = page_slug;
     let _ = html_id;
-    let (_site_id, _site_page) = get_site_info(&headers);
+    let _site_id = get_site_id(&headers);
+    let _site_slug = get_site_slug(&headers);
     todo!()
 }
