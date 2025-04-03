@@ -19,13 +19,13 @@
  */
 
 use super::prelude::*;
-use crate::services::special_error::SpecialErrorService;
+use crate::services::special_error::{SpecialErrorOutput, SpecialErrorService};
 use crate::utils::parse_locales;
 
 pub async fn special_error_missing_site_slug(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<String> {
+) -> Result<SpecialErrorOutput> {
     #[derive(Deserialize, Debug)]
     struct Input {
         locales: Vec<String>,
@@ -40,7 +40,7 @@ pub async fn special_error_missing_site_slug(
 pub async fn special_error_missing_custom_domain(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<String> {
+) -> Result<SpecialErrorOutput> {
     #[derive(Deserialize, Debug)]
     struct Input {
         locales: Vec<String>,
@@ -55,7 +55,7 @@ pub async fn special_error_missing_custom_domain(
 pub async fn special_error_site_fetch(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<String> {
+) -> Result<SpecialErrorOutput> {
     #[derive(Deserialize, Debug)]
     struct Input {
         locales: Vec<String>,
@@ -66,3 +66,5 @@ pub async fn special_error_site_fetch(
     let locales = parse_locales(&locales)?;
     SpecialErrorService::site_fetch(ctx, &locales, &domain).await
 }
+
+// TODO special_error_file_root

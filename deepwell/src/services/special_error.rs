@@ -30,6 +30,12 @@ use fluent::{FluentArgs, FluentValue};
 use serde::Deserialize;
 use unic_langid::LanguageIdentifier;
 
+#[derive(Serialize, Debug, Clone)]
+pub struct SpecialErrorOutput {
+    pub title: String,
+    pub html: String,
+}
+
 #[derive(Debug)]
 pub struct SpecialErrorService;
 
@@ -39,7 +45,7 @@ impl SpecialErrorService {
         ctx: &ServiceContext<'_>,
         locales: &[LanguageIdentifier],
         site_slug: &str,
-    ) -> Result<String> {
+    ) -> Result<SpecialErrorOutput> {
         assert!(!locales.is_empty(), "No languages specified");
         let config = ctx.config();
         let mut args = FluentArgs::new();
@@ -47,11 +53,20 @@ impl SpecialErrorService {
         args.set("files_domain", fluent_str!(config.files_domain_no_dot));
         args.set("slug", fluent_str!(site_slug));
 
+        let title = ctx.localization().translate(
+            locales,
+            "special-error-site-slug.title",
+            &args,
+        )?;
+
         let html =
             ctx.localization()
                 .translate(locales, "special-error-site-slug", &args)?;
 
-        Ok(html.to_string())
+        Ok(SpecialErrorOutput {
+            title: title.to_string(),
+            html: html.to_string(),
+        })
     }
 
     /// Error for when a custom domain does not exist.
@@ -59,7 +74,7 @@ impl SpecialErrorService {
         ctx: &ServiceContext<'_>,
         locales: &[LanguageIdentifier],
         domain: &str,
-    ) -> Result<String> {
+    ) -> Result<SpecialErrorOutput> {
         assert!(!locales.is_empty(), "No languages specified");
         let config = ctx.config();
         let mut args = FluentArgs::new();
@@ -67,11 +82,20 @@ impl SpecialErrorService {
         args.set("files_domain", fluent_str!(config.files_domain_no_dot));
         args.set("custom_domain", fluent_str!(domain));
 
+        let title = ctx.localization().translate(
+            locales,
+            "special-error-site-custom.title",
+            &args,
+        )?;
+
         let html =
             ctx.localization()
                 .translate(locales, "special-error-site-custom", &args)?;
 
-        Ok(html.to_string())
+        Ok(SpecialErrorOutput {
+            title: title.to_string(),
+            html: html.to_string(),
+        })
     }
 
     /// Error for when fetching host information fails.
@@ -79,7 +103,7 @@ impl SpecialErrorService {
         ctx: &ServiceContext<'_>,
         locales: &[LanguageIdentifier],
         domain: &str,
-    ) -> Result<String> {
+    ) -> Result<SpecialErrorOutput> {
         assert!(!locales.is_empty(), "No languages specified");
         let config = ctx.config();
         let mut args = FluentArgs::new();
@@ -87,10 +111,46 @@ impl SpecialErrorService {
         args.set("files_domain", fluent_str!(config.files_domain_no_dot));
         args.set("domain", fluent_str!(domain));
 
+        let title = ctx.localization().translate(
+            locales,
+            "special-error-site-fetch.title",
+            &args,
+        )?;
+
         let html =
             ctx.localization()
                 .translate(locales, "special-error-site-fetch", &args)?;
 
-        Ok(html.to_string())
+        Ok(SpecialErrorOutput {
+            title: title.to_string(),
+            html: html.to_string(),
+        })
+    }
+
+    /// Error for when a user tries to access wjfiles without passing in a site slug.
+    pub async fn file_root(
+        ctx: &ServiceContext<'_>,
+        locales: &[LanguageIdentifier],
+    ) -> Result<SpecialErrorOutput> {
+        assert!(!locales.is_empty(), "No languages specified");
+        let config = ctx.config();
+        let mut args = FluentArgs::new();
+        args.set("main_domain", fluent_str!(config.main_domain_no_dot));
+        args.set("files_domain", fluent_str!(config.files_domain_no_dot));
+
+        let title = ctx.localization().translate(
+            locales,
+            "special-error-file-root.title",
+            &args,
+        )?;
+
+        let html =
+            ctx.localization()
+                .translate(locales, "special-error-file-root", &args)?;
+
+        Ok(SpecialErrorOutput {
+            title: title.to_string(),
+            html: html.to_string(),
+        })
     }
 }
