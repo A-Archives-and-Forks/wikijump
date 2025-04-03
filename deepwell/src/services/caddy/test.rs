@@ -145,13 +145,11 @@ fn build_site_data() -> (SiteData, SiteData) {
 
 macro_rules! test_output {
     ($suffix:expr) => {
-        include_str!(
-            concat!(
-                env!("CARGO_MANIFEST_DIR"),
-                "/test/Caddyfile.",
-                $suffix,
-            )
-        )
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/test/Caddyfile.",
+            $suffix,
+        ))
     };
 }
 
