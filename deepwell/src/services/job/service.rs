@@ -70,12 +70,11 @@ impl JobService {
     /// Queues a page for being rerendered soon.
     ///
     /// # Arguments
-    /// * `site_id` &mdash; The ID of the site the page is on.
-    /// * `page_id` &mdash; The ID of the page.
-    /// * `depth` &mdash; If rerendering a page causes more pages to be rerendered due to
-    ///                   outdating, then this value should be incremented with each layer
-    ///                   of job depth. This way we can avoid infinite loop conditions where
-    ///                   jobs endlessly pile onto the queue, rerendering each other.
+    /// | Argument  | Description |
+    /// |-----------|-------------|
+    /// | `site-id` | The ID of the site the page is on. |
+    /// | `page-id` | The ID of the page. |
+    /// | `depth` | If rerendering a page causes more pages to be rerendered due to outdating, then this value should be incremented with each layer of job depth. This way we can avoid infinite loop conditions where jobs endlessly pile onto the queue, rerendering each other. |
     pub async fn queue_rerender_page(
         ctx: &ServiceContext<'_>,
         site_id: i64,
