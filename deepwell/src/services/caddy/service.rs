@@ -390,3 +390,30 @@ fn site_slug_split_index(domain: &str) -> usize {
     );
     domain.chars().filter(|&c| c == '.').count()
 }
+
+#[test]
+fn test_site_slug_split_index() {
+    const TEST_SITE_SLUG: &str = "XYZ";
+
+    macro_rules! check {
+        ($domain:expr, $expected_index:expr) => {{
+            // Get and validate index
+            let index = site_slug_split_index($domain);
+            assert_eq!(
+                index,
+                $expected_index,
+                "Caddy site slug extraction index does not match",
+            );
+
+            // Test it on a real string
+            let domain = format!("{}{}", TEST_SITE_SLUG, $domain);
+            let parts = domain.split('.').rev().collect::<Vec<_>>();
+            assert_eq!(parts[index], TEST_SITE_SLUG, "Wrong substring extracted");
+        }};
+    }
+
+    check!(".wikijump.com", 2);
+    check!(".foo.example.org", 3);
+    check!(".bar.foo.example.org", 4);
+    check!(".alpha.beta.gamma.delta.epsilon.zeta.eta.theta.wjfiles.com", 10);
+}
