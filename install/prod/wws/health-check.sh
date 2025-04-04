@@ -1,1 +1,1 @@
-../../common/router/health-check.sh
+../../common/wws/health-check.sh
