@@ -19,13 +19,16 @@
  */
 
 use super::{
-    fallback_error::FallbackError, get_site_slug, parse_accept_language,
-    HEADER_SPECIAL_ERROR,
+    fallback_error::FallbackError, get_site_slug, parse_accept_language, HEADER_SPECIAL_ERROR,
 };
 use crate::{deepwell::SpecialError, state::ServerState};
 use axum::{
+    body::Body,
     extract::{Path, State},
-    http::{header::HeaderMap, status::StatusCode},
+    http::{
+        header::{self, HeaderMap},
+        status::StatusCode,
+    },
     response::{IntoResponse, Response},
 };
 use axum_extra::extract::Host;
@@ -72,7 +75,7 @@ pub async fn handle_special_error(
     }
 
     // Fetch HTML from appropriate DEEPWELL special error endpoint
-    let (SpecialError { title, body }, status_code) = match error_code.as_str() {
+    let (SpecialError { title, body }, status) = match error_code.as_str() {
         // Required headers:
         // - x-wikijump-site-slug
         "site-slug" => {
@@ -98,5 +101,18 @@ pub async fn handle_special_error(
         }
     };
 
-    todo!()
+    // SAFETY: Both string fields here come from DEEPWELL,
+    //         which in turn come from Fluent translation lines.
+    //         As such, they can be trusted to not contain malicious HTML.
+
+    const HTML_START: &str = r#"<html><head><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>"#;
+    const HTML_MIDDLE: &str = "</title></head><body><article>";
+    const HTML_END: &str = "</article></body></html>\n";
+
+    let html = format!("{HTML_START}{title}{HTML_MIDDLE}{body}{HTML_END}");
+    Response::builder()
+        .status(status)
+        .header(header::CONTENT_TYPE, "text/plain; charset=utf-8")
+        .body(Body::from(html))
+        .expect("Unable to convert response data")
 }
