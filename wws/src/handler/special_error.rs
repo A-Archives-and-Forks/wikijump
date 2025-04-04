@@ -19,7 +19,7 @@
  */
 
 use super::{
-    fallback_error::FallbackError, get_site_slug, parse_accept_language, HEADER_SITE_SLUG,
+    fallback_error::FallbackError, get_site_slug, parse_accept_language,
     HEADER_SPECIAL_ERROR,
 };
 use crate::{deepwell::SpecialError, state::ServerState};

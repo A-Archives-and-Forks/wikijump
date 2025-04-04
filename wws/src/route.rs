@@ -20,7 +20,6 @@
 
 use crate::{handler::*, state::ServerState};
 use axum::{
-    http::header::HeaderValue,
     routing::{any, get},
     Router,
 };

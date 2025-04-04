@@ -36,11 +36,7 @@ pub async fn redirect_to_main(
     redirect_to_main_inner(&state, site_id, path).await
 }
 
-pub async fn redirect_to_main_inner(
-    state: &ServerState,
-    site_id: i64,
-    path: &str,
-) -> Response {
+pub async fn redirect_to_main_inner(state: &ServerState, site_id: i64, path: &str) -> Response {
     match state.get_site_domain(site_id).await {
         Ok(domain) => {
             let destination = format!("https://{domain}{path}");
