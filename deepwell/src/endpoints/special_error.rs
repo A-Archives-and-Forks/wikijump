@@ -67,4 +67,16 @@ pub async fn special_error_site_fetch(
     SpecialErrorService::site_fetch(ctx, &locales, &domain).await
 }
 
-// TODO special_error_file_root
+pub async fn special_error_file_root(
+    ctx: &ServiceContext<'_>,
+    params: Params<'static>,
+) -> Result<SpecialErrorOutput> {
+    #[derive(Deserialize, Debug)]
+    struct Input {
+        locales: Vec<String>,
+    }
+
+    let Input { locales } = params.parse()?;
+    let locales = parse_locales(&locales)?;
+    SpecialErrorService::file_root(ctx, &locales).await
+}
