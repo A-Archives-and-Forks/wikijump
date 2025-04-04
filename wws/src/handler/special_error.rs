@@ -25,7 +25,7 @@ use super::{
 use crate::{deepwell::SpecialError, state::ServerState};
 use axum::{
     extract::{Path, State},
-    http::header::HeaderMap,
+    http::{header::HeaderMap, status::StatusCode},
     response::{IntoResponse, Response},
 };
 use axum_extra::extract::Host;
@@ -49,16 +49,16 @@ pub async fn handle_special_error(
     let locales = parse_accept_language(&headers);
 
     macro_rules! get_special_error {
-        ($method:ident) => {
-            get_special_error!($method,)
+        ($method:ident => $status_code:ident $(,)?) => {
+            get_special_error!($method, => $status_code)
         };
-        ($method:ident, $($arg:expr),*) => {{
+        ($method:ident, $($arg:expr),* => $status_code:ident $(,)?) => {{
             paste! {
                 let result = state.deepwell.[<special_error_ $method>](&locales, $($arg),*).await;
             }
 
             match result {
-                Ok(output) => output,
+                Ok(output) => (output, StatusCode::$status_code),
                 Err(error) => {
                     error!(
                         "Unable to get special error for {}: {}",
@@ -72,24 +72,24 @@ pub async fn handle_special_error(
     }
 
     // Fetch HTML from appropriate DEEPWELL special error endpoint
-    let SpecialError { title, body } = match error_code.as_str() {
+    let (SpecialError { title, body }, status_code) = match error_code.as_str() {
         // Required headers:
         // - x-wikijump-site-slug
         "site-slug" => {
             let site_slug = get_site_slug(&headers);
-            get_special_error!(missing_site_slug, site_slug)
+            get_special_error!(missing_site_slug, site_slug => NOT_FOUND)
         }
         // No required headers
         "site-custom" => {
-            get_special_error!(missing_custom_domain, &host)
+            get_special_error!(missing_custom_domain, &host => NOT_FOUND)
         }
         // TODO where is this used?
         "site-fetch" => {
-            get_special_error!(site_fetch, &host)
+            get_special_error!(site_fetch, &host => INTERNAL_SERVER_ERROR)
         }
         // No required headers
         "file-root" => {
-            get_special_error!(file_root)
+            get_special_error!(file_root => BAD_REQUEST)
         }
         // Invalid
         _ => {
