@@ -51,8 +51,7 @@ impl RecoveryCodes {
 
         // Recovery codes are any randomly-generated codes which the application
         // accepts as a one-time code to bypass MFA.
-        let recovery_codes = iter::repeat(())
-            .take(config.recovery_code_count)
+        let recovery_codes = iter::repeat_n((), config.recovery_code_count)
             .map(|_| {
                 let mut code =
                     Alphanumeric.sample_string(&mut rng, config.recovery_code_length);
