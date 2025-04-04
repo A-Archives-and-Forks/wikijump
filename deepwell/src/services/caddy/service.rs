@@ -115,6 +115,7 @@ impl CaddyService {
 
         let files_domain = &config.files_domain;
         let files_domain_no_dot = &config.files_domain_no_dot;
+        let main_domain = &config.main_domain;
         let main_domain_no_dot = &config.main_domain_no_dot;
 
         let mut caddyfile = str!(
@@ -294,7 +295,7 @@ www.{domain} {{
 {files_domain_no_dot} {{
 	request_header X-Wikijump-Special-Error 1
 	rewrite * /-/special-error/file-root
-	reverse_proxy http://{framerail_host}
+	reverse_proxy http://{wws_host}
 }}
 
 *{files_domain} {{
@@ -347,12 +348,24 @@ www.{domain} {{
             "
 #
 # FALLBACK
+# (i.e. \"no such site\")
 #
 
-{} {{
+# Missing canonical domain
+*{main_domain} {{
+	import strip_headers
 	request_header X-Wikijump-Special-Error 1
-	rewrite * /-/special-error/missing-site
-	reverse_proxy http://{framerail_host}
+	request_header X-Wikijump-Site-Slug _
+	rewrite * /-/special-error/site-slug
+	reverse_proxy http://{wws_host}
+}}
+
+# Missing custom domain
+{} {{
+	import strip_headers
+	request_header X-Wikijump-Special-Error 1
+	rewrite * /-/special-error/site-custom
+	reverse_proxy http://{wws_host}
 }}",
             if *local {
                 "http://,\nhttps://,\nlocalhost"
