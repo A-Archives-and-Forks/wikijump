@@ -101,3 +101,28 @@ fn get_target_server(headers: &HeaderMap) -> TargetServer {
         _ => panic!("Invalid header value: {value:?}"),
     }
 }
+
+/// Parse the `Accept-Language` header.
+/// If there are no languages, or there is no header, then use English.
+fn parse_accept_language(headers: &HeaderMap) -> Vec<String> {
+    const FALLBACK_LANGUAGE: &str = "en";
+
+    fn get_header_value(headers: &HeaderMap) -> Option<&str> {
+        match headers.get("accept-language") {
+            Some(value) => value.to_str().ok(),
+            None => None,
+        }
+    }
+
+    let header_value = match get_header_value(headers) {
+        Some(value) => value,
+        None => return vec![str!(FALLBACK_LANGUAGE)],
+    };
+
+    let mut languages = accept_language::parse(header_value);
+    if languages.is_empty() {
+        languages.push(str!(FALLBACK_LANGUAGE));
+    }
+
+    languages
+}
