@@ -193,5 +193,5 @@ pub struct FileData {
 #[derive(Deserialize, Debug, Clone)]
 pub struct SpecialError {
     pub title: String,
-    pub html: String,
+    pub body: String,
 }

@@ -72,7 +72,7 @@ pub async fn handle_special_error(
     }
 
     // Fetch HTML from appropriate DEEPWELL special error endpoint
-    let SpecialError { title, html } = match error_code.as_str() {
+    let SpecialError { title, body } = match error_code.as_str() {
         // Required headers:
         // - x-wikijump-site-slug
         "site-slug" => {

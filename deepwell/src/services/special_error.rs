@@ -33,7 +33,7 @@ use unic_langid::LanguageIdentifier;
 #[derive(Serialize, Debug, Clone)]
 pub struct SpecialErrorOutput {
     pub title: String,
-    pub html: String,
+    pub body: String,
 }
 
 #[derive(Debug)]
@@ -59,13 +59,13 @@ impl SpecialErrorService {
             &args,
         )?;
 
-        let html =
+        let body =
             ctx.localization()
                 .translate(locales, "special-error-site-slug", &args)?;
 
         Ok(SpecialErrorOutput {
             title: title.to_string(),
-            html: html.to_string(),
+            body: body.to_string(),
         })
     }
 
@@ -88,13 +88,13 @@ impl SpecialErrorService {
             &args,
         )?;
 
-        let html =
+        let body =
             ctx.localization()
                 .translate(locales, "special-error-site-custom", &args)?;
 
         Ok(SpecialErrorOutput {
             title: title.to_string(),
-            html: html.to_string(),
+            body: body.to_string(),
         })
     }
 
@@ -117,13 +117,13 @@ impl SpecialErrorService {
             &args,
         )?;
 
-        let html =
+        let body =
             ctx.localization()
                 .translate(locales, "special-error-site-fetch", &args)?;
 
         Ok(SpecialErrorOutput {
             title: title.to_string(),
-            html: html.to_string(),
+            body: body.to_string(),
         })
     }
 
@@ -144,13 +144,13 @@ impl SpecialErrorService {
             &args,
         )?;
 
-        let html =
+        let body =
             ctx.localization()
                 .translate(locales, "special-error-file-root", &args)?;
 
         Ok(SpecialErrorOutput {
             title: title.to_string(),
-            html: html.to_string(),
+            body: body.to_string(),
         })
     }
 }
