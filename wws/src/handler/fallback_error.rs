@@ -37,6 +37,10 @@ pub enum FallbackError {
     /// No such special error code.
     SpecialErrorCode,
 
+    /// Attempting to access the special error route directly.
+    /// Or with a missing `X-Wikijump-Special-Error` internal header.
+    SpecialErrorDirect,
+
     /// Unable to retrieve a special error response from DEEPWELL.
     SpecialErrorFetch,
 
@@ -53,14 +57,26 @@ impl FallbackError {
         match self {
             FallbackError::SpecialErrorCode => 1000,
             FallbackError::SpecialErrorFetch => 1001,
-            FallbackError::RedirectMain => 1002,
+            FallbackError::SpecialErrorDirect => 1002,
+            FallbackError::RedirectMain => 1003,
+        }
+    }
+
+    pub fn status_code(self) -> StatusCode {
+        match self {
+            FallbackError::SpecialErrorCode => StatusCode::BAD_REQUEST,
+            FallbackError::SpecialErrorDirect => StatusCode::FORBIDDEN,
+            FallbackError::SpecialErrorFetch | FallbackError::RedirectMain => {
+                StatusCode::GATEWAY_TIMEOUT
+            }
         }
     }
 }
 
 impl IntoResponse for FallbackError {
     fn into_response(self) -> Response {
+        let status_code = self.status_code();
         let message = format!("ERROR XF-{}", self.error_code());
-        (StatusCode::GATEWAY_TIMEOUT, message).into_response()
+        (status_code, message).into_response()
     }
 }

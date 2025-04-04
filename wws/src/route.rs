@@ -66,10 +66,13 @@ pub fn build_router(state: ServerState) -> Router {
         .route("/-/code/{page_slug}/{index}", any(handle_invalid_method))
         .route("/-/html/{page_slug}/{id}", get(handle_html_block))
         .route("/-/html/{page_slug}/{id}", any(handle_invalid_method))
+        // System routes
+        .route("/-/health-check", any(handle_health_check))
+        .route("/-/special-error/{error_code}", get(handle_special_error))
+        .route("/-/special-error/{error_code}", any(handle_invalid_method))
         // General routes
         .route("/robots.txt", get(handle_robots_txt)) // TODO
         .route("/.well-known", any(handle_well_known)) // TODO
-        .route("/-/health-check", any(handle_health_check))
         .fallback(redirect_to_main)
         // Middleware
         .layer(TraceLayer::new_for_http())

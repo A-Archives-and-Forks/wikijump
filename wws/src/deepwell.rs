@@ -70,6 +70,8 @@ impl Deepwell {
         Ok(())
     }
 
+    // Getters
+
     pub async fn get_site_domain(&self, site_id: i64) -> Result<String> {
         let params = rpc_params![site_id];
         let domain: String = self.client.request("site_domain", params).await?;
@@ -104,6 +106,75 @@ impl Deepwell {
         let file_data: Option<FileData> = self.client.request("file_get", params).await?;
         Ok(file_data)
     }
+
+    // Special errors
+
+    pub async fn special_error_missing_site_slug(
+        &self,
+        locales: &[String],
+        site_slug: &str,
+    ) -> Result<SpecialError> {
+        let params = rpc_object! {
+            "locales" => locales,
+            "site_slug" => site_slug,
+        };
+
+        let html: SpecialError = self
+            .client
+            .request("special_error_missing_site_slug", params)
+            .await?;
+
+        Ok(html)
+    }
+
+    pub async fn special_error_missing_custom_domain(
+        &self,
+        locales: &[String],
+        domain: &str,
+    ) -> Result<SpecialError> {
+        let params = rpc_object! {
+            "locales" => locales,
+            "domain" => domain,
+        };
+
+        let html: SpecialError = self
+            .client
+            .request("special_error_missing_custom_domain", params)
+            .await?;
+
+        Ok(html)
+    }
+
+    pub async fn special_error_site_fetch(
+        &self,
+        locales: &[String],
+        domain: &str,
+    ) -> Result<SpecialError> {
+        let params = rpc_object! {
+            "locales" => locales,
+            "domain" => domain,
+        };
+
+        let html: SpecialError = self
+            .client
+            .request("special_error_site_fetch", params)
+            .await?;
+
+        Ok(html)
+    }
+
+    pub async fn special_error_file_root(&self, locales: &[String]) -> Result<SpecialError> {
+        let params = rpc_object! {
+            "locales" => locales,
+        };
+
+        let html: SpecialError = self
+            .client
+            .request("special_error_file_root", params)
+            .await?;
+
+        Ok(html)
+    }
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -117,4 +188,10 @@ pub struct FileData {
     pub mime: String,
     pub size: i64,
     pub s3_hash: String,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct SpecialError {
+    pub title: String,
+    pub html: String,
 }

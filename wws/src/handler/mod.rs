@@ -25,6 +25,7 @@ mod html;
 mod misc;
 mod redirect;
 mod robots;
+mod special_error;
 mod well_known;
 
 pub use self::code::*;
@@ -34,6 +35,7 @@ pub use self::html::*;
 pub use self::misc::*;
 pub use self::redirect::*;
 pub use self::robots::*;
+pub use self::special_error::*;
 pub use self::well_known::*;
 
 use axum::http::header::{HeaderMap, HeaderName};
@@ -41,6 +43,7 @@ use axum::http::header::{HeaderMap, HeaderName};
 pub const HEADER_SITE_ID: HeaderName = HeaderName::from_static("x-wikijump-site-id");
 pub const HEADER_SITE_SLUG: HeaderName = HeaderName::from_static("x-wikijump-site-slug");
 pub const HEADER_TARGET_SERVER: HeaderName = HeaderName::from_static("x-wikijump-target-server");
+pub const HEADER_SPECIAL_ERROR: HeaderName = HeaderName::from_static("x-wikijump-special-error");
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum TargetServer {
