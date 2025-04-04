@@ -400,8 +400,7 @@ fn test_site_slug_split_index() {
             // Get and validate index
             let index = site_slug_split_index($domain);
             assert_eq!(
-                index,
-                $expected_index,
+                index, $expected_index,
                 "Caddy site slug extraction index does not match",
             );
 
@@ -415,5 +414,5 @@ fn test_site_slug_split_index() {
     check!(".wikijump.com", 2);
     check!(".foo.example.org", 3);
     check!(".bar.foo.example.org", 4);
-    check!(".alpha.beta.gamma.delta.epsilon.zeta.eta.theta.wjfiles.com", 10);
+    check!(".alpha.beta.gamma.delta.epsilon.zeta.eta.wjfiles.com", 9);
 }
