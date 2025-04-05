@@ -1,2 +1,2 @@
 #!/bin/sh
-curl -If -k https://localhost:8000/-/health-check
+curl -If -k https://localhost:7000/-/health-check

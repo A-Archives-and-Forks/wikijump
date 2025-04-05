@@ -33,5 +33,5 @@ COPY --from=rust /src/wws/target/release/wws /usr/local/bin/wws
 COPY ./install/dev/wws/health-check.sh /usr/local/bin/wikijump-health-check
 
 USER daemon
-EXPOSE 2747
+EXPOSE 7000
 CMD ["/usr/local/bin/wws"]
