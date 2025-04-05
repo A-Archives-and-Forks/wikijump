@@ -160,8 +160,8 @@ impl CaddyService {
 
 (serve_main) {{
 	# Special routes
-	respond /-/health-check/caddy '✅' 200
-	respond /-/teapot             '🫖' 418
+	respond /-/health-check/caddy ✅ 200
+	respond /-/teapot             🫖 418
 
 	# wjfiles-managed routes
 	# These are proxied to wws for it to handle, but shouldn't be redirected
@@ -289,8 +289,8 @@ www.{domain} {{
 	import strip_headers
 
 	# Special routes
-	respond /-/health-check/caddy '✅' 200
-	respond /-/teapot             '🫖' 418
+	respond /-/health-check/caddy ✅ 200
+	respond /-/teapot             🫖 418
 
 	# Enable default compression settings
 	encode
