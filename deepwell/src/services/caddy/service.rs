@@ -141,7 +141,7 @@ impl CaddyService {
         }
 
         if *local {
-            str_writeln!(&mut caddyfile, "\tskip_install_trust");
+            str_writeln!(&mut caddyfile, "\tlocal_certs\n\tskip_install_trust");
         }
 
         str_write!(
