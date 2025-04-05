@@ -8,6 +8,7 @@ COPY ./install/local/caddy/start.sh /usr/local/bin/wikijump-start-caddy
 COPY ./install/local/caddy/health-check.sh /usr/local/bin/wikijump-health-check
 COPY ./install/local/caddy/generate-caddyfile.sh /usr/local/bin/wikijump-generate-caddyfile
 COPY ./install/local/caddy/update-caddyfile.sh /usr/local/bin/wikijump-update-caddyfile
+COPY ./install/local/caddy/request.json /etc/caddy-request.json
 
 # Set up cron
 COPY ./install/local/caddy/crontab /etc/caddy/crontab

@@ -1,24 +1,10 @@
 #!/bin/sh
 set -e
 
-body='
-{
-	"jsonrpc": "2.0",
-	"method": "caddyfile",
-	"id": 0,
-	"params": {
-		"debug": true,
-		"local": true,
-		"framerail_host": "framerail:3000",
-		"wws_host": "wws:7000"
-	}
-}
-'
-
 # Send DEEPWELL request
 curl -f http://deepwell:2747/jsonrpc \
 	-X POST \
-	--json "$body" \
+	--json @/etc/caddy-request.json \
 		> /tmp/deepwell.json
 
 # Determine if it's an error
