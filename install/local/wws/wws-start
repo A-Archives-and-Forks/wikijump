@@ -10,5 +10,4 @@ exec /usr/bin/env RUST_BACKTRACE=1 \
     /usr/local/cargo/bin/cargo watch \
         --why \
         -w /src/wws \
-        -x run \
-        --features tls
+        -x run
