@@ -107,7 +107,7 @@ services:
     links:
       - deepwell
       - cache
-      - framerail
+      - files
     environment:
       - "ADDRESS=[::]:7000"
       - "DEEPWELL_URL=http://deepwell:2747"
