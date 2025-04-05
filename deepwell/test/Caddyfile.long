@@ -26,7 +26,7 @@
 		path /-/health-check
 	}
 	request_header @proxy X-Wikijump-Target-Server main
-	reverse_proxy @proxy http://{vars.site_slug}.wjfiles.host.site.somedomain.example.com{uri}
+	reverse_proxy @proxy {vars.site_slug}.wjfiles.host.site.somedomain.example.com{uri}
 
 	# Redirect, true route is on the files server
 	@redirect {
@@ -50,7 +50,7 @@
 
 	# Finally, proxy to framerail to get the actual HTML
 	# Note, the x-wikijump-site-* headers have already been set at this point
-	reverse_proxy http://framerail:3000
+	reverse_proxy framerail:3000
 }
 
 foo.site.wikijump.com {
@@ -103,13 +103,13 @@ www.example.com {
 	encode
 	respond /-/teapot '🫖' 418
 	request_header X-Wikijump-Target-Server files
-	reverse_proxy http://wws:7000
+	reverse_proxy wws:7000
 }
 
 wjfiles.host.site.somedomain.example.com {
 	request_header X-Wikijump-Special-Error 1
 	rewrite * /-/special-error/file-root
-	reverse_proxy http://wws:7000
+	reverse_proxy wws:7000
 }
 
 *.wjfiles.host.site.somedomain.example.com {
@@ -138,7 +138,7 @@ wjfiles.host.site.somedomain.example.com {
 	request_header X-Wikijump-Special-Error 1
 	request_header X-Wikijump-Site-Slug {labels.3}
 	rewrite * /-/special-error/site-slug
-	reverse_proxy http://wws:7000
+	reverse_proxy wws:7000
 }
 
 # Missing custom domain
@@ -147,5 +147,5 @@ https:// {
 	import strip_headers
 	request_header X-Wikijump-Special-Error 1
 	rewrite * /-/special-error/site-custom
-	reverse_proxy http://wws:7000
+	reverse_proxy wws:7000
 }

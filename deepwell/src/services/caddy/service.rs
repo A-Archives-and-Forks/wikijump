@@ -171,7 +171,7 @@ impl CaddyService {
 		path /-/health-check
 	}}
 	request_header @proxy X-Wikijump-Target-Server main
-	reverse_proxy @proxy http://{{vars.site_slug}}{files_domain}{{uri}}
+	reverse_proxy @proxy {{vars.site_slug}}{files_domain}{{uri}}
 
 	# Redirect, true route is on the files server
 	@redirect {{
@@ -195,7 +195,7 @@ impl CaddyService {
 
 	# Finally, proxy to framerail to get the actual HTML
 	# Note, the x-wikijump-site-* headers have already been set at this point
-	reverse_proxy http://{framerail_host}
+	reverse_proxy {framerail_host}
 }}
 "
         );
@@ -297,13 +297,13 @@ www.{domain} {{
 
 	# Reverse proxy
 	request_header X-Wikijump-Target-Server files
-	reverse_proxy http://{wws_host}
+	reverse_proxy {wws_host}
 }}
 
 {files_domain_no_dot} {{
 	request_header X-Wikijump-Special-Error 1
 	rewrite * /-/special-error/file-root
-	reverse_proxy http://{wws_host}
+	reverse_proxy {wws_host}
 }}
 
 *{files_domain} {{
@@ -347,7 +347,7 @@ www.{domain} {{
 	request_header X-Wikijump-Special-Error 1
 	request_header X-Wikijump-Site-Slug {{labels.{}}}
 	rewrite * /-/special-error/site-slug
-	reverse_proxy http://{wws_host}
+	reverse_proxy {wws_host}
 }}
 
 # Missing custom domain
@@ -355,7 +355,7 @@ www.{domain} {{
 	import strip_headers
 	request_header X-Wikijump-Special-Error 1
 	rewrite * /-/special-error/site-custom
-	reverse_proxy http://{wws_host}
+	reverse_proxy {wws_host}
 }}",
             site_slug_split_index(main_domain),
             if *local {
