@@ -1,0 +1,11 @@
+{
+	"jsonrpc": "2.0",
+	"method": "caddyfile",
+	"id": 0,
+	"params": {
+		"debug": true,
+		"local": false,
+		"framerail_host": "framerail:3000",
+		"wws_host": "wws:7000"
+	}
+}
