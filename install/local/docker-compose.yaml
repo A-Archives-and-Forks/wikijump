@@ -131,3 +131,20 @@ services:
         condition: service_healthy
       files:
         condition: service_healthy
+
+  caddy:
+    build:
+      context: ../..
+      dockerfile: install/local/caddy/Dockerfile
+    ports:
+      - "80:80"
+      - "443:443"
+    links:
+      - framerail
+      - wws
+    restart: always
+    healthcheck:
+      test: ["CMD", "wikijump-health-check"]
+      interval: 30s
+      timeout: 2s
+      retries: 3
