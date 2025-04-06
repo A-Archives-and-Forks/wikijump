@@ -112,7 +112,7 @@ pub async fn handle_special_error(
     let html = format!("{HTML_START}{title}{HTML_MIDDLE}{body}{HTML_END}");
     Response::builder()
         .status(status)
-        .header(header::CONTENT_TYPE, "text/plain; charset=utf-8")
+        .header(header::CONTENT_TYPE, "text/html; charset=utf-8")
         .body(Body::from(html))
         .expect("Unable to convert response data")
 }
