@@ -286,8 +286,6 @@ www.{domain} {{
 #
 
 (serve_files) {{
-	import strip_headers
-
 	# Special routes
 	respond /-/health-check/caddy ✅ 200
 	respond /-/teapot             🫖 418
