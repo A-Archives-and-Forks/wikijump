@@ -171,7 +171,7 @@ impl CaddyService {
 		path /-/health-check
 	}}
 	request_header @proxy X-Wikijump-Target-Server main
-	reverse_proxy @proxy {wws_host}{{uri}}
+	reverse_proxy @proxy {wws_host}
 
 	# Redirect, true route is on the files server
 	@redirect {{
