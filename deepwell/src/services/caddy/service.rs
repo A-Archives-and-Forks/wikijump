@@ -240,7 +240,6 @@ impl CaddyService {
 
 	request_header X-Wikijump-Site-Id {{vars.site_id}}
 	request_header X-Wikijump-Site-Slug {{vars.site_slug}}
-
 	import serve_main
 }}
 
@@ -325,7 +324,6 @@ www.{domain} {{
             "
 	request_header X-Wikijump-Site-Slug {{labels.{}}}
 	request_header X-Wikijump-Site-Id {{vars.site_id}}
-
 	import serve_files
 }}
 ",
