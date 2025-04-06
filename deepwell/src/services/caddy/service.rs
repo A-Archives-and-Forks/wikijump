@@ -299,6 +299,7 @@ www.{domain} {{
 }}
 
 {files_domain_no_dot} {{
+	import strip_headers
 	request_header X-Wikijump-Special-Error 1
 	rewrite * /-/special-error/file-root
 	reverse_proxy {wws_host}
