@@ -23,7 +23,6 @@
 //! This service has two components, management of canonical domains (e.g. `scp-wiki.wikijump.com`)
 //! and custom domains (e.g. `scpwiki.com`).
 
-// TODO disallow custom domains that are subdomains of the main domain or files domain
 // TODO disallow preferred domains for default site (www)
 // TODO expire redis cache on change to domains
 
@@ -49,8 +48,15 @@ impl DomainService {
         // Correctness checks
 
         if Self::custom_domain_exists(ctx, &domain).await? {
-            error!("Custom domain already exists, cannot create");
+            error!("Custom domain '{domain}' already exists, cannot create");
             return Err(Error::CustomDomainExists);
+        }
+
+        let config = ctx.config();
+        if domain.ends_with(&config.main_domain) || domain.ends_with(&config.files_domain)
+        {
+            error!("Custom domains cannot be subdomains of the Wikijump main or files domain: {domain}");
+            return Err(Error::CustomDomainSubdomain);
         }
 
         // Seems good, insert data
