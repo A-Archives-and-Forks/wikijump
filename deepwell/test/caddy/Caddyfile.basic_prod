@@ -16,7 +16,8 @@
 
 (serve_main) {
 	# Special routes
-	respond /-/teapot '🫖' 418
+	respond /-/health-check/caddy ✅ 200
+	respond /-/teapot             🫖 418
 
 	# wjfiles-managed routes
 	# These are proxied to wws for it to handle, but shouldn't be redirected
@@ -26,7 +27,7 @@
 		path /-/health-check
 	}
 	request_header @proxy X-Wikijump-Target-Server main
-	reverse_proxy @proxy {vars.site_slug}.wjfiles.test{uri}
+	reverse_proxy @proxy wws:7000
 
 	# Redirect, true route is on the files server
 	@redirect {
@@ -50,7 +51,7 @@
 
 	# Finally, proxy to framerail to get the actual HTML
 	# Note, the x-wikijump-site-* headers have already been set at this point
-	reverse_proxy web_proxy_host
+	reverse_proxy framerail:3000
 }
 
 foo.wikijump.test {
@@ -63,7 +64,6 @@ foo.wikijump.test {
 
 	request_header X-Wikijump-Site-Id {vars.site_id}
 	request_header X-Wikijump-Site-Slug {vars.site_slug}
-
 	import serve_main
 }
 
@@ -86,7 +86,6 @@ example.com {
 
 	request_header X-Wikijump-Site-Id {vars.site_id}
 	request_header X-Wikijump-Site-Slug {vars.site_slug}
-
 	import serve_main
 }
 
@@ -99,17 +98,23 @@ www.example.com {
 #
 
 (serve_files) {
-	import strip_headers
+	# Special routes
+	respond /-/health-check/caddy ✅ 200
+	respond /-/teapot             🫖 418
+
+	# Enable default compression settings
 	encode
-	respond /-/teapot '🫖' 418
+
+	# Reverse proxy
 	request_header X-Wikijump-Target-Server files
-	reverse_proxy wws_proxy_host
+	reverse_proxy wws:7000
 }
 
 wjfiles.test {
+	import strip_headers
 	request_header X-Wikijump-Special-Error 1
 	rewrite * /-/special-error/file-root
-	reverse_proxy wws_proxy_host
+	reverse_proxy wws:7000
 }
 
 *.wjfiles.test {
@@ -123,7 +128,6 @@ wjfiles.test {
 
 	request_header X-Wikijump-Site-Slug {labels.2}
 	request_header X-Wikijump-Site-Id {vars.site_id}
-
 	import serve_files
 }
 
@@ -138,7 +142,7 @@ wjfiles.test {
 	request_header X-Wikijump-Special-Error 1
 	request_header X-Wikijump-Site-Slug {labels.2}
 	rewrite * /-/special-error/site-slug
-	reverse_proxy wws_proxy_host
+	reverse_proxy wws:7000
 }
 
 # Missing custom domain
@@ -147,5 +151,5 @@ https:// {
 	import strip_headers
 	request_header X-Wikijump-Special-Error 1
 	rewrite * /-/special-error/site-custom
-	reverse_proxy wws_proxy_host
+	reverse_proxy wws:7000
 }

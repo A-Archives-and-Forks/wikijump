@@ -6,6 +6,7 @@
 	http_port 8000
 	https_port 8443
 	debug
+	local_certs
 	skip_install_trust
 }
 
@@ -20,7 +21,8 @@
 
 (serve_main) {
 	# Special routes
-	respond /-/teapot '🫖' 418
+	respond /-/health-check/caddy ✅ 200
+	respond /-/teapot             🫖 418
 
 	# wjfiles-managed routes
 	# These are proxied to wws for it to handle, but shouldn't be redirected
@@ -30,7 +32,7 @@
 		path /-/health-check
 	}
 	request_header @proxy X-Wikijump-Target-Server main
-	reverse_proxy @proxy {vars.site_slug}.wjfiles.localhost{uri}
+	reverse_proxy @proxy wws:7000
 
 	# Redirect, true route is on the files server
 	@redirect {
@@ -67,7 +69,6 @@ foo.wikijump.localhost {
 
 	request_header X-Wikijump-Site-Id {vars.site_id}
 	request_header X-Wikijump-Site-Slug {vars.site_slug}
-
 	import serve_main
 }
 
@@ -90,7 +91,6 @@ example.com {
 
 	request_header X-Wikijump-Site-Id {vars.site_id}
 	request_header X-Wikijump-Site-Slug {vars.site_slug}
-
 	import serve_main
 }
 
@@ -103,14 +103,20 @@ www.example.com {
 #
 
 (serve_files) {
-	import strip_headers
+	# Special routes
+	respond /-/health-check/caddy ✅ 200
+	respond /-/teapot             🫖 418
+
+	# Enable default compression settings
 	encode
-	respond /-/teapot '🫖' 418
+
+	# Reverse proxy
 	request_header X-Wikijump-Target-Server files
 	reverse_proxy wws:7000
 }
 
 wjfiles.localhost {
+	import strip_headers
 	request_header X-Wikijump-Special-Error 1
 	rewrite * /-/special-error/file-root
 	reverse_proxy wws:7000
@@ -127,7 +133,6 @@ wjfiles.localhost {
 
 	request_header X-Wikijump-Site-Slug {labels.2}
 	request_header X-Wikijump-Site-Id {vars.site_id}
-
 	import serve_files
 }
 

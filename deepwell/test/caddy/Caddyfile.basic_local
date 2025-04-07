@@ -3,6 +3,8 @@
 	metrics {
 		per_host
 	}
+	local_certs
+	skip_install_trust
 }
 
 (strip_headers) {
@@ -16,7 +18,8 @@
 
 (serve_main) {
 	# Special routes
-	respond /-/teapot '🫖' 418
+	respond /-/health-check/caddy ✅ 200
+	respond /-/teapot             🫖 418
 
 	# wjfiles-managed routes
 	# These are proxied to wws for it to handle, but shouldn't be redirected
@@ -26,7 +29,7 @@
 		path /-/health-check
 	}
 	request_header @proxy X-Wikijump-Target-Server main
-	reverse_proxy @proxy {vars.site_slug}.wjfiles.host.site.somedomain.example.com{uri}
+	reverse_proxy @proxy wws:7000
 
 	# Redirect, true route is on the files server
 	@redirect {
@@ -43,7 +46,7 @@
 		path /-/code/*
 		path /-/html/*
 	}
-	redir @redirect https://{vars.site_slug}.wjfiles.host.site.somedomain.example.com{uri}
+	redir @redirect https://{vars.site_slug}.wjfiles.localhost{uri}
 
 	# Enable default compression settings
 	encode
@@ -53,7 +56,7 @@
 	reverse_proxy framerail:3000
 }
 
-foo.site.wikijump.com {
+foo.wikijump.localhost {
 	import strip_headers
 
 	vars {
@@ -63,16 +66,15 @@ foo.site.wikijump.com {
 
 	request_header X-Wikijump-Site-Id {vars.site_id}
 	request_header X-Wikijump-Site-Slug {vars.site_slug}
-
 	import serve_main
 }
 
-www.foo.site.wikijump.com {
-	redir https://foo.site.wikijump.com{uri}
+www.foo.wikijump.localhost {
+	redir https://foo.wikijump.localhost{uri}
 }
 
-bar.site.wikijump.com,
-www.bar.site.wikijump.com {
+bar.wikijump.localhost,
+www.bar.wikijump.localhost {
 	redir https://example.com{uri}
 }
 
@@ -86,7 +88,6 @@ example.com {
 
 	request_header X-Wikijump-Site-Id {vars.site_id}
 	request_header X-Wikijump-Site-Slug {vars.site_slug}
-
 	import serve_main
 }
 
@@ -99,31 +100,36 @@ www.example.com {
 #
 
 (serve_files) {
-	import strip_headers
+	# Special routes
+	respond /-/health-check/caddy ✅ 200
+	respond /-/teapot             🫖 418
+
+	# Enable default compression settings
 	encode
-	respond /-/teapot '🫖' 418
+
+	# Reverse proxy
 	request_header X-Wikijump-Target-Server files
 	reverse_proxy wws:7000
 }
 
-wjfiles.host.site.somedomain.example.com {
+wjfiles.localhost {
+	import strip_headers
 	request_header X-Wikijump-Special-Error 1
 	rewrite * /-/special-error/file-root
 	reverse_proxy wws:7000
 }
 
-*.wjfiles.host.site.somedomain.example.com {
+*.wjfiles.localhost {
 	import strip_headers
 
-	@foo host foo.wjfiles.host.site.somedomain.example.com
+	@foo host foo.wjfiles.localhost
 	vars @foo site_id 1
 
-	@bar host bar.wjfiles.host.site.somedomain.example.com
+	@bar host bar.wjfiles.localhost
 	vars @bar site_id 2
 
-	request_header X-Wikijump-Site-Slug {labels.6}
+	request_header X-Wikijump-Site-Slug {labels.2}
 	request_header X-Wikijump-Site-Id {vars.site_id}
-
 	import serve_files
 }
 
@@ -133,17 +139,18 @@ wjfiles.host.site.somedomain.example.com {
 #
 
 # Missing canonical domain
-*.site.wikijump.com {
+*.wikijump.localhost {
 	import strip_headers
 	request_header X-Wikijump-Special-Error 1
-	request_header X-Wikijump-Site-Slug {labels.3}
+	request_header X-Wikijump-Site-Slug {labels.2}
 	rewrite * /-/special-error/site-slug
 	reverse_proxy wws:7000
 }
 
 # Missing custom domain
 http://,
-https:// {
+https://,
+localhost {
 	import strip_headers
 	request_header X-Wikijump-Special-Error 1
 	rewrite * /-/special-error/site-custom

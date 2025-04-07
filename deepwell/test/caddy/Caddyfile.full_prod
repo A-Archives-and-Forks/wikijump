@@ -16,7 +16,8 @@
 
 (serve_main) {
 	# Special routes
-	respond /-/teapot '🫖' 418
+	respond /-/health-check/caddy ✅ 200
+	respond /-/teapot             🫖 418
 
 	# wjfiles-managed routes
 	# These are proxied to wws for it to handle, but shouldn't be redirected
@@ -26,7 +27,7 @@
 		path /-/health-check
 	}
 	request_header @proxy X-Wikijump-Target-Server main
-	reverse_proxy @proxy {vars.site_slug}.wjfiles.test{uri}
+	reverse_proxy @proxy wws:7000
 
 	# Redirect, true route is on the files server
 	@redirect {
@@ -63,7 +64,6 @@ wikijump.test {
 
 	request_header X-Wikijump-Site-Id {vars.site_id}
 	request_header X-Wikijump-Site-Slug {vars.site_slug}
-
 	import serve_main
 }
 
@@ -81,7 +81,6 @@ empty.wikijump.test {
 
 	request_header X-Wikijump-Site-Id {vars.site_id}
 	request_header X-Wikijump-Site-Slug {vars.site_slug}
-
 	import serve_main
 }
 
@@ -99,7 +98,6 @@ mytest.wikijump.test {
 
 	request_header X-Wikijump-Site-Id {vars.site_id}
 	request_header X-Wikijump-Site-Slug {vars.site_slug}
-
 	import serve_main
 }
 
@@ -137,7 +135,6 @@ wandererslibrary.com {
 
 	request_header X-Wikijump-Site-Id {vars.site_id}
 	request_header X-Wikijump-Site-Slug {vars.site_slug}
-
 	import serve_main
 }
 
@@ -160,7 +157,6 @@ scpwiki.com {
 
 	request_header X-Wikijump-Site-Id {vars.site_id}
 	request_header X-Wikijump-Site-Slug {vars.site_slug}
-
 	import serve_main
 }
 
@@ -193,14 +189,20 @@ www.scpwiki.wikijump.test {
 #
 
 (serve_files) {
-	import strip_headers
+	# Special routes
+	respond /-/health-check/caddy ✅ 200
+	respond /-/teapot             🫖 418
+
+	# Enable default compression settings
 	encode
-	respond /-/teapot '🫖' 418
+
+	# Reverse proxy
 	request_header X-Wikijump-Target-Server files
 	reverse_proxy wws:7000
 }
 
 wjfiles.test {
+	import strip_headers
 	request_header X-Wikijump-Special-Error 1
 	rewrite * /-/special-error/file-root
 	reverse_proxy wws:7000
@@ -226,7 +228,6 @@ wjfiles.test {
 
 	request_header X-Wikijump-Site-Slug {labels.2}
 	request_header X-Wikijump-Site-Id {vars.site_id}
-
 	import serve_files
 }
 
