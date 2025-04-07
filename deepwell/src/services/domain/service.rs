@@ -46,12 +46,16 @@ impl DomainService {
     ) -> Result<()> {
         info!("Creating custom domain '{domain}' (site ID {site_id})");
 
-        let txn = ctx.transaction();
+        // Correctness checks
+
         if Self::custom_domain_exists(ctx, &domain).await? {
             error!("Custom domain already exists, cannot create");
             return Err(Error::CustomDomainExists);
         }
 
+        // Seems good, insert data
+
+        let txn = ctx.transaction();
         let model = site_domain::ActiveModel {
             domain: Set(domain),
             site_id: Set(site_id),
