@@ -98,35 +98,6 @@ impl SpecialErrorService {
         })
     }
 
-    /// Error for when fetching host information fails.
-    pub async fn site_fetch(
-        ctx: &ServiceContext<'_>,
-        locales: &[LanguageIdentifier],
-        domain: &str,
-    ) -> Result<SpecialErrorOutput> {
-        assert!(!locales.is_empty(), "No languages specified");
-        let config = ctx.config();
-        let mut args = FluentArgs::new();
-        args.set("main_domain", fluent_str!(config.main_domain_no_dot));
-        args.set("files_domain", fluent_str!(config.files_domain_no_dot));
-        args.set("domain", fluent_str!(domain));
-
-        let title = ctx.localization().translate(
-            locales,
-            "special-error-site-fetch.title",
-            &args,
-        )?;
-
-        let body =
-            ctx.localization()
-                .translate(locales, "special-error-site-fetch", &args)?;
-
-        Ok(SpecialErrorOutput {
-            title: title.to_string(),
-            body: body.to_string(),
-        })
-    }
-
     /// Error for when a user tries to access wjfiles without passing in a site slug.
     pub async fn file_root(
         ctx: &ServiceContext<'_>,

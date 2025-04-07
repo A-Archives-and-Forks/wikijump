@@ -86,10 +86,6 @@ pub async fn handle_special_error(
         "site-custom" => {
             get_special_error!(missing_custom_domain, &host => NOT_FOUND)
         }
-        // TODO where is this used?
-        "site-fetch" => {
-            get_special_error!(site_fetch, &host => INTERNAL_SERVER_ERROR)
-        }
         // No required headers
         "file-root" => {
             get_special_error!(file_root => BAD_REQUEST)

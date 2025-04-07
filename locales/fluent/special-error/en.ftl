@@ -22,17 +22,6 @@ special-error-site-custom = <h1>No { -service-name } site exists with this addre
 
     .title = No such site - { -service-name }
 
-special-error-site-fetch = <h1>Unable to fetch site information.</h1>
-    <p>
-      { -service-name } was unable to retrieve information about <code>{ $domain }</code>.
-    </p>
-
-    <p>
-      Return to <a href="https://{ $main_domain }/">{ -service-name }</a>.
-    </p>
-
-    .title = Unable to fetch information - { -service-name }
-
 special-error-file-root = <h1>Invalid route</h1>
     <p>
       { -service-name } serves user-generated data from <code>{ $files_domain }</code>, but this is not a valid URL.
