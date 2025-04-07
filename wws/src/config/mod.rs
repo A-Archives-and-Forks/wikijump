@@ -1,7 +1,7 @@
 /*
  * config/mod.rs
  *
- * DEEPWELL - Wikijump API provider and database manager
+ * Wilson's Web Server - Serves a zoo of user-generated content
  * Copyright (C) 2019-2025 Wikijump Team
  *
  * This program is free software: you can redistribute it and/or modify
