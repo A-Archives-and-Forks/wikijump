@@ -49,6 +49,10 @@ pub fn build_router(state: ServerState) -> Router {
         .route("/local--html/{page_slug}/{id}", any(handle_html_redirect))
         // Wikijump redirects
         .route("/-/files/{page_slug}/{filename}", any(handle_file_redirect))
+        .route("/{page_slug}/code/{filename}", any(handle_code_redirect))
+        .route("/{page_slug}/html/{filename}", any(handle_html_redirect))
+        .route("/{page_slug}/file/{filename}", any(handle_file_redirect))
+        .route("/{page_slug}/download/{filename}", any(handle_download_redirect))
         // Files
         .route("/-/file/{page_slug}/{filename}", get(handle_file_fetch))
         .route("/-/file/{page_slug}/{filename}", any(handle_invalid_method))
