@@ -21,9 +21,26 @@
 use crate::services::{Error, Result};
 use unic_langid::LanguageIdentifier;
 
+/// Ensure the given locale string is valid, returning the parsed locale.
+/// If it is invalid, then the appropriate `Error` variant is returned.
 pub fn validate_locale(locale_str: &str) -> Result<LanguageIdentifier> {
     LanguageIdentifier::from_bytes(locale_str.as_bytes()).map_err(|error| {
         warn!("Invalid locale '{}' passed: {:?}", locale_str, error);
         Error::LocaleInvalid(error)
     })
+}
+
+/// Helper function to convert an array of strings to a list of locales.
+///
+/// Empty locales lists _are_ allowed, since we have not
+/// yet checked the user's locale preferences.
+pub fn parse_locales<S: AsRef<str>>(
+    locales_str: &[S],
+) -> Result<Vec<LanguageIdentifier>> {
+    let mut locales = Vec::with_capacity(locales_str.len());
+    for locale_str in locales_str {
+        let locale = LanguageIdentifier::from_bytes(locale_str.as_ref().as_bytes())?;
+        locales.push(locale);
+    }
+    Ok(locales)
 }

@@ -20,7 +20,7 @@ if __name__ == "__main__":
     # Parse arguments
     argparser = argparse.ArgumentParser()
     argparser.add_argument(
-        "-S",
+        "-s",
         "--sudo",
         action="store_true",
         help="Runs the docker-compose command using sudo",

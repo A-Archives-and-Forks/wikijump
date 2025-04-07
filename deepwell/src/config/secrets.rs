@@ -65,7 +65,7 @@ impl Secrets {
     pub fn load() -> Self {
         dotenv().ok();
 
-        // Essentially .expect(), but allows inserting the environment variable name.
+        // Essentially .expect(), but allows printing the environment variable name in the message.
         macro_rules! get_env {
             ($name:expr) => {
                 match env::var($name) {

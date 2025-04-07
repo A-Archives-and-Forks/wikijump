@@ -18,16 +18,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use crate::models::site::Model as SiteModel;
-
-#[derive(Debug)]
-pub enum SiteDomainResult<'a> {
-    Found(SiteModel),
-    Slug(&'a str),
-    CustomDomain(&'a str),
-}
-
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct CreateCustomDomain {
     pub domain: String,
     pub site_id: i64,

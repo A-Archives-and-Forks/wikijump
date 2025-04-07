@@ -16,6 +16,11 @@
             "wikitext": "topbar"
         },
         {
+            "slug": "_admin",
+            "title": "Admin Panel",
+            "wikitext": "_admin"
+        },
+        {
             "slug": "platform:activity",
             "title": "Wikijump: Activity across all sites",
             "wikitext": "platform-activity"
@@ -68,6 +73,11 @@
             "wikitext": "topbar"
         },
         {
+            "slug": "_admin",
+            "title": "Admin Panel",
+            "wikitext": "_admin"
+        },
+        {
             "slug": "system:join",
             "title": "Join this site",
             "wikitext": "no-join"
@@ -103,6 +113,11 @@
             "slug": "nav:top",
             "title": "Topbar",
             "wikitext": "topbar"
+        },
+        {
+            "slug": "_admin",
+            "title": "Admin Panel",
+            "wikitext": "_admin"
         },
         {
             "slug": "system:join",
@@ -146,6 +161,11 @@
             "slug": "nav:top",
             "title": "Topbar",
             "wikitext": "topbar"
+        },
+        {
+            "slug": "_admin",
+            "title": "Admin Panel",
+            "wikitext": "_admin"
         },
         {
             "slug": "system:join",

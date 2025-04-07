@@ -33,15 +33,13 @@ use super::prelude::*;
 use crate::models::page::Model as PageModel;
 use crate::models::page_revision::Model as PageRevisionModel;
 use crate::models::site::Model as SiteModel;
-use crate::services::domain::SiteDomainResult;
 use crate::services::render::RenderOutput;
 use crate::services::special_page::{GetSpecialPageOutput, SpecialPageType};
 use crate::services::{
-    DomainService, PageRevisionService, PageService, SessionService, SpecialPageService,
+    PageRevisionService, PageService, SessionService, SiteService, SpecialPageService,
     TextService, UserService,
 };
-use crate::utils::split_category;
-use fluent::{FluentArgs, FluentValue};
+use crate::utils::{parse_locales, split_category};
 use ftml::prelude::*;
 use ftml::render::html::HtmlOutput;
 use ref_map::*;
@@ -57,40 +55,26 @@ impl ViewService {
     pub async fn page(
         ctx: &ServiceContext<'_>,
         GetPageView {
-            domain,
+            site_id,
             locales: locales_str,
             route,
             session_token,
         }: GetPageView,
     ) -> Result<GetPageViewOutput> {
         info!(
-            "Getting page view data for domain '{}', route '{:?}', locales '{:?}'",
-            domain, route, locales_str,
+            "Getting page view data for site ID {}, route '{:?}', locales '{:?}'",
+            site_id, route, locales_str,
         );
 
-        // Parse all locales
         let mut locales = parse_locales(&locales_str)?;
         let config = ctx.config();
-
-        // Attempt to get a viewer helper structure, but if the site doesn't exist
-        // then return right away with the "no such site" response.
-        let Viewer {
-            site,
-            redirect_site,
-            user_session,
-        } = match Self::get_viewer(
+        let Viewer { site, user_session } = Self::get_viewer(
             ctx,
             &mut locales,
-            &domain,
+            site_id,
             session_token.ref_map(|s| s.as_str()),
         )
-        .await?
-        {
-            ViewerResult::FoundSite(viewer) => viewer,
-            ViewerResult::MissingSite(html) => {
-                return Ok(GetPageViewOutput::SiteMissing { html });
-            }
-        };
+        .await?;
 
         // If None, means the main page for the site. Pull from site data.
         let (page_full_slug, page_extra): (&str, &str) = match &route {
@@ -260,17 +244,12 @@ impl ViewService {
 
         // TODO Check if user-agent and IP match?
 
-        let viewer = Viewer {
-            site,
-            redirect_site,
-            user_session,
-        };
-
+        let viewer = Viewer { site, user_session };
         let output = match status {
             PageStatus::Found {
                 page,
                 page_revision,
-            } => GetPageViewOutput::PageFound {
+            } => GetPageViewOutput::Found {
                 viewer,
                 options,
                 page,
@@ -279,21 +258,21 @@ impl ViewService {
                 wikitext,
                 compiled_html,
             },
-            PageStatus::Missing => GetPageViewOutput::PageMissing {
+            PageStatus::Missing => GetPageViewOutput::Missing {
                 viewer,
                 options,
                 redirect_page,
                 wikitext,
                 compiled_html,
             },
-            PageStatus::Private => GetPageViewOutput::PagePermissions {
+            PageStatus::Private => GetPageViewOutput::Permissions {
                 viewer,
                 options,
                 redirect_page,
                 compiled_html,
                 banned: false,
             },
-            PageStatus::Banned => GetPageViewOutput::PagePermissions {
+            PageStatus::Banned => GetPageViewOutput::Permissions {
                 viewer,
                 options,
                 redirect_page,
@@ -308,35 +287,25 @@ impl ViewService {
     pub async fn user(
         ctx: &ServiceContext<'_>,
         GetUserView {
-            domain,
+            site_id,
             locales: locales_str,
             user: user_ref,
             session_token,
         }: GetUserView<'_>,
     ) -> Result<GetUserViewOutput> {
         info!(
-            "Getting user view data for domain '{}', user '{:?}', locales '{:?}'",
-            domain, user_ref, locales_str,
+            "Getting user view data for site ID {}, user '{:?}', locales '{:?}'",
+            site_id, user_ref, locales_str,
         );
 
-        // Parse all locales
         let mut locales = parse_locales(&locales_str)?;
-
-        // Attempt to get a viewer helper structure, but if the site doesn't exist
-        // then return right away with the "no such site" response.
-        let viewer = match Self::get_viewer(
+        let viewer = Self::get_viewer(
             ctx,
             &mut locales,
-            &domain,
+            site_id,
             session_token.ref_map(|s| s.as_str()),
         )
-        .await?
-        {
-            ViewerResult::FoundSite(viewer) => viewer,
-            ViewerResult::MissingSite(html) => {
-                return Ok(GetUserViewOutput::SiteMissing { html });
-            }
-        };
+        .await?;
 
         // TODO Check if user-agent and IP match?
 
@@ -361,35 +330,25 @@ impl ViewService {
     pub async fn admin(
         ctx: &ServiceContext<'_>,
         GetAdminView {
-            domain,
+            site_id,
             locales: locales_str,
             session_token,
         }: GetAdminView,
     ) -> Result<GetAdminViewOutput> {
         info!(
-            "Getting site view data for domain '{}', locales '{:?}'",
-            domain, locales_str,
+            "Getting site view data for site ID {}, locales '{:?}'",
+            site_id, locales_str,
         );
 
-        // Parse all locales
         let mut locales = parse_locales(&locales_str)?;
         let config = ctx.config();
-
-        // Attempt to get a viewer helper structure, but if the site doesn't exist
-        // then return right away with the "no such site" response.
-        let viewer = match Self::get_viewer(
+        let viewer = Self::get_viewer(
             ctx,
             &mut locales,
-            &domain,
+            site_id,
             session_token.ref_map(|s| s.as_str()),
         )
-        .await?
-        {
-            ViewerResult::FoundSite(viewer) => viewer,
-            ViewerResult::MissingSite(html) => {
-                return Ok(GetAdminViewOutput::SiteMissing { html });
-            }
-        };
+        .await?;
 
         let page_info = PageInfo {
             page: cow!(""),
@@ -433,7 +392,6 @@ impl ViewService {
             Some(ref session) => session.user_permissions,
             None => {
                 debug!("No user for session, disallow admin access");
-
                 return Ok(GetAdminViewOutput::AdminPermissions {
                     viewer,
                     html: compiled_html,
@@ -462,23 +420,25 @@ impl ViewService {
     /// All views seen by end users require a few translations before
     /// a request can be serviced:
     ///
-    /// * Hostname of request → Site ID and data
+    /// * Site ID → Site data
     /// * Session token → User ID and their permissions
+    ///
+    /// Note that we do *not* need to get the site ID from the domain
+    /// since WWS has already done the domain lookup logic for ups.
     ///
     /// Then using this information, the caller can perform some common
     /// operations, such as slug normalization or redirect site aliases.
     pub async fn get_viewer(
         ctx: &ServiceContext<'_>,
         locales: &mut Vec<LanguageIdentifier>,
-        domain: &str,
+        site_id: i64,
         session_token: Option<&str>,
-    ) -> Result<ViewerResult> {
-        info!("Getting viewer data from domain '{domain}' and session token");
+    ) -> Result<Viewer> {
+        info!("Getting viewer data site ID {site_id} and session token");
 
         // Get user data from session token (if present)
         let user_session = match session_token {
-            None => None,
-            Some("") => None,
+            Some("") | None => None,
             Some(token) => {
                 let session = SessionService::get(ctx, token).await?;
                 let user = UserService::get(ctx, Reference::Id(session.user_id)).await?;
@@ -519,74 +479,11 @@ impl ViewService {
             return Err(Error::NoLocalesSpecified);
         }
 
-        // Get site data
-        let (site, redirect_site) =
-            match DomainService::parse_site_from_domain(ctx, domain).await? {
-                SiteDomainResult::Found(site) => {
-                    let redirect_site = Self::should_redirect_site(ctx, &site, domain);
-                    (site, redirect_site)
-                }
-                SiteDomainResult::Slug(slug) => {
-                    let html =
-                        Self::missing_site_output(ctx, locales, domain, Some(slug))
-                            .await?;
+        // Get site information
+        let site = SiteService::get(ctx, Reference::Id(site_id)).await?;
 
-                    return Ok(ViewerResult::MissingSite(html));
-                }
-                SiteDomainResult::CustomDomain(domain) => {
-                    let html =
-                        Self::missing_site_output(ctx, locales, domain, None).await?;
-
-                    return Ok(ViewerResult::MissingSite(html));
-                }
-            };
-
-        Ok(ViewerResult::FoundSite(Viewer {
-            site,
-            redirect_site,
-            user_session,
-        }))
-    }
-
-    /// Produce output for cases where a site does not exist.
-    async fn missing_site_output(
-        ctx: &ServiceContext<'_>,
-        locales: &[LanguageIdentifier],
-        domain: &str,
-        site_slug: Option<&str>,
-    ) -> Result<String> {
-        let config = ctx.config();
-        match site_slug {
-            // No site with slug error
-            Some(site_slug) => {
-                let mut args = FluentArgs::new();
-                args.set("slug", fluent_str!(site_slug));
-                args.set("domain", fluent_str!(config.main_domain_no_dot));
-
-                let html = ctx.localization().translate(
-                    locales,
-                    "wiki-page-site-slug",
-                    &args,
-                )?;
-
-                Ok(html.to_string())
-            }
-
-            // Custom domain missing error
-            None => {
-                let mut args = FluentArgs::new();
-                args.set("custom_domain", fluent_str!(domain));
-                args.set("domain", fluent_str!(config.main_domain_no_dot));
-
-                let html = ctx.localization().translate(
-                    locales,
-                    "wiki-page-site-custom",
-                    &args,
-                )?;
-
-                Ok(html.to_string())
-            }
-        }
+        // Return
+        Ok(Viewer { site, user_session })
     }
 
     async fn can_access_page(
@@ -619,21 +516,6 @@ impl ViewService {
         Ok(true)
     }
 
-    fn should_redirect_site(
-        ctx: &ServiceContext,
-        site: &SiteModel,
-        domain: &str,
-    ) -> Option<String> {
-        // NOTE: We have to pass an owned string here, since the Cow borrows from
-        //       SiteModel, which we are also passing in the final output struct.
-        let preferred_domain = DomainService::domain_for_site(ctx.config(), site);
-        if domain == preferred_domain {
-            None
-        } else {
-            Some(preferred_domain.into_owned())
-        }
-    }
-
     fn should_redirect_page(slug: &str) -> Option<String> {
         // Fix typos in the page slug.
         // See https://scuttle.atlassian.net/browse/WJ-330
@@ -650,17 +532,4 @@ impl ViewService {
             Some(target)
         }
     }
-}
-
-/// Converts an array of strings to a list of locales.
-///
-/// Empty locales lists _are_ allowed, since we have not
-/// yet checked the user's locale preferences.
-fn parse_locales<S: AsRef<str>>(locales_str: &[S]) -> Result<Vec<LanguageIdentifier>> {
-    let mut locales = Vec::with_capacity(locales_str.len());
-    for locale_str in locales_str {
-        let locale = LanguageIdentifier::from_bytes(locale_str.as_ref().as_bytes())?;
-        locales.push(locale);
-    }
-    Ok(locales)
 }

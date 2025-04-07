@@ -2,6 +2,7 @@ import defaults from "$lib/defaults"
 import { parseAcceptLangHeader } from "$lib/locales"
 import { translate } from "$lib/server/deepwell/translate"
 import { pageView } from "$lib/server/deepwell/views"
+import { loadSiteInfo } from "$lib/server/load/site-info"
 import type { Optional, TranslateKeys } from "$lib/types"
 import { error, redirect } from "@sveltejs/kit"
 
@@ -14,8 +15,7 @@ export async function loadPage(
   cookies
 ) {
   // Set up parameters
-  const url = new URL(request.url)
-  const domain = url.hostname
+  const { siteId } = loadSiteInfo(request.headers)
   const route = slug || extra ? { slug, extra } : null
   const sessionToken = cookies.get("wikijump_token")
   let locales = parseAcceptLangHeader(request)
@@ -25,7 +25,7 @@ export async function loadPage(
   // Request data from backend
   // Includes fallback locale in case there is no Accept-Language header
   const response = await pageView(
-    domain,
+    siteId,
     [...locales, defaults.fallbackLocale],
     route,
     sessionToken
@@ -178,7 +178,7 @@ export async function loadPage(
 
   // TODO remove checkRedirect when errorStatus is fixed
   if (checkRedirect) {
-    runRedirect(viewData, domain, slug, extra)
+    runRedirect(viewData, slug, extra)
   }
 
   // Return to page for rendering
@@ -187,7 +187,6 @@ export async function loadPage(
 
 function runRedirect(
   viewData,
-  originalDomain: string,
   originalSlug: Optional<string>,
   extra: Optional<string>
 ): void {
@@ -196,10 +195,9 @@ function runRedirect(
     return
   }
 
-  const domain: string = viewData.redirectSite || originalDomain
   const slug: Optional<string> = viewData.redirectPage || originalSlug
   const route: string = buildRoute(slug, extra)
-  redirect(308, `https://${domain}/${route}`)
+  redirect(308, `/${route}`)
 }
 
 function buildRoute(slug: Optional<string>, extra: Optional<string>): string {

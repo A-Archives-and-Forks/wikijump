@@ -19,15 +19,19 @@
  */
 
 use super::prelude::*;
-use crate::models::site::Model as SiteModel;
-use crate::services::domain::CreateCustomDomain;
+use crate::models::site_domain::Model as SiteDomainModel;
+use crate::services::domain::{CreateCustomDomain, DomainService};
+use crate::types::Reference;
 
-pub async fn site_get_from_domain(
+pub async fn site_get_domain(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<Option<SiteModel>> {
-    let domain: String = params.one()?;
-    DomainService::site_from_domain_optional(ctx, &domain).await
+) -> Result<String> {
+    let config = ctx.config();
+    let site_id: i64 = params.one()?;
+    let site = SiteService::get(ctx, Reference::Id(site_id)).await?;
+    let domain = DomainService::preferred_domain(config, &site);
+    Ok(domain.into_owned())
 }
 
 pub async fn site_custom_domain_create(
@@ -38,14 +42,6 @@ pub async fn site_custom_domain_create(
     DomainService::create_custom(ctx, input).await
 }
 
-pub async fn site_custom_domain_get(
-    ctx: &ServiceContext<'_>,
-    params: Params<'static>,
-) -> Result<Option<SiteModel>> {
-    let domain: String = params.one()?;
-    DomainService::site_from_domain_optional(ctx, &domain).await
-}
-
 // TODO rename
 pub async fn site_custom_domain_delete(
     ctx: &ServiceContext<'_>,
@@ -53,4 +49,17 @@ pub async fn site_custom_domain_delete(
 ) -> Result<()> {
     let domain: String = params.one()?;
     DomainService::remove_custom(ctx, domain).await
+}
+
+pub async fn site_custom_domain_list(
+    ctx: &ServiceContext<'_>,
+    params: Params<'static>,
+) -> Result<Vec<SiteDomainModel>> {
+    #[derive(Deserialize, Debug)]
+    struct Input {
+        site_id: i64,
+    }
+
+    let Input { site_id } = params.parse()?;
+    DomainService::list_custom(ctx, site_id).await
 }

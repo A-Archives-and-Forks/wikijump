@@ -23,13 +23,13 @@
 //! This service has two components, management of canonical domains (e.g. `scp-wiki.wikijump.com`)
 //! and custom domains (e.g. `scpwiki.com`).
 
-// TODO disallow custom domains that are subdomains of the main domain or files domain
-
 use super::prelude::*;
 use crate::models::site::{self, Entity as Site, Model as SiteModel};
 use crate::models::site_domain::{self, Entity as SiteDomain, Model as SiteDomainModel};
 use crate::services::SiteService;
 use std::borrow::Cow;
+
+pub const DEFAULT_SITE_SLUG: &str = "www";
 
 #[derive(Debug)]
 pub struct DomainService;
@@ -42,12 +42,23 @@ impl DomainService {
     ) -> Result<()> {
         info!("Creating custom domain '{domain}' (site ID {site_id})");
 
-        let txn = ctx.transaction();
+        // Correctness checks
+
         if Self::custom_domain_exists(ctx, &domain).await? {
-            error!("Custom domain already exists, cannot create");
+            error!("Custom domain '{domain}' already exists, cannot create");
             return Err(Error::CustomDomainExists);
         }
 
+        let config = ctx.config();
+        if domain.ends_with(&config.main_domain) || domain.ends_with(&config.files_domain)
+        {
+            error!("Custom domains cannot be subdomains of the Wikijump main or files domain: {domain}");
+            return Err(Error::CustomDomainSubdomain);
+        }
+
+        // Seems good, insert data
+
+        let txn = ctx.transaction();
         let model = site_domain::ActiveModel {
             domain: Set(domain),
             site_id: Set(site_id),
@@ -91,18 +102,6 @@ impl DomainService {
         Ok(model)
     }
 
-    #[inline]
-    #[allow(dead_code)] // TODO
-    pub async fn site_from_custom_domain(
-        ctx: &ServiceContext<'_>,
-        domain: &str,
-    ) -> Result<SiteModel> {
-        find_or_error!(
-            Self::site_from_custom_domain_optional(ctx, domain),
-            CustomDomain,
-        )
-    }
-
     /// Determines if the given custom domain is registered.
     #[inline]
     pub async fn custom_domain_exists(
@@ -114,105 +113,6 @@ impl DomainService {
             .map(|site| site.is_some())
     }
 
-    /// Gets the site corresponding with the given domain.
-    #[inline]
-    #[allow(dead_code)] // TEMP
-    pub async fn site_from_domain(
-        ctx: &ServiceContext<'_>,
-        domain: &str,
-    ) -> Result<SiteModel> {
-        find_or_error!(Self::site_from_domain_optional(ctx, domain), CustomDomain)
-    }
-
-    /// Optional version of `site_from_domain()`.
-    pub async fn site_from_domain_optional(
-        ctx: &ServiceContext<'_>,
-        domain: &str,
-    ) -> Result<Option<SiteModel>> {
-        let result = Self::parse_site_from_domain(ctx, domain).await?;
-        match result {
-            SiteDomainResult::Found(site) => Ok(Some(site)),
-            _ => Ok(None),
-        }
-    }
-
-    /// Gets the site corresponding with the given domain.
-    ///
-    /// Returns one of three variants:
-    /// * `Found` &mdash; Site retrieved from the domain.
-    /// * `Slug` &mdash; Site does not exist. If it did, domain would be a canonical domain.
-    /// * `CustomDomain` &mdash; Site does not exist. If it did, domain would be a custom domain.
-    pub async fn parse_site_from_domain<'a>(
-        ctx: &ServiceContext<'_>,
-        domain: &'a str,
-    ) -> Result<SiteDomainResult<'a>> {
-        info!("Getting site for domain '{domain}'");
-
-        match Self::parse_canonical(ctx.config(), domain) {
-            // Normal canonical domain, return from site slug fetch.
-            Some(subdomain) => {
-                debug!("Found canonical domain with slug '{subdomain}'");
-
-                let result =
-                    SiteService::get_optional(ctx, Reference::Slug(cow!(subdomain)))
-                        .await;
-
-                match result {
-                    Ok(Some(site)) => Ok(SiteDomainResult::Found(site)),
-                    Ok(None) => Ok(SiteDomainResult::Slug(subdomain)),
-                    Err(error) => Err(error),
-                }
-            }
-
-            // Not canonical, try custom domain.
-            None => {
-                debug!("Not found, checking if it's a custom domain");
-
-                let result = Self::site_from_custom_domain_optional(ctx, domain).await;
-                match result {
-                    Ok(Some(site)) => Ok(SiteDomainResult::Found(site)),
-                    Ok(None) => Ok(SiteDomainResult::CustomDomain(domain)),
-                    Err(error) => Err(error),
-                }
-            }
-        }
-    }
-
-    /// If this domain is canonical domain, extract the site slug.
-    pub fn parse_canonical<'a>(config: &Config, domain: &'a str) -> Option<&'a str> {
-        let main_domain = &config.main_domain;
-
-        // Special case, see if it's the root domain (i.e. 'wikijump.com')
-        {
-            // This slice is safe, we know the first character of 'main_domain'
-            // is always '.', then we compare to the passed domain to see if
-            // it's the root domain.
-            //
-            // We are not slicing 'domain' at all, which is user-provided and
-            // has no guarantees about character composition.
-            //
-            // See config/file.rs prefix_domain()
-            let root_domain = &main_domain[1..];
-            if domain == root_domain {
-                return Some("www");
-            }
-        }
-
-        // Remove the '.wikijump.com' suffix, get slug
-        match domain.strip_suffix(main_domain) {
-            // Only 1-deep subdomains of the main domain are allowed.
-            // For instance, foo.wikijump.com or bar.wikijump.com are valid,
-            // but foo.bar.wikijump.com is not.
-            Some(subdomain) if subdomain.contains('.') => {
-                error!("Found domain '{domain}' is a sub-subdomain, invalid");
-                None
-            }
-
-            Some(subdomain) => Some(subdomain),
-            None => None,
-        }
-    }
-
     #[inline]
     pub fn get_canonical(config: &Config, site_slug: &str) -> String {
         // 'main_domain' is already prefixed with .
@@ -220,15 +120,15 @@ impl DomainService {
     }
 
     /// Gets the preferred domain for the given site.
-    pub fn domain_for_site<'a>(config: &'a Config, site: &'a SiteModel) -> Cow<'a, str> {
+    pub fn preferred_domain<'a>(config: &'a Config, site: &'a SiteModel) -> Cow<'a, str> {
         debug!(
             "Getting preferred domain for site '{}' (ID {})",
             site.slug, site.site_id,
         );
 
-        match &site.custom_domain {
+        match &site.preferred_domain {
             Some(domain) => cow!(domain),
-            None if site.slug == "www" => Self::www_domain(config),
+            None if site.slug == DEFAULT_SITE_SLUG => Self::www_domain(config),
             None => Cow::Owned(Self::get_canonical(config, &site.slug)),
         }
     }
@@ -238,6 +138,7 @@ impl DomainService {
     /// This site is a special exception, instead of visiting `www.wikijump.com`
     /// it should instead redirect to just `wikijump.com`. The use of the `www`
     /// slug is an internal detail.
+    #[inline]
     fn www_domain(config: &Config) -> Cow<str> {
         Cow::Borrowed(&config.main_domain_no_dot)
     }

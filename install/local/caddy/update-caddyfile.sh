@@ -1,0 +1,1 @@
+../../common/caddy/update-caddyfile.sh

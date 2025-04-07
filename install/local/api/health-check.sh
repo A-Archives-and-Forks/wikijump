@@ -1,1 +1,0 @@
-../../common/api/health-check.sh

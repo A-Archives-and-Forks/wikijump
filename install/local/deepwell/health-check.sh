@@ -1,0 +1,1 @@
+../../common/deepwell/health-check.sh

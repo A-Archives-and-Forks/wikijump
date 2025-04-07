@@ -29,7 +29,7 @@ use std::path::PathBuf;
 use std::time::Duration as StdDuration;
 use time::Duration as TimeDuration;
 
-/// Primary configuration structure.
+/// The primary configuration structure for the DEEPWELL server.
 ///
 /// * See `config/file.rs` for the structure as parsed from disk.
 /// * See `config.example.toml` for an explanation of all these fields.
@@ -65,11 +65,9 @@ pub struct Config {
     /// The files domain to serve user-generated content from.
     ///
     /// Always starts with a `.`
-    #[allow(dead_code)] // TEMP
     pub files_domain: String,
 
     /// The files domain, but without a leading `.`
-    #[allow(dead_code)] // TEMP
     pub files_domain_no_dot: String,
 
     /// Whether to auto-restart on configuration file change.
@@ -241,7 +239,6 @@ impl Config {
         }
 
         info!("Configuration details:");
-        info!("Serving on {}", self.address);
         info!(
             "Auto-restart on config change: {}",
             bool_str(self.watch_files),

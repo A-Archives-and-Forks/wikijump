@@ -28,9 +28,10 @@
 
 use crate::config::{Config, Secrets};
 use crate::endpoints::{
-    auth::*, blob::*, category::*, domain::*, email::*, file::*, file_revision::*,
-    info::*, link::*, locale::*, message::*, misc::*, page::*, page_revision::*,
-    parent::*, site::*, site_member::*, text::*, user::*, user_bot::*, view::*, vote::*,
+    auth::*, blob::*, caddy::*, category::*, domain::*, email::*, file::*,
+    file_revision::*, info::*, link::*, locale::*, message::*, misc::*, page::*,
+    page_revision::*, parent::*, site::*, site_member::*, special_error::*, text::*,
+    user::*, user_bot::*, view::*, vote::*,
 };
 use crate::locales::Localizations;
 use crate::services::blob::MimeAnalyzer;
@@ -46,6 +47,8 @@ use sea_orm::{DatabaseConnection, TransactionTrait};
 use std::fmt::{self, Debug};
 use std::sync::Arc;
 use std::time::Duration;
+
+const BUCKET_REQUEST_TIMEOUT: Duration = Duration::from_millis(500);
 
 pub type ServerState = Arc<ServerStateInner>;
 
@@ -105,7 +108,7 @@ pub async fn build_server_state(
             bucket = bucket.with_path_style();
         }
 
-        bucket.request_timeout = Some(Duration::from_millis(500));
+        bucket.request_timeout = Some(BUCKET_REQUEST_TIMEOUT);
         bucket
     };
 
@@ -186,10 +189,24 @@ async fn build_module(app_state: ServerState) -> anyhow::Result<RpcModule<Server
     register!("locale", locale_info);
     register!("translate", translate_strings);
 
+    // Web routing
+    register!("caddyfile", generate_caddyfile);
+
     // Web server
     register!("page_view", page_view);
     register!("user_view", user_view);
     register!("admin_view", admin_view);
+
+    // Special errors
+    register!(
+        "special_error_missing_site_slug",
+        special_error_missing_site_slug,
+    );
+    register!(
+        "special_error_missing_custom_domain",
+        special_error_missing_custom_domain,
+    );
+    register!("special_error_file_root", special_error_file_root);
 
     // Authentication
     register!("login", auth_login);
@@ -207,12 +224,12 @@ async fn build_module(app_state: ServerState) -> anyhow::Result<RpcModule<Server
     register!("site_create", site_create);
     register!("site_get", site_get);
     register!("site_update", site_update);
-    register!("site_from_domain", site_get_from_domain);
+    register!("site_domain", site_get_domain);
 
     // Site custom domain
     register!("custom_domain_create", site_custom_domain_create);
-    register!("custom_domain_get", site_custom_domain_get);
     register!("custom_domain_delete", site_custom_domain_delete);
+    register!("custom_domain_list", site_custom_domain_list);
 
     // Site membership
     register!("member_set", membership_set);

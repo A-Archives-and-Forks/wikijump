@@ -1,0 +1,125 @@
+/*
+ * state.rs
+ *
+ * Wilson's Web Server - Serves a zoo of user-generated content
+ * Copyright (C) 2019-2025 Wikijump Team
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+use crate::{
+    cache::Cache,
+    config::Secrets,
+    deepwell::{Deepwell, FileData, PageData},
+    error::Result,
+};
+use s3::bucket::Bucket;
+use std::sync::Arc;
+use std::time::Duration;
+
+const BUCKET_REQUEST_TIMEOUT: Duration = Duration::from_millis(200);
+
+pub type ServerState = Arc<ServerStateInner>;
+
+#[derive(Debug)]
+pub struct ServerStateInner {
+    pub deepwell: Deepwell,
+    pub cache: Cache,
+    pub s3_bucket: Box<Bucket>,
+}
+
+pub async fn build_server_state(
+    Secrets {
+        deepwell_url,
+        redis_url,
+        s3_bucket,
+        s3_region,
+        s3_credentials,
+        s3_path_style,
+    }: Secrets,
+) -> Result<ServerState> {
+    let deepwell = Deepwell::connect(&deepwell_url)?;
+    deepwell.check().await;
+
+    let cache = Cache::connect(&redis_url)?;
+    let s3_bucket = {
+        let mut bucket = Bucket::new(&s3_bucket, s3_region.clone(), s3_credentials.clone())?;
+
+        if s3_path_style {
+            bucket = bucket.with_path_style();
+        }
+
+        bucket.request_timeout = Some(BUCKET_REQUEST_TIMEOUT);
+        bucket
+    };
+
+    Ok(Arc::new(ServerStateInner {
+        deepwell,
+        cache,
+        s3_bucket,
+    }))
+}
+
+impl ServerStateInner {
+    // Contains implementations for the common pattern of "check the cache,
+    // if not present, get it from DEEPWELL and populate it".
+
+    pub async fn get_site_domain(&self, site_id: i64) -> Result<String> {
+        match self.cache.get_site_domain(site_id).await? {
+            Some(preferred_domain) => Ok(preferred_domain),
+            None => {
+                let preferred_domain = self.deepwell.get_site_domain(site_id).await?;
+                self.cache
+                    .set_site_domain(site_id, &preferred_domain)
+                    .await?;
+
+                Ok(preferred_domain)
+            }
+        }
+    }
+
+    pub async fn get_page(&self, site_id: i64, page_slug: &str) -> Result<Option<i64>> {
+        match self.cache.get_page(site_id, page_slug).await? {
+            Some(page_id) => Ok(Some(page_id)),
+            None => match self.deepwell.get_page(site_id, page_slug).await? {
+                None => Ok(None),
+                Some(PageData { page_id, .. }) => {
+                    self.cache.set_page(site_id, page_slug, page_id).await?;
+                    Ok(Some(page_id))
+                }
+            },
+        }
+    }
+
+    pub async fn get_file(
+        &self,
+        site_id: i64,
+        page_id: i64,
+        filename: &str,
+    ) -> Result<Option<FileData>> {
+        match self.cache.get_file(site_id, page_id, filename).await? {
+            Some(data) => Ok(Some(data)),
+            None => match self.deepwell.get_file(site_id, page_id, filename).await? {
+                None => Ok(None),
+                Some(data) => {
+                    self.cache
+                        .set_file(site_id, page_id, filename, &data)
+                        .await?;
+
+                    Ok(Some(data))
+                }
+            },
+        }
+    }
+}

@@ -1,5 +1,5 @@
 services:
-  api:
+  deepwell:
     volumes:
       # Rust sources
       - type: bind
@@ -25,14 +25,15 @@ services:
         read_only: true
       # Configuration data
       - type: bind
-        source: ../../install/local/api/deepwell.toml
+        source: ../../install/local/deepwell/deepwell.toml
         target: /etc/deepwell.toml
       # Translation data
       - type: bind
         source: ../../locales
         target: /opt/locales
         read_only: true
-  web:
+
+  framerail:
     volumes:
       # Typescript/Svelte files
       - type: bind
@@ -63,4 +64,20 @@ services:
       - type: bind
         source: ../../assets
         target: /app/src/assets
+        read_only: true
+
+  wws:
+    volumes:
+      # Rust sources
+      - type: bind
+        source: ../../wws/src
+        target: /src/wws/src
+        read_only: true
+      - type: bind
+        source: ../../wws/build.rs
+        target: /src/wws/build.rs
+        read_only: true
+      - type: bind
+        source: ../../wws/Cargo.toml
+        target: /src/wws/Cargo.toml
         read_only: true

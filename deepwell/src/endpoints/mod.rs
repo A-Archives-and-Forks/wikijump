@@ -31,12 +31,12 @@
 mod prelude {
     pub use crate::api::ServerState;
     pub use crate::services::{
-        AliasService, BlobService, CategoryService, DomainService, Error as ServiceError,
-        FileRevisionService, FileService, LinkService, MessageReportService,
-        MessageService, MfaService, PageRevisionService, PageService, ParentService,
-        RelationService, RenderService, Result, ScoreService, ServiceContext,
-        SessionService, SettingsService, SiteService, StdResult, TextService,
-        UserService, ViewService, VoteService,
+        AliasService, BlobService, CaddyService, CategoryService, DomainService,
+        Error as ServiceError, FileRevisionService, FileService, LinkService,
+        MessageReportService, MessageService, MfaService, PageRevisionService,
+        PageService, ParentService, RelationService, RenderService, Result, ScoreService,
+        ServiceContext, SessionService, SettingsService, SiteService, StdResult,
+        TextService, UserService, ViewService, VoteService,
     };
     pub use jsonrpsee::types::params::Params;
     pub use std::convert::TryFrom;
@@ -44,6 +44,7 @@ mod prelude {
 
 pub mod auth;
 pub mod blob;
+pub mod caddy;
 pub mod category;
 pub mod domain;
 pub mod email;
@@ -59,6 +60,7 @@ pub mod page_revision;
 pub mod parent;
 pub mod site;
 pub mod site_member;
+pub mod special_error;
 pub mod text;
 pub mod user;
 pub mod user_bot;

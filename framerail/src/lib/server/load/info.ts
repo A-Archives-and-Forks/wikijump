@@ -2,13 +2,13 @@ import defaults from "$lib/defaults"
 import { parseAcceptLangHeader } from "$lib/locales"
 import { info } from "$lib/server/deepwell"
 import { translate } from "$lib/server/deepwell/translate"
+import { loadSiteInfo } from "$lib/server/load/site-info"
 import type { TranslateKeys } from "$lib/types"
 import "$lib/vite-env.d.ts"
 import process from "process"
 
 export async function loadInfo(request, cookies) {
-  const url = new URL(request.url)
-  const domain = url.hostname
+  const { siteId } = loadSiteInfo(request.headers)
   const sessionToken = cookies.get("wikijump_token")
   let locales = parseAcceptLangHeader(request)
 

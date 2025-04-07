@@ -3,13 +3,13 @@ import type { Optional } from "$lib/types"
 import { startBlobUpload, uploadToPresignUrl } from "./file"
 
 export async function userView(
-  domain: string,
+  siteId: number,
   locales: string[],
   sessionToken: Optional<string>,
   username?: string
 ): Promise<object> {
   return client.request("user_view", {
-    domain,
+    site_id: siteId,
     session_token: sessionToken,
     locales,
     user: username

@@ -1,0 +1,1 @@
+../../common/wws/health-check.sh

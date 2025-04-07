@@ -8,7 +8,7 @@ keywords = ["wikijump", "api", "backend", "wiki"]
 categories = ["asynchronous", "database", "web-programming::http-server"]
 exclude = [".gitignore", ".editorconfig"]
 
-version = "2024.12.30"
+version = "2025.4.6"
 authors = ["Emmie Smith <emmie.maeda@gmail.com>"]
 edition = "2021"
 
@@ -57,8 +57,8 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.10"
 str-macro = "1"
-strum = "0.26"
-strum_macros = "0.26"
+strum = "0.27"
+strum_macros = "0.27"
 subtle = "2.6"
 thiserror = "2"
 time = { version = "0.3", features = ["parsing", "serde"], default-features = false }
@@ -70,6 +70,10 @@ unic-langid = "0.9"
 unicase = "2"
 wikidot-normalize = "0.12"
 wikidot-path = "0.6"
+
+[dev-dependencies]
+maplit = "1"
+pretty_assertions = "1"
 
 [build-dependencies]
 built = { version = "0.7", features = ["git2"] }

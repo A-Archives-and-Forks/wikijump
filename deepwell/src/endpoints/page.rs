@@ -29,7 +29,7 @@ use crate::services::page::{
     MovePageOutput, RestorePage, RestorePageOutput, RollbackPage, SetPageLayout,
 };
 use crate::services::{Result, TextService};
-use crate::types::{FileOrder, PageDetails, Reference};
+use crate::types::{Bytes, FileOrder, PageDetails, Reference};
 use futures::future::try_join_all;
 
 pub async fn page_create(
@@ -345,6 +345,7 @@ async fn build_page_file_output(
         data: None,
         mime: revision.mime,
         size: revision.size,
+        s3_hash: Bytes::from(revision.s3_hash),
         licensing: revision.licensing,
         revision_comments: revision.comments,
         hidden_fields: revision.hidden,

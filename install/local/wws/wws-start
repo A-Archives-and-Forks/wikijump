@@ -1,0 +1,12 @@
+#!/bin/sh
+set -e
+
+# Start watcher
+#
+# This will recompile and restart the deepwell daemon on any source changes
+# The commandline being run for the daemon is "wws".
+
+exec /usr/local/cargo/bin/cargo watch \
+        --why \
+        -w /src/wws \
+        -x run

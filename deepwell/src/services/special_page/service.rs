@@ -43,8 +43,8 @@ impl SpecialPageService {
         page_info: PageInfo<'_>,
     ) -> Result<GetSpecialPageOutput> {
         info!(
-            "Getting special page {sp_page_type:?} for site ID {}",
-            site.site_id,
+            "Getting special page {:?} for site ID {}",
+            sp_page_type, site.site_id,
         );
 
         // Extract fields based on special page type.

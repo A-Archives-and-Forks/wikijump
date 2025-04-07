@@ -1,0 +1,39 @@
+[package]
+name = "wws"
+description = "Wilson's Web Server - Serves a zoo of user-generated content"
+repository = "https://github.com/scpwiki/wikijump/tree/develop/wws"
+readme = "README.md"
+license = "AGPL-3.0-or-later"
+keywords = ["wikijump", "api", "backend", "wiki"]
+categories = ["asynchronous", "caching", "web-programming::http-server"]
+exclude = [".gitignore"]
+
+version = "2025.4.6"
+authors = ["Emmie Smith <emmie.maeda@gmail.com>"]
+edition = "2021"
+
+[dependencies]
+accept-language = "3"
+anyhow = "1"
+axum = { version = "0.8", features = ["http1", "http2", "macros", "tokio", "tower-log", "tracing"], default-features = false }
+axum-extra = { version = "0.10", features = ["attachment"] }
+clap = "4"
+color-backtrace = "0.6"
+dotenvy = "0.15"
+jsonrpsee = { version = "0.24", features = ["async-client", "jsonrpsee-http-client"] }
+paste = "1"
+redis = { version = "0.25", features = ["aio", "connection-manager", "keep-alive", "r2d2", "tokio-comp", "tokio-rustls-comp"], default-features = false }
+ref-map = "0.1"
+rust-s3 = { version = "0.35", features = ["with-tokio", "tokio-rustls-tls"], default-features = false }
+serde = { version = "1", features = ["derive"] }
+str-macro = "1"
+thiserror = "2"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+tower = "0.5"
+tower-http = { version = "0.6.1", features = ["add-extension", "compression-br", "compression-deflate", "compression-gzip", "compression-zstd", "normalize-path", "set-header", "trace"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+wikidot-normalize = "0.12"
+
+[build-dependencies]
+built = { version = "0.7", features = ["git2"] }

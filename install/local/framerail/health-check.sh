@@ -1,0 +1,1 @@
+../../common/framerail/health-check.sh

@@ -7,13 +7,13 @@ export interface PageRoute {
 }
 
 export async function pageView(
-  domain: string,
+  siteId: number,
   locales: string[],
   route: Optional<PageRoute>,
   sessionToken: Optional<string>
 ): Promise<object> {
   return client.request("page_view", {
-    domain,
+    site_id: siteId,
     locales,
     session_token: sessionToken,
     route
@@ -21,12 +21,12 @@ export async function pageView(
 }
 
 export async function adminView(
-  domain: string,
+  siteId: number,
   locales: string[],
   sessionToken: Optional<string>
 ): Promise<object> {
   return client.request("admin_view", {
-    domain,
+    site_id: siteId,
     locales,
     session_token: sessionToken
   })

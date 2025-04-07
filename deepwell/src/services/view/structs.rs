@@ -39,7 +39,7 @@ impl UserPermissions {
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct GetPageView {
-    pub domain: String,
+    pub site_id: i64,
     pub session_token: Option<String>,
     pub route: Option<PageRoute>,
     pub locales: Vec<String>,
@@ -54,7 +54,7 @@ pub struct PageRoute {
 #[derive(Serialize, Debug, Clone)]
 #[serde(rename_all = "snake_case", tag = "type", content = "data")]
 pub enum GetPageViewOutput {
-    PageFound {
+    Found {
         #[serde(flatten)]
         viewer: Viewer,
         options: PageOptions,
@@ -65,7 +65,7 @@ pub enum GetPageViewOutput {
         compiled_html: String,
     },
 
-    PageMissing {
+    Missing {
         #[serde(flatten)]
         viewer: Viewer,
         options: PageOptions,
@@ -74,7 +74,7 @@ pub enum GetPageViewOutput {
         compiled_html: String,
     },
 
-    PagePermissions {
+    Permissions {
         #[serde(flatten)]
         viewer: Viewer,
         options: PageOptions,
@@ -82,15 +82,11 @@ pub enum GetPageViewOutput {
         compiled_html: String,
         banned: bool,
     },
-
-    SiteMissing {
-        html: String,
-    },
 }
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct GetUserView<'a> {
-    pub domain: String,
+    pub site_id: i64,
     pub session_token: Option<String>,
     pub user: Option<Reference<'a>>,
     pub locales: Vec<String>,
@@ -109,15 +105,11 @@ pub enum GetUserViewOutput {
         #[serde(flatten)]
         viewer: Viewer,
     },
-
-    SiteMissing {
-        html: String,
-    },
 }
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct GetAdminView {
-    pub domain: String,
+    pub site_id: i64,
     pub session_token: Option<String>,
     pub locales: Vec<String>,
 }
@@ -135,22 +127,11 @@ pub enum GetAdminViewOutput {
         viewer: Viewer,
         html: String,
     },
-
-    SiteMissing {
-        html: String,
-    },
-}
-
-#[derive(Debug, Clone)]
-pub enum ViewerResult {
-    FoundSite(Viewer),
-    MissingSite(String),
 }
 
 #[derive(Serialize, Debug, Clone)]
 pub struct Viewer {
     pub site: SiteModel,
-    pub redirect_site: Option<String>,
     pub user_session: Option<UserSession>,
 }
 

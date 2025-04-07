@@ -179,7 +179,7 @@ impl Localizations {
                         None
                     }
                     Ok((bundle, pattern)) => {
-                        info!("Found pattern for locale {locale}");
+                        debug!("Found pattern for locale {locale}");
                         Some((bundle, pattern))
                     }
                 }
@@ -212,7 +212,7 @@ impl Localizations {
     {
         // Parse translation key
         let (path, attribute) = Self::parse_selector(key);
-        info!(
+        debug!(
             "Checking message path {}, attribute {} for a matching locale",
             path,
             attribute.unwrap_or("<none>"),

@@ -71,6 +71,7 @@ pub async fn translate_strings(
         &locales[0],
         locales.len() - 1,
     );
+    debug!("Message keys to translate: {messages:?}");
 
     let mut output: TranslateOutput = HashMap::new();
     let locales = {
@@ -83,7 +84,7 @@ pub async fn translate_strings(
     };
 
     for (message_key, arguments_raw) in messages {
-        info!(
+        trace!(
             "Formatting message key {message_key} ({} arguments)",
             arguments_raw.len(),
         );

@@ -135,6 +135,9 @@ pub enum Error {
     #[error("Revision ID passed for this operation is not the latest")]
     NotLatestRevisionId,
 
+    #[error("Custom domains may not be subdomains of the Wikijump main or file domains")]
+    CustomDomainSubdomain,
+
     #[error("The regular expression found in the database is invalid")]
     FilterRegexInvalid(regex::Error),
 
@@ -407,6 +410,7 @@ impl Error {
             Error::BlobBlacklisted(_) => 4028,
             Error::BlobCannotBlacklistExisting => 4029,
             Error::NotLatestRevisionId => 4030,
+            Error::CustomDomainSubdomain => 4031,
 
             // 4100 -- Localization
             Error::LocaleInvalid(_) => 4100,

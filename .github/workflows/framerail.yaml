@@ -27,10 +27,10 @@ jobs:
       - name: Install dependencies
         run: cd framerail && pnpm install
 
-      - name: Lint
-        run: cd framerail && pnpm lint
-
       - name: Build
         run: cd framerail && pnpm build
+
+      - name: Lint
+        run: cd framerail && pnpm lint
 
   # TODO add coverage step

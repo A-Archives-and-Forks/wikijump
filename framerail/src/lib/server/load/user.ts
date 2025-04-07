@@ -7,14 +7,13 @@ import type { TranslateKeys } from "$lib/types"
 import { error, redirect } from "@sveltejs/kit"
 
 export async function loadUser(username?: string, request, cookies) {
-  const url = new URL(request.url)
-  const domain = url.hostname
+  const { siteId } = loadSiteInfo(request.headers)
   const sessionToken = cookies.get("wikijump_token")
   let locales = parseAcceptLangHeader(request)
 
   if (!locales.includes(defaults.fallbackLocale)) locales.push(defaults.fallbackLocale)
 
-  const response = await userView(domain, locales, sessionToken, username)
+  const response = await userView(siteId, locales, sessionToken, username)
 
   let translateKeys: TranslateKeys = {
     ...defaults.translateKeys

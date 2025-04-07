@@ -2,18 +2,18 @@ import defaults from "$lib/defaults"
 import { parseAcceptLangHeader } from "$lib/locales"
 import { translate } from "$lib/server/deepwell/translate"
 import { adminView } from "$lib/server/deepwell/views"
+import { loadSiteInfo } from "$lib/server/load/site-info"
 import type { TranslateKeys } from "$lib/types"
 import { error } from "@sveltejs/kit"
 
 export async function loadAdminPage(request, cookies) {
-  const url = new URL(request.url)
-  const domain = url.hostname
+  const { siteId } = loadSiteInfo(request.headers)
   const sessionToken = cookies.get("wikijump_token")
   let locales = parseAcceptLangHeader(request)
 
   if (!locales.includes(defaults.fallbackLocale)) locales.push(defaults.fallbackLocale)
 
-  const response = await adminView(domain, locales, sessionToken)
+  const response = await adminView(siteId, locales, sessionToken)
 
   let translateKeys: TranslateKeys = {
     ...defaults.translateKeys

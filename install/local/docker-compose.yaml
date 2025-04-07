@@ -48,10 +48,10 @@ services:
     ports:
       - "6379:6379"
 
-  api:
+  deepwell:
     build:
       context: ../..
-      dockerfile: install/local/api/Dockerfile
+      dockerfile: install/local/deepwell/Dockerfile
     ports:
       - "2747:2747"
     links:
@@ -69,7 +69,7 @@ services:
       - "S3_SECRET_ACCESS_KEY=defaultpassword"
     restart: always
     healthcheck:
-      test: ["CMD", "/bin/wikijump-health-check"]
+      test: ["CMD", "wikijump-health-check"]
       interval: 120s
       timeout: 2s
       retries: 3
@@ -81,35 +81,77 @@ services:
       files:
         condition: service_healthy
 
-  web:
+  framerail:
     build:
       context: ../..
-      dockerfile: install/local/web/Dockerfile
+      dockerfile: install/local/framerail/Dockerfile
     ports:
       - "3000:3000"
     links:
-      - api
+      - deepwell
     environment:
-      - "DEEPWELL_HOST=api"
+      - "DEEPWELL_HOST=deepwell"
     restart: always
     healthcheck:
-      test: ["CMD", "curl", "-If", "http://localhost:3000/"]
+      test: ["CMD", "wikijump-health-check"]
       interval: 120s
       timeout: 2s
       retries: 3
+    depends_on:
+      deepwell:
+        condition: service_healthy
 
-  nginx:
+  wws:
     build:
       context: ../..
-      dockerfile: install/local/nginx/Dockerfile
+      dockerfile: install/local/wws/Dockerfile
+    ports:
+      - "7000:7000"
+    links:
+      - deepwell
+      - cache
+      - files
+    environment:
+      - "ADDRESS=[::]:7000"
+      - "DEEPWELL_URL=http://deepwell:2747"
+      - "REDIS_URL=redis://cache"
+      - "S3_BUCKET=deepwell-files"
+      - "S3_REGION_NAME=local"
+      - "S3_PATH_STYLE=true"
+      - "S3_CUSTOM_ENDPOINT=http://files:9000"
+      - "S3_ACCESS_KEY_ID=minio"
+      - "S3_SECRET_ACCESS_KEY=defaultpassword"
+    restart: always
+    healthcheck:
+      test: ["CMD", "wikijump-health-check"]
+      interval: 120s
+      timeout: 2s
+      retries: 3
+    depends_on:
+      deepwell:
+        condition: service_healthy
+      cache:
+        condition: service_healthy
+      files:
+        condition: service_healthy
+
+  caddy:
+    build:
+      context: ../..
+      dockerfile: install/local/caddy/Dockerfile
     ports:
       - "80:80"
       - "443:443"
+      - "443:443/udp"
     links:
-      - web
+      - framerail
+      - wws
     restart: always
     healthcheck:
-      test: ["CMD", "curl", "-If", "http://localhost/"]
-      interval: 120s
-      timeout: 1s
+      test: ["CMD", "wikijump-health-check"]
+      interval: 30s
+      timeout: 2s
       retries: 3
+    depends_on:
+      deepwell:
+        condition: service_healthy
