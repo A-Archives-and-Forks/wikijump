@@ -226,7 +226,6 @@ async fn build_module(app_state: ServerState) -> anyhow::Result<RpcModule<Server
     register!("site_get", site_get);
     register!("site_update", site_update);
     register!("site_domain", site_get_domain);
-    register!("site_from_domain", site_get_from_domain);
 
     // Site custom domain
     register!("custom_domain_create", site_custom_domain_create);

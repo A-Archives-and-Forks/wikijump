@@ -18,23 +18,6 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-/// Represents the result of doing a site lookup.
-///
-/// This tells WWS whether it should route the user to
-/// framerail with the site handler, or display a missing
-/// site error.
-///
-/// Be sure the values here are serde-compatible with `SiteAndHost`
-/// in WWS's codebase (`src/host.rs`).
-#[derive(Serialize, Debug, Clone)]
-#[serde(rename_all = "snake_case", tag = "result", content = "data")]
-pub enum SiteAndHost {
-    MainSite { site_id: i64, site_slug: String },
-    MainSiteRedirect { domain: String },
-    MissingSiteSlug { slug: String },
-    MissingCustomDomain { domain: String },
-}
-
 #[derive(Deserialize, Debug, Clone)]
 pub struct CreateCustomDomain {
     pub domain: String,

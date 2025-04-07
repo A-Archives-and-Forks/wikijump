@@ -20,7 +20,7 @@
 
 use super::prelude::*;
 use crate::models::site_domain::Model as SiteDomainModel;
-use crate::services::domain::{CreateCustomDomain, DomainService, SiteAndHost};
+use crate::services::domain::{CreateCustomDomain, DomainService};
 use crate::types::Reference;
 
 pub async fn site_get_domain(
@@ -32,14 +32,6 @@ pub async fn site_get_domain(
     let site = SiteService::get(ctx, Reference::Id(site_id)).await?;
     let domain = DomainService::preferred_domain(config, &site);
     Ok(domain.into_owned())
-}
-
-pub async fn site_get_from_domain(
-    ctx: &ServiceContext<'_>,
-    params: Params<'static>,
-) -> Result<SiteAndHost> {
-    let domain: String = params.one()?;
-    DomainService::parse_site_from_domain(ctx, &domain).await
 }
 
 pub async fn site_custom_domain_create(

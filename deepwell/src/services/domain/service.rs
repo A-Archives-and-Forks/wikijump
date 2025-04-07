@@ -95,18 +95,6 @@ impl DomainService {
         Ok(model)
     }
 
-    #[inline]
-    #[allow(dead_code)] // TODO
-    pub async fn site_from_custom_domain(
-        ctx: &ServiceContext<'_>,
-        domain: &str,
-    ) -> Result<SiteModel> {
-        find_or_error!(
-            Self::site_from_custom_domain_optional(ctx, domain),
-            CustomDomain,
-        )
-    }
-
     /// Determines if the given custom domain is registered.
     #[inline]
     pub async fn custom_domain_exists(
@@ -116,102 +104,6 @@ impl DomainService {
         Self::site_from_custom_domain_optional(ctx, domain)
             .await
             .map(|site| site.is_some())
-    }
-
-    /// Gets the site corresponding with the given domain.
-    ///
-    /// Returns one of three variants:
-    /// * `SiteFound` &mdash; Site information retrieved from the domain.
-    /// * `SiteRedirect` &mdash; Site found, but needs a redirect to the preferred domain.
-    /// * `MissingSlug` &mdash; Site does not exist. If it did, domain would be a canonical domain.
-    /// * `MissingCustomDomain` &mdash; Site does not exist. If it did, domain would be a custom domain.
-    pub async fn parse_site_from_domain(
-        ctx: &ServiceContext<'_>,
-        domain: &str,
-    ) -> Result<SiteAndHost> {
-        info!("Getting site for domain '{domain}'");
-
-        /// Helper macro to produce the result when the site exists.
-        /// This gets the preferred domain for the return value.
-        macro_rules! found {
-            ($site:expr) => {{
-                let config = ctx.config();
-                let preferred_domain =
-                    Self::preferred_domain(config, &$site).into_owned();
-
-                if domain == &preferred_domain {
-                    let SiteModel {
-                        site_id,
-                        slug: site_slug,
-                        ..
-                    } = $site;
-
-                    SiteAndHost::MainSite { site_id, site_slug }
-                } else {
-                    SiteAndHost::MainSiteRedirect {
-                        domain: preferred_domain,
-                    }
-                }
-            }};
-        }
-
-        match Self::parse_canonical(ctx.config(), domain) {
-            // Normal canonical domain, return from site slug fetch.
-            Some(subdomain) => {
-                debug!("Found canonical domain with slug '{subdomain}'");
-
-                let result =
-                    SiteService::get_optional(ctx, Reference::Slug(cow!(subdomain)))
-                        .await;
-
-                match result {
-                    Ok(Some(site)) => Ok(found!(site)),
-                    Ok(None) => Ok(SiteAndHost::MissingSiteSlug {
-                        slug: str!(subdomain),
-                    }),
-                    Err(error) => Err(error),
-                }
-            }
-
-            // Not canonical, try custom domain.
-            None => {
-                debug!("Not found, checking if it's a custom domain");
-
-                let result = Self::site_from_custom_domain_optional(ctx, domain).await;
-                match result {
-                    Ok(Some(site)) => Ok(found!(site)),
-                    Ok(None) => Ok(SiteAndHost::MissingCustomDomain {
-                        domain: str!(domain),
-                    }),
-                    Err(error) => Err(error),
-                }
-            }
-        }
-    }
-
-    /// If this domain is canonical domain, extract the site slug.
-    pub fn parse_canonical<'a>(config: &Config, domain: &'a str) -> Option<&'a str> {
-        let main_domain = &config.main_domain;
-        let main_domain_no_dot = &config.main_domain_no_dot;
-
-        // Special case, see if it's the root domain (i.e. 'wikijump.com')
-        if domain == main_domain_no_dot {
-            return Some(DEFAULT_SITE_SLUG);
-        }
-
-        // Remove the '.wikijump.com' suffix, get slug
-        match domain.strip_suffix(main_domain) {
-            // Only 1-deep subdomains of the main domain are allowed.
-            // For instance, foo.wikijump.com or bar.wikijump.com are valid,
-            // but foo.bar.wikijump.com is not.
-            Some(subdomain) if subdomain.contains('.') => {
-                error!("Found domain '{domain}' is a sub-subdomain, invalid");
-                None
-            }
-
-            Some(subdomain) => Some(subdomain),
-            None => None,
-        }
     }
 
     #[inline]
