@@ -35,6 +35,15 @@ services:
         value: '${deepwell.PRIVATE_PORT}'
         scope: RUN_TIME
 
+  - name: caddy
+    source_dir: .
+    dockerfile_path: install/dev/caddy/Dockerfile
+    github:
+      repo: scpwiki/wikijump
+      branch: develop
+      deploy_on_push: true
+    instance_size_slug: basic-xxs
+
   - name: wws
     source_dir: .
     dockerfile_path: install/dev/wws/Dockerfile
