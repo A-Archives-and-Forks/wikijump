@@ -131,6 +131,7 @@ impl DomainService {
     /// This site is a special exception, instead of visiting `www.wikijump.com`
     /// it should instead redirect to just `wikijump.com`. The use of the `www`
     /// slug is an internal detail.
+    #[inline]
     fn www_domain(config: &Config) -> Cow<str> {
         Cow::Borrowed(&config.main_domain_no_dot)
     }
