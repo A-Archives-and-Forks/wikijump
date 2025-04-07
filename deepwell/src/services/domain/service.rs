@@ -23,9 +23,6 @@
 //! This service has two components, management of canonical domains (e.g. `scp-wiki.wikijump.com`)
 //! and custom domains (e.g. `scpwiki.com`).
 
-// TODO disallow preferred domains for default site (www)
-// TODO expire redis cache on change to domains
-
 use super::prelude::*;
 use crate::models::site::{self, Entity as Site, Model as SiteModel};
 use crate::models::site_domain::{self, Entity as SiteDomain, Model as SiteDomainModel};
