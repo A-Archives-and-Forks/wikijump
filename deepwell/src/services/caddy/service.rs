@@ -223,7 +223,7 @@ impl CaddyService {
             // This shouldn't be used so we should just have it point away to
             // the right location.
             //
-            // This also naturally has the benefit of capturing www.wikijump.com -> wikijump.com.
+            // This also has the benefit of naturally capturing www.wikijump.com -> wikijump.com.
             let mut generate_entry = |domain: &str| {
                 if domain == preferred_domain {
                     // Main content, for a preferred domain.
