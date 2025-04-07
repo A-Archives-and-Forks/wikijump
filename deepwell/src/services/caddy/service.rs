@@ -50,8 +50,6 @@ impl CaddyService {
         options: &CaddyfileOptions<'_>,
     ) -> Result<String> {
         let config = ctx.config();
-
-        // Gather necessary site data
         let txn = ctx.transaction();
 
         let sites: Vec<(i64, String, Option<String>)> = Site::find()
