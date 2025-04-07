@@ -137,7 +137,12 @@ fn build_site_data() -> (SiteData, SiteData) {
             },
             5 => SiteDomainData {
                 aliases: vec![str!("scpwiki")],
-                custom_domains: vec![str!("scpwiki.com"), str!("scp-wiki.net"), str!("scp.foundation"), str!("foundation.scp")],
+                custom_domains: vec![
+                    str!("scpwiki.com"),
+                    str!("scp-wiki.net"),
+                    str!("scp.foundation"),
+                    str!("foundation.scp"),
+                ],
             },
         },
     };
