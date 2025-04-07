@@ -184,7 +184,6 @@ async fn build_module(app_state: ServerState) -> anyhow::Result<RpcModule<Server
 
     // Server Information
     register!("info", server_info);
-    register!("domains", server_domains);
 
     // Localization
     register!("locale", locale_info);
