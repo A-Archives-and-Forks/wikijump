@@ -25,7 +25,10 @@
 //!
 //! NOTE: This file contains hard tabs, as this is what we want to use for
 //!       `Caddyfile` generation. If you're opening this file, mind the git
-//!       diff! If your editor munges the tabs please discard those changes.
+//!       diff!
+//!
+//!       If your editor munges the tabs please discard those changes.
+//!       Remember, `git add -p` is your friend!
 
 use super::prelude::*;
 use crate::models::alias::Model as AliasModel;
