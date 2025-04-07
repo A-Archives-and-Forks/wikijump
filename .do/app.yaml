@@ -74,9 +74,6 @@ services:
         type: SECRET
         scope: RUN_TIME
         value: EV[1:HcyKErP7i3GUkjNt6GzRlrwXwgfEZRR+:r/51sfR9EqTGZOIev0F2fLrN4CqBl0AB/rpVVr1y2tWbEDnhMKBKZFuWoDJRMjOAKXhZfa/Nam29wEo=]
-      - key: CLIENT_IP_SOURCE
-        value: XRealIp
-        scope: RUN_TIME
 
   - name: deepwell
     source_dir: .
