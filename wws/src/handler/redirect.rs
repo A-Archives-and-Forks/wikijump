@@ -64,7 +64,9 @@ pub async fn handle_file_redirect(Path((page_slug, filename)): Path<(String, Str
     Redirect::permanent(&destination)
 }
 
-pub async fn handle_download_redirect(Path((page_slug, filename)): Path<(String, String)>) -> Redirect {
+pub async fn handle_download_redirect(
+    Path((page_slug, filename)): Path<(String, String)>,
+) -> Redirect {
     let destination = format!("/-/download/{page_slug}/{filename}");
     Redirect::permanent(&destination)
 }

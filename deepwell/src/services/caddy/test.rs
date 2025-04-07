@@ -193,7 +193,8 @@ fn read_test_file(path: &str) -> String {
 /// For convenience when we have updated the logic in `CaddyService`.
 fn write_test_file(path: &str, caddyfile: &str) {
     let mut file = File::create(path).expect("Unable to open test file");
-    file.write_all(caddyfile.as_bytes()).expect("Unable to write to test file");
+    file.write_all(caddyfile.as_bytes())
+        .expect("Unable to write to test file");
 }
 
 #[test]
