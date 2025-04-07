@@ -6,8 +6,7 @@ set -e
 # This will recompile and restart the deepwell daemon on any source changes
 # The commandline being run for the daemon is "wws".
 
-exec /usr/bin/env RUST_BACKTRACE=1 \
-    /usr/local/cargo/bin/cargo watch \
+exec /usr/local/cargo/bin/cargo watch \
         --why \
         -w /src/wws \
         -x run
