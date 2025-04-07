@@ -3,6 +3,9 @@
 special-error-site-slug = <h1>No { -service-name } site exists with this address.</h1>
     <p>
       <a href="https://{ $slug }.{ $main_domain }/"><code>{ $slug }.{ $main_domain }</code></a> does not exist.
+    </p>
+
+    <p>
       Return to <a href="https://{ $main_domain }/">{ -service-name }</a>.
     </p>
 
@@ -11,6 +14,9 @@ special-error-site-slug = <h1>No { -service-name } site exists with this address
 special-error-site-custom = <h1>No { -service-name } site exists with this address.</h1>
     <p>
       No site has the custom domain <a href="https://{ $custom_domain }/"><code>{ $custom_domain }</code></a>.
+    </p>
+
+    <p>
       Return to <a href="https://{ $main_domain }/">{ -service-name }</a>.
     </p>
 
