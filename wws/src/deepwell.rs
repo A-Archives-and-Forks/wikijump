@@ -36,7 +36,7 @@ macro_rules! rpc_object {
         let mut params = ObjectParams::new();
         $(
             if let Err(error) = params.insert($key, $value) {
-                panic!("Parameter `{}` cannot be serialized: {:?}", stringify!($), error);
+                panic!("Parameter `{}` cannot be serialized: {:?}", stringify!($key), error);
             }
         )*
         params
