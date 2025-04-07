@@ -1,5 +1,5 @@
 /*
- * endpoints/routing.rs
+ * endpoints/caddy.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
  * Copyright (C) 2019-2025 Wikijump Team
