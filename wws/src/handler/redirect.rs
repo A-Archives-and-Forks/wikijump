@@ -21,7 +21,7 @@
 use super::{get_site_id, FallbackError};
 use crate::{path::get_path, state::ServerState};
 use axum::{
-    extract::State,
+    extract::{Path, State},
     http::{header::HeaderMap, Uri},
     response::{IntoResponse, Redirect, Response},
 };
@@ -47,4 +47,19 @@ pub async fn redirect_to_main_inner(state: &ServerState, site_id: i64, path: &st
             FallbackError::RedirectMain.into_response()
         }
     }
+}
+
+pub async fn handle_code_redirect(Path((page_slug, index)): Path<(String, String)>) -> Redirect {
+    let destination = format!("/-/code/{page_slug}/{index}");
+    Redirect::permanent(&destination)
+}
+
+pub async fn handle_html_redirect(Path((page_slug, id)): Path<(String, String)>) -> Redirect {
+    let destination = format!("/-/html/{page_slug}/{id}");
+    Redirect::permanent(&destination)
+}
+
+pub async fn handle_file_redirect(Path((page_slug, filename)): Path<(String, String)>) -> Redirect {
+    let destination = format!("/-/file/{page_slug}/{filename}");
+    Redirect::permanent(&destination)
 }

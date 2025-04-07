@@ -23,13 +23,8 @@ use crate::state::ServerState;
 use axum::{
     extract::{Path, State},
     http::header::HeaderMap,
-    response::{Html, Redirect},
+    response::Html,
 };
-
-pub async fn handle_html_redirect(Path((page_slug, id)): Path<(String, String)>) -> Redirect {
-    let destination = format!("/-/html/{page_slug}/{id}");
-    Redirect::permanent(&destination)
-}
 
 pub async fn handle_html_block(
     State(state): State<ServerState>,

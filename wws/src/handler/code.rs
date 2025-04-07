@@ -21,13 +21,8 @@
 use crate::state::ServerState;
 use axum::{
     extract::{Path, State},
-    response::{Html, Redirect},
+    response::Html,
 };
-
-pub async fn handle_code_redirect(Path((page_slug, index)): Path<(String, String)>) -> Redirect {
-    let destination = format!("/-/code/{page_slug}/{index}");
-    Redirect::permanent(&destination)
-}
 
 pub async fn handle_code_block(
     State(state): State<ServerState>,
