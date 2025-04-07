@@ -25,6 +25,8 @@ use crate::config::Config;
 use crate::services::CaddyService;
 use maplit::hashmap;
 use pretty_assertions::assert_eq;
+use std::fs::File;
+use std::io::{Read, Write};
 
 fn build_config(main_domain: &str, files_domain: &str) -> Config {
     use femme::LevelFilter;
@@ -143,28 +145,63 @@ fn build_site_data() -> (SiteData, SiteData) {
     (basic, full)
 }
 
-macro_rules! test_output {
+macro_rules! test_file_path {
     ($suffix:expr) => {
-        include_str!(concat!(
+        concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/test/Caddyfile.",
+            "/test/caddy/Caddyfile.",
             $suffix,
-        ))
+        )
     };
 }
 
-const CADDYFILE_BASIC_PROD: &str = test_output!("basic_prod");
-const CADDYFILE_BASIC_LOCAL: &str = test_output!("basic_local");
-const CADDYFILE_BASIC_LOCAL_DEV: &str = test_output!("basic_localdev");
-const CADDYFILE_BASIC_DIFFERENT_PROXIES: &str = test_output!("proxies");
-const CADDYFILE_FULL_PROD: &str = test_output!("full_prod");
-const CADDYFILE_LONG_DOMAIN: &str = test_output!("long");
+const CADDYFILE_BASIC_PROD: &str = test_file_path!("basic_prod");
+const CADDYFILE_BASIC_LOCAL: &str = test_file_path!("basic_local");
+const CADDYFILE_BASIC_LOCAL_DEV: &str = test_file_path!("basic_localdev");
+const CADDYFILE_BASIC_DIFFERENT_PROXIES: &str = test_file_path!("proxies");
+const CADDYFILE_FULL_PROD: &str = test_file_path!("full_prod");
+const CADDYFILE_LONG_DOMAIN: &str = test_file_path!("long");
+
+/// Overwrite test data, for instance when updating `CaddyService`.
+///
+/// **This flag will fail the build. Disable it before committing your changes.**
+const UPDATE_TEST_FILES: bool = false;
+
+/// Simple implementation to remove trailing newlines.
+///
+/// We strip off trailing newlines since it's not something
+/// we care about, and precisely managing them in generation
+/// is a waste of time.
+fn trim_string(s: &mut String) {
+    while s.ends_with('\n') {
+        s.pop();
+    }
+}
+
+/// Reads a `Caddyfile`, which represents the expected output of generation with certain settings.
+fn read_test_file(path: &str) -> String {
+    let mut file = File::open(path).expect("Unable to open test file");
+    let mut caddyfile = String::new();
+    file.read_to_string(&mut caddyfile)
+        .expect("Unable to read test file");
+
+    trim_string(&mut caddyfile);
+    caddyfile
+}
+
+/// Writes a `Caddyfile`, in the event that we are updating test files.
+/// For convenience when we have updated the logic in `CaddyService`.
+fn write_test_file(path: &str, caddyfile: &str) {
+    let mut file = File::create(path).expect("Unable to open test file");
+    file.write_all(caddyfile.as_bytes()).expect("Unable to write to test file");
+}
 
 #[test]
 fn generate_caddyfiles() {
     const FRAMERAIL_HOST: &str = "framerail:3000";
     const WWS_HOST: &str = "wws:7000";
 
+    // Build different configurations for various test cases
     let config_basic = build_config("wikijump.test", "wjfiles.test");
     let config_local = build_config("wikijump.localhost", "wjfiles.localhost");
     let config_long = build_config(
@@ -174,21 +211,23 @@ fn generate_caddyfiles() {
     let (sites_basic, sites_full) = build_site_data();
 
     macro_rules! check {
-        ($expected:expr, $config:expr, $sites:expr, $options:expr $(,)?) => {{
-            let mut actual = CaddyService::generate_custom(&$config, &$options, &$sites);
+        ($path:expr, $config:expr, $sites:expr, $options:expr $(,)?) => {{
+            let expected = read_test_file($path);
+            let actual = {
+                let mut caddyfile =
+                    CaddyService::generate_custom(&$config, &$options, &$sites);
 
-            // Strip off trailing newlines, not something we care about,
-            // and precisely managing them is a waste of time.
+                trim_string(&mut caddyfile);
+                caddyfile
+            };
 
-            let expected = $expected.trim();
-            while actual.ends_with('\n') {
-                actual.pop();
-            }
-
-            assert_eq!(
-                expected,
-                actual,
-                "\
+            if UPDATE_TEST_FILES {
+                write_test_file($path, &actual);
+            } else {
+                assert_eq!(
+                    expected,
+                    actual,
+                    "\
 Generated Caddy file did not match!
 
 
@@ -199,12 +238,13 @@ UNIT TEST INFO:
 * Site data: {}
 * Options: {:#?}
 ",
-                stringify!($expected),
-                $config.main_domain_no_dot,
-                $config.files_domain_no_dot,
-                stringify!($sites),
-                $options,
-            );
+                    stringify!($expected),
+                    $config.main_domain_no_dot,
+                    $config.files_domain_no_dot,
+                    stringify!($sites),
+                    $options,
+                );
+            }
         }};
     }
 
@@ -291,4 +331,10 @@ UNIT TEST INFO:
             wws_host: cow!(WWS_HOST),
         },
     );
+
+    if UPDATE_TEST_FILES {
+        // We cannot allow tests to silently pass because someone is just auto-updating
+        // whatever is generated to match.
+        panic!("UPDATE_TEST_FILES is set to true! Disable this flag before attempting to run CI");
+    }
 }
