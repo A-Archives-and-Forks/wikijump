@@ -28,10 +28,10 @@
 
 use crate::config::{Config, Secrets};
 use crate::endpoints::{
-    auth::*, blob::*, caddy::*, category::*, domain::*, email::*, file::*,
-    file_revision::*, info::*, link::*, locale::*, message::*, misc::*, page::*,
-    page_revision::*, parent::*, site::*, site_member::*, special_error::*, text::*,
-    user::*, user_bot::*, view::*, vote::*,
+    auth::*, blob::*, category::*, domain::*, email::*, file::*, file_revision::*,
+    info::*, link::*, locale::*, message::*, misc::*, page::*, page_revision::*,
+    parent::*, routing::*, site::*, site_member::*, special_error::*, text::*, user::*,
+    user_bot::*, view::*, vote::*,
 };
 use crate::locales::Localizations;
 use crate::services::blob::MimeAnalyzer;
@@ -190,6 +190,7 @@ async fn build_module(app_state: ServerState) -> anyhow::Result<RpcModule<Server
     register!("translate", translate_strings);
 
     // Web routing
+    register!("domains", platform_domains);
     register!("caddyfile", generate_caddyfile);
 
     // Web server
