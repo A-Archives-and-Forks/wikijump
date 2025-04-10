@@ -20,11 +20,13 @@
 
 use crate::{handler::*, state::ServerState};
 use axum::{
+    http::header::{HeaderValue, ACCESS_CONTROL_ALLOW_ORIGIN},
     routing::{any, get},
     Router,
 };
 use tower_http::{
-    compression::CompressionLayer, normalize_path::NormalizePathLayer, trace::TraceLayer,
+    compression::CompressionLayer, normalize_path::NormalizePathLayer,
+    set_header::SetResponseHeaderLayer, trace::TraceLayer,
 };
 
 pub fn build_router(state: ServerState) -> Router {
@@ -83,6 +85,10 @@ pub fn build_router(state: ServerState) -> Router {
         // Middleware
         .layer(TraceLayer::new_for_http())
         .layer(NormalizePathLayer::trim_trailing_slash())
+        .layer(SetResponseHeaderLayer::if_not_present(
+            ACCESS_CONTROL_ALLOW_ORIGIN,
+            Some(HeaderValue::from_static("*")),
+        ))
         .layer(
             CompressionLayer::new()
                 .gzip(true)
