@@ -29,8 +29,8 @@ pub struct Domains {
     files_domain_no_dot: String,
 }
 
-pub async fn platform_domains<'a>(
-    ctx: &ServiceContext<'a>,
+pub async fn platform_domains(
+    ctx: &ServiceContext<'_>,
     _params: Params<'static>,
 ) -> Result<Domains> {
     let config = ctx.config();
