@@ -1,5 +1,5 @@
 /*
- * endpoints/caddy.rs
+ * endpoints/routing.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
  * Copyright (C) 2019-2025 Wikijump Team
@@ -20,6 +20,28 @@
 
 use super::prelude::*;
 use crate::services::caddy::CaddyfileOptions;
+
+#[derive(Serialize, Debug, Clone)]
+pub struct Domains {
+    main_domain: String,
+    main_domain_no_dot: String,
+    files_domain: String,
+    files_domain_no_dot: String,
+}
+
+pub async fn platform_domains(
+    ctx: &ServiceContext<'_>,
+    _params: Params<'static>,
+) -> Result<Domains> {
+    let config = ctx.config();
+
+    Ok(Domains {
+        main_domain: config.main_domain.clone(),
+        main_domain_no_dot: config.main_domain_no_dot.clone(),
+        files_domain: config.files_domain.clone(),
+        files_domain_no_dot: config.files_domain_no_dot.clone(),
+    })
+}
 
 pub async fn generate_caddyfile(
     ctx: &ServiceContext<'_>,
