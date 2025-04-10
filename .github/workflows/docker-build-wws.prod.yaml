@@ -3,7 +3,7 @@ name: '[backend] Docker build WWS (prod)'
 on:
   pull_request:
     paths:
-      - 'deepwell/**'
+      - 'wws/**'
       - 'install/prod/wws/Dockerfile'
       - '.github/workflows/docker-build-wws.prod.yaml'
 

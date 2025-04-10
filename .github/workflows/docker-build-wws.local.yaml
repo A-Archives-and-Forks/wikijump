@@ -3,7 +3,7 @@ name: '[backend] Docker build WWS (local)'
 on:
   pull_request:
     paths:
-      - 'deepwell/**'
+      - 'wws/**'
       - 'install/local/wws/Dockerfile'
       - '.github/workflows/docker-build-wws.local.yaml'
 
