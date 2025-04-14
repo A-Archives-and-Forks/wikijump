@@ -25,7 +25,7 @@ services:
       - "MINIO_ROOT_USER=minio"
       - "MINIO_ROOT_PASSWORD=defaultpassword"
       - "MINIO_REGION_NAME=local"
-      - "INITIAL_BUCKETS=deepwell-files"
+      - "INITIAL_BUCKETS=deepwell-files deepwell-text-blocks"
       - "DATA_DIR=/data"  # You can add a volume for /data if you wish
     healthcheck:
       test: ["CMD", "/healthcheck.sh"]
@@ -61,7 +61,8 @@ services:
     environment:
       - "DATABASE_URL=postgres://wikijump:wikijump@database/wikijump"
       - "REDIS_URL=redis://cache"
-      - "S3_BUCKET=deepwell-files"
+      - "S3_FILES_BUCKET=deepwell-files"
+      - "S3_TEXT_BLOCKS_BUCKET=deepwell-text-blocks"
       - "S3_REGION_NAME=local"
       - "S3_PATH_STYLE=true"
       - "S3_CUSTOM_ENDPOINT=http://files:9000"
@@ -115,7 +116,8 @@ services:
       - "ADDRESS=[::]:7000"
       - "DEEPWELL_URL=http://deepwell:2747"
       - "REDIS_URL=redis://cache"
-      - "S3_BUCKET=deepwell-files"
+      - "S3_FILES_BUCKET=deepwell-files"
+      - "S3_TEXT_BLOCKS_BUCKET=deepwell-text-blocks"
       - "S3_REGION_NAME=local"
       - "S3_PATH_STYLE=true"
       - "S3_CUSTOM_ENDPOINT=http://files:9000"

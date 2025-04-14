@@ -67,7 +67,9 @@ pub fn load_config() -> (Config, Secrets) {
     let deepwell_url = get_env!("DEEPWELL_URL");
     let redis_url = get_env!("REDIS_URL");
 
-    let s3_bucket = get_env!("S3_BUCKET");
+    let s3_files_bucket = get_env!("S3_FILES_BUCKET");
+    let s3_tblocks_bucket = get_env!("S3_TEXT_BLOCKS_BUCKET");
+
     let s3_region = match env::var("S3_AWS_REGION") {
         // Standard AWS S3 region, parse out into enum.
         Ok(value) => match value.parse() {
@@ -133,7 +135,8 @@ pub fn load_config() -> (Config, Secrets) {
     let secrets = Secrets {
         deepwell_url,
         redis_url,
-        s3_bucket,
+        s3_files_bucket,
+        s3_tblocks_bucket,
         s3_region,
         s3_path_style,
         s3_credentials,

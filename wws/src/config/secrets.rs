@@ -35,8 +35,14 @@ pub struct Secrets {
     /// The name of the S3 bucket that file blobs are kept in.
     /// The bucket must already exist prior to program invocation.
     ///
-    /// Set using environment variable `S3_BUCKET`.
-    pub s3_bucket: String,
+    /// Set using environment variable `S3_FILES_BUCKET`.
+    pub s3_files_bucket: String,
+
+    /// The name of the S3 bucket that hosted text blocks are kept in.
+    /// The bucket must already exist prior to program invocation.
+    ///
+    /// Set using environment variable `S3_TEXT_BLOCKS_BUCKET`.
+    pub s3_tblocks_bucket: String,
 
     /// The region to use for S3.
     ///

@@ -36,14 +36,16 @@ pub type ServerState = Arc<ServerStateInner>;
 pub struct ServerStateInner {
     pub deepwell: Deepwell,
     pub cache: Cache,
-    pub s3_bucket: Box<Bucket>,
+    pub s3_files_bucket: Box<Bucket>,
+    pub s3_tblocks_bucket: Box<Bucket>,
 }
 
 pub async fn build_server_state(
     Secrets {
         deepwell_url,
         redis_url,
-        s3_bucket,
+        s3_files_bucket,
+        s3_tblocks_bucket,
         s3_region,
         s3_credentials,
         s3_path_style,
@@ -53,21 +55,32 @@ pub async fn build_server_state(
     deepwell.check().await;
 
     let cache = Cache::connect(&redis_url)?;
-    let s3_bucket = {
-        let mut bucket = Bucket::new(&s3_bucket, s3_region.clone(), s3_credentials.clone())?;
+
+    let (s3_files_bucket, s3_tblocks_bucket) = {
+        let mut files_bucket =
+            Bucket::new(&s3_files_bucket, s3_region.clone(), s3_credentials.clone())?;
+
+        let mut tblocks_bucket = Bucket::new(
+            &s3_tblocks_bucket,
+            s3_region.clone(),
+            s3_credentials.clone(),
+        )?;
 
         if s3_path_style {
-            bucket = bucket.with_path_style();
+            files_bucket = files_bucket.with_path_style();
+            tblocks_bucket = tblocks_bucket.with_path_style();
         }
 
-        bucket.request_timeout = Some(BUCKET_REQUEST_TIMEOUT);
-        bucket
+        files_bucket.request_timeout = Some(BUCKET_REQUEST_TIMEOUT);
+        tblocks_bucket.request_timeout = Some(BUCKET_REQUEST_TIMEOUT);
+        (files_bucket, tblocks_bucket)
     };
 
     Ok(Arc::new(ServerStateInner {
         deepwell,
         cache,
-        s3_bucket,
+        s3_files_bucket,
+        s3_tblocks_bucket,
     }))
 }
 

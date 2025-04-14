@@ -86,7 +86,11 @@ async fn fetch_file(
         }
     };
 
-    let body = match state.s3_bucket.get_object_stream(&file_info.s3_hash).await {
+    let body = match state
+        .s3_files_bucket
+        .get_object_stream(&file_info.s3_hash)
+        .await
+    {
         Ok(ResponseDataStream { bytes, status_code }) => {
             assert_eq!(
                 status_code,
