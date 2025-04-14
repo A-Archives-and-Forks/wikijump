@@ -88,6 +88,7 @@ pub mod site;
 pub mod special_error;
 pub mod special_page;
 pub mod text;
+pub mod text_block;
 pub mod user;
 pub mod user_bot_owner;
 pub mod view;
@@ -125,6 +126,7 @@ pub use self::site::SiteService;
 pub use self::special_error::SpecialErrorService;
 pub use self::special_page::SpecialPageService;
 pub use self::text::TextService;
+pub use self::text_block::TextBlockService;
 pub use self::user::UserService;
 // TODO convert user-bot to a type of relation
 pub use self::user_bot_owner::UserBotOwnerService;
