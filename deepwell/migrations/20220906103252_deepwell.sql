@@ -567,6 +567,23 @@ CREATE TABLE file_revision (
 );
 
 --
+-- Hosted Text Blocks
+--
+
+CREATE TYPE text_block_type AS ENUM (
+    'code',
+    'html'
+);
+
+CREATE TABLE text_block (
+    block_type text_block_type NOT NULL,
+    page_id BIGINT NOT NULL REFERENCES page(page_id),
+    block_index SMALLINT NOT NULL CHECK (block_index > 0),
+
+    PRIMARY KEY (block_type, page_id, block_index)
+);
+
+--
 -- Direct Messages
 --
 
