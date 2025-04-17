@@ -173,7 +173,7 @@ impl SiteService {
 
         if let Maybe::Set(preferred_domain) = input.preferred_domain {
             // Disallow preferred domains for the default site (www)
-            if site.slug == DEFAULT_SITE_SLUG {
+            if site.slug == DEFAULT_SITE_SLUG && preferred_domain.is_some() {
                 error!("Cannot set a preferred domain for the default site");
                 return Err(Error::BadRequest);
             }
