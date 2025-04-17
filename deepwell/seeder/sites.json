@@ -30,6 +30,7 @@
         "slug": "scp-wiki",
         "name": "SCP Wiki (test)",
         "domains": ["scpwiki.dev", "scpwiki.localhost"],
+        "preferred-domain": "scpwiki.localhost",
         "tagline": "Secure, Contain, Protect",
         "description": "Test site mimicking the SCP Wiki (EN)",
         "default-page": "main",
