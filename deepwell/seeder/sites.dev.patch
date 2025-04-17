@@ -1,0 +1,6 @@
+32,33c32,33
+<         "domains": ["scpwiki.dev", "scpwiki.localhost"],
+<         "preferred-domain": "scpwiki.localhost",
+---
+>         "domains": ["scpwiki.dev"],
+>         "preferred-domain": "scpwiki.dev",

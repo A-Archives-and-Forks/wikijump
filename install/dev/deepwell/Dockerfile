@@ -16,6 +16,9 @@ RUN mkdir /src
 COPY ./deepwell /src/deepwell
 WORKDIR /src/deepwell
 
+# Adjust seeder files for dev
+RUN patch /src/deepwell/seeder/sites.json /src/deepwell/seeder/sites.dev.patch
+
 # Cache rust dependencies
 RUN cargo vendor
 
