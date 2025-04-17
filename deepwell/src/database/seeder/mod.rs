@@ -31,7 +31,7 @@ use crate::services::file::{
 };
 use crate::services::filter::{CreateFilter, FilterService};
 use crate::services::page::{CreatePage, PageService};
-use crate::services::site::{CreateSite, CreateSiteOutput, SiteService};
+use crate::services::site::{CreateSite, CreateSiteOutput, SiteService, UpdateSiteBody};
 use crate::services::user::{CreateUser, CreateUserOutput, UpdateUserBody, UserService};
 use crate::services::ServiceContext;
 use crate::types::{Maybe, Reference};
@@ -188,6 +188,17 @@ pub async fn seed(state: &ServerState) -> Result<()> {
             DomainService::create_custom(&ctx, CreateCustomDomain { site_id, domain })
                 .await?;
         }
+
+        SiteService::update(
+            &ctx,
+            Reference::Id(site_id),
+            UpdateSiteBody {
+                preferred_domain: Maybe::Set(site.preferred_domain),
+                ..Default::default()
+            },
+            SYSTEM_USER_ID,
+        )
+        .await?;
 
         site_ids.insert(slug, site_id);
     }

@@ -138,6 +138,9 @@ pub enum Error {
     #[error("Custom domains may not be subdomains of the Wikijump main or file domains")]
     CustomDomainSubdomain,
 
+    #[error("Cannot use custom domain, as it belongs to a different site")]
+    CustomDomainWrongSite,
+
     #[error("The regular expression found in the database is invalid")]
     FilterRegexInvalid(regex::Error),
 
@@ -411,6 +414,7 @@ impl Error {
             Error::BlobCannotBlacklistExisting => 4029,
             Error::NotLatestRevisionId => 4030,
             Error::CustomDomainSubdomain => 4031,
+            Error::CustomDomainWrongSite => 4032,
 
             // 4100 -- Localization
             Error::LocaleInvalid(_) => 4100,
