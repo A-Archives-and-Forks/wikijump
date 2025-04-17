@@ -72,5 +72,7 @@ pub struct UpdateSiteBody {
     pub tagline: Maybe<String>,
     pub description: Maybe<String>,
     pub locale: Maybe<String>,
+    pub default_page: Maybe<String>,
+    pub preferred_domain: Maybe<Option<String>>,
     pub layout: Maybe<Option<Layout>>,
 }

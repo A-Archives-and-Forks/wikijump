@@ -30,7 +30,7 @@ use crate::models::site::{self, Entity as Site, Model as SiteModel};
 use crate::services::alias::CreateAlias;
 use crate::services::relation::CreateSiteUser;
 use crate::services::user::{CreateUser, UpdateUserBody};
-use crate::services::{AliasService, Error, RelationService, UserService};
+use crate::services::{AliasService, DomainService, Error, RelationService, UserService};
 use crate::utils::validate_locale;
 use ftml::layout::Layout;
 use ref_map::*;
@@ -168,6 +168,37 @@ impl SiteService {
             validate_locale(&locale)?;
             model.locale = Set(locale.clone());
             site_user_body.locales = Maybe::Set(vec![locale]);
+        }
+
+        if let Maybe::Set(default_page) = input.default_page {
+            model.default_page = Set(default_page);
+        }
+
+        if let Maybe::Set(preferred_domain) = input.preferred_domain {
+            if let Some(domain) = &preferred_domain {
+                // Ensure that the custom domain exists and belongs to this site
+                match DomainService::site_from_custom_domain_optional(ctx, domain).await?
+                {
+                    Some(found_site) if found_site.site_id == site.site_id => (),
+                    Some(found_site) => {
+                        error!(
+                            "Attempting to set preferred domain for site ID {} '{}' to {}, but the custom domain belongs to site ID {} '{}'!",
+                            site.site_id,
+                            site.slug,
+                            domain,
+                            found_site.site_id,
+                            found_site.slug,
+                        );
+                        return Err(Error::CustomDomainWrongSite);
+                    }
+                    None => {
+                        error!("Attempting to set preferred domain to '{domain}', but this is not a known custom domain!");
+                        return Err(Error::CustomDomainNotFound);
+                    }
+                }
+            }
+
+            model.preferred_domain = Set(preferred_domain);
         }
 
         if let Maybe::Set(layout) = input.layout {
