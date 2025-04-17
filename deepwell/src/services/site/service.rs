@@ -18,24 +18,21 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-// TODO disallow preferred domains for default site (www)
-// TODO expire redis cache on change to domains
-
-use wikidot_normalize::normalize;
-
 use super::prelude::*;
 use crate::constants::SYSTEM_USER_ID;
 use crate::models::sea_orm_active_enums::{AliasType, UserType};
 use crate::models::site::{self, Entity as Site, Model as SiteModel};
 use crate::services::alias::CreateAlias;
+use crate::services::domain::{DomainService, DEFAULT_SITE_SLUG};
 use crate::services::relation::CreateSiteUser;
 use crate::services::user::{CreateUser, UpdateUserBody};
-use crate::services::{AliasService, DomainService, Error, RelationService, UserService};
+use crate::services::{AliasService, Error, RelationService, UserService};
 use crate::utils::validate_locale;
 use ftml::layout::Layout;
 use ref_map::*;
 use sea_orm::NotSet;
 use std::borrow::Cow;
+use wikidot_normalize::normalize;
 
 #[derive(Debug)]
 pub struct SiteService;
@@ -175,8 +172,16 @@ impl SiteService {
         }
 
         if let Maybe::Set(preferred_domain) = input.preferred_domain {
+            // Disallow preferred domains for the default site (www)
+            if site.slug == DEFAULT_SITE_SLUG {
+                error!("Cannot set a preferred domain for the default site");
+                return Err(Error::BadRequest);
+            }
+
+            // TODO expire redis cache on change to domains
+
+            // Ensure that the custom domain exists and belongs to this site
             if let Some(domain) = &preferred_domain {
-                // Ensure that the custom domain exists and belongs to this site
                 match DomainService::site_from_custom_domain_optional(ctx, domain).await?
                 {
                     Some(found_site) if found_site.site_id == site.site_id => (),
