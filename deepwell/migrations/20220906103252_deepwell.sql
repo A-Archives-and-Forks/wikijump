@@ -467,7 +467,7 @@ CREATE TABLE blob_pending (
 -- Manages blobs which are prohibited from being uploaded
 CREATE TABLE blob_blacklist (
     s3_hash BYTEA PRIMARY KEY CHECK (length(s3_hash) = 64),  -- SHA-512 hash size
-    created_at TIMESTAMP WITH TIME ZONE NULL DEFAULT now(),
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
     created_by BIGINT NOT NULL REFERENCES "user"(user_id)
 );
 
