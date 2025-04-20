@@ -31,7 +31,7 @@ use super::prelude::*;
 use crate::models::sea_orm_active_enums::UserType;
 use crate::services::UserService;
 
-impl_relation!(SiteUser, Site, site_id, User, user_id, (), NO_CREATE_IMPL,);
+impl_relation!(SiteUser, Site, site_id, User, user_id, (), NO_CREATE_IMPL);
 
 impl RelationService {
     pub async fn create_site_user(

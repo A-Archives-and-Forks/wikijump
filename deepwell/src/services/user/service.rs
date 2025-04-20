@@ -184,7 +184,7 @@ impl UserService {
                 }
 
                 EmailClassification::Alias => {
-                    info!("User {slug}'s email was verified successfully (as an alias)",);
+                    info!("User {slug}'s email was verified successfully (as an alias)");
                     Some(true)
                 }
 

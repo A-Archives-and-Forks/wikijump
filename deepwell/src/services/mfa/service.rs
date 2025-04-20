@@ -175,7 +175,7 @@ impl MfaService {
         let recovery_code_hashes = match &user.multi_factor_recovery_codes {
             Some(codes) => codes,
             None => {
-                warn!("User has no MFA recovery codes, but wants to verify recovery",);
+                warn!("User has no MFA recovery codes, but wants to verify recovery");
 
                 return Err(Error::InvalidAuthentication);
             }

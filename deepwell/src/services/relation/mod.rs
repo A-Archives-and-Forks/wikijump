@@ -83,7 +83,7 @@ impl RelationService {
         created_by: i64,
         metadata: &M,
     ) -> Result<RelationModel> {
-        debug!("Create relation for {dest:?} ← {relation_type:?} ← {from:?}",);
+        debug!("Create relation for {dest:?} ← {relation_type:?} ← {from:?}");
 
         // Get previous relation, if present
         let txn = ctx.transaction();
@@ -234,7 +234,7 @@ impl RelationService {
         object: RelationObject,
         direction: RelationDirection,
     ) -> Result<Vec<RelationModel>> {
-        info!("Getting {direction:?} relations for {object:?} / {relation_type:?}",);
+        info!("Getting {direction:?} relations for {object:?} / {relation_type:?}");
 
         let (object_type, object_id) = object.into();
         let (object_type_column, object_id_column) = match direction {

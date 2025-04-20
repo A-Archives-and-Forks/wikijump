@@ -222,7 +222,7 @@ impl PageQueryService {
             // Pages which are not siblings of the current page,
             // i.e., they do not share any parents with the current page.
             PageParentSelector::DifferentParents => {
-                debug!("Selecting pages which are not siblings under the given parents",);
+                debug!("Selecting pages which are not siblings under the given parents");
 
                 let parents = ParentService::get_parents(
                     ctx,
@@ -246,7 +246,7 @@ impl PageQueryService {
 
             // Pages which are children of the current page.
             PageParentSelector::ChildOf => {
-                debug!("Selecting pages which are children of the current page",);
+                debug!("Selecting pages which are children of the current page");
 
                 page::Column::PageId.in_subquery(
                     Query::select()
@@ -261,7 +261,7 @@ impl PageQueryService {
             // TODO: Possibly allow either *any* or *all* of specified parents
             //       rather than only any, in the future.
             PageParentSelector::HasParents(parents) => {
-                debug!("Selecting on pages which have one of the given as parents",);
+                debug!("Selecting on pages which have one of the given as parents");
 
                 let parent_ids = PageService::get_pages(ctx, queried_site_id, parents)
                     .await?
@@ -352,7 +352,7 @@ impl PageQueryService {
                 OrderProperty::PageSlug => {
                     // idk how to do this, we need to strip off the category part somehow
                     // PgExpr::matches?
-                    error!("Ordering by page slug (no category), not yet implemented",);
+                    error!("Ordering by page slug (no category), not yet implemented");
                     todo!() // TODO
                 }
                 OrderProperty::FullSlug => {

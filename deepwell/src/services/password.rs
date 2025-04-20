@@ -88,7 +88,7 @@ impl PasswordService {
 
                     // Some kind of server error
                     _ => {
-                        error!("Unexpected error while verifying password: {error}",);
+                        error!("Unexpected error while verifying password: {error}");
                     }
                 }
 

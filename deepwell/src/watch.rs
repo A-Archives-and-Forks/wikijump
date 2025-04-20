@@ -67,7 +67,7 @@ pub fn setup_autorestart(config: &Config) -> Result<RecommendedWatcher> {
                 error!("Unable to receive filesystem events: {error}");
             }
             Ok(event) => {
-                debug!("Received filesystem event ({} paths)", event.paths.len(),);
+                debug!("Received filesystem event ({} paths)", event.paths.len());
 
                 if event_is_applicable(&watched_paths, event) {
                     restart_self();
@@ -117,7 +117,7 @@ fn path_is_applicable(watched_paths: &WatchedPaths, path: &Path) -> bool {
     let path = match fs::canonicalize(path) {
         Ok(path) => path,
         Err(error) => {
-            error!("Error finding canonical path for event processing: {error}",);
+            error!("Error finding canonical path for event processing: {error}");
             return false;
         }
     };

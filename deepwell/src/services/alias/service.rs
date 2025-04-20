@@ -278,7 +278,7 @@ impl AliasService {
         alias_type: AliasType,
         slug: &str,
     ) -> Result<()> {
-        info!("Verifying target and alias table consistency for slug '{slug}'",);
+        info!("Verifying target and alias table consistency for slug '{slug}'");
 
         let txn = ctx.transaction();
         let alias_fut = Alias::find()

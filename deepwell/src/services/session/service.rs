@@ -54,7 +54,7 @@ impl SessionService {
             restricted,
         }: CreateSession,
     ) -> Result<String> {
-        info!("Creating new session for user ID {user_id} (restricted: {restricted})",);
+        info!("Creating new session for user ID {user_id} (restricted: {restricted})");
 
         let txn = ctx.transaction();
         let config = ctx.config();
@@ -281,7 +281,7 @@ impl SessionService {
             .exec(txn)
             .await?;
 
-        debug!("User ID {user_id}: {rows_affected} other sessions were invalidated",);
+        debug!("User ID {user_id}: {rows_affected} other sessions were invalidated");
         Ok(rows_affected)
     }
 
