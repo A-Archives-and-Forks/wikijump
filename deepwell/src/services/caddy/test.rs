@@ -87,6 +87,7 @@ fn build_config(main_domain: &str, files_domain: &str) -> Config {
         maximum_name_changes: 0,
         refill_name_change: None,
         minimum_name_bytes: 0,
+        minimum_name_chars: 0,
         presigned_path_length: 0,
         presigned_expiry_secs: 0,
         maximum_blob_size: 0,

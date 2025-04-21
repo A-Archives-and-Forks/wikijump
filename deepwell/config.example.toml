@@ -337,17 +337,18 @@ default-name-changes = 2
 # a user will top out at this amount.
 maximum-name-changes = 3
 
-# The minimum length for a user's name in bytes.
+# The minimum length for a user's name in bytes and codepoints.
 # A user who attempts to register must have a slug which is at least this long.
 #
 # The intent is to prevent the proliferation of very short, unidentifiable usernames
-# such as single Latin letters (e.g. "N"). However, we check *bytes* specifically to
-# avoid Anglo-centricism, as many full names in other languages fit within two letters
-# (consider CJK for instance). Single characters outside of the main ASCII block
-# usually take up two or three bytes themselves, making it a non-issue for those languages.
+# such as single Latin letters (e.g. "N"). However, we want to avoid Anglo-centrism,
+# as full names in non-English languages can fit within two letters. So we have
+# one requirement which excludes short ASCII usernames but permits a more reasonable
+# restriction for say CJK languages.
 #
 # See WJ-1122.
-minimum-name-bytes = 3
+minimum-name-bytes = 4
+minimum-name-chars = 2
 
 # Every this many days, all users get another name change token (up to the cap).
 # See the "job" section above to configure how often this is checked.
