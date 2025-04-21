@@ -49,11 +49,16 @@ impl TextBlockService {
         // They all take the format of "<BLOCK TYPE>_<PAGE ID>_<BLOCK INDEX>",
         // for instance "code_12345_2".
 
-        let mut filename = String::new();
-        let mut make_filename = |index: usize| {
-            filename.clear();
-            str_write!(&mut filename, "{block_type_value}_{page_id}_{index}");
-        };
+        let mut buffer = String::new();
+
+        macro_rules! filename {
+            ($index:expr) => {{
+                buffer.clear();
+                let index = $index;
+                str_write!(&mut buffer, "{block_type_value}_{page_id}_{index}");
+                &buffer
+            }};
+        }
 
         // First, get the largest block index for this type.
         // This is needed for the step where we delete extraneous objects in S3.
