@@ -124,7 +124,7 @@ impl AliasService {
 
                 if slug.chars().count() < config.minimum_name_chars {
                     error!(
-                        "User's name is not long enough ({} < {} bytes)",
+                        "User's name is not long enough ({} < {} chars)",
                         slug.len(),
                         ctx.config().minimum_name_bytes,
                     );

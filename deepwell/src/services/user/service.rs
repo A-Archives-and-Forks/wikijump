@@ -69,7 +69,7 @@ impl UserService {
         let config = ctx.config();
         if name.len() < config.minimum_name_bytes {
             error!(
-                "User's name is not long enough ({} < {})",
+                "User's name is not long enough ({} < {} bytes)",
                 slug.len(),
                 ctx.config().minimum_name_bytes,
             );
@@ -78,7 +78,7 @@ impl UserService {
 
         if name.chars().count() < config.minimum_name_chars {
             error!(
-                "User's name is not long enough ({} < {} bytes)",
+                "User's name is not long enough ({} < {} chars)",
                 slug.len(),
                 ctx.config().minimum_name_bytes,
             );
