@@ -53,11 +53,11 @@ impl CaddyService {
         let txn = ctx.transaction();
 
         let sites: Vec<(i64, String, Option<String>)> = Site::find()
-            .order_by_asc(site::Column::SiteId)
             .select_only()
             .column(site::Column::SiteId)
             .column(site::Column::Slug)
             .column(site::Column::PreferredDomain)
+            .order_by_asc(site::Column::SiteId)
             .into_tuple()
             .all(txn)
             .await?;

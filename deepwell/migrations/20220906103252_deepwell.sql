@@ -467,7 +467,7 @@ CREATE TABLE blob_pending (
 -- Manages blobs which are prohibited from being uploaded
 CREATE TABLE blob_blacklist (
     s3_hash BYTEA PRIMARY KEY CHECK (length(s3_hash) = 64),  -- SHA-512 hash size
-    created_at TIMESTAMP WITH TIME ZONE NULL DEFAULT now(),
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
     created_by BIGINT NOT NULL REFERENCES "user"(user_id)
 );
 
@@ -564,6 +564,25 @@ CREATE TABLE file_revision (
 
     -- For logical consistency, and adding an index
     UNIQUE (file_id, page_id, revision_number)
+);
+
+--
+-- Hosted Text Blocks
+--
+
+CREATE TYPE text_block_type AS ENUM (
+    'code',
+    'html'
+);
+
+CREATE TABLE text_block (
+    block_type text_block_type NOT NULL,
+    page_id BIGINT NOT NULL REFERENCES page(page_id),
+    block_index SMALLINT NOT NULL CHECK (block_index > 0),
+    block_name TEXT CHECK (length(block_name) > 0),
+
+    PRIMARY KEY (block_type, page_id, block_index),
+    UNIQUE (page_id, block_name)
 );
 
 --

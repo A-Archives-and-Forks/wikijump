@@ -30,7 +30,8 @@ use crate::services::page_revision::{
     CreateTombstonePageRevision,
 };
 use crate::services::{
-    CategoryService, FilterService, PageRevisionService, SiteService, TextService,
+    CategoryService, FilterService, PageRevisionService, SiteService, TextBlockService,
+    TextService,
 };
 use crate::types::PageOrder;
 use crate::utils::{get_category_name, trim_default};
@@ -367,6 +368,14 @@ impl PageService {
         let page = model.update(txn).await?;
         assert_latest_revision(&page);
 
+        // Finally, clear out any hosted text blocks
+        //
+        // We do this last because this involves
+        // removing from S3, which is not reversible
+        // in a database transaction rollback.
+        TextBlockService::delete_blocks(ctx, page_id).await?;
+
+        // Return deletion information
         Ok((output, page_id).into())
     }
 

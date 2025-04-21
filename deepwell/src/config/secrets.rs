@@ -38,8 +38,14 @@ pub struct Secrets {
     /// The name of the S3 bucket that file blobs are kept in.
     /// The bucket must already exist prior to program invocation.
     ///
-    /// Set using environment variable `S3_BUCKET`.
-    pub s3_bucket: String,
+    /// Set using environment variable `S3_FILES_BUCKET`.
+    pub s3_files_bucket: String,
+
+    /// The name of the S3 bucket that hosted text blocks are kept in.
+    /// The bucket must already exist prior to program invocation.
+    ///
+    /// Set using environment variable `S3_TEXT_BLOCKS_BUCKET`.
+    pub s3_tblocks_bucket: String,
 
     /// The region to use for S3.
     ///
@@ -84,7 +90,9 @@ impl Secrets {
         let database_url = get_env!("DATABASE_URL");
         let redis_url = get_env!("REDIS_URL");
 
-        let s3_bucket = get_env!("S3_BUCKET");
+        let s3_files_bucket = get_env!("S3_FILES_BUCKET");
+        let s3_tblocks_bucket = get_env!("S3_TEXT_BLOCKS_BUCKET");
+
         let s3_region = match env::var("S3_AWS_REGION") {
             // Standard AWS S3 region, parse out into enum.
             Ok(value) => {
@@ -146,7 +154,8 @@ impl Secrets {
         Secrets {
             database_url,
             redis_url,
-            s3_bucket,
+            s3_files_bucket,
+            s3_tblocks_bucket,
             s3_region,
             s3_path_style,
             s3_credentials,

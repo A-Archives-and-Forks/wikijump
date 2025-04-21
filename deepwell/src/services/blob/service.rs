@@ -132,7 +132,7 @@ impl BlobService {
         info!("Creating presign upload URL for blob at path {s3_path} with primary key {pending_blob_id}");
 
         // Create presign URL
-        let bucket = ctx.s3_bucket();
+        let bucket = ctx.s3_files_bucket();
         let presign_url = bucket
             .presign_put(&s3_path, config.presigned_expiry_secs, None, None)
             .await?;
@@ -213,7 +213,7 @@ impl BlobService {
         BlobPending::delete_by_id(pending_blob_id).exec(txn).await?;
 
         if Self::head(ctx, &s3_path).await?.is_some() {
-            let bucket = ctx.s3_bucket();
+            let bucket = ctx.s3_files_bucket();
             bucket.delete_object(&s3_path).await?;
         }
 
@@ -261,7 +261,7 @@ impl BlobService {
         s3_path: &str,
         expected_length: usize,
     ) -> Result<FinalizeBlobUploadOutput> {
-        let bucket = ctx.s3_bucket();
+        let bucket = ctx.s3_files_bucket();
         let txn = ctx.transaction();
 
         debug!("Download uploaded blob from S3 uploads to get metadata");
@@ -351,7 +351,7 @@ impl BlobService {
         ctx: &ServiceContext<'_>,
         data: Vec<u8>,
     ) -> Result<FinalizeBlobUploadOutput> {
-        let bucket = ctx.s3_bucket();
+        let bucket = ctx.s3_files_bucket();
 
         // Get hash for blob
         let s3_hash = sha512_hash(&data);
@@ -811,7 +811,7 @@ impl BlobService {
         }
 
         // Retrieve blob from S3
-        let bucket = ctx.s3_bucket();
+        let bucket = ctx.s3_files_bucket();
         let hex_hash = blob_hash_to_hex(hash);
         let response = bucket.get_object(&hex_hash).await?;
         match response.status_code() {
@@ -909,7 +909,7 @@ impl BlobService {
         ctx: &ServiceContext<'_>,
         path: &str,
     ) -> Result<Option<HeadObjectResult>> {
-        let bucket = ctx.s3_bucket();
+        let bucket = ctx.s3_files_bucket();
         let (result, status) = bucket.head_object(path).await?;
 
         match status {
@@ -933,7 +933,7 @@ impl BlobService {
         }
 
         // Delete from S3
-        let bucket = ctx.s3_bucket();
+        let bucket = ctx.s3_files_bucket();
         let hex_hash = blob_hash_to_hex(hash);
 
         let response = bucket.delete_object(&hex_hash).await?;

@@ -59,7 +59,8 @@ pub struct ServerStateInner {
     pub rsmq: PooledRsmq,
     pub localizations: Localizations,
     pub mime_analyzer: MimeAnalyzer,
-    pub s3_bucket: Box<Bucket>,
+    pub s3_files_bucket: Box<Bucket>,
+    pub s3_tblocks_bucket: Box<Bucket>,
 }
 
 impl Debug for ServerStateInner {
@@ -71,21 +72,30 @@ impl Debug for ServerStateInner {
             .field("rsmq", &debug_pointer(&self.rsmq))
             .field("localizations", &self.localizations)
             .field("mime_analyzer", &self.mime_analyzer)
-            .field("s3_bucket", &self.s3_bucket)
+            .field("s3_files_bucket", &self.s3_files_bucket)
+            .field("s3_tblocks_bucket", &self.s3_tblocks_bucket)
             .finish()
     }
 }
 
 pub async fn build_server_state(
     config: Config,
-    secrets: Secrets,
+    Secrets {
+        database_url,
+        redis_url,
+        s3_files_bucket,
+        s3_tblocks_bucket,
+        s3_region,
+        s3_path_style,
+        s3_credentials,
+    }: Secrets,
 ) -> anyhow::Result<ServerState> {
     // Connect to databases
     info!("Connecting to PostgreSQL database");
-    let database = database::connect(&secrets.database_url).await?;
+    let database = database::connect(&database_url).await?;
 
     info!("Connecting to Redis");
-    let (redis, rsmq) = redis_db::connect(&secrets.redis_url).await?;
+    let (redis, rsmq) = redis_db::connect(&redis_url).await?;
 
     // Load localization data
     info!("Loading localization data");
@@ -97,19 +107,24 @@ pub async fn build_server_state(
     // Create S3 bucket
     info!("Opening S3 bucket");
 
-    let s3_bucket = {
-        let mut bucket = Bucket::new(
-            &secrets.s3_bucket,
-            secrets.s3_region.clone(),
-            secrets.s3_credentials.clone(),
+    let (s3_files_bucket, s3_tblocks_bucket) = {
+        let mut files_bucket =
+            Bucket::new(&s3_files_bucket, s3_region.clone(), s3_credentials.clone())?;
+
+        let mut tblocks_bucket = Bucket::new(
+            &s3_tblocks_bucket,
+            s3_region.clone(),
+            s3_credentials.clone(),
         )?;
 
-        if secrets.s3_path_style {
-            bucket = bucket.with_path_style();
+        if s3_path_style {
+            files_bucket = files_bucket.with_path_style();
+            tblocks_bucket = tblocks_bucket.with_path_style();
         }
 
-        bucket.request_timeout = Some(BUCKET_REQUEST_TIMEOUT);
-        bucket
+        files_bucket.request_timeout = Some(BUCKET_REQUEST_TIMEOUT);
+        tblocks_bucket.request_timeout = Some(BUCKET_REQUEST_TIMEOUT);
+        (files_bucket, tblocks_bucket)
     };
 
     // Build server state
@@ -120,7 +135,8 @@ pub async fn build_server_state(
         rsmq,
         localizations,
         mime_analyzer,
-        s3_bucket,
+        s3_files_bucket,
+        s3_tblocks_bucket,
     });
 
     // Start workers listening to the job queue (requires ServerState)

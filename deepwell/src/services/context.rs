@@ -88,8 +88,15 @@ impl<'txn> ServiceContext<'txn> {
     }
 
     #[inline]
-    pub fn s3_bucket(&self) -> &Bucket {
-        &self.state.s3_bucket
+    pub fn s3_files_bucket(&self) -> &Bucket {
+        &self.state.s3_files_bucket
+    }
+
+    // TODO finish implementation of hosted text blocks
+    #[allow(dead_code)]
+    #[inline]
+    pub fn s3_tblocks_bucket(&self) -> &Bucket {
+        &self.state.s3_tblocks_bucket
     }
 
     #[inline]
