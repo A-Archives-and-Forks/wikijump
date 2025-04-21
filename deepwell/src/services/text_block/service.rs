@@ -51,9 +51,9 @@ impl TextBlockService {
         let txn = ctx.transaction();
         let max_index: usize = {
             let row: Option<i64> = TextBlockTable::find()
-                .order_by_desc(text_block::Column::BlockIndex)
                 .select_only()
                 .column(text_block::Column::BlockIndex)
+                .order_by_desc(text_block::Column::BlockIndex)
                 .into_tuple()
                 .one(txn)
                 .await?;
