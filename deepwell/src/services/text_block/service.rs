@@ -119,8 +119,7 @@ impl TextBlockService {
         // If there are more or the same number of blocks now,
         // then this will do nothing.
 
-        for index in max_index..prev_max_index {
-            let index = index + 1;
+        for index in max_index..=prev_max_index {
             let filename = filename!(index);
             debug!("Deleting now-out-of-range S3 text block {filename}");
             bucket.delete_object(filename).await?;
