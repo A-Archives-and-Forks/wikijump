@@ -85,7 +85,6 @@ impl AliasService {
                     error!(
                         "No target site with ID {target_id} exists, cannot create alias",
                     );
-
                     return Err(Error::SiteNotFound);
                 }
 
@@ -94,7 +93,6 @@ impl AliasService {
                     error!(
                         "Site with conflicting slug '{slug}' already exists, cannot create alias",
                     );
-
                     return Err(Error::SiteExists);
                 }
             }
@@ -103,7 +101,6 @@ impl AliasService {
                     error!(
                         "No target user with ID {target_id} exists, cannot create alias",
                     );
-
                     return Err(Error::UserNotFound);
                 }
 
