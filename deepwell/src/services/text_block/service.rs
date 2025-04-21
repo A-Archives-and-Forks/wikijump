@@ -91,8 +91,8 @@ impl TextBlockService {
         // If there are more or the same number of blocks now,
         // then this will do nothing.
 
-        for block_index in max_index..prev_max_index {
-            let filename = filename!(block_index);
+        for index in max_index..prev_max_index {
+            let filename = filename!(index);
             debug!("Deleting now-out-of-range S3 text block {filename}");
             bucket.delete_object(filename).await?;
         }
@@ -100,9 +100,27 @@ impl TextBlockService {
         // Upload the new text blocks to S3.
         // This also replaces the existing S3 objects,
         // which is why we don't have to delete everything above.
+        //
+        // While we're at it, we can also create the models to be
+        // inserted to the database.
 
-        for block in blocks {
-            // TODO
+        let mut models = Vec::new();
+        for (index, TextBlock { text, mime }) in blocks.iter().enumerate() {
+            let filename = filename!(index);
+            debug!("Uploading new S3 text block {filename} ({mime})");
+            bucket
+                .put_object_with_content_type(filename, text.as_bytes(), mime)
+                .await?;
+
+            let index: i16 = index
+                .try_into()
+                .expect("Unable to convert block index in a i16");
+
+            models.push(text_block::ActiveModel {
+                block_type: Set(block_type),
+                page_id: Set(page_id),
+                block_index: Set(index),
+            });
         }
 
         // Then, delete the blocks from the database.
@@ -124,9 +142,8 @@ impl TextBlockService {
             "Deleted row count do not match maximum block index",
         );
 
-        // Finally, insert the new blocks into the database.
-        // TODO
-
-        todo!()
+        // Finally, insert the batch of new text block rows, then return.
+        TextBlockTable::insert_many(models).exec(txn).await?;
+        Ok(())
     }
 }
