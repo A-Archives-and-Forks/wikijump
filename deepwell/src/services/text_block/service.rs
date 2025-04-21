@@ -25,6 +25,11 @@
 //! updated when the underlying page is, which means
 //! they all get replaced in one operation.
 //!
+//! The only other operation is page deletion, where
+//! all the hosted text block data is removed.
+//! (If a page is resurrected, then all this data gets
+//! re-inserted as part of creating the new revision.)
+//!
 //! Additionally, for fetching text blocks, this is
 //! done by wws by directly accessing S3 itself, so
 //! nothing here is needed.
@@ -34,7 +39,7 @@ use crate::models::sea_orm_active_enums::TextBlockType;
 use crate::models::text_block::{
     self, Entity as TextBlockTable, Model as TextBlockModel,
 };
-use sea_orm::ActiveEnum;
+use sea_orm::{strum::IntoEnumIterator, ActiveEnum};
 
 /// Write out the S3 filename for this hosted text block.
 ///
@@ -54,7 +59,7 @@ use sea_orm::ActiveEnum;
 /// * `12345_html_3`
 macro_rules! format_filename {
     ($buffer:expr, $page_id:expr, $index:expr, $block_type_value:expr $(,)?) => {{
-        let mut buffer = &mut $buffer;
+        let buffer = &mut $buffer;
         let page_id = $page_id;
         let index = $index;
         let block_type_value = &$block_type_value;
@@ -178,7 +183,11 @@ impl TextBlockService {
     }
 
     /// Finds how many text blocks of a type exist for a page.
-    async fn get_block_count(ctx: &ServiceContext<'_>, page_id: i64, block_type: TextBlockType) -> Result<i16> {
+    async fn get_block_count(
+        ctx: &ServiceContext<'_>,
+        page_id: i64,
+        block_type: TextBlockType,
+    ) -> Result<i16> {
         let txn = ctx.transaction();
         let count = TextBlockTable::find()
             .select_only()
@@ -196,5 +205,45 @@ impl TextBlockService {
             .unwrap_or(0);
 
         Ok(count)
+    }
+
+    /// Delete all hosted text blocks stored for a page.
+    ///
+    /// This is run when a page is deleted, since the page
+    /// becomes inaccessible and storing this redundant information
+    /// becomes unnecessary.
+    pub async fn delete_blocks(ctx: &ServiceContext<'_>, page_id: i64) -> Result<()> {
+        let txn = ctx.transaction();
+        let bucket = ctx.s3_tblocks_bucket();
+        let mut buffer = String::new();
+
+        // For each kind of text block type, find out how many
+        // blocks exist and then delete the objects in S3.
+        for block_type in TextBlockType::iter() {
+            let block_type_value = block_type.to_value();
+
+            macro_rules! filename {
+                ($index:expr) => {{
+                    format_filename!(buffer, page_id, $index, block_type_value);
+                    &buffer
+                }};
+            }
+
+            let max_index = Self::get_block_count(ctx, page_id, block_type).await?;
+            for index in 1..=max_index {
+                let filename = filename!(index);
+                debug!("Deleting text block {filename}");
+                bucket.delete_object(filename).await?;
+            }
+        }
+
+        // Now that S3 is cleared out, we can delete all the
+        // database rows in one sweep.
+        TextBlockTable::delete_many()
+            .filter(text_block::Column::PageId.eq(page_id))
+            .exec(txn)
+            .await?;
+
+        Ok(())
     }
 }
