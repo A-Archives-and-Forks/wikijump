@@ -37,11 +37,11 @@ services:
       - "9001:9001"
 
   cache:
-    build: redis
+    build: valkey
     restart: always
     # You can add a volume for /data if you wish
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "valkey-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 3
