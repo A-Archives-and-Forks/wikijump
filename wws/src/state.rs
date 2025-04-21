@@ -37,9 +37,6 @@ pub struct ServerStateInner {
     pub deepwell: Deepwell,
     pub cache: Cache,
     pub s3_files_bucket: Box<Bucket>,
-
-    // TODO implement hosted text blocks in wws
-    #[allow(dead_code)]
     pub s3_tblocks_bucket: Box<Bucket>,
 }
 

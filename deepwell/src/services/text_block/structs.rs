@@ -18,8 +18,6 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-// TODO finish implementation of hosted text blocks
-#[allow(dead_code)]
 #[derive(Debug)]
 pub struct TextBlock<'a> {
     pub text: &'a str,

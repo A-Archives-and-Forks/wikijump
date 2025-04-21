@@ -70,8 +70,6 @@ macro_rules! format_filename {
     }};
 }
 
-// TODO finish implementation of hosted text blocks
-#[allow(dead_code)]
 #[derive(Debug)]
 pub struct TextBlockService;
 
@@ -81,8 +79,6 @@ impl TextBlockService {
     /// This is to be run after ftml returns the lists of code and html blocks
     /// found in the source, which will replace the existing text block data
     /// to be replaced.
-    // TODO call method in impl
-    #[allow(dead_code)]
     pub async fn add_blocks(
         ctx: &ServiceContext<'_>,
         page_id: i64,
