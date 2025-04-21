@@ -160,6 +160,7 @@ impl TextBlockService {
                 block_type: Set(block_type),
                 page_id: Set(page_id),
                 block_index: Set(index),
+                block_name: Set(None), // TODO add block names
             });
         }
 
