@@ -18,4 +18,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-// TODO
+#[derive(Debug)]
+pub struct TextBlock<'a> {
+    pub text: &'a str,
+    pub mime: &'a str,
+}
