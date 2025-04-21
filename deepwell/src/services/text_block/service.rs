@@ -102,6 +102,7 @@ impl TextBlockService {
                     .add(text_block::Column::PageId.eq(page_id)),
             )
             .order_by_desc(text_block::Column::BlockIndex)
+            .limit(1)
             .into_tuple()
             .one(txn)
             .await?
