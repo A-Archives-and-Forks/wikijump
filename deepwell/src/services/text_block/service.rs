@@ -23,6 +23,7 @@ use crate::models::sea_orm_active_enums::TextBlockType;
 use crate::models::text_block::{
     self, Entity as TextBlockTable, Model as TextBlockModel,
 };
+use sea_orm::ActiveEnum;
 
 #[derive(Debug)]
 pub struct TextBlockService;
@@ -40,6 +41,20 @@ impl TextBlockService {
             page_id,
         );
 
+        let txn = ctx.transaction();
+        let bucket = ctx.s3_tblocks_bucket();
+        let block_type_value = block_type.to_value();
+
+        // Reuse this buffer for writing out S3 filenames.
+        // They all take the format of "<BLOCK TYPE>_<PAGE ID>_<BLOCK INDEX>",
+        // for instance "code_12345_2".
+
+        let mut filename = String::new();
+        let mut make_filename = |index: usize| {
+            filename.clear();
+            str_write!(&mut filename, "{block_type_value}_{page_id}_{index}");
+        };
+
         // First, get the largest block index for this type.
         // This is needed for the step where we delete extraneous objects in S3.
         //
@@ -48,7 +63,6 @@ impl TextBlockService {
         // with the PutObject class). So we fetch the maximum block index and
         // delete everything from index blocks.len() through max_index.
 
-        let txn = ctx.transaction();
         let max_index: usize = {
             let row: Option<i64> = TextBlockTable::find()
                 .select_only()
