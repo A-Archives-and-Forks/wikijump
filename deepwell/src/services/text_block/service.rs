@@ -68,7 +68,7 @@ impl TextBlockService {
         // with the PutObject class). So we fetch the maximum block index and
         // delete everything from index blocks.len() through max_index.
 
-        let prev_max_index: i64 = TextBlockTable::find()
+        let prev_max_index: i16 = TextBlockTable::find()
             .select_only()
             .column(text_block::Column::BlockIndex)
             .filter(
@@ -82,10 +82,10 @@ impl TextBlockService {
             .await?
             .unwrap_or(0);
 
-        let max_index: i64 = blocks
+        let max_index: i16 = blocks
             .len()
             .try_into()
-            .expect("Unable to convert usize to i64");
+            .expect("Unable to fit block count in a i16");
 
         // As described above, we delete these extra blocks from S3.
         // If there are more or the same number of blocks now,
