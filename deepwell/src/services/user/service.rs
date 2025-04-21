@@ -80,7 +80,7 @@ impl UserService {
             error!(
                 "User's name is not long enough ({} < {} chars)",
                 slug.len(),
-                ctx.config().minimum_name_bytes,
+                ctx.config().minimum_name_chars,
             );
             return Err(Error::UserNameTooShort);
         }
