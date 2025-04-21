@@ -148,6 +148,6 @@ pub async fn bot_user_owner_remove(
     params: Params<'static>,
 ) -> Result<RemoveBotOwnerOutput> {
     let input: RemoveBotOwner = params.parse()?;
-    info!("Remove bot owner ({:?} <- {:?})", input.bot, input.human,);
+    info!("Remove bot owner ({:?} <- {:?})", input.bot, input.human);
     UserBotOwnerService::remove(ctx, input).await
 }

@@ -408,7 +408,7 @@ impl MessageService {
         user_id: i64,
         value: bool,
     ) -> Result<()> {
-        info!("Setting message read status for {record_id} / {user_id}: {value}",);
+        info!("Setting message read status for {record_id} / {user_id}: {value}");
 
         let txn = ctx.transaction();
         let message = Self::get_message(ctx, record_id, user_id).await?;
@@ -501,7 +501,7 @@ impl MessageService {
                 continue;
             }
 
-            debug!("Adding message recipient {recipient_type:?} with ID {user_id}",);
+            debug!("Adding message recipient {recipient_type:?} with ID {user_id}");
 
             let model = message_recipient::ActiveModel {
                 record_id: Set(str!(record_id)),
@@ -534,7 +534,7 @@ impl MessageService {
         let record = match Self::get_record_optional(ctx, record_id).await? {
             Some(record) => record,
             None => {
-                error!("The {purpose} message record does not exist: {record_id}",);
+                error!("The {purpose} message record does not exist: {record_id}");
 
                 return Err(Error::MessageNotFound);
             }
@@ -545,7 +545,7 @@ impl MessageService {
         if record.sender_id != user_id
             && Self::any_recipient_exists(ctx, record_id, user_id).await?
         {
-            error!("User ID {user_id} is not a sender or recipient of the {purpose}",);
+            error!("User ID {user_id} is not a sender or recipient of the {purpose}");
 
             // To protect privacy, if the user doesn't have access to a message with a
             // given ID, we pretend it does not exist for the purposes of returning errors.
@@ -561,7 +561,7 @@ impl MessageService {
         record_id: &str,
         user_id: i64,
     ) -> Result<bool> {
-        info!("Checking if user ID {user_id} is a recipient of record ID {record_id}",);
+        info!("Checking if user ID {user_id} is a recipient of record ID {record_id}");
 
         let txn = ctx.transaction();
         let model = MessageRecipient::find()

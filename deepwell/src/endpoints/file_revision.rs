@@ -35,7 +35,7 @@ pub async fn file_revision_count(
         file: file_reference,
     } = params.parse()?;
 
-    info!("Getting latest revision for file ID {page_id} in site ID {site_id}",);
+    info!("Getting latest revision for file ID {page_id} in site ID {site_id}");
 
     let file_id = FileService::get_id(ctx, site_id, file_reference).await?;
     let revision_count = FileRevisionService::count(ctx, page_id, file_id).await?;

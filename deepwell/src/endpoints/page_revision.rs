@@ -37,7 +37,7 @@ pub async fn page_revision_count(
         page: reference,
     } = params.parse()?;
 
-    info!("Getting latest revision for page {reference:?} in site ID {site_id}",);
+    info!("Getting latest revision for page {reference:?} in site ID {site_id}");
 
     let page_id = PageService::get_id(ctx, site_id, reference).await?;
     let revision_count = PageRevisionService::count(ctx, site_id, page_id).await?;

@@ -455,7 +455,7 @@ async fn restart_sequence_with(
     sequence_name: &'static str,
     new_start_value: i64,
 ) -> Result<()> {
-    debug!("Restarting sequence {sequence_name} to start with {new_start_value}",);
+    debug!("Restarting sequence {sequence_name} to start with {new_start_value}");
     assert!(
         new_start_value > 0,
         "New sequence start value {new_start_value} is not positive",

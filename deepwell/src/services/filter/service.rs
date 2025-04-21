@@ -47,7 +47,7 @@ impl FilterService {
 
         // Ensure the regular expression is valid
         if let Err(error) = Regex::new(&regex) {
-            error!("Passed regular expression '{regex}' pattern is invalid: {error}",);
+            error!("Passed regular expression '{regex}' pattern is invalid: {error}");
             return Err(Error::FilterRegexInvalid(error));
         }
 
@@ -308,7 +308,7 @@ impl FilterService {
         }
 
         let regex_set = RegexSet::new(regexes).map_err(|error| {
-            error!("Invalid regular expression found in the database: {error}",);
+            error!("Invalid regular expression found in the database: {error}");
             Error::FilterRegexInvalid(error)
         })?;
 

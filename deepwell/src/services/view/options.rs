@@ -138,7 +138,7 @@ impl PageOptions {
         // Now go through anything remaining and emitting warnings for them
 
         for (key, (value, raw)) in arguments {
-            warn!("Unused argument in page path: {key} -> {value:?} ('{raw}')",);
+            warn!("Unused argument in page path: {key} -> {value:?} ('{raw}')");
         }
 
         options
