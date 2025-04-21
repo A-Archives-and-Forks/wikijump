@@ -63,9 +63,9 @@ impl TextBlockService {
         // First, get the largest block index for this type.
         // This is needed for the step where we delete extraneous objects in S3.
         //
-        // Consider a page which had 3 code blocks but now only has 2. Clearly,
-        // we need to delete the last one (the other two will get overwritten
-        // with the PutObject class). So we fetch the maximum block index and
+        // Consider a page which had 5 code blocks but now only has 2. Clearly,
+        // we need to delete the last three (the other two will get overwritten
+        // with the PutObject operation). So we fetch the maximum block index and
         // delete everything from index blocks.len() through max_index.
 
         let prev_max_index: i16 = TextBlockTable::find()
