@@ -51,6 +51,8 @@ impl TextBlockService {
         block_type: TextBlockType,
         blocks: &[TextBlock<'_>],
     ) -> Result<()> {
+        use std::ops::Add;
+
         info!(
             "Inserting {} text blocks for page ID {}",
             blocks.len(),
@@ -80,6 +82,7 @@ impl TextBlockService {
             ($index:expr) => {{
                 buffer.clear();
                 let index = $index;
+                debug_assert_ne!(index, 0, "Text block indices must be 1-indexed!");
                 str_write!(&mut buffer, "{page_id}_{block_type_value}_{index}");
                 &buffer
             }};
@@ -92,6 +95,14 @@ impl TextBlockService {
         // we need to delete the last three (the other two will get overwritten
         // with the PutObject operation). So we fetch the maximum block index and
         // delete everything from index blocks.len() through max_index.
+        //
+        // The 1-indexing does not present a problem for the SQL query, since it
+        // gets the maximum value, which is 1-indexed, thus representing the total
+        // count of blocks presently kept.
+        //
+        // However, it does not present an issue for the block count, since if there are
+        // 3 blocks being passed in, then the count is 3 and the range of indices must go
+        // to 4 to be inclusive of 3. This is why we add one to max_index.
 
         let prev_max_index: i16 = TextBlockTable::find()
             .select_only()
@@ -110,6 +121,7 @@ impl TextBlockService {
 
         let max_index: i16 = blocks
             .len()
+            .add(1)
             .try_into()
             .expect("Unable to fit block count in a i16");
 
@@ -118,6 +130,7 @@ impl TextBlockService {
         // then this will do nothing.
 
         for index in max_index..prev_max_index {
+            let index = index + 1;
             let filename = filename!(index);
             debug!("Deleting now-out-of-range S3 text block {filename}");
             bucket.delete_object(filename).await?;
@@ -132,6 +145,7 @@ impl TextBlockService {
 
         let mut models = Vec::new();
         for (index, TextBlock { text, mime }) in blocks.iter().enumerate() {
+            let index = index + 1;
             let filename = filename!(index);
             debug!("Uploading new S3 text block {filename} ({mime})");
             bucket
