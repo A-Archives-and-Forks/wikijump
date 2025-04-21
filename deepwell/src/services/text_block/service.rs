@@ -53,6 +53,11 @@ impl TextBlockService {
             let row: Option<i64> = TextBlockTable::find()
                 .select_only()
                 .column(text_block::Column::BlockIndex)
+                .filter(
+                    Condition::all()
+                        .add(text_block::Column::BlockType.eq(block_type))
+                        .add(text_block::Column::PageId.eq(page_id)),
+                )
                 .order_by_desc(text_block::Column::BlockIndex)
                 .into_tuple()
                 .one(txn)
@@ -65,13 +70,27 @@ impl TextBlockService {
         };
 
         // As described above, we delete these extra blocks from S3.
+
         todo!();
 
         // Then, delete the blocks from the database.
         //
         // This doesn't require us to know which need to be kept
         // because we're just INSERTing over all of it.
-        todo!();
+
+        let DeleteResult { rows_affected } = TextBlockTable::delete_many()
+            .filter(
+                Condition::all()
+                    .add(text_block::Column::BlockType.eq(block_type))
+                    .add(text_block::Column::PageId.eq(page_id)),
+            )
+            .exec(txn)
+            .await?;
+
+        debug_assert_eq!(
+            rows_affected, max_index as u64,
+            "Deleted row count do not match maximum block index",
+        );
 
         // Insert the new blocks into the database.
     }
