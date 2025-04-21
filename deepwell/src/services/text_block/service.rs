@@ -89,8 +89,11 @@ impl TextBlockService {
         };
 
         // As described above, we delete these extra blocks from S3.
-
-        todo!();
+        for block_index in blocks.len()..max_index {
+            let filename = filename!(block_index);
+            debug!("Deleting now-out-of-range S3 text block {filename}");
+            bucket.delete_object(filename).await?;
+        }
 
         // Then, delete the blocks from the database.
         //
@@ -112,5 +115,9 @@ impl TextBlockService {
         );
 
         // Insert the new blocks into the database.
+
+        // TODO
+
+        todo!()
     }
 }
