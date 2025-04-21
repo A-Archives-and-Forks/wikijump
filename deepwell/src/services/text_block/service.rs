@@ -18,6 +18,17 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+//! Manages the storage for hosted text blocks.
+//!
+//! This does _not_ have any methods for doing CRUD
+//! on individual entries, since text blocks are only
+//! updated when the underlying page is, which means
+//! they all get replaced in one operation.
+//!
+//! Additionally, for fetching text blocks, this is
+//! done by wws by directly accessing S3 itself, so
+//! nothing here is needed.
+
 use super::prelude::*;
 use crate::models::sea_orm_active_enums::TextBlockType;
 use crate::models::text_block::{
@@ -29,6 +40,11 @@ use sea_orm::ActiveEnum;
 pub struct TextBlockService;
 
 impl TextBlockService {
+    /// Replaces the text blocks associated with this page with the ones given.
+    ///
+    /// This is to be run after ftml returns the lists of code and html blocks
+    /// found in the source, which will replace the existing text block data
+    /// to be replaced.
     pub async fn add_blocks(
         ctx: &ServiceContext<'_>,
         page_id: i64,
