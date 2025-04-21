@@ -68,31 +68,41 @@ impl TextBlockService {
         // with the PutObject class). So we fetch the maximum block index and
         // delete everything from index blocks.len() through max_index.
 
-        let max_index: usize = {
-            let row: Option<i64> = TextBlockTable::find()
-                .select_only()
-                .column(text_block::Column::BlockIndex)
-                .filter(
-                    Condition::all()
-                        .add(text_block::Column::BlockType.eq(block_type))
-                        .add(text_block::Column::PageId.eq(page_id)),
-                )
-                .order_by_desc(text_block::Column::BlockIndex)
-                .into_tuple()
-                .one(txn)
-                .await?;
+        let prev_max_index: i64 = TextBlockTable::find()
+            .select_only()
+            .column(text_block::Column::BlockIndex)
+            .filter(
+                Condition::all()
+                    .add(text_block::Column::BlockType.eq(block_type))
+                    .add(text_block::Column::PageId.eq(page_id)),
+            )
+            .order_by_desc(text_block::Column::BlockIndex)
+            .into_tuple()
+            .one(txn)
+            .await?
+            .unwrap_or(0);
 
-            match row {
-                None => 0,
-                Some(index) => index.try_into().expect("Unable to convert to usize"),
-            }
-        };
+        let max_index: i64 = blocks
+            .len()
+            .try_into()
+            .expect("Unable to convert usize to i64");
 
         // As described above, we delete these extra blocks from S3.
-        for block_index in blocks.len()..max_index {
+        // If there are more or the same number of blocks now,
+        // then this will do nothing.
+
+        for block_index in max_index..prev_max_index {
             let filename = filename!(block_index);
             debug!("Deleting now-out-of-range S3 text block {filename}");
             bucket.delete_object(filename).await?;
+        }
+
+        // Upload the new text blocks to S3.
+        // This also replaces the existing S3 objects,
+        // which is why we don't have to delete everything above.
+
+        for block in blocks {
+            // TODO
         }
 
         // Then, delete the blocks from the database.
@@ -114,8 +124,7 @@ impl TextBlockService {
             "Deleted row count do not match maximum block index",
         );
 
-        // Insert the new blocks into the database.
-
+        // Finally, insert the new blocks into the database.
         // TODO
 
         todo!()
