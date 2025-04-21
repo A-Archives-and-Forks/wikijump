@@ -95,30 +95,8 @@ impl TextBlockService {
         // we need to delete the last three (the other two will get overwritten
         // with the PutObject operation). So we fetch the maximum block index and
         // delete everything from index blocks.len() through max_index.
-        //
-        // The 1-indexing does not present a problem for the SQL query, since it
-        // gets the maximum value, which is 1-indexed, thus representing the total
-        // count of blocks presently kept.
-        //
-        // However, it does not present an issue for the block count, since if there are
-        // 3 blocks being passed in, then the count is 3 and the range of indices must go
-        // to 4 to be inclusive of 3. This is why we add one to max_index.
 
-        let prev_max_index: i16 = TextBlockTable::find()
-            .select_only()
-            .column(text_block::Column::BlockIndex)
-            .filter(
-                Condition::all()
-                    .add(text_block::Column::BlockType.eq(block_type))
-                    .add(text_block::Column::PageId.eq(page_id)),
-            )
-            .order_by_desc(text_block::Column::BlockIndex)
-            .limit(1)
-            .into_tuple()
-            .one(txn)
-            .await?
-            .unwrap_or(0);
-
+        let prev_max_index = Self::get_block_count(ctx, page_id, block_type).await?;
         let max_index: i16 = blocks
             .len()
             .add(1)
@@ -186,5 +164,26 @@ impl TextBlockService {
         // Finally, insert the batch of new text block rows, then return.
         TextBlockTable::insert_many(models).exec(txn).await?;
         Ok(())
+    }
+
+    /// Finds how many text blocks of a type exist for a page.
+    async fn get_block_count(ctx: &ServiceContext<'_>, page_id: i64, block_type: TextBlockType) -> Result<i16> {
+        let txn = ctx.transaction();
+        let count = TextBlockTable::find()
+            .select_only()
+            .column(text_block::Column::BlockIndex)
+            .filter(
+                Condition::all()
+                    .add(text_block::Column::BlockType.eq(block_type))
+                    .add(text_block::Column::PageId.eq(page_id)),
+            )
+            .order_by_desc(text_block::Column::BlockIndex)
+            .limit(1)
+            .into_tuple()
+            .one(txn)
+            .await?
+            .unwrap_or(0);
+
+        Ok(count)
     }
 }
