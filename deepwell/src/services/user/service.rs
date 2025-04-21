@@ -65,14 +65,23 @@ impl UserService {
             return Err(Error::UserSlugEmpty);
         }
 
-        // Check if username contains the minimum amount of required bytes.
-        if name.len() < ctx.config().minimum_name_bytes {
+        // Check if username contains the minimum amount of required bytes and chars.
+        let config = ctx.config();
+        if name.len() < config.minimum_name_bytes {
             error!(
-                "User's name is not long enough ({} < {})",
+                "User's name is not long enough ({} < {} bytes)",
                 slug.len(),
                 ctx.config().minimum_name_bytes,
             );
+            return Err(Error::UserNameTooShort);
+        }
 
+        if name.chars().count() < config.minimum_name_chars {
+            error!(
+                "User's name is not long enough ({} < {} chars)",
+                slug.len(),
+                ctx.config().minimum_name_chars,
+            );
             return Err(Error::UserNameTooShort);
         }
 

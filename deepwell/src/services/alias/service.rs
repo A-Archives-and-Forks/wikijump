@@ -78,14 +78,13 @@ impl AliasService {
         // it actually finds conflicts properly.
         //
         // If the alias is for a user, also ensures that it is at least
-        // the minimum name length in bytes.
+        // the minimum name length in bytes and chars.
         match alias_type {
             AliasType::Site => {
                 if !SiteService::exists(ctx, Reference::Id(target_id)).await? {
                     error!(
                         "No target site with ID {target_id} exists, cannot create alias",
                     );
-
                     return Err(Error::SiteNotFound);
                 }
 
@@ -94,7 +93,6 @@ impl AliasService {
                     error!(
                         "Site with conflicting slug '{slug}' already exists, cannot create alias",
                     );
-
                     return Err(Error::SiteExists);
                 }
             }
@@ -103,7 +101,6 @@ impl AliasService {
                     error!(
                         "No target user with ID {target_id} exists, cannot create alias",
                     );
-
                     return Err(Error::UserNotFound);
                 }
 
@@ -112,17 +109,25 @@ impl AliasService {
                     error!(
                         "User with conflicting slug '{slug}' already exists, cannot create alias",
                     );
-
                     return Err(Error::UserExists);
                 }
 
-                if slug.len() < ctx.config().minimum_name_bytes {
+                let config = ctx.config();
+                if slug.len() < config.minimum_name_bytes {
                     error!(
-                        "User's name is not long enough ({} < {})",
+                        "User's name is not long enough ({} < {} bytes)",
                         slug.len(),
                         ctx.config().minimum_name_bytes,
                     );
+                    return Err(Error::UserNameTooShort);
+                }
 
+                if slug.chars().count() < config.minimum_name_chars {
+                    error!(
+                        "User's name is not long enough ({} < {} chars)",
+                        slug.len(),
+                        ctx.config().minimum_name_chars,
+                    );
                     return Err(Error::UserNameTooShort);
                 }
             }

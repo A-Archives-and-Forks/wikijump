@@ -180,6 +180,7 @@ struct User {
     maximum_name_changes: u8,
     refill_name_change_days: u64,
     minimum_name_bytes: usize,
+    minimum_name_chars: usize,
 }
 
 // NOTE: Name conflict with std::fs::File
@@ -313,6 +314,7 @@ impl ConfigFile {
                     maximum_name_changes,
                     refill_name_change_days,
                     minimum_name_bytes,
+                    minimum_name_chars,
                 },
             file:
                 FileSection {
@@ -442,6 +444,7 @@ impl ConfigFile {
                 ))
             },
             minimum_name_bytes,
+            minimum_name_chars,
             presigned_path_length,
             presigned_expiry_secs: presigned_expiration_minutes * 60,
             maximum_blob_size: maximum_blob_size_kb * 1024,
