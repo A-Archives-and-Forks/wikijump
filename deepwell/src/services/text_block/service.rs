@@ -62,8 +62,17 @@ impl TextBlockService {
         let block_type_value = block_type.to_value();
 
         // Reuse this buffer for writing out S3 filenames.
-        // They all take the format of "<BLOCK TYPE>_<PAGE ID>_<BLOCK INDEX>",
-        // for instance "code_12345_2".
+        // They all take the format of "<PAGE ID>_<BLOCK TYPE>_<BLOCK INDEX>".
+        // These are always 1-indexed, since that's how they're addressed via URL.
+        // To give some examples of filenames, consider we have a page with ID
+        // 12345 which has 2 code blocks and 3 html blocks. The objects in the bucket
+        // would be:
+        //
+        // * "12345_code_1"
+        // * "12345_code_2"
+        // * "12345_html_1"
+        // * "12345_html_2"
+        // * "12345_html_3"
 
         let mut buffer = String::new();
 
@@ -71,7 +80,7 @@ impl TextBlockService {
             ($index:expr) => {{
                 buffer.clear();
                 let index = $index;
-                str_write!(&mut buffer, "{block_type_value}_{page_id}_{index}");
+                str_write!(&mut buffer, "{page_id}_{block_type_value}_{index}");
                 &buffer
             }};
         }
