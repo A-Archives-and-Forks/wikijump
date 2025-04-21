@@ -1,7 +1,6 @@
 // smart idle callback polyfill
 import "../vendor/request-idle-callback-polyfill.js"
 
-export * from "./decorators"
 export * from "./html"
 export * from "./pref"
 export * from "./timeout"
