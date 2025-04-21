@@ -36,6 +36,35 @@ use crate::models::text_block::{
 };
 use sea_orm::ActiveEnum;
 
+/// Write out the S3 filename for this hosted text block.
+///
+/// This allows reusing a buffer, since we need to write out several
+/// and don't need the string other than for running the S3 operation.
+///
+/// They all take the format of `<PAGE ID>_<BLOCK TYPE>_<BLOCK INDEX>`.
+/// These are always 1-indexed, since that's how they're addressed via URL.
+/// To give some examples of filenames, consider we have a page with ID
+/// 12345 which has 2 code blocks and 3 html blocks. The objects in the bucket
+/// would be:
+///
+/// * `12345_code_1`
+/// * `12345_code_2`
+/// * `12345_html_1`
+/// * `12345_html_2`
+/// * `12345_html_3`
+macro_rules! format_filename {
+    ($buffer:expr, $page_id:expr, $index:expr, $block_type_value:expr $(,)?) => {{
+        let mut buffer = &mut $buffer;
+        let page_id = $page_id;
+        let index = $index;
+        let block_type_value = &$block_type_value;
+
+        buffer.clear();
+        assert_ne!(index, 0, "Text block indices must be 1-indexed!");
+        str_write!(buffer, "{page_id}_{block_type_value}_{index}");
+    }};
+}
+
 #[derive(Debug)]
 pub struct TextBlockService;
 
@@ -62,28 +91,11 @@ impl TextBlockService {
         let txn = ctx.transaction();
         let bucket = ctx.s3_tblocks_bucket();
         let block_type_value = block_type.to_value();
-
-        // Reuse this buffer for writing out S3 filenames.
-        // They all take the format of "<PAGE ID>_<BLOCK TYPE>_<BLOCK INDEX>".
-        // These are always 1-indexed, since that's how they're addressed via URL.
-        // To give some examples of filenames, consider we have a page with ID
-        // 12345 which has 2 code blocks and 3 html blocks. The objects in the bucket
-        // would be:
-        //
-        // * "12345_code_1"
-        // * "12345_code_2"
-        // * "12345_html_1"
-        // * "12345_html_2"
-        // * "12345_html_3"
-
         let mut buffer = String::new();
 
         macro_rules! filename {
             ($index:expr) => {{
-                buffer.clear();
-                let index = $index;
-                debug_assert_ne!(index, 0, "Text block indices must be 1-indexed!");
-                str_write!(&mut buffer, "{page_id}_{block_type_value}_{index}");
+                format_filename!(buffer, page_id, $index, block_type_value);
                 &buffer
             }};
         }
