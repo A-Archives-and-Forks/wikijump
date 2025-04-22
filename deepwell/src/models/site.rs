@@ -51,6 +51,8 @@ pub enum Relation {
     PageConnectionMissing,
     #[sea_orm(has_many = "super::page_revision::Entity")]
     PageRevision,
+    #[sea_orm(has_many = "super::site_domain::Entity")]
+    SiteDomain,
     #[sea_orm(
         belongs_to = "super::site_domain::Entity",
         from = "Column::PreferredDomain",
@@ -58,7 +60,7 @@ pub enum Relation {
         on_update = "NoAction",
         on_delete = "NoAction"
     )]
-    SiteDomain,
+    SiteDomainPreferredDomain,
 }
 
 impl Related<super::file::Entity> for Entity {
