@@ -182,6 +182,13 @@ pub async fn seed(state: &ServerState) -> Result<()> {
             .await?;
         }
 
+        if let Some(preferred_domain) = &site.preferred_domain {
+            assert!(
+                site.domains.contains(preferred_domain),
+                "The site's preferred domain must be a listed custom domain",
+            );
+        }
+
         for domain in site.domains {
             info!("Creating site domain '{domain}'");
 
