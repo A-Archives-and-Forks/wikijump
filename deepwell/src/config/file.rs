@@ -144,6 +144,7 @@ struct Domain {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "kebab-case")]
 struct Ftml {
+    preprocess_timeout_ms: u64,
     render_timeout_ms: u64,
     rerender_skip: Vec<RerenderSkip>,
     layout: FtmlLayout,
@@ -292,6 +293,7 @@ impl ConfigFile {
             },
             ftml:
                 Ftml {
+                    preprocess_timeout_ms,
                     render_timeout_ms,
                     rerender_skip,
                     layout:
@@ -407,6 +409,7 @@ impl ConfigFile {
             job_lift_expired_punishments: StdDuration::from_secs(
                 job_lift_expired_punishments_secs,
             ),
+            preprocess_timeout: StdDuration::from_millis(preprocess_timeout_ms),
             render_timeout: StdDuration::from_millis(render_timeout_ms),
             rerender_skip: rerender_skip
                 .iter()

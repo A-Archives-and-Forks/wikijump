@@ -45,6 +45,7 @@ path = "/opt/locales"
 
 [ftml]
 render-timeout-ms = 2000
+preprocess-timeout-ms = 500
 rerender-skip = [
     { job-depth = 1, last-update-ms = 100 },
     { job-depth = 10, last-update-ms = 1500 },

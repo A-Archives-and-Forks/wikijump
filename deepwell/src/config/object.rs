@@ -143,7 +143,10 @@ pub struct Config {
     /// How often to run the "lift expired punishments" recurring job.
     pub job_lift_expired_punishments: StdDuration,
 
-    /// Maximum run time for a render request.
+    /// Maximum run time for the preprocessing steps of wikitext.
+    pub preprocess_timeout: StdDuration,
+
+    /// Maximum run time for parsing and rendering wikitext.
     pub render_timeout: StdDuration,
 
     /// In what circumstances a page rerender should be skipped.

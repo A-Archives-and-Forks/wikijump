@@ -237,6 +237,10 @@ path = "../locales"
 # aggressive, but still not extremely long.
 render-timeout-ms = 2000
 
+# Similarly, this is how long that the preprocessing steps are allowed to take.
+# This value should be shorter than the render timeout.
+preprocess-timeout-ms = 500
+
 
 # Under what conditions a rerender job should be skipped rather than processed.
 #
