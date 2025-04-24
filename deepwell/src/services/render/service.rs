@@ -33,24 +33,33 @@ impl RenderService {
         settings: &WikitextSettings,
     ) -> Result<RenderOutput> {
         let compiled_generator = FTML_VERSION.clone();
-
-        // Isolate the actual render task.
-        // This way we can cut it off if it times out.
-
         let config = ctx.config();
-        let (html_output, errors) = timeout(config.render_timeout, async {
-            // Run ftml to parse and render
+
+        // We isolate the actual tasks for rendering,
+        // allowing us to time it out if it takes too long.
+        //
+        // The preprocess step has to be distinct for borrowing reasons,
+        // since we want to do the processing for non-ftml work
+        // outside the timeout guards.
+
+        let tokens = timeout(config.preprocess_timeout, async {
             // TODO include
             ftml::preprocess(&mut wikitext);
-            let tokens = ftml::tokenize(&wikitext);
-            let result = ftml::parse(&tokens, page_info, settings);
-            let (tree, errors) = result.into();
-            let html_output = HtmlRender.render(&tree, page_info, settings);
-            (html_output, errors)
+            ftml::tokenize(&wikitext)
         })
         .await
         // Not using Error::from() because timeouts could occur in other places,
         // and this error variant is not specific to all timeouts.
+        .map_err(|_| Error::RenderTimeout)?;
+
+        let (tree, html_output, errors) = timeout(config.render_timeout, async {
+            let result = ftml::parse(&tokens, page_info, settings);
+            let (tree, errors) = result.into();
+            let html_output = HtmlRender.render(&tree, page_info, settings);
+            (tree, html_output, errors)
+        })
+        .await
+        // As above, just doing the timeout error conversion here.
         .map_err(|_| Error::RenderTimeout)?;
 
         // Insert compiled HTML into text table
