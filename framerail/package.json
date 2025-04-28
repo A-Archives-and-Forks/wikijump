@@ -38,7 +38,7 @@
     "sass": "^1.86.3",
     "stylelint": "^16.18.0",
     "stylelint-config-recess-order": "^6.0.0",
-    "stylelint-order": "^6.0.4",
+    "stylelint-order": "^7.0.0",
     "stylelint-scss": "^6.11.1",
     "typescript": "^5.8.3"
   },
