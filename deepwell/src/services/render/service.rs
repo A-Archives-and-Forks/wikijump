@@ -19,7 +19,10 @@
  */
 
 use super::prelude::*;
-use crate::services::TextService;
+use crate::models::sea_orm_active_enums::TextBlockType;
+use crate::services::text_block::{mime_for_language, TextBlock, MIME_HTML};
+use crate::services::{TextBlockService, TextService};
+use ftml::tree::CodeBlock;
 use tokio::time::timeout;
 
 #[derive(Debug)]
@@ -64,6 +67,40 @@ impl RenderService {
 
         // Insert compiled HTML into text table
         let compiled_hash = TextService::create(ctx, html_output.body.clone()).await?;
+
+        // Set up the hosted text blocks
+
+        let page_id = todo!(); // XXX
+
+        let html_blocks: Vec<TextBlock> = tree
+            .html_blocks
+            .iter()
+            .map(|html| TextBlock {
+                text: html,
+                mime: MIME_HTML,
+            })
+            .collect();
+
+        TextBlockService::add_blocks(ctx, page_id, TextBlockType::Html, &html_blocks)
+            .await?;
+
+        let code_blocks: Vec<TextBlock> = tree
+            .code_blocks
+            .iter()
+            .map(
+                |CodeBlock {
+                     contents,
+                     language,
+                     name,
+                 }| TextBlock {
+                    text: contents,
+                    mime: mime_for_language(language),
+                },
+            )
+            .collect();
+
+        TextBlockService::add_blocks(ctx, page_id, TextBlockType::Code, &code_blocks)
+            .await?;
 
         // Build and return
         Ok(RenderOutput {

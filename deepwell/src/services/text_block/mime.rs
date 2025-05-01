@@ -1,5 +1,5 @@
 /*
- * services/text_block/mod.rs
+ * services/text_block/mime.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
  * Copyright (C) 2019-2025 Wikijump Team
@@ -18,16 +18,16 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#[allow(unused_imports)]
-mod prelude {
-    pub use super::super::prelude::*;
-    pub use super::structs::*;
+pub const MIME_HTML: &str = "text/html; charset=utf-8";
+pub const MIME_TEXT: &str = "text/plain; charset=utf-8";
+
+/// Gets the MIME type for a given `[[code]]` language specification.
+pub fn mime_for_language<S: AsRef<str>>(language: &Option<S>) -> &'static str {
+    let language = match language {
+        Some(ref language) => language.as_ref(),
+        None => return MIME_TEXT,
+    };
+
+    // TODO
+    todo!()
 }
-
-mod mime;
-mod service;
-mod structs;
-
-pub use self::mime::*;
-pub use self::service::TextBlockService;
-pub use self::structs::*;
