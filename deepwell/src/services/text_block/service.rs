@@ -40,6 +40,7 @@ use crate::models::text_block::{
     self, Entity as TextBlockTable, Model as TextBlockModel,
 };
 use sea_orm::{strum::IntoEnumIterator, ActiveEnum};
+use std::collections::HashSet;
 
 /// Write out the S3 filename for this hosted text block.
 ///
@@ -138,7 +139,14 @@ impl TextBlockService {
         // inserted to the database.
 
         let mut models = Vec::new();
-        for (index, TextBlock { text, mime }) in blocks.iter().enumerate() {
+        let mut previous_block_names = HashSet::new();
+        for (index, block) in blocks.iter().enumerate() {
+            let TextBlock {
+                text,
+                mime,
+                mut name,
+            } = block;
+
             let index = index + 1;
             let filename = filename!(index);
             debug!("Uploading new S3 text block {filename} ({mime})");
@@ -150,11 +158,19 @@ impl TextBlockService {
                 .try_into()
                 .expect("Unable to convert block index in a i16");
 
+            // Deny invalid block names
+            if let Some(mut value) = name {
+                value = value.trim();
+                if !valid_block_name(&mut previous_block_names, value) {
+                    name = None;
+                }
+            }
+
             models.push(text_block::ActiveModel {
                 block_type: Set(block_type),
                 page_id: Set(page_id),
                 block_index: Set(index),
-                block_name: Set(None), // TODO add block names
+                block_name: Set(name.map(String::from)),
             });
         }
 
@@ -246,4 +262,26 @@ impl TextBlockService {
 
         Ok(())
     }
+}
+
+/// Ensures that this name can be used to reference a block.
+fn valid_block_name<'n>(previous: &mut HashSet<&'n str>, name: &'n str) -> bool {
+    if name.is_empty() {
+        warn!("Empty block name passed, rejecting");
+        return false;
+    }
+
+    if name.chars().all(|c| c.is_ascii_digit()) {
+        warn!("Numeric block name '{name}' passed, rejecting");
+        return false;
+    }
+
+    if previous.contains(name) {
+        warn!("Block name '{name}' has already been used for this page, rejecting");
+        return false;
+    }
+
+    // Now that all checks have passed, add this as one of the already-used names.
+    previous.insert(name);
+    true
 }

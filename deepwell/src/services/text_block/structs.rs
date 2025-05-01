@@ -20,6 +20,18 @@
 
 #[derive(Debug)]
 pub struct TextBlock<'a> {
+    /// The contents of this hosted text block.
     pub text: &'a str,
+
+    /// The MIME type of this text block.
+    /// This is stored in S3 and thus returned on any HTTP requests for the block.
+    /// This is determined by `mime_for_language()`.
     pub mime: &'a str,
+
+    /// An optional name for this text block.
+    ///
+    /// This permits referencing the block through a basic readable name instead
+    /// of via a numerical index. It is optional, and most blocks will not have
+    /// this set.
+    pub name: Option<&'a str>,
 }

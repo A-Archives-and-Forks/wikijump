@@ -105,6 +105,7 @@ impl RenderService {
                 .map(|html| TextBlock {
                     text: html,
                     mime: MIME_HTML,
+                    name: None,
                 })
                 .collect();
 
@@ -123,6 +124,7 @@ impl RenderService {
                      }| TextBlock {
                         text: contents,
                         mime: mime_for_language(language),
+                        name: name.as_deref(),
                     },
                 )
                 .collect();
