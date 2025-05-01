@@ -31,9 +31,30 @@ pub struct RenderService;
 impl RenderService {
     pub async fn render(
         ctx: &ServiceContext<'_>,
+        wikitext: String,
+        page_info: &PageInfo<'_>,
+        settings: &WikitextSettings,
+    ) -> Result<RenderOutput> {
+        Self::render_inner(ctx, wikitext, page_info, settings, None).await
+    }
+
+    pub async fn render_page(
+        ctx: &ServiceContext<'_>,
+        wikitext: String,
+        page_info: &PageInfo<'_>,
+        layout: Layout,
+        page_id: i64,
+    ) -> Result<RenderOutput> {
+        let settings = WikitextSettings::from_mode(WikitextMode::Page, layout);
+        Self::render_inner(ctx, wikitext, page_info, &settings, Some(page_id)).await
+    }
+
+    async fn render_inner(
+        ctx: &ServiceContext<'_>,
         mut wikitext: String,
         page_info: &PageInfo<'_>,
         settings: &WikitextSettings,
+        page_id: Option<i64>,
     ) -> Result<RenderOutput> {
         let compiled_generator = FTML_VERSION.clone();
         let config = ctx.config();
@@ -74,8 +95,10 @@ impl RenderService {
         // rendering context and we should skip this step.
 
         if settings.mode == WikitextMode::Page {
-            let page_id = todo!(); // XXX
+            // If this mode is selected, then a page ID must have also been provided.
+            let page_id = page_id.expect("No page ID given for page render");
 
+            // [[html]]
             let html_blocks: Vec<TextBlock> = tree
                 .html_blocks
                 .iter()
@@ -88,6 +111,7 @@ impl RenderService {
             TextBlockService::add_blocks(ctx, page_id, TextBlockType::Html, &html_blocks)
                 .await?;
 
+            // [[code]]
             let code_blocks: Vec<TextBlock> = tree
                 .code_blocks
                 .iter()
