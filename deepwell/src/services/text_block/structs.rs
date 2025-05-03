@@ -45,6 +45,6 @@ pub struct TextBlockIndex {
     /// The text block index associated with this name/alias.
     pub index: i16,
 
-    /// The name that this block is stored under in S3.
-    pub s3_name: String,
+    /// The filename that this block is stored under in S3.
+    pub s3_filename: String,
 }

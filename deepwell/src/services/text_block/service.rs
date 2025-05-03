@@ -244,9 +244,9 @@ impl TextBlockService {
         match index {
             None => Ok(None),
             Some(index) => {
-                let mut s3_name = String::new();
-                format_filename!(s3_name, page_id, index, block_type);
-                Ok(Some(TextBlockIndex { index, s3_name }))
+                let mut s3_filename = String::new();
+                format_filename!(s3_filename, page_id, index, block_type);
+                Ok(Some(TextBlockIndex { index, s3_filename }))
             }
         }
     }

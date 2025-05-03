@@ -201,7 +201,7 @@ pub struct FileData {
 #[derive(Deserialize, Debug, Clone)]
 pub struct TextBlockIndex {
     pub index: NonZeroU16,
-    pub s3_name: String,
+    pub s3_filename: String,
 }
 
 #[derive(Deserialize, Debug, Clone)]
