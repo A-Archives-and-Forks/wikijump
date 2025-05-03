@@ -149,8 +149,11 @@ impl TextBlockService {
         // While we're at it, we can also create the models to be
         // inserted to the database.
 
-        let mut models = Vec::new();
-        let mut previous_block_names = HashSet::new();
+        let max_index_usize =
+            usize::try_from(max_index).expect("Unable to convert max_index to usize");
+
+        let mut models = Vec::with_capacity(max_index_usize);
+        let mut previous_block_names = HashSet::with_capacity(max_index_usize);
         for (index, block) in blocks.iter().enumerate() {
             let TextBlock {
                 text,
