@@ -125,6 +125,13 @@ impl TextBlockService {
             .try_into()
             .expect("Unable to fit block count in a i16");
 
+        // If there's no additional work for us, quit early
+
+        if max_index == 0 && prev_max_index == 0 {
+            debug!("Not inserting any blocks, no prior blocks to remove");
+            return Ok(());
+        }
+
         // As described above, we delete these extra blocks from S3.
         // If there are more or the same number of blocks now,
         // then this will do nothing.
