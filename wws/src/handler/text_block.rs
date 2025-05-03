@@ -24,9 +24,13 @@ use crate::{
     state::ServerState,
 };
 use axum::{
+    body::Body,
     extract::{Path, State},
-    http::header::HeaderMap,
-    response::Html,
+    http::{
+        header::{self, HeaderMap},
+        status::StatusCode,
+    },
+    response::{IntoResponse, Response},
 };
 use std::num::NonZeroU16;
 
@@ -41,9 +45,67 @@ pub async fn handle_html_block(
     State(state): State<ServerState>,
     Path((page_slug, index)): Path<(String, String)>,
     headers: HeaderMap,
-) -> Html<&'static str> {
-    // TODO
-    let _ = state;
+) -> Response {
+    let index: NonZeroU16 = match index.parse() {
+        Ok(index) => index,
+        Err(_) => {
+            error!(index = index, "Invalid text block index");
+            return "invalid index".into_response();
+        }
+    };
+
+    let page_id = todo!();
+
+    let s3_filename = format_filename(BLOCK_TYPE_HTML, page_id, index);
+    info!("Fetching HTML text block from S3 object '{s3_filename}'");
+
+    // Since text blocks are much smaller than files (necessarily being
+    // at most as big as the biggest page's sources) then it's fine for
+    // us to download the whole thing to memory instead of streaming it.
+    let s3_response = match state.s3_tblocks_bucket.get_object(&s3_filename).await {
+        Ok(response) => {
+            assert_eq!(
+                response.status_code(),
+                StatusCode::OK,
+                "get_object() succeeded but did not reply 200",
+            );
+
+            response
+        }
+        Err(error) => {
+            // NOTE: If the error here is 404 we still return 500.
+            //
+            //       If we have a file record for a file, then the
+            //       corresponding blob *should* exist.
+            //
+            //       If it doesn't, the data invariant is not being met,
+            //       which is an unexpected error.
+            error!(
+                page_id = page_id,
+                block_type = "html",
+                s3_filename = s3_filename,
+                "Cannot get text block data: {error}",
+            );
+            // TODO
+            todo!()
+        }
+    };
+
+    let mime: String = todo!();
+
+    let body = Body::from(s3_response.as_slice());
+    let result = Response::builder()
+        .header(header::CONTENT_TYPE, &mime)
+        .body(body);
+
+    let x_done = match result {
+        Ok(response) => response,
+        Err(error) => {
+            error!("Unable to convert response: {error}");
+            StatusCode::INTERNAL_SERVER_ERROR.into_response()
+        }
+    };
+
     let _ = page_slug;
     let _ = index;
     let _site_id = get_site_id(&headers);
@@ -54,7 +116,7 @@ pub async fn handle_html_block(
 pub async fn handle_code_block(
     State(state): State<ServerState>,
     Path((page_slug, index)): Path<(String, String)>,
-) -> Html<&'static str> {
+) -> Response {
     info!(
         page_slug = page_slug,
         index = index,
