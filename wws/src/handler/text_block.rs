@@ -54,7 +54,8 @@ pub async fn handle_html_block(
         }
     };
 
-    let page_id = todo!();
+    let site_id = get_site_id(&headers);
+    let page_id = try_response!(state.get_page_or_response(site_id, &page_slug));
 
     let s3_filename = format_filename(BLOCK_TYPE_HTML, page_id, index);
     info!("Fetching HTML text block from S3 object '{s3_filename}'");
