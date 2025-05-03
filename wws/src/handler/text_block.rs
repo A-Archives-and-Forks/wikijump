@@ -1,5 +1,5 @@
 /*
- * handler/code.rs
+ * handler/text_block.rs
  *
  * Wilson's Web Server - Serves a zoo of user-generated content
  * Copyright (C) 2019-2025 Wikijump Team
@@ -18,11 +18,27 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+use super::{get_site_id, get_site_slug};
 use crate::state::ServerState;
 use axum::{
     extract::{Path, State},
+    http::header::HeaderMap,
     response::Html,
 };
+
+pub async fn handle_html_block(
+    State(state): State<ServerState>,
+    Path((page_slug, html_id)): Path<(String, String)>,
+    headers: HeaderMap,
+) -> Html<&'static str> {
+    // TODO
+    let _ = state;
+    let _ = page_slug;
+    let _ = html_id;
+    let _site_id = get_site_id(&headers);
+    let _site_slug = get_site_slug(&headers);
+    todo!()
+}
 
 pub async fn handle_code_block(
     State(state): State<ServerState>,
