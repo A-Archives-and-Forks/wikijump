@@ -59,15 +59,15 @@ use std::collections::HashSet;
 /// * `12345_html_2`
 /// * `12345_html_3`
 macro_rules! format_filename {
-    ($buffer:expr, $page_id:expr, $index:expr, $block_type_value:expr $(,)?) => {{
+    ($buffer:expr, $page_id:expr, $index:expr, $block_type:expr $(,)?) => {{
         let buffer = &mut $buffer;
         let page_id = $page_id;
         let index = $index;
-        let block_type_value = &$block_type_value;
+        let block_type = block_type_name($block_type);
 
         buffer.clear();
         assert_ne!(index, 0, "Text block indices must be 1-indexed!");
-        str_write!(buffer, "{page_id}_{block_type_value}_{index}");
+        str_write!(buffer, "{page_id}_{block_type}_{index}");
     }};
 }
 
@@ -91,21 +91,17 @@ impl TextBlockService {
         info!(
             "Inserting {} {} blocks for page ID {}",
             blocks.len(),
-            match block_type {
-                TextBlockType::Html => "html",
-                TextBlockType::Code => "code",
-            },
+            block_type_name(block_type),
             page_id,
         );
 
         let txn = ctx.transaction();
         let bucket = ctx.s3_tblocks_bucket();
-        let block_type_value = block_type.to_value();
         let mut buffer = String::new();
 
         macro_rules! filename {
             ($index:expr) => {{
-                format_filename!(buffer, page_id, $index, block_type_value);
+                format_filename!(buffer, page_id, $index, block_type);
                 &buffer
             }};
         }
@@ -217,6 +213,44 @@ impl TextBlockService {
         Ok(())
     }
 
+    /// Gets the index and associated S3 name for a block accessed via name/alias.
+    pub async fn get_block_index(
+        ctx: &ServiceContext<'_>,
+        page_id: i64,
+        block_type: TextBlockType,
+        name: &str,
+    ) -> Result<Option<TextBlockIndex>> {
+        info!(
+            "Looking for a {} text block on page ID {} with name '{}'",
+            block_type_name(block_type),
+            page_id,
+            name,
+        );
+
+        let txn = ctx.transaction();
+        let index: Option<i16> = TextBlockTable::find()
+            .select_only()
+            .column(text_block::Column::BlockIndex)
+            .filter(
+                Condition::all()
+                    .add(text_block::Column::PageId.eq(page_id))
+                    .add(text_block::Column::BlockType.eq(block_type))
+                    .add(text_block::Column::BlockName.eq(name)),
+            )
+            .into_tuple()
+            .one(txn)
+            .await?;
+
+        match index {
+            None => Ok(None),
+            Some(index) => {
+                let mut s3_name = String::new();
+                format_filename!(s3_name, page_id, index, block_type);
+                Ok(Some(TextBlockIndex { index, s3_name }))
+            }
+        }
+    }
+
     /// Finds how many text blocks of a type exist for a page.
     async fn get_block_count(
         ctx: &ServiceContext<'_>,
@@ -229,8 +263,8 @@ impl TextBlockService {
             .column(text_block::Column::BlockIndex)
             .filter(
                 Condition::all()
-                    .add(text_block::Column::BlockType.eq(block_type))
-                    .add(text_block::Column::PageId.eq(page_id)),
+                    .add(text_block::Column::PageId.eq(page_id))
+                    .add(text_block::Column::BlockType.eq(block_type)),
             )
             .order_by_desc(text_block::Column::BlockIndex)
             .limit(1)
@@ -255,11 +289,9 @@ impl TextBlockService {
         // For each kind of text block type, find out how many
         // blocks exist and then delete the objects in S3.
         for block_type in TextBlockType::iter() {
-            let block_type_value = block_type.to_value();
-
             macro_rules! filename {
                 ($index:expr) => {{
-                    format_filename!(buffer, page_id, $index, block_type_value);
+                    format_filename!(buffer, page_id, $index, block_type);
                     &buffer
                 }};
             }
@@ -280,6 +312,13 @@ impl TextBlockService {
             .await?;
 
         Ok(())
+    }
+}
+
+fn block_type_name(block_type: TextBlockType) -> &'static str {
+    match block_type {
+        TextBlockType::Html => "html",
+        TextBlockType::Code => "code",
     }
 }
 
