@@ -19,7 +19,7 @@
  */
 
 use super::get_site_id;
-use crate::{deepwell::FileData, state::ServerState};
+use crate::{deepwell::FileData, error::ResponseResult, state::ServerState};
 use axum::{
     body::Body,
     extract::{Path, State},
@@ -36,55 +36,14 @@ async fn fetch_file(
     headers: &HeaderMap,
     page_slug: &mut String,
     filename: &str,
-) -> Result<(FileData, Body), Response> {
+) -> ResponseResult<(FileData, Body)> {
     normalize(page_slug);
 
     let site_id = get_site_id(headers);
-    let page_id = match state.get_page(site_id, page_slug).await {
-        Ok(Some(page_id)) => page_id,
-        Ok(None) => {
-            error!(
-                site_id = site_id,
-                page_slug = page_slug,
-                "Cannot get file, no such page",
-            );
-            // TODO
-            todo!()
-        }
-        Err(error) => {
-            error!(
-                site_id = site_id,
-                page_slug = page_slug,
-                "Cannot get page info: {error}",
-            );
-            // TODO
-            todo!()
-        }
-    };
-
-    let file_info = match state.get_file(site_id, page_id, filename).await {
-        Ok(Some(file_info)) => file_info,
-        Ok(None) => {
-            error!(
-                site_id = site_id,
-                page_id = page_id,
-                filename = filename,
-                "Cannot get file, none with filename",
-            );
-            // TODO
-            todo!()
-        }
-        Err(error) => {
-            error!(
-                site_id = site_id,
-                page_id = page_id,
-                filename = filename,
-                "Cannot get file info: {error}",
-            );
-            // TODO
-            todo!()
-        }
-    };
+    let page_id = state.get_page_or_response(site_id, page_slug).await?;
+    let file_info = state
+        .get_file_or_response(site_id, page_id, filename)
+        .await?;
 
     let body = match state
         .s3_files_bucket

@@ -37,16 +37,9 @@ pub async fn redirect_to_main(
 }
 
 pub async fn redirect_to_main_inner(state: &ServerState, site_id: i64, path: &str) -> Response {
-    match state.get_site_domain(site_id).await {
-        Ok(domain) => {
-            let destination = format!("https://{domain}{path}");
-            Redirect::permanent(&destination).into_response()
-        }
-        Err(error) => {
-            error!("Could not fetch preferred site domain for site ID {site_id}: {error}");
-            FallbackError::RedirectMain.into_response()
-        }
-    }
+    let domain = try_response!(state.get_site_domain_or_response(site_id));
+    let destination = format!("https://{domain}{path}");
+    Redirect::permanent(&destination).into_response()
 }
 
 pub async fn handle_code_redirect(Path((page_slug, index)): Path<(String, String)>) -> Redirect {

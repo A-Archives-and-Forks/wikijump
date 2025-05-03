@@ -103,6 +103,19 @@ impl ServerStateInner {
         }
     }
 
+    pub async fn get_site_domain_or_response(&self, site_id: i64) -> ResponseResult<String> {
+        match self.get_site_domain(site_id).await {
+            Ok(domain) => Ok(domain),
+            Err(error) => {
+                error!(
+                    site_id = site_id,
+                    "Could not fetch preferred site domain: {error}",
+                );
+                Err(FallbackError::RedirectMain.into_response())
+            }
+        }
+    }
+
     pub async fn get_page(&self, site_id: i64, page_slug: &str) -> Result<Option<i64>> {
         match self.cache.get_page(site_id, page_slug).await? {
             Some(page_id) => Ok(Some(page_id)),
@@ -113,6 +126,30 @@ impl ServerStateInner {
                     Ok(Some(page_id))
                 }
             },
+        }
+    }
+
+    pub async fn get_page_or_response(&self, site_id: i64, page_slug: &str) -> ResponseResult<i64> {
+        match self.get_page(site_id, page_slug).await {
+            Ok(Some(page_id)) => Ok(page_id),
+            Ok(None) => {
+                error!(
+                    site_id = site_id,
+                    page_slug = page_slug,
+                    "Cannot complete request, no such page",
+                );
+                // TODO
+                todo!()
+            }
+            Err(error) => {
+                error!(
+                    site_id = site_id,
+                    page_slug = page_slug,
+                    "Cannot get page info: {error}",
+                );
+                // TODO
+                todo!()
+            }
         }
     }
 
@@ -134,6 +171,37 @@ impl ServerStateInner {
                     Ok(Some(data))
                 }
             },
+        }
+    }
+
+    pub async fn get_file_or_response(
+        &self,
+        site_id: i64,
+        page_id: i64,
+        filename: &str,
+    ) -> ResponseResult<FileData> {
+        match self.get_file(site_id, page_id, filename).await {
+            Ok(Some(file_info)) => Ok(file_info),
+            Ok(None) => {
+                error!(
+                    site_id = site_id,
+                    page_id = page_id,
+                    filename = filename,
+                    "Cannot complete request, none with filename",
+                );
+                // TODO
+                todo!()
+            }
+            Err(error) => {
+                error!(
+                    site_id = site_id,
+                    page_id = page_id,
+                    filename = filename,
+                    "Cannot get file info: {error}",
+                );
+                // TODO
+                todo!()
+            }
         }
     }
 }
