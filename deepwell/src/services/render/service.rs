@@ -104,6 +104,7 @@ impl RenderService {
                 .iter()
                 .map(|html| TextBlock {
                     text: html,
+                    text_type: None,
                     mime: MIME_HTML,
                     name: None,
                 })
@@ -123,6 +124,7 @@ impl RenderService {
                          name,
                      }| TextBlock {
                         text: contents,
+                        text_type: language.as_deref(),
                         mime: mime_for_language(language),
                         name: name.as_deref(),
                     },

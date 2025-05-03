@@ -580,6 +580,7 @@ CREATE TABLE text_block (
     page_id BIGINT NOT NULL REFERENCES page(page_id),
     block_index SMALLINT NOT NULL CHECK (block_index > 0),
     block_name TEXT CHECK (length(block_name) > 0),
+    text_type TEXT,
 
     PRIMARY KEY (block_type, page_id, block_index),
     UNIQUE (page_id, block_name)

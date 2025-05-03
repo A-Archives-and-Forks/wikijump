@@ -15,6 +15,8 @@ pub struct Model {
     pub block_index: i16,
     #[sea_orm(column_type = "Text", nullable)]
     pub block_name: Option<String>,
+    #[sea_orm(column_type = "Text", nullable)]
+    pub text_type: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

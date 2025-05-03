@@ -157,6 +157,7 @@ impl TextBlockService {
         for (index, block) in blocks.iter().enumerate() {
             let TextBlock {
                 text,
+                text_type,
                 mime,
                 mut name,
             } = block;
@@ -185,6 +186,7 @@ impl TextBlockService {
                 page_id: Set(page_id),
                 block_index: Set(index),
                 block_name: Set(name.map(String::from)),
+                text_type: Set(text_type.map(String::from)),
             });
         }
 
