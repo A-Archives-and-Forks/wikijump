@@ -19,22 +19,33 @@
  */
 
 use super::{get_site_id, get_site_slug};
-use crate::state::ServerState;
+use crate::{
+    deepwell::{BLOCK_TYPE_CODE, BLOCK_TYPE_HTML},
+    state::ServerState,
+};
 use axum::{
     extract::{Path, State},
     http::header::HeaderMap,
     response::Html,
 };
+use std::num::NonZeroU16;
+
+/// Formats the S3 filename for a hosted text block.
+/// See `service/text_block/service.rs` for how this value is formatted.
+#[inline]
+fn format_filename(block_type: &'static str, page_id: i64, index: NonZeroU16) -> String {
+    format!("{page_id}_{block_type}_{index}")
+}
 
 pub async fn handle_html_block(
     State(state): State<ServerState>,
-    Path((page_slug, html_id)): Path<(String, String)>,
+    Path((page_slug, index)): Path<(String, String)>,
     headers: HeaderMap,
 ) -> Html<&'static str> {
     // TODO
     let _ = state;
     let _ = page_slug;
-    let _ = html_id;
+    let _ = index;
     let _site_id = get_site_id(&headers);
     let _site_slug = get_site_slug(&headers);
     todo!()
