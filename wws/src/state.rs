@@ -22,8 +22,9 @@ use crate::{
     cache::Cache,
     config::Secrets,
     deepwell::{Deepwell, FileData, PageData},
-    error::Result,
+    error::{FallbackError, ResponseResult, Result},
 };
+use axum::response::IntoResponse;
 use s3::bucket::Bucket;
 use std::sync::Arc;
 use std::time::Duration;

@@ -1,5 +1,5 @@
 /*
- * error.rs
+ * error/wws.rs
  *
  * Wilson's Web Server - Serves a zoo of user-generated content
  * Copyright (C) 2019-2025 Wikijump Team

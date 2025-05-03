@@ -18,10 +18,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use super::{
-    fallback_error::FallbackError, get_site_slug, parse_accept_language, HEADER_SPECIAL_ERROR,
-};
-use crate::{deepwell::SpecialError, state::ServerState};
+use super::{get_site_slug, parse_accept_language, HEADER_SPECIAL_ERROR};
+use crate::{deepwell::SpecialError, error::FallbackError, state::ServerState};
 use axum::{
     body::Body,
     extract::{Path, State},

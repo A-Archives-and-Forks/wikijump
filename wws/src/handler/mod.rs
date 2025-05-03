@@ -18,7 +18,6 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-mod fallback_error;
 mod file;
 mod misc;
 mod redirect;
@@ -27,7 +26,6 @@ mod special_error;
 mod text_block;
 mod well_known;
 
-pub use self::fallback_error::FallbackError;
 pub use self::file::*;
 pub use self::misc::*;
 pub use self::redirect::*;
@@ -36,6 +34,7 @@ pub use self::special_error::*;
 pub use self::text_block::*;
 pub use self::well_known::*;
 
+use crate::error::FallbackError;
 use axum::http::header::{HeaderMap, HeaderName};
 
 pub const HEADER_SITE_ID: HeaderName = HeaderName::from_static("x-wikijump-site-id");
