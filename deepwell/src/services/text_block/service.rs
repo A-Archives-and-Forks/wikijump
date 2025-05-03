@@ -89,8 +89,12 @@ impl TextBlockService {
         use std::ops::Add;
 
         info!(
-            "Inserting {} text blocks for page ID {}",
+            "Inserting {} {} blocks for page ID {}",
             blocks.len(),
+            match block_type {
+                TextBlockType::Html => "html",
+                TextBlockType::Code => "code",
+            },
             page_id,
         );
 
