@@ -189,8 +189,8 @@ impl TextBlockService {
             .await?;
 
         debug_assert_eq!(
-            rows_affected, max_index as u64,
-            "Deleted row count do not match maximum block index",
+            rows_affected, prev_max_index as u64,
+            "Deleted row count do not match previous maximum block index",
         );
 
         // Finally, insert the batch of new text block rows, then return.
