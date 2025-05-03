@@ -194,7 +194,10 @@ impl TextBlockService {
         );
 
         // Finally, insert the batch of new text block rows, then return.
-        TextBlockTable::insert_many(models).exec(txn).await?;
+        if !models.is_empty() {
+            TextBlockTable::insert_many(models).exec(txn).await?;
+        }
+
         Ok(())
     }
 
