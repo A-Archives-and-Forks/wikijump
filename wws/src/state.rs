@@ -159,8 +159,15 @@ impl ServerStateInner {
                     page_slug = page_slug,
                     "Cannot get page info: {error}",
                 );
-                // TODO
-                todo!()
+
+                let response = build_special_error_response(
+                    self,
+                    headers,
+                    SpecialError::PageFetch { site_id, page_slug },
+                )
+                .await;
+
+                return Err(response);
             }
         }
     }
