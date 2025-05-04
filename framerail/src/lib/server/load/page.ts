@@ -45,19 +45,15 @@ export async function loadPage(
   let errorStatus = null
 
   switch (response.type) {
-    case "page_found":
+    case "found":
       break
-    case "page_missing":
+    case "missing":
       viewData.page = null
       viewData.page_revision = null
       errorStatus = 404
       break
-    case "page_permissions":
+    case "permissions":
       errorStatus = 403
-      break
-    case "site_missing":
-      checkRedirect = false
-      errorStatus = 404
   }
 
   let translateKeys: TranslateKeys = {
