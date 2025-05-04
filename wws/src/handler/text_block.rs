@@ -20,7 +20,7 @@
 
 use super::{get_site_id, get_site_slug};
 use crate::{
-    deepwell::TextBlockType,
+    deepwell::{TextBlockIndex, TextBlockType},
     error::{build_special_error_response, FallbackError, SpecialError, TextBlockErrorReason},
     state::ServerState,
 };
@@ -35,42 +35,131 @@ use axum::{
 };
 use std::{collections::HashMap, num::NonZeroU16};
 
-/// Formats the S3 filename for a hosted text block.
-/// See `service/text_block/service.rs` for how this value is formatted.
-#[inline]
-fn format_filename(block_type: TextBlockType, page_id: i64, index: NonZeroU16) -> String {
-    let block_type = block_type.value();
-    format!("{page_id}_{block_type}_{index}")
-}
-
 pub async fn handle_html_block(
     State(state): State<ServerState>,
     Path((page_slug, index)): Path<(String, String)>,
     headers: HeaderMap,
 ) -> Response {
+    info!(
+        page_slug = page_slug,
+        index = index,
+        "Returning HTML block data",
+    );
+
+    // HTML blocks can't have named aliases
+    handle_text_block(
+        &state,
+        &headers,
+        TextBlockType::Html,
+        &page_slug,
+        BlockId::Index(index),
+    )
+    .await
+}
+
+pub async fn handle_code_block(
+    State(state): State<ServerState>,
+    Path((page_slug, value)): Path<(String, String)>,
+    headers: HeaderMap,
+) -> Response {
+    info!(
+        page_slug = page_slug,
+        index = value,
+        "Returning code block data",
+    );
+
+    // Determine if it's an alias or a regular numeric index
+    let index = if value.chars().all(|c| c.is_ascii_digit()) {
+        BlockId::Index(value)
+    } else {
+        BlockId::Name(value)
+    };
+
+    handle_text_block(&state, &headers, TextBlockType::Code, &page_slug, index).await
+}
+
+async fn handle_text_block(
+    state: &ServerState,
+    headers: &HeaderMap,
+    block_type: TextBlockType,
+    page_slug: &str,
+    block_id: BlockId,
+) -> Response {
     let site_id = get_site_id(&headers);
     let page_id = try_response!(state.get_page_or_response(&headers, site_id, &page_slug));
 
-    let index: NonZeroU16 = match index.parse() {
-        Ok(index) => index,
-        Err(_) => {
-            error!(index = index, "Invalid text block index");
-
-            return build_special_error_response(
-                &state,
-                &headers,
-                SpecialError::TextBlock {
-                    site_id,
-                    index: &index,
-                    block_type: TextBlockType::Html,
-                    reason: TextBlockErrorReason::Invalid,
-                },
-            )
-            .await;
+    let s3_filename = match block_id {
+        // Parse the index value if numeric
+        BlockId::Index(value) => match value.parse() {
+            Ok(index) => format_filename(block_type, page_id, index),
+            Err(_) => {
+                error!(
+                    index = value,
+                    block_type = block_type.value(),
+                    "Invalid text block index",
+                );
+                return build_special_error_response(
+                    &state,
+                    &headers,
+                    SpecialError::TextBlock {
+                        site_id,
+                        index: &value,
+                        block_type,
+                        reason: TextBlockErrorReason::Invalid,
+                    },
+                )
+                .await;
+            }
+        },
+        // Retrieve the index from DEEPWELL
+        BlockId::Name(name) => {
+            match state
+                .deepwell
+                .get_text_block_index(page_id, block_type, &name)
+                .await
+            {
+                Ok(Some(TextBlockIndex { s3_filename, .. })) => s3_filename,
+                Ok(None) => {
+                    error!(
+                        page_id = page_id,
+                        block_type = block_type.value(),
+                        name = name,
+                        "No text block found with given name",
+                    );
+                    return build_special_error_response(
+                        &state,
+                        &headers,
+                        SpecialError::TextBlock {
+                            site_id,
+                            index: &name,
+                            block_type,
+                            reason: TextBlockErrorReason::Missing,
+                        },
+                    )
+                    .await;
+                }
+                Err(error) => {
+                    error!(
+                        page_id = page_id,
+                        block_type = block_type.value(),
+                        "Unable to retrieve S3 filename for text block from DEEPWELL: {error}",
+                    );
+                    return build_special_error_response(
+                        &state,
+                        &headers,
+                        SpecialError::TextBlock {
+                            site_id,
+                            index: &name,
+                            block_type,
+                            reason: TextBlockErrorReason::Fetch,
+                        },
+                    )
+                    .await;
+                }
+            }
         }
     };
 
-    let s3_filename = format_filename(TextBlockType::Html, page_id, index);
     info!("Fetching HTML text block from S3 object '{s3_filename}'");
 
     // Since text blocks are much smaller than files (necessarily being
@@ -121,19 +210,18 @@ pub async fn handle_html_block(
     }
 }
 
-pub async fn handle_code_block(
-    State(state): State<ServerState>,
-    Path((page_slug, index)): Path<(String, String)>,
-) -> Response {
-    info!(
-        page_slug = page_slug,
-        index = index,
-        "Returning code block data",
-    );
+#[derive(Debug)]
+enum BlockId {
+    Index(String),
+    Name(String),
+}
 
-    // TODO
-    let _ = state;
-    todo!()
+/// Formats the S3 filename for a hosted text block.
+/// See `service/text_block/service.rs` for how this value is formatted.
+#[inline]
+fn format_filename(block_type: TextBlockType, page_id: i64, index: NonZeroU16) -> String {
+    let block_type = block_type.value();
+    format!("{page_id}_{block_type}_{index}")
 }
 
 // Since this thing isn't returning a case-insensitive map...

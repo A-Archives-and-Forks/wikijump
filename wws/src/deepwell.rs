@@ -310,7 +310,7 @@ pub struct SpecialErrorHtml {
     pub body: String,
 }
 
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone)]
 pub enum TextBlockType {
     Code,
     Html,
