@@ -33,10 +33,30 @@ pub use crate::deepwell::SpecialErrorHtml;
 
 #[derive(Debug, Copy, Clone)]
 pub enum SpecialError<'a> {
-    SiteSlug { site_slug: &'a str },
-    SiteCustom { host: &'a str },
-    PageSlug { site_id: i64, page_slug: &'a str },
-    PageFetch { site_id: i64, page_slug: &'a str },
+    SiteSlug {
+        site_slug: &'a str,
+    },
+    SiteCustom {
+        host: &'a str,
+    },
+    PageSlug {
+        site_id: i64,
+        page_slug: &'a str,
+    },
+    PageFetch {
+        site_id: i64,
+        page_slug: &'a str,
+    },
+    FileName {
+        site_id: i64,
+        page_slug: &'a str,
+        filename: &'a str,
+    },
+    FileFetch {
+        site_id: i64,
+        page_slug: &'a str,
+        filename: &'a str,
+    },
     FileRoot,
 }
 
@@ -100,6 +120,20 @@ pub async fn build_special_error_response(
         }
         SpecialError::PageFetch { site_id, page_slug } => {
             deepwell_fetch!(page_fetch, site_id, page_slug => INTERNAL_SERVER_ERROR)
+        }
+        SpecialError::FileName {
+            site_id,
+            page_slug,
+            filename,
+        } => {
+            deepwell_fetch!(missing_file_name, site_id, page_slug, filename => NOT_FOUND)
+        }
+        SpecialError::FileFetch {
+            site_id,
+            page_slug,
+            filename,
+        } => {
+            deepwell_fetch!(file_fetch, site_id, page_slug, filename => INTERNAL_SERVER_ERROR)
         }
         SpecialError::FileRoot => {
             deepwell_fetch!(file_root => BAD_REQUEST)

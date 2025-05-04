@@ -198,6 +198,7 @@ impl ServerStateInner {
         headers: &HeaderMap,
         site_id: i64,
         page_id: i64,
+        page_slug: &str,
         filename: &str,
     ) -> ResponseResult<FileData> {
         match self.get_file(site_id, page_id, filename).await {
@@ -209,8 +210,19 @@ impl ServerStateInner {
                     filename = filename,
                     "Cannot complete request, none with filename",
                 );
-                // TODO
-                todo!()
+
+                let response = build_special_error_response(
+                    self,
+                    headers,
+                    SpecialError::FileName {
+                        site_id,
+                        page_slug,
+                        filename,
+                    },
+                )
+                .await;
+
+                return Err(response);
             }
             Err(error) => {
                 error!(
@@ -219,8 +231,19 @@ impl ServerStateInner {
                     filename = filename,
                     "Cannot get file info: {error}",
                 );
-                // TODO
-                todo!()
+
+                let response = build_special_error_response(
+                    self,
+                    headers,
+                    SpecialError::FileFetch {
+                        site_id,
+                        page_slug,
+                        filename,
+                    },
+                )
+                .await;
+
+                return Err(response);
             }
         }
     }
