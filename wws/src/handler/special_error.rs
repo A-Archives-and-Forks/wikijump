@@ -61,6 +61,7 @@ pub async fn handle_special_error(
     // This header can only be set internally, so let's check it before
     // returning any error information.
     if headers.get(HEADER_SPECIAL_ERROR).is_none() {
+        // XF-1002
         return FallbackError::SpecialErrorDirect.into_response();
     }
 
@@ -118,6 +119,7 @@ pub async fn handle_special_error(
         "file-root" => SpecialError::FileRoot,
         // Invalid
         _ => {
+            // XF-1000
             error!("Invalid special error code: {error_code}");
             return FallbackError::SpecialErrorCode.into_response();
         }

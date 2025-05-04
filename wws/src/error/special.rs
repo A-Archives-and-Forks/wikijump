@@ -93,6 +93,7 @@ pub async fn build_special_error_response(
                     SpecialErrorOutput { title, body, status: StatusCode::$status_code }
                 }
                 Err(error) => {
+                    // XF-1001
                     error!(
                         "Unable to get special error for {}: {}",
                         stringify!($method),

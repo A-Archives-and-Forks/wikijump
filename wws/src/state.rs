@@ -107,6 +107,7 @@ impl ServerStateInner {
         match self.get_site_domain(site_id).await {
             Ok(domain) => Ok(domain),
             Err(error) => {
+                // XF-1003
                 error!(
                     site_id = site_id,
                     "Could not fetch preferred site domain: {error}",

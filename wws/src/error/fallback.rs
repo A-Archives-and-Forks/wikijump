@@ -26,6 +26,11 @@
 //!
 //! This is to aid users in reporting the specific issue which
 //! occurred, while minimizing the dump of non-localizable text.
+//!
+//! As a suggestion, leave a comment with the code (e.g. `XF-1003`)
+//! whenever `FallbackError::into_response()` is used, enabling
+//! future debuggers to simply grep for the code and find where
+//! the error is occurring.
 
 use axum::{
     http::StatusCode,

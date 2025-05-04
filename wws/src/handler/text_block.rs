@@ -82,6 +82,8 @@ pub async fn handle_html_block(
             //
             //       If it doesn't, the data invariant is not being met,
             //       which is an unexpected error.
+            //
+            //       Fallback error code: XF-1004
             error!(
                 page_id = page_id,
                 block_type = "html",
