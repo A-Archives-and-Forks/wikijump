@@ -69,9 +69,14 @@ special-error-file-fetch = <h1>Unable to fetch file data</h1>
 special-error-text-block = <h1>Invalid hosted text block</h1>
     <p>
       { $reason ->
-        [missing] No { $type -> [code] code [html] HTML } block with index <code>{ $index }</code> exists.
+        [missing] No { $type ->
+          [code] code
+          [html] HTML
+          *[error] text
+        } block with index <code>{ $index }</code> exists.
         [invalid] The given index <code>{ $index }</code> is invalid.
         [fetch] This text block data could not be loaded.
+        *[error] Unknown special error reason: { $reason }
       }
     </p>
 
