@@ -51,6 +51,8 @@ pub struct PageRoute {
     pub extra: String,
 }
 
+// NOTE: Any changes to the structure here, including the variant names,
+//       MUST be reflected in framerail! See src/lib/server/load/page.ts
 #[derive(Serialize, Debug, Clone)]
 #[serde(rename_all = "snake_case", tag = "type", content = "data")]
 pub enum GetPageViewOutput {
