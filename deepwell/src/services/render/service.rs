@@ -94,9 +94,11 @@ impl RenderService {
         // This only applies for published pages, in any other
         // rendering context and we should skip this step.
 
-        if settings.mode == WikitextMode::Page {
-            // If this mode is selected, then a page ID must have also been provided.
-            let page_id = page_id.expect("No page ID given for page render");
+        if let Some(page_id) = page_id {
+            // It's possible to render a page without doing text blocks
+            // (e.g. special pages), but all cases where text blocks
+            // are done are pages.
+            debug_assert_eq!(settings.mode, WikitextMode::Page);
 
             // [[html]]
             let html_blocks: Vec<TextBlock> = tree
