@@ -211,6 +211,50 @@ impl Deepwell {
         Ok(html)
     }
 
+    pub async fn special_error_missing_file_name(
+        &self,
+        locales: &[String],
+        site_id: i64,
+        page_slug: &str,
+        filename: &str,
+    ) -> Result<SpecialErrorHtml> {
+        let params = rpc_object! {
+            "locales" => locales,
+            "site_id" => site_id,
+            "page_slug" => page_slug,
+            "filename" => filename,
+        };
+
+        let html: SpecialErrorHtml = self
+            .client
+            .request("special_error_missing_file_name", params)
+            .await?;
+
+        Ok(html)
+    }
+
+    pub async fn special_error_file_fetch(
+        &self,
+        locales: &[String],
+        site_id: i64,
+        page_slug: &str,
+        filename: &str,
+    ) -> Result<SpecialErrorHtml> {
+        let params = rpc_object! {
+            "locales" => locales,
+            "site_id" => site_id,
+            "page_slug" => page_slug,
+            "filename" => filename,
+        };
+
+        let html: SpecialErrorHtml = self
+            .client
+            .request("special_error_file_fetch", params)
+            .await?;
+
+        Ok(html)
+    }
+
     pub async fn special_error_file_root(&self, locales: &[String]) -> Result<SpecialErrorHtml> {
         let params = rpc_object! {
             "locales" => locales,

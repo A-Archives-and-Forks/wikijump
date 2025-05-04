@@ -195,6 +195,7 @@ impl ServerStateInner {
 
     pub async fn get_file_or_response(
         &self,
+        headers: &HeaderMap,
         site_id: i64,
         page_id: i64,
         filename: &str,

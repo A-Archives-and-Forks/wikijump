@@ -45,7 +45,7 @@ async fn fetch_file(
         .await?;
 
     let file_info = state
-        .get_file_or_response(site_id, page_id, filename)
+        .get_file_or_response(&headers, site_id, page_id, filename)
         .await?;
 
     let body = match state
