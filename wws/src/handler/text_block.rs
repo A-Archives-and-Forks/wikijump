@@ -33,7 +33,7 @@ use axum::{
     },
     response::{IntoResponse, Response},
 };
-use std::num::NonZeroU16;
+use std::{collections::HashMap, num::NonZeroU16};
 
 /// Formats the S3 filename for a hosted text block.
 /// See `service/text_block/service.rs` for how this value is formatted.
@@ -94,9 +94,8 @@ pub async fn handle_html_block(
         }
     };
 
-    let mime: String = todo!();
-
-    let body = Body::from(s3_response.as_slice());
+    let mime = get_content_type(s3_response.headers());
+    let body = Body::from(s3_response.to_vec());
     let result = Response::builder()
         .header(header::CONTENT_TYPE, &mime)
         .body(body);
@@ -129,4 +128,15 @@ pub async fn handle_code_block(
     // TODO
     let _ = state;
     todo!()
+}
+
+// Since this thing isn't returning a case-insensitive map...
+fn get_content_type(headers: HashMap<String, String>) -> String {
+    for (key, value) in headers.into_iter() {
+        if key.eq_ignore_ascii_case("content-type") {
+            return value;
+        }
+    }
+
+    panic!("No Content-Type header returned in S3 response");
 }
