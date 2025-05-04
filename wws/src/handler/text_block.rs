@@ -20,11 +20,8 @@
 
 use super::{get_site_id, get_site_slug};
 use crate::{
-    deepwell::{BLOCK_TYPE_CODE, BLOCK_TYPE_HTML},
-    error::{
-        build_special_error_response, FallbackError, SpecialError, TextBlockErrorReason,
-        TextBlockType,
-    },
+    deepwell::TextBlockType,
+    error::{build_special_error_response, FallbackError, SpecialError, TextBlockErrorReason},
     state::ServerState,
 };
 use axum::{
@@ -41,7 +38,8 @@ use std::{collections::HashMap, num::NonZeroU16};
 /// Formats the S3 filename for a hosted text block.
 /// See `service/text_block/service.rs` for how this value is formatted.
 #[inline]
-fn format_filename(block_type: &'static str, page_id: i64, index: NonZeroU16) -> String {
+fn format_filename(block_type: TextBlockType, page_id: i64, index: NonZeroU16) -> String {
+    let block_type = block_type.value();
     format!("{page_id}_{block_type}_{index}")
 }
 
@@ -72,7 +70,7 @@ pub async fn handle_html_block(
         }
     };
 
-    let s3_filename = format_filename(BLOCK_TYPE_HTML, page_id, index);
+    let s3_filename = format_filename(TextBlockType::Html, page_id, index);
     info!("Fetching HTML text block from S3 object '{s3_filename}'");
 
     // Since text blocks are much smaller than files (necessarily being

@@ -18,13 +18,10 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use crate::error::{Result, TextBlockErrorReason, TextBlockType};
+use crate::error::{Result, TextBlockErrorReason};
 use jsonrpsee::{core::client::ClientT, http_client::HttpClient, rpc_params};
 use serde::Deserialize;
 use std::{num::NonZeroU16, time::Duration};
-
-pub const BLOCK_TYPE_HTML: &str = "html";
-pub const BLOCK_TYPE_CODE: &str = "code";
 
 const JSONRPC_MAX_REQUEST: u32 = 16 * 1024;
 const JSONRPC_TIMEOUT: Duration = Duration::from_millis(200);
@@ -113,17 +110,12 @@ impl Deepwell {
     pub async fn get_text_block_index(
         &self,
         page_id: i64,
-        block_type: &'static str,
+        block_type: TextBlockType,
         name: &str,
     ) -> Result<Option<TextBlockIndex>> {
-        debug_assert!(
-            block_type == BLOCK_TYPE_HTML || block_type == BLOCK_TYPE_CODE,
-            "Passed block type does not match an enum value: {block_type}",
-        );
-
         let params = rpc_object! {
             "page_id" => page_id,
-            "block_type" => block_type,
+            "block_type" => block_type.value(),
             "name" => name,
         };
 
@@ -316,4 +308,20 @@ pub struct TextBlockIndex {
 pub struct SpecialErrorHtml {
     pub title: String,
     pub body: String,
+}
+
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub enum TextBlockType {
+    Code,
+    Html,
+}
+
+impl TextBlockType {
+    #[inline]
+    pub fn value(self) -> &'static str {
+        match self {
+            TextBlockType::Code => "code",
+            TextBlockType::Html => "html",
+        }
+    }
 }

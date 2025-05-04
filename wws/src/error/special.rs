@@ -18,7 +18,10 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use crate::{error::FallbackError, language::parse_accept_language, state::ServerStateInner};
+use crate::{
+    deepwell::TextBlockType, error::FallbackError, language::parse_accept_language,
+    state::ServerStateInner,
+};
 use axum::{
     body::Body,
     http::{
@@ -71,6 +74,30 @@ pub struct SpecialErrorOutput {
     pub title: String,
     pub body: String,
     pub status: StatusCode,
+}
+
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub enum TextBlockErrorReason {
+    /// This hosted text block does not exist.
+    Missing,
+
+    /// The URL to this hosted text block is invalid.
+    Invalid,
+
+    /// The server was unable to retrieve this hosted text block.
+    Fetch,
+}
+
+impl TextBlockErrorReason {
+    #[inline]
+    pub fn value(self) -> &'static str {
+        // These must match the values in the Fluent files.
+        match self {
+            TextBlockErrorReason::Missing => "missing",
+            TextBlockErrorReason::Invalid => "invalid",
+            TextBlockErrorReason::Fetch => "fetch",
+        }
+    }
 }
 
 pub async fn build_special_error_response(
@@ -178,45 +205,4 @@ pub async fn build_special_error_response(
         .header(header::CONTENT_TYPE, "text/html; charset=utf-8")
         .body(Body::from(html))
         .expect("Unable to convert response data")
-}
-
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
-pub enum TextBlockErrorReason {
-    /// This hosted text block does not exist.
-    Missing,
-
-    /// The URL to this hosted text block is invalid.
-    Invalid,
-
-    /// The server was unable to retrieve this hosted text block.
-    Fetch,
-}
-
-impl TextBlockErrorReason {
-    #[inline]
-    pub fn value(self) -> &'static str {
-        // These must match the values in the Fluent files.
-        match self {
-            TextBlockErrorReason::Missing => "missing",
-            TextBlockErrorReason::Invalid => "invalid",
-            TextBlockErrorReason::Fetch => "fetch",
-        }
-    }
-}
-
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
-pub enum TextBlockType {
-    Code,
-    Html,
-}
-
-impl TextBlockType {
-    #[inline]
-    pub fn value(self) -> &'static str {
-        // These must match the values in the Fluent files.
-        match self {
-            TextBlockType::Code => "code",
-            TextBlockType::Html => "html",
-        }
-    }
 }
