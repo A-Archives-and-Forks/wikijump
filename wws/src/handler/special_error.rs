@@ -18,7 +18,9 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use super::{get_site_slug, HEADER_SPECIAL_ERROR};
+use super::{
+    get_header, get_site_id, get_site_slug, HEADER_FILENAME, HEADER_PAGE_SLUG, HEADER_SPECIAL_ERROR,
+};
 use crate::{
     error::{build_special_error_response, FallbackError, SpecialError, SpecialErrorHtml},
     state::ServerState,
@@ -29,6 +31,24 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use axum_extra::extract::Host;
+
+fn get_page_slug(headers: &HeaderMap) -> &str {
+    get_header(
+        headers,
+        HEADER_PAGE_SLUG,
+        "No page slug header in request",
+        "Page slug header is not UTF-8",
+    )
+}
+
+fn get_filename(headers: &HeaderMap) -> &str {
+    get_header(
+        headers,
+        HEADER_FILENAME,
+        "No filename header in request",
+        "Filename header is not UTF-8",
+    )
+}
 
 pub async fn handle_special_error(
     State(state): State<ServerState>,
@@ -54,6 +74,46 @@ pub async fn handle_special_error(
         }
         // No required headers
         "site-custom" => SpecialError::SiteCustom { host: &host },
+        // Required headers:
+        // - x-wikijump-page-slug
+        "page-slug" => {
+            let site_id = get_site_id(&headers);
+            let page_slug = get_page_slug(&headers);
+            SpecialError::PageSlug { site_id, page_slug }
+        }
+        // Required headers:
+        // - x-wikijump-page-slug
+        "page-fetch" => {
+            let site_id = get_site_id(&headers);
+            let page_slug = get_page_slug(&headers);
+            SpecialError::PageFetch { site_id, page_slug }
+        }
+        // Required headers:
+        // - x-wikijump-page-slug
+        // - x-wikijump-filename
+        "file-name" => {
+            let site_id = get_site_id(&headers);
+            let page_slug = get_page_slug(&headers);
+            let filename = get_filename(&headers);
+            SpecialError::FileName {
+                site_id,
+                page_slug,
+                filename,
+            }
+        }
+        // Required headers:
+        // - x-wikijump-page-slug
+        // - x-wikijump-filename
+        "file-fetch" => {
+            let site_id = get_site_id(&headers);
+            let page_slug = get_page_slug(&headers);
+            let filename = get_filename(&headers);
+            SpecialError::FileFetch {
+                site_id,
+                page_slug,
+                filename,
+            }
+        }
         // No required headers
         "file-root" => SpecialError::FileRoot,
         // Invalid

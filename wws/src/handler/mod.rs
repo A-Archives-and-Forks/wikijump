@@ -39,6 +39,8 @@ use axum::http::header::{HeaderMap, HeaderName};
 
 pub const HEADER_SITE_ID: HeaderName = HeaderName::from_static("x-wikijump-site-id");
 pub const HEADER_SITE_SLUG: HeaderName = HeaderName::from_static("x-wikijump-site-slug");
+pub const HEADER_PAGE_SLUG: HeaderName = HeaderName::from_static("x-wikijump-page-slug");
+pub const HEADER_FILENAME: HeaderName = HeaderName::from_static("x-wikijump-filename");
 pub const HEADER_TARGET_SERVER: HeaderName = HeaderName::from_static("x-wikijump-target-server");
 pub const HEADER_SPECIAL_ERROR: HeaderName = HeaderName::from_static("x-wikijump-special-error");
 
