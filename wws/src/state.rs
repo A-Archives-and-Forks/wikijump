@@ -22,9 +22,9 @@ use crate::{
     cache::Cache,
     config::Secrets,
     deepwell::{Deepwell, FileData, PageData},
-    error::{FallbackError, ResponseResult, Result},
+    error::{build_special_error_response, FallbackError, ResponseResult, Result, SpecialError},
 };
-use axum::response::IntoResponse;
+use axum::{http::HeaderMap, response::IntoResponse};
 use s3::bucket::Bucket;
 use std::sync::Arc;
 use std::time::Duration;
@@ -129,7 +129,12 @@ impl ServerStateInner {
         }
     }
 
-    pub async fn get_page_or_response(&self, site_id: i64, page_slug: &str) -> ResponseResult<i64> {
+    pub async fn get_page_or_response(
+        &self,
+        headers: &HeaderMap,
+        site_id: i64,
+        page_slug: &str,
+    ) -> ResponseResult<i64> {
         match self.get_page(site_id, page_slug).await {
             Ok(Some(page_id)) => Ok(page_id),
             Ok(None) => {
@@ -138,8 +143,15 @@ impl ServerStateInner {
                     page_slug = page_slug,
                     "Cannot complete request, no such page",
                 );
-                // TODO
-                todo!()
+
+                let response = build_special_error_response(
+                    self,
+                    headers,
+                    SpecialError::PageSlug { site_id, page_slug },
+                )
+                .await;
+
+                return Err(response);
             }
             Err(error) => {
                 error!(

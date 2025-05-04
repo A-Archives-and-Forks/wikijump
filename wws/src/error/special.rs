@@ -18,7 +18,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use crate::{error::FallbackError, language::parse_accept_language, state::ServerState};
+use crate::{error::FallbackError, language::parse_accept_language, state::ServerStateInner};
 use axum::{
     body::Body,
     http::{
@@ -47,7 +47,9 @@ pub struct SpecialErrorOutput {
 }
 
 pub async fn build_special_error_response(
-    state: &ServerState,
+    // NOTE: We need to accept the inner struct specifically here, since there are
+    //       some places in state.rs itself where we need to call this function.
+    state: &ServerStateInner,
     headers: &HeaderMap,
     special_error: SpecialError<'_>,
 ) -> Response {

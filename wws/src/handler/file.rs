@@ -40,7 +40,10 @@ async fn fetch_file(
     normalize(page_slug);
 
     let site_id = get_site_id(headers);
-    let page_id = state.get_page_or_response(site_id, page_slug).await?;
+    let page_id = state
+        .get_page_or_response(&headers, site_id, page_slug)
+        .await?;
+
     let file_info = state
         .get_file_or_response(site_id, page_id, filename)
         .await?;
