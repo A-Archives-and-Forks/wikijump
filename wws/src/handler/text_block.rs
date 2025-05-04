@@ -21,7 +21,7 @@
 use super::{get_site_id, get_site_slug};
 use crate::{
     deepwell::{BLOCK_TYPE_CODE, BLOCK_TYPE_HTML},
-    error::FallbackError,
+    error::{build_special_error_response, FallbackError, SpecialError, TextBlockErrorReason},
     state::ServerState,
 };
 use axum::{
@@ -47,16 +47,26 @@ pub async fn handle_html_block(
     Path((page_slug, index)): Path<(String, String)>,
     headers: HeaderMap,
 ) -> Response {
+    let site_id = get_site_id(&headers);
+    let page_id = try_response!(state.get_page_or_response(&headers, site_id, &page_slug));
+
     let index: NonZeroU16 = match index.parse() {
         Ok(index) => index,
         Err(_) => {
             error!(index = index, "Invalid text block index");
-            return "invalid index".into_response();
+
+            return build_special_error_response(
+                &state,
+                &headers,
+                SpecialError::TextBlock {
+                    site_id,
+                    index: &index,
+                    reason: TextBlockErrorReason::Invalid,
+                },
+            )
+            .await;
         }
     };
-
-    let site_id = get_site_id(&headers);
-    let page_id = try_response!(state.get_page_or_response(&headers, site_id, &page_slug));
 
     let s3_filename = format_filename(BLOCK_TYPE_HTML, page_id, index);
     info!("Fetching HTML text block from S3 object '{s3_filename}'");

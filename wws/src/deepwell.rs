@@ -259,14 +259,14 @@ impl Deepwell {
         &self,
         locales: &[String],
         site_id: i64,
-        reason: TextBlockErrorReason,
         index: &str,
+        reason: TextBlockErrorReason,
     ) -> Result<SpecialErrorHtml> {
         let params = rpc_object! {
             "locales" => locales,
             "site_id" => site_id,
-            "reason" => reason.value(),
             "index" => index,
+            "reason" => reason.value(),
         };
 
         let html: SpecialErrorHtml = self

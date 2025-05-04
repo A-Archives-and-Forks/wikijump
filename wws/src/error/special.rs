@@ -57,6 +57,11 @@ pub enum SpecialError<'a> {
         page_slug: &'a str,
         filename: &'a str,
     },
+    TextBlock {
+        site_id: i64,
+        reason: TextBlockErrorReason,
+        index: &'a str,
+    },
     FileRoot,
 }
 
@@ -107,14 +112,17 @@ pub async fn build_special_error_response(
         ($method:ident => $status_code:ident $(,)?) => {
             deepwell_fetch!($method, => $status_code)
         };
-        ($method:ident, $($arg:expr),* => $status_code:ident $(,)?) => {{
+        ($method:ident, $($arg:expr),* => $status_code:ident $(,)?) => {
+            deepwell_fetch!($method, $($arg),* ; StatusCode::$status_code)
+        };
+        ($method:ident, $($arg:expr),* ; $status_code:expr $(,)?) => {{
             paste! {
                 let result = state.deepwell.[<special_error_ $method>](&locales, $($arg),*).await;
             }
 
             match result {
                 Ok(SpecialErrorHtml { title, body }) => {
-                    SpecialErrorOutput { title, body, status: StatusCode::$status_code }
+                    SpecialErrorOutput { title, body, status: $status_code }
                 }
                 Err(error) => {
                     // XF-1001
@@ -159,6 +167,19 @@ pub async fn build_special_error_response(
             filename,
         } => {
             deepwell_fetch!(file_fetch, site_id, page_slug, filename => INTERNAL_SERVER_ERROR)
+        }
+        SpecialError::TextBlock {
+            site_id,
+            index,
+            reason,
+        } => {
+            let status_code = match reason {
+                TextBlockErrorReason::Missing => StatusCode::NOT_FOUND,
+                TextBlockErrorReason::Invalid => StatusCode::BAD_REQUEST,
+                TextBlockErrorReason::Fetch => StatusCode::INTERNAL_SERVER_ERROR,
+            };
+
+            deepwell_fetch!(text_block, site_id, index, reason; status_code)
         }
         SpecialError::FileRoot => {
             deepwell_fetch!(file_root => BAD_REQUEST)
