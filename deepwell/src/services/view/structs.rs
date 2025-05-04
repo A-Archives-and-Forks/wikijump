@@ -26,6 +26,9 @@ use crate::models::session::Model as SessionModel;
 use crate::models::site::Model as SiteModel;
 use crate::models::user::Model as UserModel;
 
+// NOTE: Any changes to the output structures here, including the variant names,
+//       MUST be reflected in framerail!
+
 // TODO replace with actual user permissions type
 #[derive(Serialize, Deserialize, Debug, Copy, Clone)]
 pub struct UserPermissions;
@@ -51,6 +54,7 @@ pub struct PageRoute {
     pub extra: String,
 }
 
+// See also framerail src/lib/server/load/page.ts and src/routes/+error.svelte
 #[derive(Serialize, Debug, Clone)]
 #[serde(rename_all = "snake_case", tag = "type", content = "data")]
 pub enum GetPageViewOutput {
@@ -92,6 +96,7 @@ pub struct GetUserView<'a> {
     pub locales: Vec<String>,
 }
 
+// See also framerail src/lib/server/load/admin.ts and src/routes/[x+2d]/admin/+error.svelte
 #[derive(Serialize, Debug, Clone)]
 #[serde(rename_all = "snake_case", tag = "type", content = "data")]
 pub enum GetUserViewOutput {
@@ -114,6 +119,7 @@ pub struct GetAdminView {
     pub locales: Vec<String>,
 }
 
+// See also framerail src/lib/server/load/admin.ts and src/routes/[x+2d]/user/+error.svelte
 #[derive(Serialize, Debug, Clone)]
 #[serde(rename_all = "snake_case", tag = "type", content = "data")]
 pub enum GetAdminViewOutput {

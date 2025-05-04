@@ -84,7 +84,7 @@
 Use svelte-switch-case package with {#switch data.view}
 as soon as we can figure out prettier support for it.
 -->
-{#if $page.error.view === "page_missing"}
+{#if $page.error.view === "missing"}
   UNTRANSLATED:Page not found
 
   {#if $page.error.options?.edit}
@@ -214,14 +214,11 @@ as soon as we can figure out prettier support for it.
       </form>
     {/if}
   {/if}
-{:else if $page.error.view === "page_permissions"}
+{:else if $page.error.view === "permissions"}
   UNTRANSLATED:Lacks permissions for page
   {@html $page.error.compiled_html}
-{:else if $page.error.view === "site_missing"}
-  UNTRANSLATED:No such site
-  {@html $page.error.html}
 {:else}
-  UNTRANSLATED:Fallback error, something really went wrong
+  UNTRANSLATED:Fatal error: Unable to display view
 {/if}
 
 <style global lang="scss">

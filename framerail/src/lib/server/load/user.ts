@@ -33,6 +33,11 @@ export async function loadUser(username?: string, request, cookies) {
       break
     case "site_missing":
       errorStatus = 404
+      break
+    default:
+      // Unexpected response type!
+      // There is an inconsistency between here / DEEPWELL
+      errorStatus = 500
   }
 
   if (errorStatus === null && username && viewData.user.slug !== username) {
