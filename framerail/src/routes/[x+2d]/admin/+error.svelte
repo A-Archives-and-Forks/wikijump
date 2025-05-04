@@ -17,7 +17,7 @@ as soon as we can figure out prettier support for it.
   UNTRANSLATED:No such site
   {@html $page.error.html}
 {:else}
-  UNTRANSLATED:Fallback error, invalid view type from backend
+  UNTRANSLATED:Fatal error: Unable to display view
 {/if}
 
 <style global lang="scss">
