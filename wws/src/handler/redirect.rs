@@ -18,7 +18,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use super::{get_site_id, FallbackError};
+use super::get_site_id;
 use crate::{path::get_path, state::ServerState};
 use axum::{
     extract::{Path, State},

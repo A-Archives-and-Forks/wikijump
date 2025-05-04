@@ -18,7 +18,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use super::{get_site_id, get_site_slug};
+use super::get_site_id;
 use crate::{
     deepwell::{TextBlockIndex, TextBlockType},
     error::{build_special_error_response, FallbackError, SpecialError, TextBlockErrorReason},
@@ -85,8 +85,8 @@ async fn handle_text_block(
     page_slug: &str,
     block_id: BlockId,
 ) -> Response {
-    let site_id = get_site_id(&headers);
-    let page_id = try_response!(state.get_page_or_response(&headers, site_id, &page_slug));
+    let site_id = get_site_id(headers);
+    let page_id = try_response!(state.get_page_or_response(headers, site_id, page_slug));
 
     let (index, s3_filename) = match block_id {
         // Parse the index value if numeric
@@ -102,8 +102,8 @@ async fn handle_text_block(
                     "Invalid text block index",
                 );
                 return build_special_error_response(
-                    &state,
-                    &headers,
+                    state,
+                    headers,
                     SpecialError::TextBlock {
                         site_id,
                         index: &value,
@@ -130,8 +130,8 @@ async fn handle_text_block(
                         "No text block found with given name",
                     );
                     return build_special_error_response(
-                        &state,
-                        &headers,
+                        state,
+                        headers,
                         SpecialError::TextBlock {
                             site_id,
                             index: &name,
@@ -148,8 +148,8 @@ async fn handle_text_block(
                         "Unable to retrieve S3 filename for text block from DEEPWELL: {error}",
                     );
                     return build_special_error_response(
-                        &state,
-                        &headers,
+                        state,
+                        headers,
                         SpecialError::TextBlock {
                             site_id,
                             index: &name,

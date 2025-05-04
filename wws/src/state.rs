@@ -152,7 +152,7 @@ impl ServerStateInner {
                 )
                 .await;
 
-                return Err(response);
+                Err(response)
             }
             Err(error) => {
                 error!(
@@ -168,7 +168,7 @@ impl ServerStateInner {
                 )
                 .await;
 
-                return Err(response);
+                Err(response)
             }
         }
     }
@@ -223,7 +223,7 @@ impl ServerStateInner {
                 )
                 .await;
 
-                return Err(response);
+                Err(response)
             }
             Err(error) => {
                 error!(
@@ -244,7 +244,7 @@ impl ServerStateInner {
                 )
                 .await;
 
-                return Err(response);
+                Err(response)
             }
         }
     }

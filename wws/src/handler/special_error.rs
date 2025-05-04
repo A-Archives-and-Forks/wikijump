@@ -22,12 +22,12 @@ use super::{
     get_header, get_site_id, get_site_slug, HEADER_FILENAME, HEADER_PAGE_SLUG, HEADER_SPECIAL_ERROR,
 };
 use crate::{
-    error::{build_special_error_response, FallbackError, SpecialError, SpecialErrorHtml},
+    error::{build_special_error_response, FallbackError, SpecialError},
     state::ServerState,
 };
 use axum::{
     extract::{Path, State},
-    http::{header::HeaderMap, status::StatusCode},
+    http::header::HeaderMap,
     response::{IntoResponse, Response},
 };
 use axum_extra::extract::Host;

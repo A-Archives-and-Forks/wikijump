@@ -108,7 +108,7 @@ pub async fn build_special_error_response(
     special_error: SpecialError<'_>,
 ) -> Response {
     // Get a list of preferred locales from the Accept-Language header.
-    let locales = parse_accept_language(&headers);
+    let locales = parse_accept_language(headers);
 
     // Build the appropriate error case
 

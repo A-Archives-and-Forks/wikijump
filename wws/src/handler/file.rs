@@ -45,11 +45,11 @@ async fn fetch_file(
 
     let site_id = get_site_id(headers);
     let page_id = state
-        .get_page_or_response(&headers, site_id, page_slug)
+        .get_page_or_response(headers, site_id, page_slug)
         .await?;
 
     let file_info = state
-        .get_file_or_response(&headers, site_id, page_id, page_slug, filename)
+        .get_file_or_response(headers, site_id, page_id, page_slug, filename)
         .await?;
 
     let body = match state

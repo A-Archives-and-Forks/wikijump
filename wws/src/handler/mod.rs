@@ -34,7 +34,6 @@ pub use self::special_error::*;
 pub use self::text_block::*;
 pub use self::well_known::*;
 
-use crate::error::FallbackError;
 use axum::http::header::{HeaderMap, HeaderName};
 
 pub const HEADER_SITE_ID: HeaderName = HeaderName::from_static("x-wikijump-site-id");
