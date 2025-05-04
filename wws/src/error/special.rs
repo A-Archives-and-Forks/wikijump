@@ -67,6 +67,30 @@ pub struct SpecialErrorOutput {
     pub status: StatusCode,
 }
 
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub enum TextBlockErrorReason {
+    /// This hosted text block does not exist.
+    Missing,
+
+    /// The URL to this hosted text block is invalid.
+    Invalid,
+
+    /// The server was unable to retrieve this hosted text block.
+    Fetch,
+}
+
+impl TextBlockErrorReason {
+    #[inline]
+    pub fn value(self) -> &'static str {
+        // These must match the values in the Fluent files.
+        match self {
+            TextBlockErrorReason::Missing => "missing",
+            TextBlockErrorReason::Invalid => "invalid",
+            TextBlockErrorReason::Fetch => "fetch",
+        }
+    }
+}
+
 pub async fn build_special_error_response(
     // NOTE: We need to accept the inner struct specifically here, since there are
     //       some places in state.rs itself where we need to call this function.

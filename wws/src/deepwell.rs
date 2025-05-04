@@ -18,7 +18,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use crate::error::Result;
+use crate::error::{Result, TextBlockErrorReason};
 use jsonrpsee::{core::client::ClientT, http_client::HttpClient, rpc_params};
 use serde::Deserialize;
 use std::{num::NonZeroU16, time::Duration};
@@ -250,6 +250,28 @@ impl Deepwell {
         let html: SpecialErrorHtml = self
             .client
             .request("special_error_file_fetch", params)
+            .await?;
+
+        Ok(html)
+    }
+
+    pub async fn special_error_text_block(
+        &self,
+        locales: &[String],
+        site_id: i64,
+        reason: TextBlockErrorReason,
+        index: &str,
+    ) -> Result<SpecialErrorHtml> {
+        let params = rpc_object! {
+            "locales" => locales,
+            "site_id" => site_id,
+            "reason" => reason.value(),
+            "index" => index,
+        };
+
+        let html: SpecialErrorHtml = self
+            .client
+            .request("special_error_text_block", params)
             .await?;
 
         Ok(html)
