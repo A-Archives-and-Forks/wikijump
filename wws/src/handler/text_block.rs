@@ -88,10 +88,13 @@ async fn handle_text_block(
     let site_id = get_site_id(&headers);
     let page_id = try_response!(state.get_page_or_response(&headers, site_id, &page_slug));
 
-    let s3_filename = match block_id {
+    let (index, s3_filename) = match block_id {
         // Parse the index value if numeric
         BlockId::Index(value) => match value.parse() {
-            Ok(index) => format_filename(block_type, page_id, index),
+            Ok(index) => {
+                let s3_filename = format_filename(block_type, page_id, index);
+                (index, s3_filename)
+            }
             Err(_) => {
                 error!(
                     index = value,
@@ -118,7 +121,7 @@ async fn handle_text_block(
                 .get_text_block_index(page_id, block_type, &name)
                 .await
             {
-                Ok(Some(TextBlockIndex { s3_filename, .. })) => s3_filename,
+                Ok(Some(TextBlockIndex { index, s3_filename })) => (index, s3_filename),
                 Ok(None) => {
                     error!(
                         page_id = page_id,
@@ -160,7 +163,7 @@ async fn handle_text_block(
         }
     };
 
-    info!("Fetching HTML text block from S3 object '{s3_filename}'");
+    info!("Fetching HTML text block from S3 object '{s3_filename}' (index {index})");
 
     // Since text blocks are much smaller than files (necessarily being
     // at most as big as the biggest page's sources) then it's fine for
