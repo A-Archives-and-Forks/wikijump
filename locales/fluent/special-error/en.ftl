@@ -35,7 +35,7 @@ special-error-page-slug = <h1>This page does not exist</h1>
 
 special-error-page-fetch = <h1>Unable to fetch page data</h1>
     <p>
-      Server error: Information about page <a href="https://{ $domain }/{ $page_slug }"><code>{ $domain }/{ $page_slug }</code></a> could not be loaded.
+      Server error: Page data from <a href="https://{ $domain }/{ $page_slug }"><code>{ $domain }/{ $page_slug }</code></a> could not be loaded.
     </p>
 
     <p>
@@ -57,7 +57,7 @@ special-error-file-name = <h1>This file does not exist</h1>
 
 special-error-file-fetch = <h1>Unable to fetch file data</h1>
     <p>
-      Server error: Information about file <code>{ $filename }</code> on the page <code>{ $domain }/{ $page_slug }</code> could not be loaded.
+      Server error: File data from <code>{ $filename }</code> on the page <code>{ $domain }/{ $page_slug }</code> could not be loaded.
     </p>
 
     <p>
