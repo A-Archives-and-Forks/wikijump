@@ -224,6 +224,10 @@ async fn build_module(app_state: ServerState) -> anyhow::Result<RpcModule<Server
         special_error_missing_custom_domain,
     );
     register!("special_error_file_root", special_error_file_root);
+    register!(
+        "special_error_missing_page_slug",
+        special_error_missing_page_slug,
+    );
 
     // Authentication
     register!("login", auth_login);

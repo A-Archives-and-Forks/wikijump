@@ -35,6 +35,7 @@ pub use crate::deepwell::SpecialErrorHtml;
 pub enum SpecialError<'a> {
     SiteSlug { site_slug: &'a str },
     SiteCustom { host: &'a str },
+    PageSlug { domain: &'a str, page_slug: &'a str },
     FileRoot,
 }
 
@@ -90,6 +91,9 @@ pub async fn build_special_error_response(
         }
         SpecialError::SiteCustom { host } => {
             deepwell_fetch!(missing_custom_domain, host => NOT_FOUND)
+        }
+        SpecialError::PageSlug { domain, page_slug } => {
+            deepwell_fetch!(missing_page_slug, domain, page_slug => NOT_FOUND)
         }
         SpecialError::FileRoot => {
             deepwell_fetch!(file_root => BAD_REQUEST)

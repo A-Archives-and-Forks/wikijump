@@ -52,6 +52,27 @@ pub async fn special_error_missing_custom_domain(
     SpecialErrorService::missing_custom_domain(ctx, &locales, &domain).await
 }
 
+pub async fn special_error_missing_page_slug(
+    ctx: &ServiceContext<'_>,
+    params: Params<'static>,
+) -> Result<SpecialErrorOutput> {
+    #[derive(Deserialize, Debug)]
+    struct Input {
+        locales: Vec<String>,
+        domain: String,
+        page_slug: String,
+    }
+
+    let Input {
+        locales,
+        domain,
+        page_slug,
+    } = params.parse()?;
+
+    let locales = parse_locales(&locales)?;
+    SpecialErrorService::missing_page_slug(ctx, &locales, &domain, &page_slug).await
+}
+
 pub async fn special_error_file_root(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,

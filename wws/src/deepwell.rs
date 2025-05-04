@@ -171,6 +171,26 @@ impl Deepwell {
         Ok(html)
     }
 
+    pub async fn special_error_missing_page_slug(
+        &self,
+        locales: &[String],
+        domain: &str,
+        page_slug: &str,
+    ) -> Result<SpecialErrorHtml> {
+        let params = rpc_object! {
+            "locales" => locales,
+            "domain" => domain,
+            "page_slug" => page_slug,
+        };
+
+        let html: SpecialErrorHtml = self
+            .client
+            .request("special_error_missing_page_slug", params)
+            .await?;
+
+        Ok(html)
+    }
+
     pub async fn special_error_file_root(&self, locales: &[String]) -> Result<SpecialErrorHtml> {
         let params = rpc_object! {
             "locales" => locales,

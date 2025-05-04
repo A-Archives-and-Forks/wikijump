@@ -98,6 +98,40 @@ impl SpecialErrorService {
         })
     }
 
+    /// Error for when a page slug does not exist.
+    ///
+    /// This is _not_ used as the regular "page missing" error
+    /// (see the `_404` special page), but instead in contexts
+    /// like in wjfiles where we need to display an error for
+    /// when a file doesn't exist because the page it's supposedly
+    /// attached to doesn't exist.
+    pub async fn missing_page_slug(
+        ctx: &ServiceContext<'_>,
+        locales: &[LanguageIdentifier],
+        domain: &str,
+        page_slug: &str,
+    ) -> Result<SpecialErrorOutput> {
+        assert!(!locales.is_empty(), "No languages specified");
+        let mut args = FluentArgs::new();
+        args.set("domain", fluent_str!(domain));
+        args.set("page_slug", fluent_str!(page_slug));
+
+        let title = ctx.localization().translate(
+            locales,
+            "special-error-page-slug.title",
+            &args,
+        )?;
+
+        let body =
+            ctx.localization()
+                .translate(locales, "special-error-page-slug", &args)?;
+
+        Ok(SpecialErrorOutput {
+            title: title.to_string(),
+            body: body.to_string(),
+        })
+    }
+
     /// Error for when a user tries to access wjfiles without passing in a site slug.
     pub async fn file_root(
         ctx: &ServiceContext<'_>,

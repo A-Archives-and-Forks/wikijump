@@ -2,7 +2,7 @@
 
 special-error-site-slug = <h1>No { -service-name } site exists with this address.</h1>
     <p>
-      <a href="https://{ $slug }.{ $main_domain }/"><code>{ $slug }.{ $main_domain }</code></a> does not exist.
+      The site <a href="https://{ $slug }.{ $main_domain }/"><code>{ $slug }.{ $main_domain }</code></a> does not exist.
     </p>
 
     <p>
@@ -21,6 +21,17 @@ special-error-site-custom = <h1>No { -service-name } site exists with this addre
     </p>
 
     .title = No such site - { -service-name }
+
+special-error-page-slug = <h1>This page does not exist.</h1>
+    <p>
+      The page <a href="https://{ $domain }/{ $page_slug }"><code>{ $domain }/{ $page_slug }</code></a> does not exist.
+    </p>
+
+    <p>
+      Return to the <a href="https://{ $domain }/">main page</a>.
+    </p>
+
+    .title = No such page - { $domain }
 
 special-error-file-root = <h1>Invalid route</h1>
     <p>
