@@ -100,19 +100,13 @@ pub async fn handle_html_block(
         .header(header::CONTENT_TYPE, &mime)
         .body(body);
 
-    let x_done = match result {
+    match result {
         Ok(response) => response,
         Err(error) => {
             error!("Unable to convert response: {error}");
             StatusCode::INTERNAL_SERVER_ERROR.into_response()
         }
-    };
-
-    let _ = page_slug;
-    let _ = index;
-    let _site_id = get_site_id(&headers);
-    let _site_slug = get_site_slug(&headers);
-    todo!()
+    }
 }
 
 pub async fn handle_code_block(
