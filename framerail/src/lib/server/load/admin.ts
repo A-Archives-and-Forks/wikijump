@@ -32,6 +32,11 @@ export async function loadAdminPage(request, cookies) {
       break
     case "site_missing":
       errorStatus = 404
+      break
+    default:
+      // Unexpected response type!
+      // There is an inconsistency between here / DEEPWELL
+      errorStatus = 500
   }
 
   if (errorStatus !== null) {
