@@ -44,6 +44,28 @@ special-error-page-fetch = <h1>Unable to fetch page data</h1>
 
     .title = Server Error - { $domain }
 
+special-error-file-name = <h1>This file does not exist</h1>
+    <p>
+      The file <code>{ $filename }</code> on the page <code>{ $domain }/{ $page_slug }</code> does not exist.
+    </p>
+
+    <p>
+      Return to the <a href="https://{ $domain }/{ $page_slug }">page</a>, or the <a href="https://{ $domain }/">site's main page</a>.
+    </p>
+
+    .title = No such page - { $domain }
+
+special-error-file-fetch = <h1>Unable to fetch file data</h1>
+    <p>
+      Server error: Information about file <code>{ $filename }</code> on the page <code>{ $domain }/{ $page_slug }</code> could not be loaded.
+    </p>
+
+    <p>
+      Return to the <a href="https://{ $domain }/{ $page_slug }">page</a>, or the <a href="https://{ $domain }/">site's main page</a>.
+    </p>
+
+    .title = Server Error - { $domain }
+
 special-error-file-root = <h1>Invalid route</h1>
     <p>
       { -service-name } serves user-generated data from <code>{ $files_domain }</code>, but this is not a valid URL.
