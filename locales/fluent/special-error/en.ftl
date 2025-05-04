@@ -28,7 +28,7 @@ special-error-page-slug = <h1>This page does not exist.</h1>
     </p>
 
     <p>
-      Return to the <a href="https://{ $domain }/">main page</a>.
+      Return to the <a href="https://{ $domain }/">site's main page</a>.
     </p>
 
     .title = No such page - { $domain }

@@ -25,6 +25,7 @@
 //! missing site or unknown custom domain.
 
 use super::prelude::*;
+use crate::services::{DomainService, SiteService};
 use crate::utils::parse_locales;
 use fluent::{FluentArgs, FluentValue};
 use serde::Deserialize;
@@ -108,11 +109,14 @@ impl SpecialErrorService {
     pub async fn missing_page_slug(
         ctx: &ServiceContext<'_>,
         locales: &[LanguageIdentifier],
-        domain: &str,
+        site_id: i64,
         page_slug: &str,
     ) -> Result<SpecialErrorOutput> {
         assert!(!locales.is_empty(), "No languages specified");
+        let config = ctx.config();
         let mut args = FluentArgs::new();
+        let site = SiteService::get(ctx, Reference::Id(site_id)).await?;
+        let domain = DomainService::preferred_domain(config, &site);
         args.set("domain", fluent_str!(domain));
         args.set("page_slug", fluent_str!(page_slug));
 

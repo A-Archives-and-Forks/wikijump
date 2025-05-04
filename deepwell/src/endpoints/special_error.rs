@@ -59,18 +59,18 @@ pub async fn special_error_missing_page_slug(
     #[derive(Deserialize, Debug)]
     struct Input {
         locales: Vec<String>,
-        domain: String,
+        site_id: i64,
         page_slug: String,
     }
 
     let Input {
         locales,
-        domain,
+        site_id,
         page_slug,
     } = params.parse()?;
 
     let locales = parse_locales(&locales)?;
-    SpecialErrorService::missing_page_slug(ctx, &locales, &domain, &page_slug).await
+    SpecialErrorService::missing_page_slug(ctx, &locales, site_id, &page_slug).await
 }
 
 pub async fn special_error_file_root(

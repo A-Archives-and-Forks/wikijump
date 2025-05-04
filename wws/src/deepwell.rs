@@ -174,12 +174,12 @@ impl Deepwell {
     pub async fn special_error_missing_page_slug(
         &self,
         locales: &[String],
-        domain: &str,
+        site_id: i64,
         page_slug: &str,
     ) -> Result<SpecialErrorHtml> {
         let params = rpc_object! {
             "locales" => locales,
-            "domain" => domain,
+            "site_id" => site_id,
             "page_slug" => page_slug,
         };
 
