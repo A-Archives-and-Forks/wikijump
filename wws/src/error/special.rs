@@ -36,6 +36,7 @@ pub enum SpecialError<'a> {
     SiteSlug { site_slug: &'a str },
     SiteCustom { host: &'a str },
     PageSlug { site_id: i64, page_slug: &'a str },
+    PageFetch { site_id: i64, page_slug: &'a str },
     FileRoot,
 }
 
@@ -96,6 +97,9 @@ pub async fn build_special_error_response(
         }
         SpecialError::PageSlug { site_id, page_slug } => {
             deepwell_fetch!(missing_page_slug, site_id, page_slug => NOT_FOUND)
+        }
+        SpecialError::PageFetch { site_id, page_slug } => {
+            deepwell_fetch!(page_fetch, site_id, page_slug => INTERNAL_SERVER_ERROR)
         }
         SpecialError::FileRoot => {
             deepwell_fetch!(file_root => BAD_REQUEST)

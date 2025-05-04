@@ -191,6 +191,26 @@ impl Deepwell {
         Ok(html)
     }
 
+    pub async fn special_error_page_fetch(
+        &self,
+        locales: &[String],
+        site_id: i64,
+        page_slug: &str,
+    ) -> Result<SpecialErrorHtml> {
+        let params = rpc_object! {
+            "locales" => locales,
+            "site_id" => site_id,
+            "page_slug" => page_slug,
+        };
+
+        let html: SpecialErrorHtml = self
+            .client
+            .request("special_error_page_fetch", params)
+            .await?;
+
+        Ok(html)
+    }
+
     pub async fn special_error_file_root(&self, locales: &[String]) -> Result<SpecialErrorHtml> {
         let params = rpc_object! {
             "locales" => locales,

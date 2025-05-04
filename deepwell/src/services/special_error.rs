@@ -136,6 +136,36 @@ impl SpecialErrorService {
         })
     }
 
+    pub async fn page_fetch(
+        ctx: &ServiceContext<'_>,
+        locales: &[LanguageIdentifier],
+        site_id: i64,
+        page_slug: &str,
+    ) -> Result<SpecialErrorOutput> {
+        assert!(!locales.is_empty(), "No languages specified");
+        let config = ctx.config();
+        let mut args = FluentArgs::new();
+        let site = SiteService::get(ctx, Reference::Id(site_id)).await?;
+        let domain = DomainService::preferred_domain(config, &site);
+        args.set("domain", fluent_str!(domain));
+        args.set("page_slug", fluent_str!(page_slug));
+
+        let title = ctx.localization().translate(
+            locales,
+            "special-error-page-fetch.title",
+            &args,
+        )?;
+
+        let body =
+            ctx.localization()
+                .translate(locales, "special-error-page-fetch", &args)?;
+
+        Ok(SpecialErrorOutput {
+            title: title.to_string(),
+            body: body.to_string(),
+        })
+    }
+
     /// Error for when a user tries to access wjfiles without passing in a site slug.
     pub async fn file_root(
         ctx: &ServiceContext<'_>,
