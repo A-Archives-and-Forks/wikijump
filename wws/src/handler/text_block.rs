@@ -21,6 +21,7 @@
 use super::{get_site_id, get_site_slug};
 use crate::{
     deepwell::{BLOCK_TYPE_CODE, BLOCK_TYPE_HTML},
+    error::FallbackError,
     state::ServerState,
 };
 use axum::{
@@ -87,8 +88,7 @@ pub async fn handle_html_block(
                 s3_filename = s3_filename,
                 "Cannot get text block data: {error}",
             );
-            // TODO
-            todo!()
+            return FallbackError::TextBlockS3Fetch.into_response();
         }
     };
 

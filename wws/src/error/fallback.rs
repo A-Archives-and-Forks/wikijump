@@ -46,6 +46,9 @@ pub enum FallbackError {
 
     /// Unable to determine the preferred domain to redirect to for a site.
     RedirectMain,
+
+    /// Unable to fetch a hosted text block from S3.
+    TextBlockS3Fetch,
 }
 
 impl FallbackError {
@@ -59,6 +62,7 @@ impl FallbackError {
             FallbackError::SpecialErrorFetch => 1001,
             FallbackError::SpecialErrorDirect => 1002,
             FallbackError::RedirectMain => 1003,
+            FallbackError::TextBlockS3Fetch => 1004,
         }
     }
 
@@ -69,6 +73,7 @@ impl FallbackError {
             FallbackError::SpecialErrorFetch | FallbackError::RedirectMain => {
                 StatusCode::GATEWAY_TIMEOUT
             }
+            FallbackError::TextBlockS3Fetch => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 }
