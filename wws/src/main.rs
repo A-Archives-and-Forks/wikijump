@@ -38,6 +38,7 @@ mod deepwell;
 mod error;
 mod handler;
 mod info;
+mod language;
 mod path;
 mod route;
 mod state;

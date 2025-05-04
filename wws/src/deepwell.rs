@@ -139,13 +139,13 @@ impl Deepwell {
         &self,
         locales: &[String],
         site_slug: &str,
-    ) -> Result<SpecialError> {
+    ) -> Result<SpecialErrorHtml> {
         let params = rpc_object! {
             "locales" => locales,
             "site_slug" => site_slug,
         };
 
-        let html: SpecialError = self
+        let html: SpecialErrorHtml = self
             .client
             .request("special_error_missing_site_slug", params)
             .await?;
@@ -157,13 +157,13 @@ impl Deepwell {
         &self,
         locales: &[String],
         domain: &str,
-    ) -> Result<SpecialError> {
+    ) -> Result<SpecialErrorHtml> {
         let params = rpc_object! {
             "locales" => locales,
             "domain" => domain,
         };
 
-        let html: SpecialError = self
+        let html: SpecialErrorHtml = self
             .client
             .request("special_error_missing_custom_domain", params)
             .await?;
@@ -171,12 +171,12 @@ impl Deepwell {
         Ok(html)
     }
 
-    pub async fn special_error_file_root(&self, locales: &[String]) -> Result<SpecialError> {
+    pub async fn special_error_file_root(&self, locales: &[String]) -> Result<SpecialErrorHtml> {
         let params = rpc_object! {
             "locales" => locales,
         };
 
-        let html: SpecialError = self
+        let html: SpecialErrorHtml = self
             .client
             .request("special_error_file_root", params)
             .await?;
@@ -205,7 +205,7 @@ pub struct TextBlockIndex {
 }
 
 #[derive(Deserialize, Debug, Clone)]
-pub struct SpecialError {
+pub struct SpecialErrorHtml {
     pub title: String,
     pub body: String,
 }
