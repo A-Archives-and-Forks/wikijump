@@ -54,6 +54,11 @@ export async function loadPage(
       break
     case "permissions":
       errorStatus = 403
+      break
+    default:
+      // Unexpected response type!
+      // There is an inconsistency between here / DEEPWELL
+      errorStatus = 500
   }
 
   let translateKeys: TranslateKeys = {
