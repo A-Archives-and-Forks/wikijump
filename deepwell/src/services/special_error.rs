@@ -234,6 +234,39 @@ impl SpecialErrorService {
         })
     }
 
+    /// Multi-faceted error for issues with hosted text blocks.
+    pub async fn text_block(
+        ctx: &ServiceContext<'_>,
+        locales: &[LanguageIdentifier],
+        site_id: i64,
+        reason: &str,
+        index: &str,
+    ) -> Result<SpecialErrorOutput> {
+        assert!(!locales.is_empty(), "No languages specified");
+        let config = ctx.config();
+        let mut args = FluentArgs::new();
+        let site = SiteService::get(ctx, Reference::Id(site_id)).await?;
+        let domain = DomainService::preferred_domain(config, &site);
+        args.set("domain", fluent_str!(domain));
+        args.set("reason", fluent_str!(reason));
+        args.set("index", fluent_str!(index));
+
+        let title = ctx.localization().translate(
+            locales,
+            "special-error-text-block.title",
+            &args,
+        )?;
+
+        let body =
+            ctx.localization()
+                .translate(locales, "special-error-text-block", &args)?;
+
+        Ok(SpecialErrorOutput {
+            title: title.to_string(),
+            body: body.to_string(),
+        })
+    }
+
     /// Error for when a user tries to access wjfiles without passing in a site slug.
     pub async fn file_root(
         ctx: &ServiceContext<'_>,

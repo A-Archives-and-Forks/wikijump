@@ -233,6 +233,7 @@ async fn build_module(app_state: ServerState) -> anyhow::Result<RpcModule<Server
         special_error_missing_file_name,
     );
     register!("special_error_file_fetch", special_error_file_fetch);
+    register!("special_error_text_block", special_error_text_block);
     register!("special_error_file_root", special_error_file_root);
 
     // Authentication

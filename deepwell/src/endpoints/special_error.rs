@@ -141,6 +141,29 @@ pub async fn special_error_file_fetch(
     SpecialErrorService::file_fetch(ctx, &locales, site_id, &page_slug, &filename).await
 }
 
+pub async fn special_error_text_block(
+    ctx: &ServiceContext<'_>,
+    params: Params<'static>,
+) -> Result<SpecialErrorOutput> {
+    #[derive(Deserialize, Debug)]
+    struct Input {
+        locales: Vec<String>,
+        site_id: i64,
+        reason: String,
+        index: String,
+    }
+
+    let Input {
+        locales,
+        site_id,
+        reason,
+        index,
+    } = params.parse()?;
+
+    let locales = parse_locales(&locales)?;
+    SpecialErrorService::text_block(ctx, &locales, site_id, &reason, &index).await
+}
+
 pub async fn special_error_file_root(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,

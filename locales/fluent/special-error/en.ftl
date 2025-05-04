@@ -66,6 +66,21 @@ special-error-file-fetch = <h1>Unable to fetch file data</h1>
 
     .title = Server Error - { $domain }
 
+special-error-text-block = <h1>Invalid hosted text block</h1>
+    <p>
+      { $reason ->
+        [missing] No { $type } text block with index <code>{ $index }</code> exists.
+        [invalid] The given index <code>{ $index }</code> is invalid.
+        [fetch] This text block data could not be loaded.
+      }
+    </p>
+
+    <p>
+      Return to the <a href="https://{ $domain }/">site's main page</a>.
+    </p>
+
+    .title = Text Block Error - { $domain }
+
 special-error-file-root = <h1>Invalid route</h1>
     <p>
       { -service-name } serves user-generated data from <code>{ $files_domain }</code>, but this is not a valid URL.
