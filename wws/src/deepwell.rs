@@ -18,7 +18,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use crate::error::{Result, TextBlockErrorReason};
+use crate::error::{Result, TextBlockErrorReason, TextBlockType};
 use jsonrpsee::{core::client::ClientT, http_client::HttpClient, rpc_params};
 use serde::Deserialize;
 use std::{num::NonZeroU16, time::Duration};
@@ -260,12 +260,14 @@ impl Deepwell {
         locales: &[String],
         site_id: i64,
         index: &str,
+        block_type: TextBlockType,
         reason: TextBlockErrorReason,
     ) -> Result<SpecialErrorHtml> {
         let params = rpc_object! {
             "locales" => locales,
             "site_id" => site_id,
             "index" => index,
+            "block_type" => block_type.value(),
             "reason" => reason.value(),
         };
 

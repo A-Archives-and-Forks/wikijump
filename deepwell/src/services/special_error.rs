@@ -239,8 +239,9 @@ impl SpecialErrorService {
         ctx: &ServiceContext<'_>,
         locales: &[LanguageIdentifier],
         site_id: i64,
-        reason: &str,
         index: &str,
+        block_type: &str,
+        reason: &str,
     ) -> Result<SpecialErrorOutput> {
         assert!(!locales.is_empty(), "No languages specified");
         let config = ctx.config();
@@ -248,8 +249,9 @@ impl SpecialErrorService {
         let site = SiteService::get(ctx, Reference::Id(site_id)).await?;
         let domain = DomainService::preferred_domain(config, &site);
         args.set("domain", fluent_str!(domain));
-        args.set("reason", fluent_str!(reason));
         args.set("index", fluent_str!(index));
+        args.set("block_type", fluent_str!(block_type));
+        args.set("reason", fluent_str!(reason));
 
         let title = ctx.localization().translate(
             locales,

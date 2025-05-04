@@ -149,19 +149,23 @@ pub async fn special_error_text_block(
     struct Input {
         locales: Vec<String>,
         site_id: i64,
-        reason: String,
         index: String,
+        block_type: String,
+        reason: String,
     }
 
     let Input {
         locales,
         site_id,
-        reason,
         index,
+        block_type,
+        reason,
     } = params.parse()?;
 
     let locales = parse_locales(&locales)?;
-    SpecialErrorService::text_block(ctx, &locales, site_id, &reason, &index).await
+
+    SpecialErrorService::text_block(ctx, &locales, site_id, &index, &block_type, &reason)
+        .await
 }
 
 pub async fn special_error_file_root(

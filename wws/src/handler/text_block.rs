@@ -21,7 +21,10 @@
 use super::{get_site_id, get_site_slug};
 use crate::{
     deepwell::{BLOCK_TYPE_CODE, BLOCK_TYPE_HTML},
-    error::{build_special_error_response, FallbackError, SpecialError, TextBlockErrorReason},
+    error::{
+        build_special_error_response, FallbackError, SpecialError, TextBlockErrorReason,
+        TextBlockType,
+    },
     state::ServerState,
 };
 use axum::{
@@ -61,6 +64,7 @@ pub async fn handle_html_block(
                 SpecialError::TextBlock {
                     site_id,
                     index: &index,
+                    block_type: TextBlockType::Html,
                     reason: TextBlockErrorReason::Invalid,
                 },
             )
