@@ -19,7 +19,11 @@
  */
 
 use super::get_site_id;
-use crate::{deepwell::FileData, error::ResponseResult, state::ServerState};
+use crate::{
+    deepwell::FileData,
+    error::{build_special_error_response, ResponseResult, SpecialError},
+    state::ServerState,
+};
 use axum::{
     body::Body,
     extract::{Path, State},
@@ -76,8 +80,19 @@ async fn fetch_file(
                 s3_hash = &file_info.s3_hash,
                 "Cannot get blob data: {error}",
             );
-            // TODO
-            todo!()
+
+            let response = build_special_error_response(
+                state,
+                headers,
+                SpecialError::FileFetch {
+                    site_id,
+                    page_slug,
+                    filename,
+                },
+            )
+            .await;
+
+            return Err(response);
         }
     };
 
