@@ -10,7 +10,7 @@
     {
         "slug": "test",
         "aliases": ["check"],
-        "domains": ["wikijump-qdpi9.ondigitalocean.app"],
+        "domains": [],
         "name": "Test site",
         "tagline": "The other kind of sandbox",
         "description": "Platform testing and experiments",
