@@ -36,7 +36,7 @@ impl Default for Arguments {
         Arguments {
             enable_trace: true,
             pid_file: None,
-            address: "[::]:80".parse().unwrap(),
+            address: "[::]:7000".parse().unwrap(),
         }
     }
 }
