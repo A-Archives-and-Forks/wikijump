@@ -129,7 +129,7 @@ Once you have a local instance of Wikijump running, you may wish to make `curl` 
 
 1. **Wikijump is host-sensitive.** Hitting the same web route with two different domains will result in different content (e.g. `scp-sandbox-3.wikidot.com` and `scp-jp.wikidot.com` are different sites).
 2. **Caddy local serves self-signed certificates.** Naturally, as this is not deployed on the open web, there are no "real" TLS certificates, but nonetheless Wikijump is designed to be HTTPS-only so we must use even locally.
-3. **Svelte does not assume any accepted content types.**
+3. **Svelte does not assume any accepted content types.** Any framerail calls need this, but wjfiles does not.
 
 Thus, the "standard" curl request for a web page would look something like the following:
 
