@@ -42,6 +42,7 @@ pub struct ServerStateInner {
 }
 
 pub async fn build_server_state(
+    check_deepwell: bool,
     Secrets {
         deepwell_url,
         redis_url,
@@ -53,7 +54,9 @@ pub async fn build_server_state(
     }: Secrets,
 ) -> Result<ServerState> {
     let deepwell = Deepwell::connect(&deepwell_url)?;
-    deepwell.check().await;
+    if check_deepwell {
+        deepwell.check().await;
+    }
 
     let cache = Cache::connect(&redis_url)?;
 

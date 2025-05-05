@@ -71,7 +71,7 @@ async fn main() -> Result<()> {
     }
 
     // Connect to services, build server state and then run
-    let state = build_server_state(secrets).await?;
+    let state = build_server_state(config.enable_deepwell_check, secrets).await?;
     let router = build_router(state);
     let app = router.into_make_service();
 
