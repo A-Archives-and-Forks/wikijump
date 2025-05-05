@@ -199,7 +199,14 @@ async fn handle_text_block(
     };
 
     let Headers { content_type, etag } = get_headers(s3_response.headers());
-    let body = Body::from(s3_response.to_vec());
+    let body = Body::from({
+        // Ensure text blocks always end in a newline.
+        // This doesn't make the additional conditional to
+        // avoid confusing behavior.
+        let mut bytes = s3_response.to_vec();
+        bytes.push(b'\n');
+        bytes
+    });
     let result = Response::builder()
         .header(header::CONTENT_TYPE, &content_type)
         .header(header::ETAG, &etag)
