@@ -51,6 +51,7 @@ pub fn load_config() -> (Config, Secrets) {
     // Process arguments and overrides
     let Arguments {
         enable_trace,
+        enable_deepwell_check,
         mut pid_file,
         mut address,
     } = Arguments::parse();
@@ -128,6 +129,7 @@ pub fn load_config() -> (Config, Secrets) {
     // Build and return
     let config = Config {
         enable_trace,
+        enable_deepwell_check,
         pid_file,
         address,
     };

@@ -52,6 +52,122 @@ pub async fn special_error_missing_custom_domain(
     SpecialErrorService::missing_custom_domain(ctx, &locales, &domain).await
 }
 
+pub async fn special_error_missing_page_slug(
+    ctx: &ServiceContext<'_>,
+    params: Params<'static>,
+) -> Result<SpecialErrorOutput> {
+    #[derive(Deserialize, Debug)]
+    struct Input {
+        locales: Vec<String>,
+        site_id: i64,
+        page_slug: String,
+    }
+
+    let Input {
+        locales,
+        site_id,
+        page_slug,
+    } = params.parse()?;
+
+    let locales = parse_locales(&locales)?;
+    SpecialErrorService::missing_page_slug(ctx, &locales, site_id, &page_slug).await
+}
+
+pub async fn special_error_page_fetch(
+    ctx: &ServiceContext<'_>,
+    params: Params<'static>,
+) -> Result<SpecialErrorOutput> {
+    #[derive(Deserialize, Debug)]
+    struct Input {
+        locales: Vec<String>,
+        site_id: i64,
+        page_slug: String,
+    }
+
+    let Input {
+        locales,
+        site_id,
+        page_slug,
+    } = params.parse()?;
+
+    let locales = parse_locales(&locales)?;
+    SpecialErrorService::page_fetch(ctx, &locales, site_id, &page_slug).await
+}
+
+pub async fn special_error_missing_file_name(
+    ctx: &ServiceContext<'_>,
+    params: Params<'static>,
+) -> Result<SpecialErrorOutput> {
+    #[derive(Deserialize, Debug)]
+    struct Input {
+        locales: Vec<String>,
+        site_id: i64,
+        page_slug: String,
+        filename: String,
+    }
+
+    let Input {
+        locales,
+        site_id,
+        page_slug,
+        filename,
+    } = params.parse()?;
+
+    let locales = parse_locales(&locales)?;
+    SpecialErrorService::missing_file_name(ctx, &locales, site_id, &page_slug, &filename)
+        .await
+}
+
+pub async fn special_error_file_fetch(
+    ctx: &ServiceContext<'_>,
+    params: Params<'static>,
+) -> Result<SpecialErrorOutput> {
+    #[derive(Deserialize, Debug)]
+    struct Input {
+        locales: Vec<String>,
+        site_id: i64,
+        page_slug: String,
+        filename: String,
+    }
+
+    let Input {
+        locales,
+        site_id,
+        page_slug,
+        filename,
+    } = params.parse()?;
+
+    let locales = parse_locales(&locales)?;
+    SpecialErrorService::file_fetch(ctx, &locales, site_id, &page_slug, &filename).await
+}
+
+pub async fn special_error_text_block(
+    ctx: &ServiceContext<'_>,
+    params: Params<'static>,
+) -> Result<SpecialErrorOutput> {
+    #[derive(Deserialize, Debug)]
+    struct Input {
+        locales: Vec<String>,
+        site_id: i64,
+        index: String,
+        block_type: String,
+        reason: String,
+    }
+
+    let Input {
+        locales,
+        site_id,
+        index,
+        block_type,
+        reason,
+    } = params.parse()?;
+
+    let locales = parse_locales(&locales)?;
+
+    SpecialErrorService::text_block(ctx, &locales, site_id, &index, &block_type, &reason)
+        .await
+}
+
 pub async fn special_error_file_root(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,

@@ -1,5 +1,5 @@
 /*
- * config/object.rs
+ * language.rs
  *
  * Wilson's Web Server - Serves a zoo of user-generated content
  * Copyright (C) 2019-2025 Wikijump Team
@@ -18,23 +18,29 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use std::net::SocketAddr;
-use std::path::PathBuf;
+use axum::http::header::HeaderMap;
 
-/// The runtime configuration structure for the web server.
-#[derive(Debug, Clone)]
-pub struct Config {
-    /// Whether to enable tracing and colored backtrace.
-    pub enable_trace: bool,
+/// Parse the `Accept-Language` header.
+/// If there are no languages, or there is no header, then use English.
+pub fn parse_accept_language(headers: &HeaderMap) -> Vec<String> {
+    const FALLBACK_LANGUAGE: &str = "en";
 
-    /// Whether to crash the process if DEEPWELL isn't available at start.
-    /// This can cause issues locally, since wws may rebuild before
-    /// deepwell does, and then it finds deepwell isn't ready yet.
-    pub enable_deepwell_check: bool,
+    fn get_header_value(headers: &HeaderMap) -> Option<&str> {
+        match headers.get("accept-language") {
+            Some(value) => value.to_str().ok(),
+            None => None,
+        }
+    }
 
-    /// The PID file (if any) to write to on boot.
-    pub pid_file: Option<PathBuf>,
+    let header_value = match get_header_value(headers) {
+        Some(value) => value,
+        None => return vec![str!(FALLBACK_LANGUAGE)],
+    };
 
-    /// The address the server will be hosted on.
-    pub address: SocketAddr,
+    let mut languages = accept_language::parse(header_value);
+    if languages.is_empty() {
+        languages.push(str!(FALLBACK_LANGUAGE));
+    }
+
+    languages
 }

@@ -22,8 +22,9 @@ use crate::{
     cache::Cache,
     config::Secrets,
     deepwell::{Deepwell, FileData, PageData},
-    error::Result,
+    error::{build_special_error_response, FallbackError, ResponseResult, Result, SpecialError},
 };
+use axum::{http::HeaderMap, response::IntoResponse};
 use s3::bucket::Bucket;
 use std::sync::Arc;
 use std::time::Duration;
@@ -37,13 +38,11 @@ pub struct ServerStateInner {
     pub deepwell: Deepwell,
     pub cache: Cache,
     pub s3_files_bucket: Box<Bucket>,
-
-    // TODO implement hosted text blocks in wws
-    #[allow(dead_code)]
     pub s3_tblocks_bucket: Box<Bucket>,
 }
 
 pub async fn build_server_state(
+    check_deepwell: bool,
     Secrets {
         deepwell_url,
         redis_url,
@@ -55,7 +54,9 @@ pub async fn build_server_state(
     }: Secrets,
 ) -> Result<ServerState> {
     let deepwell = Deepwell::connect(&deepwell_url)?;
-    deepwell.check().await;
+    if check_deepwell {
+        deepwell.check().await;
+    }
 
     let cache = Cache::connect(&redis_url)?;
 
@@ -105,6 +106,20 @@ impl ServerStateInner {
         }
     }
 
+    pub async fn get_site_domain_or_response(&self, site_id: i64) -> ResponseResult<String> {
+        match self.get_site_domain(site_id).await {
+            Ok(domain) => Ok(domain),
+            Err(error) => {
+                // XF-1003
+                error!(
+                    site_id = site_id,
+                    "Could not fetch preferred site domain: {error}",
+                );
+                Err(FallbackError::RedirectMain.into_response())
+            }
+        }
+    }
+
     pub async fn get_page(&self, site_id: i64, page_slug: &str) -> Result<Option<i64>> {
         match self.cache.get_page(site_id, page_slug).await? {
             Some(page_id) => Ok(Some(page_id)),
@@ -115,6 +130,49 @@ impl ServerStateInner {
                     Ok(Some(page_id))
                 }
             },
+        }
+    }
+
+    pub async fn get_page_or_response(
+        &self,
+        headers: &HeaderMap,
+        site_id: i64,
+        page_slug: &str,
+    ) -> ResponseResult<i64> {
+        match self.get_page(site_id, page_slug).await {
+            Ok(Some(page_id)) => Ok(page_id),
+            Ok(None) => {
+                error!(
+                    site_id = site_id,
+                    page_slug = page_slug,
+                    "Cannot complete request, no such page",
+                );
+
+                let response = build_special_error_response(
+                    self,
+                    headers,
+                    SpecialError::PageSlug { site_id, page_slug },
+                )
+                .await;
+
+                Err(response)
+            }
+            Err(error) => {
+                error!(
+                    site_id = site_id,
+                    page_slug = page_slug,
+                    "Cannot get page info: {error}",
+                );
+
+                let response = build_special_error_response(
+                    self,
+                    headers,
+                    SpecialError::PageFetch { site_id, page_slug },
+                )
+                .await;
+
+                Err(response)
+            }
         }
     }
 
@@ -136,6 +194,61 @@ impl ServerStateInner {
                     Ok(Some(data))
                 }
             },
+        }
+    }
+
+    pub async fn get_file_or_response(
+        &self,
+        headers: &HeaderMap,
+        site_id: i64,
+        page_id: i64,
+        page_slug: &str,
+        filename: &str,
+    ) -> ResponseResult<FileData> {
+        match self.get_file(site_id, page_id, filename).await {
+            Ok(Some(file_info)) => Ok(file_info),
+            Ok(None) => {
+                error!(
+                    site_id = site_id,
+                    page_id = page_id,
+                    filename = filename,
+                    "Cannot complete request, none with filename",
+                );
+
+                let response = build_special_error_response(
+                    self,
+                    headers,
+                    SpecialError::FileName {
+                        site_id,
+                        page_slug,
+                        filename,
+                    },
+                )
+                .await;
+
+                Err(response)
+            }
+            Err(error) => {
+                error!(
+                    site_id = site_id,
+                    page_id = page_id,
+                    filename = filename,
+                    "Cannot get file info: {error}",
+                );
+
+                let response = build_special_error_response(
+                    self,
+                    headers,
+                    SpecialError::FileFetch {
+                        site_id,
+                        page_slug,
+                        filename,
+                    },
+                )
+                .await;
+
+                Err(response)
+            }
         }
     }
 }

@@ -1,5 +1,5 @@
 /*
- * handler/code.rs
+ * macros.rs
  *
  * Wilson's Web Server - Serves a zoo of user-generated content
  * Copyright (C) 2019-2025 Wikijump Team
@@ -18,23 +18,13 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use crate::state::ServerState;
-use axum::{
-    extract::{Path, State},
-    response::Html,
-};
-
-pub async fn handle_code_block(
-    State(state): State<ServerState>,
-    Path((page_slug, index)): Path<(String, String)>,
-) -> Html<&'static str> {
-    info!(
-        page_slug = page_slug,
-        index = index,
-        "Returning code block data",
-    );
-
-    // TODO
-    let _ = state;
-    todo!()
+/// Like `try!()` or `?`, except it returns a `Response` for the error case.
+/// This is for functions which return `Response` rather than `Result<T, E>`.
+macro_rules! try_response {
+    ($future:expr $(,)?) => {
+        match $future.await {
+            Ok(data) => data,
+            Err(response) => return response,
+        }
+    };
 }

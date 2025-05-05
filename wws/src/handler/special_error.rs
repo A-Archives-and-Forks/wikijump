@@ -19,20 +19,36 @@
  */
 
 use super::{
-    fallback_error::FallbackError, get_site_slug, parse_accept_language, HEADER_SPECIAL_ERROR,
+    get_header, get_site_id, get_site_slug, HEADER_FILENAME, HEADER_PAGE_SLUG, HEADER_SPECIAL_ERROR,
 };
-use crate::{deepwell::SpecialError, state::ServerState};
+use crate::{
+    error::{build_special_error_response, FallbackError, SpecialError},
+    state::ServerState,
+};
 use axum::{
-    body::Body,
     extract::{Path, State},
-    http::{
-        header::{self, HeaderMap},
-        status::StatusCode,
-    },
+    http::header::HeaderMap,
     response::{IntoResponse, Response},
 };
 use axum_extra::extract::Host;
-use paste::paste;
+
+fn get_page_slug(headers: &HeaderMap) -> &str {
+    get_header(
+        headers,
+        HEADER_PAGE_SLUG,
+        "No page slug header in request",
+        "Page slug header is not UTF-8",
+    )
+}
+
+fn get_filename(headers: &HeaderMap) -> &str {
+    get_header(
+        headers,
+        HEADER_FILENAME,
+        "No filename header in request",
+        "Filename header is not UTF-8",
+    )
+}
 
 pub async fn handle_special_error(
     State(state): State<ServerState>,
@@ -45,70 +61,69 @@ pub async fn handle_special_error(
     // This header can only be set internally, so let's check it before
     // returning any error information.
     if headers.get(HEADER_SPECIAL_ERROR).is_none() {
+        // XF-1002
         return FallbackError::SpecialErrorDirect.into_response();
     }
 
-    // Get a list of preferred locales from the Accept-Language header.
-    let locales = parse_accept_language(&headers);
-
-    macro_rules! get_special_error {
-        ($method:ident => $status_code:ident $(,)?) => {
-            get_special_error!($method, => $status_code)
-        };
-        ($method:ident, $($arg:expr),* => $status_code:ident $(,)?) => {{
-            paste! {
-                let result = state.deepwell.[<special_error_ $method>](&locales, $($arg),*).await;
-            }
-
-            match result {
-                Ok(output) => (output, StatusCode::$status_code),
-                Err(error) => {
-                    error!(
-                        "Unable to get special error for {}: {}",
-                        stringify!($method),
-                        error,
-                    );
-                    return FallbackError::SpecialErrorFetch.into_response();
-                }
-            }
-        }};
-    }
-
-    // Fetch HTML from appropriate DEEPWELL special error endpoint
-    let (SpecialError { title, body }, status) = match error_code.as_str() {
+    // Build the appropriate SpecialError enum case
+    let input = match error_code.as_str() {
         // Required headers:
         // - x-wikijump-site-slug
         "site-slug" => {
             let site_slug = get_site_slug(&headers);
-            get_special_error!(missing_site_slug, site_slug => NOT_FOUND)
+            SpecialError::SiteSlug { site_slug }
         }
         // No required headers
-        "site-custom" => {
-            get_special_error!(missing_custom_domain, &host => NOT_FOUND)
+        "site-custom" => SpecialError::SiteCustom { host: &host },
+        // Required headers:
+        // - x-wikijump-page-slug
+        "page-slug" => {
+            let site_id = get_site_id(&headers);
+            let page_slug = get_page_slug(&headers);
+            SpecialError::PageSlug { site_id, page_slug }
+        }
+        // Required headers:
+        // - x-wikijump-page-slug
+        "page-fetch" => {
+            let site_id = get_site_id(&headers);
+            let page_slug = get_page_slug(&headers);
+            SpecialError::PageFetch { site_id, page_slug }
+        }
+        // Required headers:
+        // - x-wikijump-page-slug
+        // - x-wikijump-filename
+        "file-name" => {
+            let site_id = get_site_id(&headers);
+            let page_slug = get_page_slug(&headers);
+            let filename = get_filename(&headers);
+            SpecialError::FileName {
+                site_id,
+                page_slug,
+                filename,
+            }
+        }
+        // Required headers:
+        // - x-wikijump-page-slug
+        // - x-wikijump-filename
+        "file-fetch" => {
+            let site_id = get_site_id(&headers);
+            let page_slug = get_page_slug(&headers);
+            let filename = get_filename(&headers);
+            SpecialError::FileFetch {
+                site_id,
+                page_slug,
+                filename,
+            }
         }
         // No required headers
-        "file-root" => {
-            get_special_error!(file_root => BAD_REQUEST)
-        }
+        "file-root" => SpecialError::FileRoot,
         // Invalid
         _ => {
+            // XF-1000
             error!("Invalid special error code: {error_code}");
             return FallbackError::SpecialErrorCode.into_response();
         }
     };
 
-    // SAFETY: Both string fields here come from DEEPWELL,
-    //         which in turn come from Fluent translation lines.
-    //         As such, they can be trusted to not contain malicious HTML.
-
-    const HTML_START: &str = r#"<html><head><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>"#;
-    const HTML_MIDDLE: &str = "</title></head><body><article>";
-    const HTML_END: &str = "</article></body></html>\n";
-
-    let html = format!("{HTML_START}{title}{HTML_MIDDLE}{body}{HTML_END}");
-    Response::builder()
-        .status(status)
-        .header(header::CONTENT_TYPE, "text/html; charset=utf-8")
-        .body(Body::from(html))
-        .expect("Unable to convert response data")
+    build_special_error_response(&state, &headers, input).await
 }

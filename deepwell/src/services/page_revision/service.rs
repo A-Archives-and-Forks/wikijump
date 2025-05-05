@@ -622,7 +622,6 @@ impl PageRevisionService {
         let site = SiteService::get(ctx, Reference::from(site_id)).await?;
 
         // Set up parse context
-        let settings = WikitextSettings::from_mode(WikitextMode::Page, layout);
         let (category_slug, page_slug) = split_category(slug);
         let page_info = PageInfo {
             page: cow!(page_slug),
@@ -636,7 +635,9 @@ impl PageRevisionService {
         };
 
         // Parse and render
-        let output = RenderService::render(ctx, wikitext, &page_info, &settings).await?;
+        let output =
+            RenderService::render_page(ctx, wikitext, &page_info, layout, page_id)
+                .await?;
 
         // Update backlinks
         LinkService::update(ctx, site_id, page_id, &output.html_output.backlinks).await?;

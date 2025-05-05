@@ -27,6 +27,7 @@ use std::path::PathBuf;
 #[derive(Debug, Clone)]
 pub struct Arguments {
     pub enable_trace: bool,
+    pub enable_deepwell_check: bool,
     pub pid_file: Option<PathBuf>,
     pub address: SocketAddr,
 }
@@ -35,8 +36,9 @@ impl Default for Arguments {
     fn default() -> Arguments {
         Arguments {
             enable_trace: true,
+            enable_deepwell_check: true,
             pid_file: None,
-            address: "[::]:80".parse().unwrap(),
+            address: "[::]:7000".parse().unwrap(),
         }
     }
 }
@@ -54,6 +56,12 @@ impl Arguments {
                     .long("disable-trace")
                     .action(ArgAction::SetTrue)
                     .help("Disable trace output."),
+            )
+            .arg(
+                Arg::new("disable-deepwell-check")
+                    .long("disable-deepwell-check")
+                    .action(ArgAction::SetTrue)
+                    .help("Disable checking DEEPWELL on start."),
             )
             .arg(
                 Arg::new("pid-file")
@@ -88,6 +96,10 @@ impl Arguments {
 
         if matches.remove_one::<bool>("disable-trace") == Some(true) {
             args.enable_trace = false;
+        }
+
+        if matches.remove_one::<bool>("disable-deepwell-check") == Some(true) {
+            args.enable_deepwell_check = false;
         }
 
         if let Some(value) = matches.remove_one::<OsString>("pid-file") {

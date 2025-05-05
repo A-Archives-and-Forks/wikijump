@@ -62,6 +62,7 @@ pub mod site;
 pub mod site_member;
 pub mod special_error;
 pub mod text;
+pub mod text_block;
 pub mod user;
 pub mod user_bot;
 pub mod view;

@@ -30,8 +30,8 @@ use crate::config::{Config, Secrets};
 use crate::endpoints::{
     auth::*, blob::*, category::*, domain::*, email::*, file::*, file_revision::*,
     info::*, link::*, locale::*, message::*, misc::*, page::*, page_revision::*,
-    parent::*, routing::*, site::*, site_member::*, special_error::*, text::*, user::*,
-    user_bot::*, view::*, vote::*,
+    parent::*, routing::*, site::*, site_member::*, special_error::*, text::*,
+    text_block::*, user::*, user_bot::*, view::*, vote::*,
 };
 use crate::locales::Localizations;
 use crate::services::blob::MimeAnalyzer;
@@ -223,6 +223,17 @@ async fn build_module(app_state: ServerState) -> anyhow::Result<RpcModule<Server
         "special_error_missing_custom_domain",
         special_error_missing_custom_domain,
     );
+    register!(
+        "special_error_missing_page_slug",
+        special_error_missing_page_slug,
+    );
+    register!("special_error_page_fetch", special_error_page_fetch);
+    register!(
+        "special_error_missing_file_name",
+        special_error_missing_file_name,
+    );
+    register!("special_error_file_fetch", special_error_file_fetch);
+    register!("special_error_text_block", special_error_text_block);
     register!("special_error_file_root", special_error_file_root);
 
     // Authentication
@@ -292,6 +303,9 @@ async fn build_module(app_state: ServerState) -> anyhow::Result<RpcModule<Server
     register!("parent_relationships_get", parent_relationships_get);
     register!("parent_get_all", parent_get_all);
     register!("parent_update", parent_update);
+
+    // Hosted text blocks
+    register!("text_block_get_index", text_block_get_index);
 
     // Blob data
     register!("blob_get", blob_get);

@@ -18,10 +18,10 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use crate::error::Result;
+use crate::error::{Result, TextBlockErrorReason};
 use jsonrpsee::{core::client::ClientT, http_client::HttpClient, rpc_params};
 use serde::Deserialize;
-use std::time::Duration;
+use std::{num::NonZeroU16, time::Duration};
 
 const JSONRPC_MAX_REQUEST: u32 = 16 * 1024;
 const JSONRPC_TIMEOUT: Duration = Duration::from_millis(200);
@@ -107,19 +107,37 @@ impl Deepwell {
         Ok(file_data)
     }
 
+    pub async fn get_text_block_index(
+        &self,
+        page_id: i64,
+        block_type: TextBlockType,
+        name: &str,
+    ) -> Result<Option<TextBlockIndex>> {
+        let params = rpc_object! {
+            "page_id" => page_id,
+            "block_type" => block_type.value(),
+            "name" => name,
+        };
+
+        let block_info: Option<TextBlockIndex> =
+            self.client.request("text_block_get_index", params).await?;
+
+        Ok(block_info)
+    }
+
     // Special errors
 
     pub async fn special_error_missing_site_slug(
         &self,
         locales: &[String],
         site_slug: &str,
-    ) -> Result<SpecialError> {
+    ) -> Result<SpecialErrorHtml> {
         let params = rpc_object! {
             "locales" => locales,
             "site_slug" => site_slug,
         };
 
-        let html: SpecialError = self
+        let html: SpecialErrorHtml = self
             .client
             .request("special_error_missing_site_slug", params)
             .await?;
@@ -131,13 +149,13 @@ impl Deepwell {
         &self,
         locales: &[String],
         domain: &str,
-    ) -> Result<SpecialError> {
+    ) -> Result<SpecialErrorHtml> {
         let params = rpc_object! {
             "locales" => locales,
             "domain" => domain,
         };
 
-        let html: SpecialError = self
+        let html: SpecialErrorHtml = self
             .client
             .request("special_error_missing_custom_domain", params)
             .await?;
@@ -145,12 +163,120 @@ impl Deepwell {
         Ok(html)
     }
 
-    pub async fn special_error_file_root(&self, locales: &[String]) -> Result<SpecialError> {
+    pub async fn special_error_missing_page_slug(
+        &self,
+        locales: &[String],
+        site_id: i64,
+        page_slug: &str,
+    ) -> Result<SpecialErrorHtml> {
+        let params = rpc_object! {
+            "locales" => locales,
+            "site_id" => site_id,
+            "page_slug" => page_slug,
+        };
+
+        let html: SpecialErrorHtml = self
+            .client
+            .request("special_error_missing_page_slug", params)
+            .await?;
+
+        Ok(html)
+    }
+
+    pub async fn special_error_page_fetch(
+        &self,
+        locales: &[String],
+        site_id: i64,
+        page_slug: &str,
+    ) -> Result<SpecialErrorHtml> {
+        let params = rpc_object! {
+            "locales" => locales,
+            "site_id" => site_id,
+            "page_slug" => page_slug,
+        };
+
+        let html: SpecialErrorHtml = self
+            .client
+            .request("special_error_page_fetch", params)
+            .await?;
+
+        Ok(html)
+    }
+
+    pub async fn special_error_missing_file_name(
+        &self,
+        locales: &[String],
+        site_id: i64,
+        page_slug: &str,
+        filename: &str,
+    ) -> Result<SpecialErrorHtml> {
+        let params = rpc_object! {
+            "locales" => locales,
+            "site_id" => site_id,
+            "page_slug" => page_slug,
+            "filename" => filename,
+        };
+
+        let html: SpecialErrorHtml = self
+            .client
+            .request("special_error_missing_file_name", params)
+            .await?;
+
+        Ok(html)
+    }
+
+    pub async fn special_error_file_fetch(
+        &self,
+        locales: &[String],
+        site_id: i64,
+        page_slug: &str,
+        filename: &str,
+    ) -> Result<SpecialErrorHtml> {
+        let params = rpc_object! {
+            "locales" => locales,
+            "site_id" => site_id,
+            "page_slug" => page_slug,
+            "filename" => filename,
+        };
+
+        let html: SpecialErrorHtml = self
+            .client
+            .request("special_error_file_fetch", params)
+            .await?;
+
+        Ok(html)
+    }
+
+    pub async fn special_error_text_block(
+        &self,
+        locales: &[String],
+        site_id: i64,
+        index: &str,
+        block_type: TextBlockType,
+        reason: TextBlockErrorReason,
+    ) -> Result<SpecialErrorHtml> {
+        let params = rpc_object! {
+            "locales" => locales,
+            "site_id" => site_id,
+            "index" => index,
+            "block_type" => block_type.value(),
+            "reason" => reason.value(),
+        };
+
+        let html: SpecialErrorHtml = self
+            .client
+            .request("special_error_text_block", params)
+            .await?;
+
+        Ok(html)
+    }
+
+    pub async fn special_error_file_root(&self, locales: &[String]) -> Result<SpecialErrorHtml> {
         let params = rpc_object! {
             "locales" => locales,
         };
 
-        let html: SpecialError = self
+        let html: SpecialErrorHtml = self
             .client
             .request("special_error_file_root", params)
             .await?;
@@ -173,7 +299,29 @@ pub struct FileData {
 }
 
 #[derive(Deserialize, Debug, Clone)]
-pub struct SpecialError {
+pub struct TextBlockIndex {
+    pub index: NonZeroU16,
+    pub s3_filename: String,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct SpecialErrorHtml {
     pub title: String,
     pub body: String,
+}
+
+#[derive(Debug, Copy, Clone)]
+pub enum TextBlockType {
+    Code,
+    Html,
+}
+
+impl TextBlockType {
+    #[inline]
+    pub fn value(self) -> &'static str {
+        match self {
+            TextBlockType::Code => "code",
+            TextBlockType::Html => "html",
+        }
+    }
 }

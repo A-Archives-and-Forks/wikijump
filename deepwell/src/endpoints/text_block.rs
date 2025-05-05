@@ -1,7 +1,7 @@
 /*
- * error.rs
+ * endpoints/text.rs
  *
- * Wilson's Web Server - Serves a zoo of user-generated content
+ * DEEPWELL - Wikijump API provider and database manager
  * Copyright (C) 2019-2025 Wikijump Team
  *
  * This program is free software: you can redistribute it and/or modify
@@ -18,28 +18,26 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-//! Structures for error handling within Rust.
+use super::prelude::*;
+use crate::models::sea_orm_active_enums::TextBlockType;
+use crate::services::text_block::TextBlockIndex;
 
-use jsonrpsee::core::ClientError;
-use s3::error::S3Error;
-use std::io;
-use thiserror::Error as ThisError;
+#[derive(Deserialize, Debug, Clone)]
+struct GetIndexInput {
+    page_id: i64,
+    block_type: TextBlockType,
+    name: String,
+}
 
-pub type StdResult<T, E> = std::result::Result<T, E>;
-pub type Result<T> = StdResult<T, Error>;
+pub async fn text_block_get_index(
+    ctx: &ServiceContext<'_>,
+    params: Params<'static>,
+) -> Result<Option<TextBlockIndex>> {
+    let GetIndexInput {
+        page_id,
+        block_type,
+        name,
+    } = params.parse()?;
 
-/// Wrapper error for possible upstream errors.
-#[derive(ThisError, Debug)]
-pub enum Error {
-    #[error("DEEPWELL API error: {0}")]
-    Deepwell(#[from] ClientError),
-
-    #[error("Redis error: {0}")]
-    Redis(#[from] redis::RedisError),
-
-    #[error("S3 service returned error: {0}")]
-    S3(#[from] S3Error),
-
-    #[error("I/O error: {0}")]
-    Io(#[from] io::Error),
+    TextBlockService::get_block_index(ctx, page_id, block_type, &name).await
 }

@@ -88,8 +88,12 @@ impl SpecialPageService {
         .await?;
 
         // Render here with relevant page context.
+        //
         // The "page" here is what would've been there in this case,
         // passed in by the caller.
+        //
+        // For this reason, we are not using render_page(), as there is
+        // no "real" page ID.
         let settings = WikitextSettings::from_mode(WikitextMode::Page, layout);
         let render_output =
             RenderService::render(ctx, wikitext.clone(), &page_info, &settings).await?;

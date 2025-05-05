@@ -18,30 +18,28 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-mod code;
-mod fallback_error;
 mod file;
-mod html;
 mod misc;
 mod redirect;
 mod robots;
 mod special_error;
+mod text_block;
 mod well_known;
 
-pub use self::code::*;
-pub use self::fallback_error::FallbackError;
 pub use self::file::*;
-pub use self::html::*;
 pub use self::misc::*;
 pub use self::redirect::*;
 pub use self::robots::*;
 pub use self::special_error::*;
+pub use self::text_block::*;
 pub use self::well_known::*;
 
 use axum::http::header::{HeaderMap, HeaderName};
 
 pub const HEADER_SITE_ID: HeaderName = HeaderName::from_static("x-wikijump-site-id");
 pub const HEADER_SITE_SLUG: HeaderName = HeaderName::from_static("x-wikijump-site-slug");
+pub const HEADER_PAGE_SLUG: HeaderName = HeaderName::from_static("x-wikijump-page-slug");
+pub const HEADER_FILENAME: HeaderName = HeaderName::from_static("x-wikijump-filename");
 pub const HEADER_TARGET_SERVER: HeaderName = HeaderName::from_static("x-wikijump-target-server");
 pub const HEADER_SPECIAL_ERROR: HeaderName = HeaderName::from_static("x-wikijump-special-error");
 
@@ -103,29 +101,4 @@ fn get_target_server(headers: &HeaderMap) -> TargetServer {
         b"files" => TargetServer::Files,
         _ => panic!("Invalid header value: {value:?}"),
     }
-}
-
-/// Parse the `Accept-Language` header.
-/// If there are no languages, or there is no header, then use English.
-fn parse_accept_language(headers: &HeaderMap) -> Vec<String> {
-    const FALLBACK_LANGUAGE: &str = "en";
-
-    fn get_header_value(headers: &HeaderMap) -> Option<&str> {
-        match headers.get("accept-language") {
-            Some(value) => value.to_str().ok(),
-            None => None,
-        }
-    }
-
-    let header_value = match get_header_value(headers) {
-        Some(value) => value,
-        None => return vec![str!(FALLBACK_LANGUAGE)],
-    };
-
-    let mut languages = accept_language::parse(header_value);
-    if languages.is_empty() {
-        languages.push(str!(FALLBACK_LANGUAGE));
-    }
-
-    languages
 }

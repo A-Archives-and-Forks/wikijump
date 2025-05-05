@@ -25,6 +25,7 @@
 //! missing site or unknown custom domain.
 
 use super::prelude::*;
+use crate::services::{DomainService, SiteService};
 use crate::utils::parse_locales;
 use fluent::{FluentArgs, FluentValue};
 use serde::Deserialize;
@@ -91,6 +92,176 @@ impl SpecialErrorService {
         let body =
             ctx.localization()
                 .translate(locales, "special-error-site-custom", &args)?;
+
+        Ok(SpecialErrorOutput {
+            title: title.to_string(),
+            body: body.to_string(),
+        })
+    }
+
+    /// Error for when a page slug does not exist.
+    ///
+    /// This is _not_ used as the regular "page missing" error
+    /// (see the `_404` special page), but instead in contexts
+    /// like in wjfiles where we need to display an error for
+    /// when a file doesn't exist because the page it's supposedly
+    /// attached to doesn't exist.
+    pub async fn missing_page_slug(
+        ctx: &ServiceContext<'_>,
+        locales: &[LanguageIdentifier],
+        site_id: i64,
+        page_slug: &str,
+    ) -> Result<SpecialErrorOutput> {
+        assert!(!locales.is_empty(), "No languages specified");
+        let config = ctx.config();
+        let mut args = FluentArgs::new();
+        let site = SiteService::get(ctx, Reference::Id(site_id)).await?;
+        let domain = DomainService::preferred_domain(config, &site);
+        args.set("domain", fluent_str!(domain));
+        args.set("page_slug", fluent_str!(page_slug));
+
+        let title = ctx.localization().translate(
+            locales,
+            "special-error-page-slug.title",
+            &args,
+        )?;
+
+        let body =
+            ctx.localization()
+                .translate(locales, "special-error-page-slug", &args)?;
+
+        Ok(SpecialErrorOutput {
+            title: title.to_string(),
+            body: body.to_string(),
+        })
+    }
+
+    /// Error for when a page cannot be fetched.
+    ///
+    /// Note the same caveats as above.
+    pub async fn page_fetch(
+        ctx: &ServiceContext<'_>,
+        locales: &[LanguageIdentifier],
+        site_id: i64,
+        page_slug: &str,
+    ) -> Result<SpecialErrorOutput> {
+        assert!(!locales.is_empty(), "No languages specified");
+        let config = ctx.config();
+        let mut args = FluentArgs::new();
+        let site = SiteService::get(ctx, Reference::Id(site_id)).await?;
+        let domain = DomainService::preferred_domain(config, &site);
+        args.set("domain", fluent_str!(domain));
+        args.set("page_slug", fluent_str!(page_slug));
+
+        let title = ctx.localization().translate(
+            locales,
+            "special-error-page-fetch.title",
+            &args,
+        )?;
+
+        let body =
+            ctx.localization()
+                .translate(locales, "special-error-page-fetch", &args)?;
+
+        Ok(SpecialErrorOutput {
+            title: title.to_string(),
+            body: body.to_string(),
+        })
+    }
+
+    /// Error for when a file (referred to by filename) does not exist.
+    pub async fn missing_file_name(
+        ctx: &ServiceContext<'_>,
+        locales: &[LanguageIdentifier],
+        site_id: i64,
+        page_slug: &str,
+        filename: &str,
+    ) -> Result<SpecialErrorOutput> {
+        assert!(!locales.is_empty(), "No languages specified");
+        let config = ctx.config();
+        let mut args = FluentArgs::new();
+        let site = SiteService::get(ctx, Reference::Id(site_id)).await?;
+        let domain = DomainService::preferred_domain(config, &site);
+        args.set("domain", fluent_str!(domain));
+        args.set("page_slug", fluent_str!(page_slug));
+        args.set("filename", fluent_str!(filename));
+
+        let title = ctx.localization().translate(
+            locales,
+            "special-error-file-name.title",
+            &args,
+        )?;
+
+        let body =
+            ctx.localization()
+                .translate(locales, "special-error-file-name", &args)?;
+
+        Ok(SpecialErrorOutput {
+            title: title.to_string(),
+            body: body.to_string(),
+        })
+    }
+
+    pub async fn file_fetch(
+        ctx: &ServiceContext<'_>,
+        locales: &[LanguageIdentifier],
+        site_id: i64,
+        page_slug: &str,
+        filename: &str,
+    ) -> Result<SpecialErrorOutput> {
+        assert!(!locales.is_empty(), "No languages specified");
+        let config = ctx.config();
+        let mut args = FluentArgs::new();
+        let site = SiteService::get(ctx, Reference::Id(site_id)).await?;
+        let domain = DomainService::preferred_domain(config, &site);
+        args.set("domain", fluent_str!(domain));
+        args.set("page_slug", fluent_str!(page_slug));
+        args.set("filename", fluent_str!(filename));
+
+        let title = ctx.localization().translate(
+            locales,
+            "special-error-file-fetch.title",
+            &args,
+        )?;
+
+        let body =
+            ctx.localization()
+                .translate(locales, "special-error-file-fetch", &args)?;
+
+        Ok(SpecialErrorOutput {
+            title: title.to_string(),
+            body: body.to_string(),
+        })
+    }
+
+    /// Multi-faceted error for issues with hosted text blocks.
+    pub async fn text_block(
+        ctx: &ServiceContext<'_>,
+        locales: &[LanguageIdentifier],
+        site_id: i64,
+        index: &str,
+        block_type: &str,
+        reason: &str,
+    ) -> Result<SpecialErrorOutput> {
+        assert!(!locales.is_empty(), "No languages specified");
+        let config = ctx.config();
+        let mut args = FluentArgs::new();
+        let site = SiteService::get(ctx, Reference::Id(site_id)).await?;
+        let domain = DomainService::preferred_domain(config, &site);
+        args.set("domain", fluent_str!(domain));
+        args.set("index", fluent_str!(index));
+        args.set("block_type", fluent_str!(block_type));
+        args.set("reason", fluent_str!(reason));
+
+        let title = ctx.localization().translate(
+            locales,
+            "special-error-text-block.title",
+            &args,
+        )?;
+
+        let body =
+            ctx.localization()
+                .translate(locales, "special-error-text-block", &args)?;
 
         Ok(SpecialErrorOutput {
             title: title.to_string(),

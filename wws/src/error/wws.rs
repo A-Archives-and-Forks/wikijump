@@ -1,5 +1,5 @@
 /*
- * handler/html.rs
+ * error/wws.rs
  *
  * Wilson's Web Server - Serves a zoo of user-generated content
  * Copyright (C) 2019-2025 Wikijump Team
@@ -18,24 +18,30 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use super::{get_site_id, get_site_slug};
-use crate::state::ServerState;
-use axum::{
-    extract::{Path, State},
-    http::header::HeaderMap,
-    response::Html,
-};
+//! Structures for error handling within Rust.
 
-pub async fn handle_html_block(
-    State(state): State<ServerState>,
-    Path((page_slug, html_id)): Path<(String, String)>,
-    headers: HeaderMap,
-) -> Html<&'static str> {
-    // TODO
-    let _ = state;
-    let _ = page_slug;
-    let _ = html_id;
-    let _site_id = get_site_id(&headers);
-    let _site_slug = get_site_slug(&headers);
-    todo!()
+use axum::response::Response;
+use jsonrpsee::core::ClientError;
+use s3::error::S3Error;
+use std::io;
+use thiserror::Error as ThisError;
+
+pub type StdResult<T, E> = std::result::Result<T, E>;
+pub type ResponseResult<T> = StdResult<T, Response>;
+pub type Result<T> = StdResult<T, Error>;
+
+/// Wrapper error for possible upstream errors.
+#[derive(ThisError, Debug)]
+pub enum Error {
+    #[error("DEEPWELL API error: {0}")]
+    Deepwell(#[from] ClientError),
+
+    #[error("Redis error: {0}")]
+    Redis(#[from] redis::RedisError),
+
+    #[error("S3 service returned error: {0}")]
+    S3(#[from] S3Error),
+
+    #[error("I/O error: {0}")]
+    Io(#[from] io::Error),
 }

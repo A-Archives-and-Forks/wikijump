@@ -9,4 +9,4 @@ set -e
 exec /usr/local/cargo/bin/cargo watch \
         --why \
         -w /src/wws \
-        -x run
+        -x 'run -- --disable-deepwell-check'

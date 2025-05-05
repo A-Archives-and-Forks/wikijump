@@ -26,6 +26,11 @@
 //!
 //! This is to aid users in reporting the specific issue which
 //! occurred, while minimizing the dump of non-localizable text.
+//!
+//! As a suggestion, leave a comment with the code (e.g. `XF-1003`)
+//! whenever `FallbackError::into_response()` is used, enabling
+//! future debuggers to simply grep for the code and find where
+//! the error is occurring.
 
 use axum::{
     http::StatusCode,
@@ -46,6 +51,9 @@ pub enum FallbackError {
 
     /// Unable to determine the preferred domain to redirect to for a site.
     RedirectMain,
+
+    /// Unable to fetch a hosted text block from S3.
+    TextBlockS3Fetch,
 }
 
 impl FallbackError {
@@ -59,6 +67,7 @@ impl FallbackError {
             FallbackError::SpecialErrorFetch => 1001,
             FallbackError::SpecialErrorDirect => 1002,
             FallbackError::RedirectMain => 1003,
+            FallbackError::TextBlockS3Fetch => 1004,
         }
     }
 
@@ -69,6 +78,7 @@ impl FallbackError {
             FallbackError::SpecialErrorFetch | FallbackError::RedirectMain => {
                 StatusCode::GATEWAY_TIMEOUT
             }
+            FallbackError::TextBlockS3Fetch => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 }

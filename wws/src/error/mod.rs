@@ -1,7 +1,7 @@
 /*
- * services/text_block/mod.rs
+ * error/mod.rs
  *
- * DEEPWELL - Wikijump API provider and database manager
+ * Wilson's Web Server - Serves a zoo of user-generated content
  * Copyright (C) 2019-2025 Wikijump Team
  *
  * This program is free software: you can redistribute it and/or modify
@@ -18,16 +18,16 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#[allow(unused_imports)]
-mod prelude {
-    pub use super::super::prelude::*;
-    pub use super::structs::*;
-}
+//! Error definitions for wws.
+//!
+//! This contains both crate errors (the common `Result` type), and
+//! fallback errors (the error to return when no better HTTP response
+//! is available).
 
-mod mime;
-mod service;
-mod structs;
+mod fallback;
+mod special;
+mod wws;
 
-pub use self::mime::*;
-pub use self::service::TextBlockService;
-pub use self::structs::*;
+pub use self::fallback::FallbackError;
+pub use self::special::*;
+pub use self::wws::*;
