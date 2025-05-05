@@ -53,6 +53,7 @@ mime!(EIFFEL, "text/x-eiffel");
 mime!(ERLANG, "text/x-erlang");
 mime!(EXAMPLE, "text/example"); // lol
 mime!(FORTRAN, "text/x-fortran");
+mime!(FTML, "text/x-ftml");
 mime!(FSHARP, "text/x-fsharp");
 mime!(GO, "text/x-go");
 mime!(GROOVY, "text/x-groovy");
@@ -92,12 +93,15 @@ mime!(YAML, "text/x-yaml");
 ///
 /// This supports everything Wikidot does and more.
 pub fn mime_for_language<S: AsRef<str>>(language: &Option<S>) -> &'static str {
-    const MAPPING: [(&str, &str); 72] = [
+    const MAPPING: [(&str, &str); 75] = [
         // These are at the top since they're the most common.
         ("css", MIME_CSS),
         ("html", MIME_HTML),
         ("js", MIME_JAVASCRIPT),
         ("javascript", MIME_JAVASCRIPT),
+        ("ftml", MIME_FTML),
+        ("wikidot", MIME_FTML),
+        ("wikijump", MIME_FTML),
         // Everything else
         ("actionscript", MIME_ACTIONSCRIPT),
         ("apl", MIME_APL),
