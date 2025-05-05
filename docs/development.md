@@ -123,6 +123,22 @@ $ docker exec -it [container id] sh
 
 One reason you may need to enter the container is to manually adjust the Wikijump config. For example, if you use a port other than 80 for your Docker container, you will need to edit `site.custom_domain` to add the port number (e.g. "`www.wikijump.localhost:8080`"). Alternatively, use curl to set the domain directly (e.g. "`-H 'www.wikijump.localhost'`")
 
+## Making Web Requests
+
+Once you have a local instance of Wikijump running, you may wish to make `curl` requests against it to test various pieces of its functionality. However there are a few considerations to be had given the deployment situation:
+
+1. **Wikijump is host-sensitive.** Hitting the same web route with two different domains will result in different content (e.g. `scp-sandbox-3.wikidot.com` and `scp-jp.wikidot.com` are different sites).
+2. **Caddy local serves self-signed certificates.** Naturally, as this is not deployed on the open web, there are no "real" TLS certificates, but nonetheless Wikijump is designed to be HTTPS-only so we must use even locally.
+3. **Svelte does not assume any accepted content types.**
+
+Thus, the "standard" curl request for a web page would look something like the following:
+
+```
+$ curl -i -k -H 'Host: scpwiki.localhost' -H 'Accept: text/html' https://localhost/scp-002
+```
+
+The `-k` argument addresses point 2, the `Host` header addresses point 1, and the `Accept` header addresses point 3. This request effectively fetches `https://scpwiki.localhost/scp-002` for you. Naturally, you can replace the route after `localhost` with whatever you are requesting (say `/-/file/scp-001/fractal-mka.jpeg`).
+
 ## Clock Drift
 
 If you enable multi-factor authentication on a local container you may find that
