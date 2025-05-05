@@ -74,6 +74,7 @@ fn build_config(main_domain: &str, files_domain: &str) -> Config {
         job_prune_text: StdDuration::from_secs(0),
         job_name_change_refill: StdDuration::from_secs(0),
         job_lift_expired_punishments: StdDuration::from_secs(0),
+        preprocess_timeout: StdDuration::from_secs(0),
         render_timeout: StdDuration::from_secs(0),
         rerender_skip: Vec::new(),
         message_layout: Layout::Wikijump,
