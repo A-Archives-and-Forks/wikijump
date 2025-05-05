@@ -92,13 +92,12 @@ mime!(YAML, "text/x-yaml");
 ///
 /// This supports everything Wikidot does and more.
 pub fn mime_for_language<S: AsRef<str>>(language: &Option<S>) -> &'static str {
-    const MAPPING: [(&str, &str); 68] = [
+    const MAPPING: [(&str, &str); 72] = [
         // These are at the top since they're the most common.
         ("css", MIME_CSS),
         ("html", MIME_HTML),
-        ("htm", MIME_HTML),
-        ("javascript", MIME_JAVASCRIPT),
         ("js", MIME_JAVASCRIPT),
+        ("javascript", MIME_JAVASCRIPT),
         // Everything else
         ("actionscript", MIME_ACTIONSCRIPT),
         ("apl", MIME_APL),
@@ -111,12 +110,15 @@ pub fn mime_for_language<S: AsRef<str>>(language: &Option<S>) -> &'static str {
         ("cobol", MIME_COBOL),
         ("coffeescript", MIME_COFFEESCRIPT),
         ("common lisp", MIME_COMMON_LISP),
-        ("cpp header", MIME_CPP_HEADER),
         ("cpp", MIME_CPP),
+        ("cxx", MIME_CPP),
+        ("hpp", MIME_CPP_HEADER),
+        ("hxx", MIME_CPP_HEADER),
+        ("cpp header", MIME_CPP_HEADER),
+        ("cxx header", MIME_CPP_HEADER),
         ("cs", MIME_CSHARP),
         ("csharp", MIME_CSHARP),
         ("csv", MIME_CSV),
-        ("cxx", MIME_CPP),
         ("d", MIME_D),
         ("diff", MIME_DIFF),
         ("dtd", MIME_DTD),
@@ -136,20 +138,21 @@ pub fn mime_for_language<S: AsRef<str>>(language: &Option<S>) -> &'static str {
         ("json", MIME_JSON),
         ("lex", MIME_LEX),
         ("lua", MIME_LUA),
+        ("md", MIME_MARKDOWN),
         ("markdown", MIME_MARKDOWN),
         ("mathml", MIME_MATHML),
-        ("md", MIME_MARKDOWN),
         ("ocaml", MIME_OCAML),
         ("pascal", MIME_PASCAL),
+        ("pl", MIME_PERL),
         ("perl", MIME_PERL),
         ("php", MIME_PHP),
-        ("pl", MIME_PERL),
         ("prolog", MIME_PROLOG),
+        ("py", MIME_PYTHON),
         ("python", MIME_PYTHON),
-        ("rb", MIME_RUBY),
-        ("rs", MIME_RUST),
         ("rst", MIME_RST),
+        ("rb", MIME_RUBY),
         ("ruby", MIME_RUBY),
+        ("rs", MIME_RUST),
         ("rust", MIME_RUST),
         ("scala", MIME_SCALA),
         ("scheme", MIME_SCHEME),
@@ -163,6 +166,7 @@ pub fn mime_for_language<S: AsRef<str>>(language: &Option<S>) -> &'static str {
         ("xml", MIME_XML),
         ("yacc", MIME_YACC),
         ("yaml", MIME_YAML),
+        ("yml", MIME_YAML),
     ];
 
     let language = match language {
