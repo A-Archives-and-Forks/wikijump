@@ -117,6 +117,8 @@ pub async fn handle_file_fetch(
 
     let result = Response::builder()
         .header(header::CONTENT_TYPE, &file_info.mime)
+        .header(header::ETAG, format!("\"{}\"", file_info.s3_hash)) // E-Tags have to be surrounded
+                                                                    // in double quotes
         .body(body);
 
     match result {
