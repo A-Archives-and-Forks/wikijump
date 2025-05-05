@@ -198,10 +198,11 @@ async fn handle_text_block(
         }
     };
 
-    let mime = get_content_type(s3_response.headers());
+    let Headers { content_type, etag } = get_headers(s3_response.headers());
     let body = Body::from(s3_response.to_vec());
     let result = Response::builder()
-        .header(header::CONTENT_TYPE, &mime)
+        .header(header::CONTENT_TYPE, &content_type)
+        .header(header::ETAG, &etag)
         .body(body);
 
     match result {
@@ -219,6 +220,12 @@ enum BlockId {
     Name(String),
 }
 
+#[derive(Debug)]
+struct Headers {
+    content_type: String,
+    etag: String,
+}
+
 /// Formats the S3 filename for a hosted text block.
 /// See `service/text_block/service.rs` for how this value is formatted.
 #[inline]
@@ -228,12 +235,20 @@ fn format_filename(block_type: TextBlockType, page_id: i64, index: NonZeroU16) -
 }
 
 // Since this thing isn't returning a case-insensitive map...
-fn get_content_type(headers: HashMap<String, String>) -> String {
+fn get_headers(headers: HashMap<String, String>) -> Headers {
+    let mut content_type = None;
+    let mut etag = None;
+
     for (key, value) in headers.into_iter() {
         if key.eq_ignore_ascii_case("content-type") {
-            return value;
+            content_type = Some(value);
+        } else if key.eq_ignore_ascii_case("etag") {
+            etag = Some(value);
         }
     }
 
-    panic!("No Content-Type header returned in S3 response");
+    Headers {
+        content_type: content_type.expect("No Content-Type header in S3 response"),
+        etag: etag.expect("No ETag header in S3 response"),
+    }
 }
