@@ -158,7 +158,10 @@ impl TextBlockService {
                 mut name,
             } = block;
 
+            // Text block indices are always 1-indexed
             let index = index + 1;
+
+            // Upload text block to S3
             let filename = filename!(index);
             debug!("Uploading new S3 text block {filename} ({mime})");
             bucket
