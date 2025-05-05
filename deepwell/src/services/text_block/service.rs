@@ -327,8 +327,17 @@ fn block_type_name(block_type: TextBlockType) -> &'static str {
 
 /// Ensures that this name can be used to reference a block.
 fn valid_block_name<'n>(previous: &mut HashSet<&'n str>, name: &'n str) -> bool {
+    // To prevent shenanigans with excessively-long block aliases.
+    const MAX_BLOCK_NAME_LEN: usize = 32;
+
     if name.is_empty() {
         warn!("Empty block name passed, rejecting");
+        return false;
+    }
+
+    let char_len = name.chars().count();
+    if char_len > MAX_BLOCK_NAME_LEN {
+        warn!("Block name '{name}' is too long ({char_len} > {MAX_BLOCK_NAME_LEN})");
         return false;
     }
 
