@@ -76,7 +76,7 @@ maplit = "1"
 pretty_assertions = "1"
 
 [build-dependencies]
-built = { version = "0.7", features = ["git2"] }
+built = { version = "0.8", features = ["chrono", "git2"] }
 
 # Warnings and Errors
 

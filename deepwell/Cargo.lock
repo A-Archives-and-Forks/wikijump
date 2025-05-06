@@ -378,6 +378,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "built"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f4ad8f11f288f48ca24471bbd51ac257aaeaaa07adae295591266b792902ae64"
+dependencies = [
+ "chrono",
+ "git2",
+]
+
+[[package]]
 name = "bumpalo"
 version = "3.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -779,7 +789,7 @@ dependencies = [
  "arraystring",
  "async-trait",
  "bb8",
- "built",
+ "built 0.8.0",
  "bytes",
  "cfg-if",
  "clap",
@@ -1160,7 +1170,7 @@ version = "1.31.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f7ec0eb9fedd8c0ad693c6a7560a02c8196e18a3dcc17cb06a95bc52cce6b2d0"
 dependencies = [
- "built",
+ "built 0.7.7",
  "cfg-if",
  "entities",
  "enum-map",
