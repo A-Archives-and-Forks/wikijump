@@ -33,10 +33,6 @@ pub async fn redirect_to_main(
 ) -> Response {
     let site_id = get_site_id(&headers);
     let path = get_path(&uri);
-    redirect_to_main_inner(&state, site_id, path).await
-}
-
-pub async fn redirect_to_main_inner(state: &ServerState, site_id: i64, path: &str) -> Response {
     let domain = try_response!(state.get_site_domain_or_response(site_id));
     let destination = format!("https://{domain}{path}");
     Redirect::permanent(&destination).into_response()
