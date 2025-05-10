@@ -1,4 +1,23 @@
 services:
+  database:
+    build:
+      context: ../..
+      dockerfile: install/dev/postgres/Dockerfile
+    environment:
+      - "POSTGRES_DB=wikijump"
+      - "POSTGRES_USER=wikijump"
+      - "POSTGRES_PASSWORD=wikijump"
+      - "POSTGRES_HOST_AUTH_METHOD=md5"
+      - "POSTGRES_INITDB_ARGS=--locale en_US.UTF-8"
+    ports:
+      - "5432:5432"
+    restart: always
+    healthcheck:
+      test: ["CMD", "wikijump-health-check"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
   cache:
     build: valkey
     restart: always
@@ -20,7 +39,6 @@ services:
     links:
       - cache
       - database
-      - files
     environment:
       - "REDIS_URL=redis://cache"
     restart: always
@@ -33,8 +51,6 @@ services:
       cache:
         condition: service_healthy
       database:
-        condition: service_healthy
-      files:
         condition: service_healthy
 
   framerail:
@@ -66,7 +82,6 @@ services:
     links:
       - deepwell
       - cache
-      - files
     environment:
       - "ADDRESS=[::]:7000"
       - "DEEPWELL_URL=http://deepwell:2747"
@@ -81,8 +96,6 @@ services:
       deepwell:
         condition: service_healthy
       cache:
-        condition: service_healthy
-      files:
         condition: service_healthy
 
   caddy:
