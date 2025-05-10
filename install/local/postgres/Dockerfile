@@ -2,10 +2,6 @@ FROM postgres:16-alpine
 
 EXPOSE 5432
 
-# Build variables
-ARG ENVIRONMENT="local"
-ARG FILES_DOMAIN="wjfiles.test"
-
 # Create system user
 RUN adduser -S wikijump
 
