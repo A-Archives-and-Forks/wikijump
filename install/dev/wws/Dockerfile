@@ -17,7 +17,7 @@ COPY ./wws /src/wws
 WORKDIR /src/wws
 
 # Cache rust dependencies
-RUN cargo vendor
+RUN mkdir .cargo && cargo vendor > .cargo/config.toml
 
 # Build wws
 RUN cargo build --release
