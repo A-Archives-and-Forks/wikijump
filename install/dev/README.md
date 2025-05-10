@@ -1,4 +1,4 @@
-## dev docker-compose
+## DEV docker-compose
 
 For a permanent dev deployment, you can run docker-compose to start the provided containers.
 

@@ -1,4 +1,4 @@
-## local docker-compose
+## LOCAL docker-compose
 
 This `docker-compose.yaml` (and corresponding `docker-compose.dev.yaml`) file are used in standing up local instances of Wikijump. The convenience script `./deploy.py` is provided to make management easier, providing options for common variations.
 
