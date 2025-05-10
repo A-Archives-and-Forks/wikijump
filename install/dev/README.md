@@ -1,6 +1,6 @@
 ## DEV docker-compose
 
-For a permanent dev deployment, you can run docker-compose to start the provided containers.
+For a permanent dev deployment, you can run docker-compose to start the provided containers. Feel free to modify this configuration to suit your purposes.
 
 There are two infrastructural requirements: a Postgres database and two S3 buckets. Information about how to access these resources must be passed as environment variables.
 
