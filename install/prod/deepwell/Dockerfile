@@ -14,7 +14,7 @@ COPY ./deepwell /src/deepwell
 WORKDIR /src/deepwell
 
 # Cache rust dependencies
-RUN cargo vendor
+RUN mkdir .cargo && cargo vendor > .cargo/config.toml
 
 # Build deepwell server
 RUN cargo build --release

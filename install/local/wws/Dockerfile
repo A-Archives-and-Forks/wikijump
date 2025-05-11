@@ -9,7 +9,7 @@
 FROM rust:latest AS rust
 
 # Install helpers
-RUN cargo install cargo-watch sqlx-cli
+RUN cargo install cargo-watch
 
 # Install files
 COPY ./install/local/wws/wws-start /usr/local/bin/wikijump-wws-start

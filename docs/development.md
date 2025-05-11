@@ -123,6 +123,15 @@ $ docker exec -it [container id] sh
 
 One reason you may need to enter the container is to manually adjust the Wikijump config. For example, if you use a port other than 80 for your Docker container, you will need to edit `site.custom_domain` to add the port number (e.g. "`www.wikijump.localhost:8080`"). Alternatively, use curl to set the domain directly (e.g. "`-H 'www.wikijump.localhost'`")
 
+## Unhealthy Service
+
+Sometimes when starting a container locally, it will report being "unhealthy" and cause your service to be nonfunctional. There are a few reasons to check for when troubleshooting:
+
+* If the container is not `deepwell`, it may be that `deepwell` is unhealthy and a dependent container is unable to connect to it.
+* Since builds are done in runtime, the _initial_ build a container does (before it can do faster incremental builds) can take a long time. In some cases, docker will decide that the service has taken too long and is unhealthy. Try restarting it to allow the build to finish.
+* If the build fails (say due to a compiler error), the service will not be healthy. If the failure happened a while ago, the logs will not be visible at the bottom of your screen; check `./deploy logs [container]` to see what the issue may be.
+* The service may be trying to access a file which is unavailable. Check that the file hasn't been removed locally, or that if you are not using local binding (i.e. `--no-dev`), that the files have been manually installed into the container.
+
 ## Making Web Requests
 
 Once you have a local instance of Wikijump running, you may wish to make `curl` requests against it to test various pieces of its functionality. However there are a few considerations to be had given the deployment situation:

@@ -13,7 +13,8 @@ RUN apt update
 RUN apt install -y libmagic-dev
 
 # Install helpers
-RUN cargo install cargo-watch sqlx-cli
+RUN cargo install cargo-watch && \
+    cargo install sqlx-cli --no-default-features --features rustls,postgres
 
 # Install files
 COPY ./install/local/deepwell/deepwell.toml /etc/deepwell.toml

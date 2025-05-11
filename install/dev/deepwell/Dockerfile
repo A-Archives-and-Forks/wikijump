@@ -20,7 +20,7 @@ WORKDIR /src/deepwell
 RUN patch /src/deepwell/seeder/sites.json /src/deepwell/seeder/sites.dev.patch
 
 # Cache rust dependencies
-RUN cargo vendor
+RUN mkdir .cargo && cargo vendor > .cargo/config.toml
 
 # Build deepwell server
 RUN cargo build --release

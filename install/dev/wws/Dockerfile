@@ -4,9 +4,6 @@
 
 FROM rust:latest AS rust
 
-# Install helpers
-RUN cargo install cargo-watch sqlx-cli
-
 # Install files
 COPY ./install/local/wws/wws-start /usr/local/bin/wikijump-wws-start
 COPY ./install/local/wws/health-check.sh /usr/local/bin/wikijump-health-check
@@ -17,7 +14,7 @@ COPY ./wws /src/wws
 WORKDIR /src/wws
 
 # Cache rust dependencies
-RUN cargo vendor
+RUN mkdir .cargo && cargo vendor > .cargo/config.toml
 
 # Build wws
 RUN cargo build --release
