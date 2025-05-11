@@ -1,1 +1,0 @@
-../../common/postgres/health-check.sh

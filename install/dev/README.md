@@ -2,8 +2,8 @@
 
 For a permanent dev deployment, you can run docker-compose to start the provided containers. Feel free to modify this configuration to suit your purposes.
 
-The main infrastructural requirement is for two S3 buckets. Information about how to access external resources must be passed as environment variables.
-Presently, Postgres and Valkey (Redis) are exposed as Docker images. If you wish, you can replace these with external services by updating the appropriate environment variables.
+The main infrastructural requirements are a Postgres database and two S3 buckets. Information about how to access external resources must be passed as environment variables.
+Presently, Valkey (Redis) is exposed as Docker images. If you wish, you can replace it with an external service by updating the appropriate environment variables.
 
 Note that the database is intended to be recreated on dev re-deploy (at least for the time being), which can be implemented by deleting the container before the next `up`.
 
