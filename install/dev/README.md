@@ -5,6 +5,8 @@ For a permanent dev deployment, you can run docker-compose to start the provided
 The main infrastructural requirement is for two S3 buckets. Information about how to access external resources must be passed as environment variables.
 Presently, Postgres and Valkey (Redis) are exposed as Docker images. If you wish, you can replace these with external services by updating the appropriate environment variables.
 
+Note that the database is intended to be recreated on dev re-deploy (at least for the time being), which can be implemented by deleting the container before the next `up`.
+
 Referring to S3 is a bit unusual, because which variables are required differ depending on the provider. For any container which requires S3 access, all of the required S3 variables must be provided so the system knows how to connect to the S3 service.
 
 | Environment Variable    | Required              | Description |
