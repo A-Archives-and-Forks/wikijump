@@ -21,5 +21,5 @@ Referring to S3 is a bit unusual, because which variables are required differ de
 | `S3_SECRET_ACCESS_KEY`  | If not using an AWS profile file. | S3 credentials. |
 | `AWS_PROFILE_NAME`      | If providing credentials via AWS profile file. | The name of the AWS profile to read credentials from. |
 
-* Container `deepwell` requires Postgres, Valkey, and both S3 buckets.
-* Container `wws` requires Valkey and both S3 buckets.
+* Container `deepwell` requires Postgres, Redis, and both S3 buckets.
+* Container `wws` requires Redis and both S3 buckets.
