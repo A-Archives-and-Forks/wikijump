@@ -34,14 +34,15 @@ After installing Docker, you can run it with the following commands:
 
 ## Setup: Utilities and Programs
 
-You will need some utilities and programs to get started. You will to install the following:
+You will need some utilities and programs to run Wikijump and do local development.
 
-- [Docker](https://www.docker.com/get-started) (see above)
-- [Docker Compose](https://docs.docker.com/compose/)
-- [NodeJS (and NPM, which comes with it), v15 or greater](https://nodejs.org/en/)
-- [PNPM v6](https://pnpm.io/installation)
+* [Docker](https://www.docker.com/get-started) (see above)
+* [Docker Compose](https://docs.docker.com/compose/)
+* [Rust (and Cargo), stable](https://www.rust-lang.org/tools/install) (if developing `deepwell` or `wws`)
+* [NodeJS (and NPM), v15 or greater](https://nodejs.org/en/) (if developing `framerail`)
+* [PNPM v6](https://pnpm.io/installation) (if developing `framerail`)
 
-Node, NPM, and PNPM are well-behaved on Windows and Linux, and the difference in usage between operating systems is negligible.
+You may encounter some cross-platform issues with Docker, but the rest of the items here are well-behaved between Windows and Linux.
 
 ## Setup: Configuration
 
