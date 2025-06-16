@@ -94,8 +94,8 @@ importers:
         specifier: ^16.20.0
         version: 16.20.0(typescript@5.8.3)
       stylelint-config-recess-order:
-        specifier: ^6.0.0
-        version: 6.0.0(stylelint@16.20.0(typescript@5.8.3))
+        specifier: ^7.1.0
+        version: 7.1.0(stylelint-order@7.0.0(stylelint@16.20.0(typescript@5.8.3)))(stylelint@16.20.0(typescript@5.8.3))
       stylelint-order:
         specifier: ^7.0.0
         version: 7.0.0(stylelint@16.20.0(typescript@5.8.3))
@@ -1678,11 +1678,6 @@ packages:
     resolution: {integrity: sha512-8sLjZwK0R+JlxlYcTuVnyT2v+htpdrjDOKuMcOVdYjt52Lh8hWRYpxBPoKx/Zg+bcjc3wx6fmQevMmUztS/ccA==}
     engines: {node: '>=4'}
 
-  postcss-sorting@8.0.2:
-    resolution: {integrity: sha512-M9dkSrmU00t/jK7rF6BZSZauA5MAaBW4i5EnJXspMwt4iqTh/L9j6fgMnbElEOfyRyfLfVbIHj/R52zHzAPe1Q==}
-    peerDependencies:
-      postcss: ^8.4.20
-
   postcss-sorting@9.1.0:
     resolution: {integrity: sha512-Mn8KJ45HNNG6JBpBizXcyf6LqY/qyqetGcou/nprDnFwBFBLGj0j/sNKV2lj2KMOVOwdXu14aEzqJv8CIV6e8g==}
     peerDependencies:
@@ -1842,15 +1837,11 @@ packages:
     resolution: {integrity: sha512-6fPc+R4ihwqP6N/aIv2f1gMH8lOVtWQHoqC4yK6oSDVVocumAsfCqjkXnqiYMhmMwS/mEHLp7Vehlt3ql6lEig==}
     engines: {node: '>=8'}
 
-  stylelint-config-recess-order@6.0.0:
-    resolution: {integrity: sha512-1KqrttqpIrCYFAVQ1/bbgXo7EvvcjmkxxmnzVr+U66Xr2OlrNZqQ5+44Tmct6grCWY6wGTIBh2tSANqcmwIM2g==}
+  stylelint-config-recess-order@7.1.0:
+    resolution: {integrity: sha512-rFc4Z6SCGgEohr1khsmAZ83X56Tdi2dHY/GB7VT3qJkpKU1V2w+mYlK+b7Za5gpsxEng3jnb4FzWyIl/KTH0AQ==}
     peerDependencies:
-      stylelint: '>=16'
-
-  stylelint-order@6.0.4:
-    resolution: {integrity: sha512-0UuKo4+s1hgQ/uAxlYU4h0o0HS4NiQDud0NAUNI0aa8FJdmYHA5ZZTFHiV5FpmE3071e9pZx5j0QpVJW5zOCUA==}
-    peerDependencies:
-      stylelint: ^14.0.0 || ^15.0.0 || ^16.0.1
+      stylelint: '>=16.18'
+      stylelint-order: '>=7'
 
   stylelint-order@7.0.0:
     resolution: {integrity: sha512-rSWxx0KscYfxU02wEskKXES9lkRzuuONMMNkZ7SUc6uiF3tDKm7e+sE0Ax/SBlG4TUf1sp1R6f3/SlsPGmzthg==}
@@ -3561,10 +3552,6 @@ snapshots:
       cssesc: 3.0.0
       util-deprecate: 1.0.2
 
-  postcss-sorting@8.0.2(postcss@8.5.4):
-    dependencies:
-      postcss: 8.5.4
-
   postcss-sorting@9.1.0(postcss@8.5.4):
     dependencies:
       postcss: 8.5.4
@@ -3741,16 +3728,10 @@ snapshots:
 
   strip-json-comments@3.1.1: {}
 
-  stylelint-config-recess-order@6.0.0(stylelint@16.20.0(typescript@5.8.3)):
+  stylelint-config-recess-order@7.1.0(stylelint-order@7.0.0(stylelint@16.20.0(typescript@5.8.3)))(stylelint@16.20.0(typescript@5.8.3)):
     dependencies:
       stylelint: 16.20.0(typescript@5.8.3)
-      stylelint-order: 6.0.4(stylelint@16.20.0(typescript@5.8.3))
-
-  stylelint-order@6.0.4(stylelint@16.20.0(typescript@5.8.3)):
-    dependencies:
-      postcss: 8.5.4
-      postcss-sorting: 8.0.2(postcss@8.5.4)
-      stylelint: 16.20.0(typescript@5.8.3)
+      stylelint-order: 7.0.0(stylelint@16.20.0(typescript@5.8.3))
 
   stylelint-order@7.0.0(stylelint@16.20.0(typescript@5.8.3)):
     dependencies:
