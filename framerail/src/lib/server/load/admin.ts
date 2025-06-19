@@ -58,6 +58,7 @@ export async function loadAdminPage(request, cookies) {
       "site-info.slug": {},
       "site-info.tagline": {},
       "site-info.description": {},
+      "site-info.default-page": {},
       "site-info.locale": {},
       "site-info.layout": {},
       "wiki-page-layout.default": {},

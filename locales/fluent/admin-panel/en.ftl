@@ -3,6 +3,7 @@ site-info =
   .slug = Site domain: 
   .tagline = Site tagline/subtitle: 
   .description = Site description: 
+  .default-page = Site default page: 
   .locale = Site locale: 
   .layout = Site layout: 
 

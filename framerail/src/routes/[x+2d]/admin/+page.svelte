@@ -69,6 +69,15 @@
       type="text"
       value={$page.data.site.description}
     />
+    <label for="default-page"
+      >{$page.data.internationalization?.["site-info.default-page"]}</label
+    >
+    <input
+      name="default-page"
+      class="site-attribute default-page"
+      type="text"
+      value={$page.data.site.default_page}
+    />
     <label for="locale">{$page.data.internationalization?.["site-info.locale"]}</label>
     <input
       name="locale"
@@ -141,6 +150,15 @@
           >{$page.data.internationalization?.["site-info.description"]}</span
         >
         <span class="site-attribute-value">{$page.data.site.description}</span>
+      </div>
+    {/if}
+
+    {#if $page.data.site.default_page}
+      <div class="site-attribute default-page">
+        <span class="site-attribute-label"
+          >{$page.data.internationalization?.["site-info.default-page"]}</span
+        >
+        <span class="site-attribute-value">{$page.data.site.default_page}</span>
       </div>
     {/if}
 
