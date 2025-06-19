@@ -95,6 +95,7 @@ json.main = `./cjs/wj-${package}.cjs`
 json.module = `./esm/wj-${package}.mjs`
 json.exports ??= {}
 json.exports["."] = {
+  types: json.types,
   import: `./esm/wj-${package}.mjs`,
   require: `./cjs/wj-${package}.cjs`
 }
