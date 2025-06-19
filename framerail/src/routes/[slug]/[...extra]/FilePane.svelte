@@ -230,10 +230,7 @@
       class="action-button deleted-file clickable"
       type="button"
       on:click={() => {
-        showFiles = false
-        getFileList(true).then(() => {
-          showFiles = true
-        })
+        getFileList(true)
       }}
     >
       {$page.data.internationalization?.restore}
@@ -266,7 +263,10 @@
       {#each [...fileMap].sort((a, b) => b[0] - a[0]) as [_, file] (file.file_id)}
         <div class="file-row" data-id={file.file_id}>
           <div class="file-attribute name">
-            {file.name}
+            <a
+              href="//{$page.data.site_file_domain}/-/file/{$page.data.page
+                .slug}/{file.name}">{file.name}</a
+            >
           </div>
           <div class="file-attribute created-at">
             {new Date(file.file_created_at).toLocaleString()}
@@ -652,6 +652,20 @@
       display: table-row;
 
       .file-attribute {
+        display: table-cell;
+      }
+    }
+  }
+
+  .revision-list {
+    display: table;
+    width: 100%;
+
+    .revision-header,
+    .revision-row {
+      display: table-row;
+
+      .revision-attribute {
         display: table-cell;
       }
     }

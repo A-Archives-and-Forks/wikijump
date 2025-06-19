@@ -138,6 +138,7 @@ pub enum GetAdminViewOutput {
 #[derive(Serialize, Debug, Clone)]
 pub struct Viewer {
     pub site: SiteModel,
+    pub site_file_domain: String,
     pub user_session: Option<UserSession>,
 }
 

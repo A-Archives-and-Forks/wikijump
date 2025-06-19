@@ -9,6 +9,7 @@ export async function siteUpdate(
   slug: Optional<String>,
   tagline: Optional<String>,
   description: Optional<String>,
+  defaultPage: Optional<String>,
   locale: Optional<String>,
   layout: Optional<Nullable<Layout>>
 ): Promise<object> {
@@ -19,6 +20,7 @@ export async function siteUpdate(
     slug,
     tagline,
     description,
+    default_page: defaultPage,
     locale,
     layout:
       layout !== undefined

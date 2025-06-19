@@ -119,6 +119,12 @@ impl DomainService {
         format!("{}{}", site_slug, config.main_domain)
     }
 
+    #[inline]
+    pub fn get_files(config: &Config, site_slug: &str) -> String {
+        // 'files_domain' is already prefixed with .
+        format!("{}{}", site_slug, config.files_domain)
+    }
+
     /// Gets the preferred domain for the given site.
     pub fn preferred_domain<'a>(config: &'a Config, site: &'a SiteModel) -> Cow<'a, str> {
         debug!(

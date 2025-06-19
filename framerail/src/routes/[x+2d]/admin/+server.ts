@@ -26,6 +26,7 @@ export async function POST(event) {
       let slug = data.get("slug")?.toString()
       let tagline = data.get("tagline")?.toString()
       let description = data.get("description")?.toString()
+      let defaultPage = data.get("default-page")?.toString()
       let locale = data.get("locale")?.toString()
       let layout = data.get("layout")?.toString().trim()
 
@@ -36,6 +37,7 @@ export async function POST(event) {
         slug,
         tagline,
         description,
+        defaultPage,
         locale,
         layout
       )

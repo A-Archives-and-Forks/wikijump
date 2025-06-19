@@ -3,6 +3,7 @@ site-info =
   .slug = 网站域名：
   .tagline = 网站副标题：
   .description = 网站描述：
+  .default-page = 网站主页面：
   .locale = 网站语言：
   .layout = 网站布局：
 
