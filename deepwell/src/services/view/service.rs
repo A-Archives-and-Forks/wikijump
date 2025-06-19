@@ -36,8 +36,8 @@ use crate::models::site::Model as SiteModel;
 use crate::services::render::RenderOutput;
 use crate::services::special_page::{GetSpecialPageOutput, SpecialPageType};
 use crate::services::{
-    PageRevisionService, PageService, SessionService, SiteService, SpecialPageService,
-    TextService, UserService,
+    DomainService, PageRevisionService, PageService, SessionService, SiteService,
+    SpecialPageService, TextService, UserService,
 };
 use crate::utils::{parse_locales, split_category};
 use ftml::prelude::*;
@@ -68,7 +68,11 @@ impl ViewService {
 
         let mut locales = parse_locales(&locales_str)?;
         let config = ctx.config();
-        let Viewer { site, user_session } = Self::get_viewer(
+        let Viewer {
+            site,
+            site_file_domain,
+            user_session,
+        } = Self::get_viewer(
             ctx,
             &mut locales,
             site_id,
@@ -244,7 +248,11 @@ impl ViewService {
 
         // TODO Check if user-agent and IP match?
 
-        let viewer = Viewer { site, user_session };
+        let viewer = Viewer {
+            site,
+            site_file_domain,
+            user_session,
+        };
         let output = match status {
             PageStatus::Found {
                 page,
@@ -436,6 +444,8 @@ impl ViewService {
     ) -> Result<Viewer> {
         info!("Getting viewer data site ID {site_id} and session token");
 
+        let config = ctx.config();
+
         // Get user data from session token (if present)
         let user_session = match session_token {
             Some("") | None => None,
@@ -481,9 +491,14 @@ impl ViewService {
 
         // Get site information
         let site = SiteService::get(ctx, Reference::Id(site_id)).await?;
+        let site_file_domain = DomainService::get_files(config, &site.slug);
 
         // Return
-        Ok(Viewer { site, user_session })
+        Ok(Viewer {
+            site,
+            site_file_domain,
+            user_session,
+        })
     }
 
     async fn can_access_page(
