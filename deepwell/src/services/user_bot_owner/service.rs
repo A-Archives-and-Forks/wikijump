@@ -52,10 +52,7 @@ impl UserBotOwnerService {
         bot_user_id: i64,
         human_user_id: i64,
     ) -> Result<Option<UserBotOwnerModel>> {
-        debug!(
-            "Retrieving user_bot_owner record for human ID {} and bot ID {}",
-            human_user_id, bot_user_id,
-        );
+        debug!("Retrieving user_bot_owner record for human ID {human_user_id} and bot ID {bot_user_id}");
 
         let txn = ctx.transaction();
         let owner = UserBotOwner::find_by_id((bot_user_id, human_user_id))
@@ -145,10 +142,7 @@ impl UserBotOwnerService {
             UserService::get_id(ctx, human_reference),
         )?;
 
-        info!(
-            "Deleting user ID {} as owner for bot ID {}",
-            human_user_id, bot_user_id,
-        );
+        info!("Deleting user ID {human_user_id} as owner for bot ID {bot_user_id}");
 
         let DeleteResult { rows_affected } =
             UserBotOwner::delete_by_id((bot_user_id, human_user_id))

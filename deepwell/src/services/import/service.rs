@@ -60,7 +60,7 @@ impl ImportService {
             user_page,
         }: ImportUser,
     ) -> Result<()> {
-        info!("Importing user (name '{}', slug '{}')", name, slug);
+        info!("Importing user (name '{name}', slug '{slug}')");
 
         let txn = ctx.transaction();
 
@@ -112,10 +112,7 @@ impl ImportService {
             locale,
         }: ImportSite,
     ) -> Result<()> {
-        info!(
-            "Importing site (name '{}', slug '{}', locale '{}')",
-            name, slug, locale,
-        );
+        info!("Importing site (name '{name}', slug '{slug}', locale '{locale}')");
 
         let txn = ctx.transaction();
         let site = site::ActiveModel {
@@ -143,7 +140,7 @@ impl ImportService {
             discussion_thread_id,
         }: ImportPage,
     ) -> Result<()> {
-        info!("Creating page '{}' in site ID {}", slug, site_id);
+        info!("Creating page '{slug}' in site ID {site_id}");
 
         let txn = ctx.transaction();
 

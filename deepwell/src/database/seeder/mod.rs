@@ -121,7 +121,7 @@ pub async fn seed(state: &ServerState) -> Result<()> {
         // by the "system" user, which may not have been created yet.
         user_aliases.push((user_id, user.aliases));
 
-        debug!("User created with slug '{}'", slug);
+        debug!("User created with slug '{slug}'");
         assert_eq!(user_id, user.id, "Specified user ID doesn't match created");
         assert_eq!(slug, user.slug, "Specified user slug doesn't match created");
     }

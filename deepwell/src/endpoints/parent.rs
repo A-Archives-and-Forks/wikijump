@@ -96,10 +96,7 @@ pub async fn parent_get_all(
 ) -> Result<Vec<String>> {
     let GetPageReference { site_id, page } = params.parse()?;
 
-    info!(
-        "Getting parents for child {:?} in site ID {}",
-        page, site_id,
-    );
+    info!("Getting parents for child {page:?} in site ID {site_id}");
 
     let parents: Vec<Reference<'_>> = ParentService::get_parents(ctx, site_id, page)
         .await?

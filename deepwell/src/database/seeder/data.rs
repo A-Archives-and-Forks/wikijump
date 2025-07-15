@@ -54,8 +54,7 @@ impl SeedData {
             // Verify that the site exists
             assert!(
                 sites.iter().any(|s| &s.slug == site),
-                "No site with slug {}",
-                site,
+                "No site with slug {site}",
             );
 
             // Fetch wikitext from file

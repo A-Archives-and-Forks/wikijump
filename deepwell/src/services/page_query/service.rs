@@ -340,10 +340,7 @@ impl PageQueryService {
                 ascending,
             } = order.unwrap_or_default();
 
-            debug!(
-                "Ordering ListPages using {:?} (ascending: {})",
-                property, ascending,
-            );
+            debug!("Ordering ListPages using {property:?} (ascending: {ascending})");
 
             let order = if ascending { Order::Asc } else { Order::Desc };
 

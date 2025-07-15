@@ -227,13 +227,9 @@ impl AliasService {
         alias_id: i64,
         new_slug: &str,
     ) -> Result<()> {
+        info!("Swapping user alias ID {alias_id} to use slug '{new_slug}'");
+
         let txn = ctx.transaction();
-
-        info!(
-            "Swapping user alias ID {} to use slug '{}'",
-            alias_id, new_slug,
-        );
-
         let model = alias::ActiveModel {
             created_at: Set(now()), // instead of deleting and recreating, we just pretend it was
             alias_id: Set(alias_id),
@@ -312,10 +308,7 @@ impl AliasService {
                 )?;
 
                 if let (Some(site), Some(alias)) = (site_result, alias_result) {
-                    error!(
-                        "Consistency error! Both site and alias tables have the slug '{}'",
-                        slug,
-                    );
+                    error!("Consistency error! Both site and alias tables have the slug '{slug}'");
 
                     panic!(
                         "Slug appears as both a site and an alias!\nSite: {site:#?}\nAlias: {alias:#?}",
@@ -335,10 +328,7 @@ impl AliasService {
                 )?;
 
                 if let (Some(user), Some(alias)) = (user_result, alias_result) {
-                    error!(
-                        "Consistency error! Both user and alias tables have the slug '{}'",
-                        slug,
-                    );
+                    error!("Consistency error! Both user and alias tables have the slug '{slug}'");
 
                     panic!(
                         "Slug appears as both a user and an alias!\nUser: {user:#?}\nAlias: {alias:#?}",

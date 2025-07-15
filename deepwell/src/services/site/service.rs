@@ -383,11 +383,7 @@ impl SiteService {
         match result {
             None => Ok(()),
             Some(_) => {
-                error!(
-                    "Site with slug '{}' already exists, cannot {}",
-                    slug, action,
-                );
-
+                error!("Site with slug '{slug}' already exists, cannot {action}");
                 Err(Error::SiteExists)
             }
         }

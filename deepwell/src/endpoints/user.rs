@@ -47,7 +47,7 @@ pub async fn user_get(
     params: Params<'static>,
 ) -> Result<Option<GetUserOutput>> {
     let GetUser { user: reference } = params.parse()?;
-    info!("Getting user {:?}", reference);
+    info!("Getting user {reference:?}");
 
     match UserService::get_optional(ctx, reference).await? {
         None => Ok(None),
@@ -69,7 +69,7 @@ pub async fn user_edit(
         body,
     } = params.parse()?;
 
-    info!("Updating user {:?}", reference);
+    info!("Updating user {reference:?}");
     UserService::update(ctx, reference, body).await
 }
 
@@ -78,7 +78,7 @@ pub async fn user_delete(
     params: Params<'static>,
 ) -> Result<UserModel> {
     let GetUser { user: reference } = params.parse()?;
-    info!("Deleting user {:?}", reference);
+    info!("Deleting user {reference:?}");
     UserService::delete(ctx, reference).await
 }
 
@@ -87,7 +87,7 @@ pub async fn user_add_name_change(
     params: Params<'static>,
 ) -> Result<i16> {
     let GetUser { user: reference } = params.parse()?;
-    info!("Adding user name change token to {:?}", reference);
+    info!("Adding user name change token to {reference:?}");
     let user = UserService::get(ctx, reference).await?;
     UserService::add_name_change_token(ctx, &user).await
 }

@@ -68,7 +68,7 @@ impl FileService {
             bypass_filter,
         }: CreateFile,
     ) -> Result<CreateFileOutput> {
-        info!("Creating file with name '{}'", name);
+        info!("Creating file with name '{name}'");
         let txn = ctx.transaction();
 
         // Verify filename is valid
@@ -144,7 +144,7 @@ impl FileService {
             body,
         }: EditFile,
     ) -> Result<Option<EditFileOutput>> {
-        info!("Editing file with ID {}", file_id);
+        info!("Editing file with ID {file_id}");
 
         let txn = ctx.transaction();
         let last_revision =
@@ -269,10 +269,7 @@ impl FileService {
         // Get destination filename
         let mut name = name.unwrap_or_else(|| last_revision.name.clone());
 
-        info!(
-            "Moving file with ID {} from page ID {} to {}",
-            file_id, current_page_id, destination_page_id,
-        );
+        info!("Moving file with ID {file_id} from page ID {current_page_id} to {destination_page_id}");
 
         // Verify filename is valid
         check_file_name(&mut name)?;

@@ -25,7 +25,7 @@ use unic_langid::LanguageIdentifier;
 /// If it is invalid, then the appropriate `Error` variant is returned.
 pub fn validate_locale(locale_str: &str) -> Result<LanguageIdentifier> {
     LanguageIdentifier::from_bytes(locale_str.as_bytes()).map_err(|error| {
-        warn!("Invalid locale '{}' passed: {:?}", locale_str, error);
+        warn!("Invalid locale '{locale_str}' passed: {error:?}");
         Error::LocaleInvalid(error)
     })
 }
