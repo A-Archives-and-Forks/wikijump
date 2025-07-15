@@ -63,7 +63,7 @@ subtle = "2.6"
 thiserror = "2"
 time = { version = "0.3", features = ["parsing", "serde"], default-features = false }
 tiny-keccak = { version = "2", features = ["k12"] }
-toml = { version = "0.8", features = ["parse"] }
+toml = { version = "0.9", features = ["parse"] }
 tokio = { version = "1", features = ["full"] }
 typenum = "1"
 unic-langid = "0.9"
