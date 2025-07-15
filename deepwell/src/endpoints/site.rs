@@ -38,7 +38,8 @@ pub async fn site_get(
     params: Params<'static>,
 ) -> Result<Option<GetSiteOutput>> {
     let GetSite { site } = params.parse()?;
-    info!("Getting site {:?}", site);
+    info!("Getting site {site:?}");
+
     match SiteService::get_optional(ctx, site).await? {
         None => Ok(None),
         Some(site) => {
@@ -66,6 +67,6 @@ pub async fn site_update(
         user_id,
     } = params.parse()?;
 
-    info!("Updating site {:?}", site);
+    info!("Updating site {site:?}");
     SiteService::update(ctx, site, body, user_id).await
 }

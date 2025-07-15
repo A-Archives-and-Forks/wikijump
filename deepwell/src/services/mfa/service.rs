@@ -114,7 +114,7 @@ impl MfaService {
     /// After this is run, the user does not need MFA to sign in,
     /// and has no recovery codes or TOTP secret.
     pub async fn disable(ctx: &ServiceContext<'_>, user_id: i64) -> Result<()> {
-        info!("Tearing down MFA for user ID {}", user_id);
+        info!("Tearing down MFA for user ID {user_id}");
 
         UserService::set_mfa_secrets(
             ctx,

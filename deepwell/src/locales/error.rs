@@ -43,6 +43,6 @@ pub enum LocalizationLoadError {
 /// this simply logs whatever we get and then returns the
 /// generic `LocalizationLoadError::Fluent` error variant.
 pub fn fluent_load_err<T: Debug>(item: T) -> LocalizationLoadError {
-    error!("Fluent error: {:#?}", item);
+    error!("Fluent error: {item:#?}");
     LocalizationLoadError::Fluent
 }

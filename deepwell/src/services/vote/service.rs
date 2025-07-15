@@ -42,8 +42,7 @@ impl VoteService {
     ) -> Result<Option<PageVoteModel>> {
         let txn = ctx.transaction();
         info!(
-            "Casting new vote by user ID {} on page ID {} (value {})",
-            user_id, page_id, value,
+            "Casting new vote by user ID {user_id} on page ID {page_id} (value {value})"
         );
 
         // Get previous vote, if any

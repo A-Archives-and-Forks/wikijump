@@ -168,7 +168,7 @@ impl UserService {
             UserType::Bot => {
                 info!("Creating bot user '{slug}'");
                 // TODO assign bot token
-                format!("TODO bot token: {}", password)
+                format!("TODO bot token: {password}")
             }
         };
 
@@ -558,8 +558,7 @@ impl UserService {
         // ourselves at the end of user updating.
 
         debug!(
-            "Creating user alias for '{}' -> '{}', deducting name change",
-            old_slug, new_slug,
+            "Creating user alias for '{old_slug}' -> '{new_slug}', deducting name change"
         );
 
         model.name_changes_left = Set(user.name_changes_left - 1);

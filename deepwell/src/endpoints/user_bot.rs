@@ -43,7 +43,7 @@ pub async fn bot_user_create(
         bypass_email_verification,
     } = params.parse()?;
 
-    info!("Creating new bot user with name '{}'", name);
+    info!("Creating new bot user with name '{name}'");
 
     // TODO verify auth token
     let _ = authorization_token;
@@ -77,14 +77,14 @@ pub async fn bot_user_create(
     .await?;
 
     // Add bot owners
-    debug!("Adding human owners for bot user ID {}", bot_user_id);
+    debug!("Adding human owners for bot user ID {bot_user_id}");
     for owner in owners {
         let BotOwner {
             user_id: human_user_id,
             description,
         } = owner;
 
-        debug!("Adding human user ID {} as bot owner", human_user_id);
+        debug!("Adding human user ID {human_user_id} as bot owner");
         UserBotOwnerService::add(
             ctx,
             CreateBotOwner {
