@@ -46,7 +46,7 @@
     "@sveltejs/adapter-node": "^5.2.12",
     "@sveltejs/kit": "^2.22.5",
     "accept-language-parser": "^1.5.0",
-    "json-rpc-2.0": "^1.7.0",
+    "json-rpc-2.0": "^1.7.1",
     "svelte": "^4.2.20",
     "svelte-check": "^4.2.2",
     "svelte-preprocess": "^6.0.3",
