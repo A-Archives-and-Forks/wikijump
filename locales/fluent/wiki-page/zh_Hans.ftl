@@ -62,15 +62,12 @@ wiki-page-file-select = 选择档案：
 
 wiki-page-file-name = 档案名：
 
-wiki-page-file-license = 授权协议：
-
 wiki-page-file-move-destination-page = 新页面网址
 
 wiki-page-file =
   .name = 档案名
   .created-at = 创建日期
   .updated-at = 最后编辑日期
-  .license = 授权协议
   .mime = 档案类型
   .size = 档案大小
   .page = 页面

@@ -62,15 +62,12 @@ wiki-page-file-select = Select file:
 
 wiki-page-file-name = File name:
 
-wiki-page-file-license = File license:
-
 wiki-page-file-move-destination-page = Destination page
 
 wiki-page-file =
   .name = File name
   .created-at = Created at
   .updated-at = Updated at
-  .license = License
   .mime = File type
   .size = File size
   .page = Page
