@@ -35,15 +35,8 @@ use std::num::NonZeroI32;
 /// The first revision is always considered to have changed everything.
 ///
 /// See `services/page_revision/service.rs`.
-static ALL_CHANGES: Lazy<Vec<String>> = Lazy::new(|| {
-    vec![
-        str!("page"),
-        str!("name"),
-        str!("blob"),
-        str!("mime"),
-        str!("licensing"),
-    ]
-});
+static ALL_CHANGES: Lazy<Vec<String>> =
+    Lazy::new(|| vec![str!("page"), str!("name"), str!("blob"), str!("mime")]);
 
 #[derive(Debug)]
 pub struct FileRevisionService;
@@ -91,7 +84,6 @@ impl FileRevisionService {
             mut s3_hash,
             mut mime,
             mut size,
-            mut licensing,
             ..
         } = previous;
 
@@ -127,13 +119,6 @@ impl FileRevisionService {
             }
         }
 
-        if let Maybe::Set(new_licensing) = body.licensing {
-            if licensing != new_licensing {
-                changes.push(str!("licensing"));
-                licensing = new_licensing;
-            }
-        }
-
         // If nothing has changed, then don't create a new revision
         // Also don't rerender the page, this isn't an edit.
         if changes.is_empty() {
@@ -148,8 +133,6 @@ impl FileRevisionService {
             error!("MIME type is empty");
             return Err(Error::FileMimeEmpty);
         }
-
-        // TODO validate licensing field
 
         // Run outdater
         let page_slug = Self::get_page_slug(ctx, site_id, page_id).await?;
@@ -167,7 +150,6 @@ impl FileRevisionService {
             s3_hash: Set(s3_hash.to_vec()),
             size: Set(size),
             mime: Set(mime),
-            licensing: Set(licensing),
             changes: Set(changes),
             comments: Set(revision_comments),
             hidden: Set(vec![]),
@@ -197,7 +179,6 @@ impl FileRevisionService {
             size,
             mime,
             blob_created,
-            licensing,
             revision_comments,
         }: CreateFirstFileRevision,
     ) -> Result<CreateFirstFileRevisionOutput> {
@@ -220,7 +201,6 @@ impl FileRevisionService {
             s3_hash: Set(s3_hash.to_vec()),
             mime: Set(mime),
             size: Set(size),
-            licensing: Set(licensing),
             changes: Set(ALL_CHANGES.clone()),
             comments: Set(revision_comments),
             hidden: Set(vec![]),
@@ -265,7 +245,6 @@ impl FileRevisionService {
             mut s3_hash,
             mime,
             size,
-            licensing,
             ..
         } = previous;
 
@@ -293,7 +272,6 @@ impl FileRevisionService {
             s3_hash: Set(s3_hash),
             mime: Set(mime),
             size: Set(size),
-            licensing: Set(licensing),
             changes: Set(vec![]),
             comments: Set(revision_comments),
             hidden: Set(hidden),
@@ -346,7 +324,6 @@ impl FileRevisionService {
             s3_hash,
             mime,
             size,
-            licensing,
             ..
         } = previous;
 
@@ -381,7 +358,6 @@ impl FileRevisionService {
             s3_hash: Set(s3_hash),
             mime: Set(mime),
             size: Set(size),
-            licensing: Set(licensing),
             changes: Set(changes),
             comments: Set(revision_comments),
             hidden: Set(vec![]),

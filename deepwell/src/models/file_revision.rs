@@ -24,7 +24,6 @@ pub struct Model {
     #[sea_orm(column_type = "Text")]
     pub mime: String,
     pub size: i64,
-    pub licensing: Json,
     pub changes: Vec<String>,
     #[sea_orm(column_type = "Text")]
     pub comments: String,

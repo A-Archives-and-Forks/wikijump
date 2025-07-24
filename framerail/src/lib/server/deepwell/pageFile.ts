@@ -38,7 +38,6 @@ export async function pageFileCreate(
   userId: number,
   name: Optional<string>,
   file: File,
-  licensing: any,
   revisionComments: Optional<string>
 ) {
   let presign = await startBlobUpload(userId, file.size)
@@ -49,7 +48,6 @@ export async function pageFileCreate(
     page_id: pageId,
     user_id: userId,
     name: name ?? file.name,
-    licensing,
     uploaded_blob_id: presign.pending_blob_id,
     revision_comments: revisionComments
   })
@@ -80,7 +78,6 @@ export async function pageFileEdit(
   fileId: string,
   name: string,
   file: Optional<File>,
-  licensing: Optional<any>,
   lastRevisionId: number,
   revisionComments: Optional<string>
 ) {
@@ -98,7 +95,6 @@ export async function pageFileEdit(
     file_id: fileId,
     last_revision_id: lastRevisionId,
     name,
-    licensing,
     uploaded_blob_id: presignId,
     revision_comments: revisionComments
   })
