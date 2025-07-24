@@ -249,9 +249,6 @@
         <div class="file-attribute updated-at">
           {$page.data.internationalization?.["wiki-page-file.updated-at"]}
         </div>
-        <div class="file-attribute licensing">
-          {$page.data.internationalization?.["wiki-page-file.license"]}
-        </div>
         <div class="file-attribute mime">
           {$page.data.internationalization?.["wiki-page-file.mime"]}
         </div>
@@ -273,9 +270,6 @@
           </div>
           <div class="file-attribute updated-at">
             {file.file_updated_at ? new Date(file.file_updated_at).toLocaleString() : ""}
-          </div>
-          <div class="file-attribute licensing">
-            {file.licensing}
           </div>
           <div class="file-attribute mime">
             {file.mime}

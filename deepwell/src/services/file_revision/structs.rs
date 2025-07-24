@@ -39,7 +39,6 @@ pub struct CreateFileRevisionBody {
     pub page_id: Maybe<i64>, // for changing the page this file is on
     pub name: Maybe<String>,
     pub blob: Maybe<FileBlob>,
-    pub licensing: Maybe<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -70,7 +69,6 @@ pub struct CreateFirstFileRevision {
     pub size: i64,
     pub mime: String,
     pub blob_created: bool,
-    pub licensing: serde_json::Value,
     pub revision_comments: String,
 }
 

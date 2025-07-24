@@ -166,7 +166,6 @@ async fn build_file_response(
         mime: revision.mime,
         size: revision.size,
         s3_hash: Bytes::from(revision.s3_hash),
-        licensing: revision.licensing,
         revision_comments: revision.comments,
         hidden_fields: revision.hidden,
     })

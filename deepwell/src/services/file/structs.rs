@@ -34,7 +34,6 @@ pub struct CreateFile {
     pub uploaded_blob_id: String,
     pub revision_comments: String,
     pub user_id: i64,
-    pub licensing: JsonValue, // TODO
 
     #[serde(default)]
     pub bypass_filter: bool,
@@ -90,7 +89,6 @@ pub struct GetFileOutput {
     pub mime: String,
     pub size: i64,
     pub s3_hash: Bytes<'static>,
-    pub licensing: JsonValue,
     pub revision_comments: String,
     pub hidden_fields: Vec<String>,
 }
@@ -122,7 +120,6 @@ pub struct EditFile {
 #[serde(default)]
 pub struct EditFileBody {
     pub name: Maybe<String>,
-    pub licensing: Maybe<serde_json::Value>,
     pub uploaded_blob_id: Maybe<String>,
 
     /// Allows internal users to upload directly.

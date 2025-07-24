@@ -64,7 +64,6 @@ impl FileService {
             direct_upload,
             revision_comments,
             user_id,
-            licensing,
             bypass_filter,
         }: CreateFile,
     ) -> Result<CreateFileOutput> {
@@ -123,7 +122,6 @@ impl FileService {
                 size,
                 mime,
                 blob_created,
-                licensing,
                 revision_comments,
             },
         )
@@ -154,7 +152,6 @@ impl FileService {
 
         let EditFileBody {
             mut name,
-            licensing,
             uploaded_blob_id,
             direct_upload,
         } = body;
@@ -229,7 +226,6 @@ impl FileService {
                 revision_type: FileRevisionType::Regular,
                 body: CreateFileRevisionBody {
                     name,
-                    licensing,
                     blob,
                     ..Default::default()
                 },
@@ -527,7 +523,6 @@ impl FileService {
             s3_hash,
             mime,
             size,
-            licensing,
             ..
         } = target_revision;
 
@@ -565,7 +560,6 @@ impl FileService {
             body: CreateFileRevisionBody {
                 name: Maybe::Set(name),
                 blob: Maybe::Set(blob),
-                licensing: Maybe::Set(licensing),
                 page_id: Maybe::Unset, // rollbacks should never move files
             },
         };

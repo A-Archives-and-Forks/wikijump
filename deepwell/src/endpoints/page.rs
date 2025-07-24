@@ -346,7 +346,6 @@ async fn build_page_file_output(
         mime: revision.mime,
         size: revision.size,
         s3_hash: Bytes::from(revision.s3_hash),
-        licensing: revision.licensing,
         revision_comments: revision.comments,
         hidden_fields: revision.hidden,
     }))

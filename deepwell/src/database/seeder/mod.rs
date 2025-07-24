@@ -39,7 +39,6 @@ use anyhow::Result;
 use sea_orm::{
     ConnectionTrait, DatabaseBackend, DatabaseTransaction, Statement, TransactionTrait,
 };
-use serde_json::Value as JsonValue;
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::fs;
@@ -311,7 +310,6 @@ pub async fn seed(state: &ServerState) -> Result<()> {
                             direct_upload: Some(data),
                             revision_comments: str!(),
                             user_id: SYSTEM_USER_ID,
-                            licensing: JsonValue::Null,
                             bypass_filter: true,
                         },
                     )
@@ -335,7 +333,6 @@ pub async fn seed(state: &ServerState) -> Result<()> {
                                 bypass_filter: true,
                                 body: EditFileBody {
                                     name: Maybe::Unset,
-                                    licensing: Maybe::Unset,
                                     uploaded_blob_id: Maybe::Set(str!()),
                                     direct_upload: Maybe::Set(data),
                                 },
