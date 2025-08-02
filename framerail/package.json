@@ -43,7 +43,7 @@
     "typescript": "^5.8.3"
   },
   "dependencies": {
-    "@sveltejs/adapter-node": "^5.2.12",
+    "@sveltejs/adapter-node": "^5.2.13",
     "@sveltejs/kit": "^2.25.1",
     "accept-language-parser": "^1.5.0",
     "json-rpc-2.0": "^1.7.1",
