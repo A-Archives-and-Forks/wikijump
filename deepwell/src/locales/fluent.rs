@@ -116,7 +116,7 @@ impl Localizations {
         &self,
         locale: &LanguageIdentifier,
         path: &str,
-    ) -> Result<(&FluentBundle, FluentMessage), ServiceError> {
+    ) -> Result<(&'_ FluentBundle, FluentMessage<'_>), ServiceError> {
         match self.bundles.get(locale) {
             None => Err(ServiceError::LocaleMissing),
             Some(bundle) => match bundle.get_message(path) {
