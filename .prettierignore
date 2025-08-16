@@ -1,21 +1,12 @@
 # Artifacts, dependencies
 dist
-/web/public/files--built
 node_modules
 vendor
 
 # Legacy code
-/web/bin
-/web/lib
-/web/php
-/web/web
-/web/templates
-
-# PHP
-*.blade.php
-/web/bootstrap
-/web/storage
-/web/database/migrations
+/legacy
+/web
+*.php
 
 # Misc
 .gitignore
