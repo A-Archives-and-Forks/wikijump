@@ -22,28 +22,19 @@ use crate::services::job::{
     JOB_QUEUE_DELAY, JOB_QUEUE_MAXIMUM_SIZE, JOB_QUEUE_NAME, JOB_QUEUE_PROCESS_TIME,
 };
 use anyhow::Result;
-use bb8::{ErrorSink, Pool};
-use redis::{IntoConnectionInfo, RedisError};
-use rsmq_async::{PooledRsmq, RedisConnectionManager, RsmqConnection};
+use redis::aio::MultiplexedConnection;
+use rsmq_async::{Rsmq, RsmqConnection};
 
-const REDIS_POOL_SIZE: u32 = 12;
+const RSMQ_NAMESPACE: &str = "rsmq";
+const RSMQ_REALTIME: bool = false;
 
-pub async fn connect(redis_uri: &str) -> Result<(redis::Client, PooledRsmq)> {
-    // Parse redis connection URI
-    let redis = redis::Client::open(redis_uri)?;
+pub async fn connect(redis_uri: &str) -> Result<(MultiplexedConnection, Rsmq)> {
+    let client = redis::Client::open(redis_uri)?;
+    let connection = client.get_multiplexed_async_connection().await?;
     let mut rsmq = {
-        let connection_info = redis_uri.into_connection_info()?;
-        let redis = redis::Client::open(connection_info)?;
-        let redis_conn = RedisConnectionManager::from_client(redis)?;
-        let pool = Pool::builder()
-            .max_size(REDIS_POOL_SIZE)
-            .error_sink(Box::new(RedisPoolErrorSink))
-            .test_on_check_out(true)
-            .build(redis_conn)
-            .await?;
-
-        // No redis pubsub (realtime=false)
-        PooledRsmq::new_with_pool(pool, false, None).await?
+        let connection2 = MultiplexedConnection::clone(&connection);
+        Rsmq::new_with_connection(connection2, RSMQ_REALTIME, Some(RSMQ_NAMESPACE))
+            .await?
     };
 
     // Set up queue if it doesn't already exist
@@ -62,23 +53,10 @@ pub async fn connect(redis_uri: &str) -> Result<(redis::Client, PooledRsmq)> {
         .await?;
     }
 
-    Ok((redis, rsmq))
+    Ok((connection, rsmq))
 }
 
-#[derive(Debug)]
-struct RedisPoolErrorSink;
-
-impl ErrorSink<RedisError> for RedisPoolErrorSink {
-    fn sink(&self, error: RedisError) {
-        error!("Redis connection pool error: {error}");
-    }
-
-    fn boxed_clone(&self) -> Box<dyn ErrorSink<RedisError>> {
-        Box::new(RedisPoolErrorSink)
-    }
-}
-
-async fn job_queue_exists(rsmq: &mut PooledRsmq) -> Result<bool> {
+async fn job_queue_exists(rsmq: &mut Rsmq) -> Result<bool> {
     // NOTE: Effectively the same as rsmq.list_queues().await?.contains(JOB_QUEUE_NAME),
     //       except we don't have to deal with the "&String" type issue.
     let queues = rsmq.list_queues().await?;
