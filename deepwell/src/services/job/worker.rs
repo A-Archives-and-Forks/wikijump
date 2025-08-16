@@ -24,7 +24,7 @@ use super::prelude::*;
 use crate::api::ServerState;
 use crate::services::{PageRevisionService, SessionService, TextService, UserService};
 use crate::utils::debug_pointer;
-use rsmq_async::{PooledRsmq, RsmqConnection, RsmqMessage};
+use rsmq_async::{Rsmq, RsmqConnection, RsmqMessage};
 use sea_orm::TransactionTrait;
 use std::convert::Infallible;
 use std::fmt::{self, Debug};
@@ -49,7 +49,7 @@ enum NextJob {
 #[derive(Clone)]
 pub struct JobWorker {
     state: ServerState,
-    rsmq: PooledRsmq,
+    rsmq: Rsmq,
     id: u16,
 }
 
@@ -72,7 +72,7 @@ impl JobWorker {
     fn spawn_one(state: &ServerState, id: u16) {
         info!("Spawning job worker ID {id}");
         let state = Arc::clone(state);
-        let rsmq = PooledRsmq::clone(&state.rsmq);
+        let rsmq = Rsmq::clone(&state.rsmq);
         let worker = JobWorker { state, rsmq, id };
         tokio::spawn(worker.main_loop());
     }

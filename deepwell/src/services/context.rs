@@ -24,7 +24,7 @@ use crate::locales::Localizations;
 use crate::services::blob::MimeAnalyzer;
 use crate::services::error::Result;
 use redis::aio::MultiplexedConnection as RedisMultiplexedConnection;
-use rsmq_async::PooledRsmq;
+use rsmq_async::Rsmq;
 use s3::bucket::Bucket;
 use sea_orm::DatabaseTransaction;
 use std::sync::Arc;
@@ -73,8 +73,8 @@ impl<'txn> ServiceContext<'txn> {
     }
 
     #[inline]
-    pub fn rsmq(&self) -> PooledRsmq {
-        PooledRsmq::clone(&self.state.rsmq)
+    pub fn rsmq(&self) -> Rsmq {
+        Rsmq::clone(&self.state.rsmq)
     }
 
     #[inline]
