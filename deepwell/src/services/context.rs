@@ -59,17 +59,8 @@ impl<'txn> ServiceContext<'txn> {
     }
 
     #[inline]
-    pub fn redis_client(&self) -> &redis::Client {
-        &self.state.redis
-    }
-
-    pub async fn redis_connect(&self) -> Result<RedisMultiplexedConnection> {
-        let conn = self
-            .redis_client()
-            .get_multiplexed_tokio_connection()
-            .await?;
-
-        Ok(conn)
+    pub fn redis(&self) -> RedisMultiplexedConnection {
+        RedisMultiplexedConnection::clone(&self.state.redis)
     }
 
     #[inline]

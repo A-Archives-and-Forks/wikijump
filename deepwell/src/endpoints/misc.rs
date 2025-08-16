@@ -36,7 +36,7 @@ async fn postgres_check(ctx: &ServiceContext<'_>) -> Result<()> {
 }
 
 async fn redis_check(ctx: &ServiceContext<'_>) -> Result<()> {
-    let mut redis = ctx.redis_connect().await?;
+    let mut redis = ctx.redis();
 
     redis
         .send_packed_command(redis::Cmd::new().arg("PING"))

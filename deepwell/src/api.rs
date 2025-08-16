@@ -41,6 +41,7 @@ use crate::utils::debug_pointer;
 use crate::{database, redis as redis_db};
 use jsonrpsee::server::{RpcModule, Server, ServerHandle};
 use jsonrpsee::types::error::ErrorObjectOwned;
+use redis::aio::MultiplexedConnection as RedisMultiplexedConnection;
 use rsmq_async::Rsmq;
 use s3::bucket::Bucket;
 use sea_orm::{DatabaseConnection, TransactionTrait};
@@ -55,7 +56,7 @@ pub type ServerState = Arc<ServerStateInner>;
 pub struct ServerStateInner {
     pub config: Config,
     pub database: DatabaseConnection,
-    pub redis: redis::Client,
+    pub redis: RedisMultiplexedConnection,
     pub rsmq: Rsmq,
     pub localizations: Localizations,
     pub mime_analyzer: MimeAnalyzer,

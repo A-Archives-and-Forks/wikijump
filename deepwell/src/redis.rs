@@ -22,16 +22,20 @@ use crate::services::job::{
     JOB_QUEUE_DELAY, JOB_QUEUE_MAXIMUM_SIZE, JOB_QUEUE_NAME, JOB_QUEUE_PROCESS_TIME,
 };
 use anyhow::Result;
-use redis::{ConnectionAddr, ConnectionInfo, IntoConnectionInfo, RedisConnectionInfo};
-use rsmq_async::{Rsmq, RsmqConnection, RsmqOptions};
+use redis::aio::MultiplexedConnection;
+use rsmq_async::{Rsmq, RsmqConnection};
 
 const RSMQ_NAMESPACE: &str = "rsmq";
+const RSMQ_REALTIME: bool = false;
 
-pub async fn connect(redis_uri: &str) -> Result<(redis::Client, Rsmq)> {
-    // Parse redis connection URI
-    let redis = redis::Client::open(redis_uri)?;
-    let rsmq_options = get_rsmq_options(redis_uri)?;
-    let mut rsmq = Rsmq::new(rsmq_options).await?;
+pub async fn connect(redis_uri: &str) -> Result<(MultiplexedConnection, Rsmq)> {
+    let client = redis::Client::open(redis_uri)?;
+    let connection = client.get_multiplexed_async_connection().await?;
+    let mut rsmq = {
+        let connection2 = MultiplexedConnection::clone(&connection);
+        Rsmq::new_with_connection(connection2, RSMQ_REALTIME, Some(RSMQ_NAMESPACE))
+            .await?
+    };
 
     // Set up queue if it doesn't already exist
     if !job_queue_exists(&mut rsmq).await? {
@@ -49,41 +53,7 @@ pub async fn connect(redis_uri: &str) -> Result<(redis::Client, Rsmq)> {
         .await?;
     }
 
-    Ok((redis, rsmq))
-}
-
-fn get_rsmq_options(redis_uri: &str) -> Result<RsmqOptions> {
-    let ConnectionInfo {
-        addr,
-        redis:
-            RedisConnectionInfo {
-                db,
-                username,
-                password,
-                protocol,
-            },
-    } = redis_uri.into_connection_info()?;
-
-    let (host, port) = match addr {
-        ConnectionAddr::Tcp(host, port) => (host, port),
-        ConnectionAddr::TcpTls { .. } => {
-            panic!("Custom TLS connection not supported for Redis: {addr:#?}")
-        }
-        ConnectionAddr::Unix(path) => {
-            panic!("Unix socket not supported for Redis: {}", path.display())
-        }
-    };
-
-    Ok(RsmqOptions {
-        host,
-        port,
-        db: db.try_into().expect("DB int value too large for u8"),
-        username,
-        password,
-        protocol,
-        ns: str!(RSMQ_NAMESPACE),
-        realtime: false,
-    })
+    Ok((connection, rsmq))
 }
 
 async fn job_queue_exists(rsmq: &mut Rsmq) -> Result<bool> {
