@@ -145,7 +145,7 @@ impl DomainService {
     /// it should instead redirect to just `wikijump.com`. The use of the `www`
     /// slug is an internal detail.
     #[inline]
-    fn www_domain(config: &Config) -> Cow<str> {
+    fn www_domain(config: &Config) -> Cow<'_, str> {
         Cow::Borrowed(&config.main_domain_no_dot)
     }
 
