@@ -94,8 +94,8 @@ importers:
         specifier: ^16.22.0
         version: 16.22.0(typescript@5.9.2)
       stylelint-config-recess-order:
-        specifier: ^7.1.0
-        version: 7.1.0(stylelint-order@7.0.0(stylelint@16.22.0(typescript@5.9.2)))(stylelint@16.22.0(typescript@5.9.2))
+        specifier: ^7.2.0
+        version: 7.2.0(stylelint-order@7.0.0(stylelint@16.22.0(typescript@5.9.2)))(stylelint@16.22.0(typescript@5.9.2))
       stylelint-order:
         specifier: ^7.0.0
         version: 7.0.0(stylelint@16.22.0(typescript@5.9.2))
@@ -1845,8 +1845,8 @@ packages:
     resolution: {integrity: sha512-6fPc+R4ihwqP6N/aIv2f1gMH8lOVtWQHoqC4yK6oSDVVocumAsfCqjkXnqiYMhmMwS/mEHLp7Vehlt3ql6lEig==}
     engines: {node: '>=8'}
 
-  stylelint-config-recess-order@7.1.0:
-    resolution: {integrity: sha512-rFc4Z6SCGgEohr1khsmAZ83X56Tdi2dHY/GB7VT3qJkpKU1V2w+mYlK+b7Za5gpsxEng3jnb4FzWyIl/KTH0AQ==}
+  stylelint-config-recess-order@7.2.0:
+    resolution: {integrity: sha512-3Y97dhsWkUHFKRLGNLF6LE5JuNB2EVAZKYJ41wBRK4gplYdk7eHhSIwE24hanu0AoNmv5534Djip70pE+y5qkA==}
     peerDependencies:
       stylelint: '>=16.18'
       stylelint-order: '>=7'
@@ -3732,7 +3732,7 @@ snapshots:
 
   strip-json-comments@3.1.1: {}
 
-  stylelint-config-recess-order@7.1.0(stylelint-order@7.0.0(stylelint@16.22.0(typescript@5.9.2)))(stylelint@16.22.0(typescript@5.9.2)):
+  stylelint-config-recess-order@7.2.0(stylelint-order@7.0.0(stylelint@16.22.0(typescript@5.9.2)))(stylelint@16.22.0(typescript@5.9.2)):
     dependencies:
       stylelint: 16.22.0(typescript@5.9.2)
       stylelint-order: 7.0.0(stylelint@16.22.0(typescript@5.9.2))
