@@ -19,7 +19,8 @@
  */
 
 use crate::services::job::{
-    JOB_QUEUE_DELAY, JOB_QUEUE_MAXIMUM_SIZE, JOB_QUEUE_NAME, JOB_QUEUE_PROCESS_TIME,
+    Job, JobService, JOB_QUEUE_DELAY, JOB_QUEUE_MAXIMUM_SIZE, JOB_QUEUE_NAME,
+    JOB_QUEUE_PROCESS_TIME,
 };
 use anyhow::Result;
 use redis::aio::MultiplexedConnection;
@@ -51,6 +52,17 @@ pub async fn connect(redis_uri: &str) -> Result<(MultiplexedConnection, Rsmq)> {
             JOB_QUEUE_MAXIMUM_SIZE,
         )
         .await?;
+
+        // Then add initial repeating jobs
+        macro_rules! queue_job {
+            ($job_case:ident) => {
+                JobService::queue_job_inner(&mut rsmq, &Job::$job_case, None).await?
+            };
+        }
+
+        queue_job!(PruneSessions);
+        queue_job!(PrunePendingUploads);
+        queue_job!(PruneText);
     }
 
     Ok((connection, rsmq))
