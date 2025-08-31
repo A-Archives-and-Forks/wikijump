@@ -134,6 +134,9 @@ pub struct Config {
     /// How often to run the "prune expired sessions" recurring job.
     pub job_prune_session: StdDuration,
 
+    /// How often to run the "prune pending uploads" recurring job.
+    pub job_prune_uploads: StdDuration,
+
     /// How often to run the "prune unused text" recurring job.
     pub job_prune_text: StdDuration,
 

@@ -71,6 +71,7 @@ fn build_config(main_domain: &str, files_domain: &str) -> Config {
         job_min_poll_delay: StdDuration::from_secs(0),
         job_max_poll_delay: StdDuration::from_secs(0),
         job_prune_session: StdDuration::from_secs(0),
+        job_prune_uploads: StdDuration::from_secs(0),
         job_prune_text: StdDuration::from_secs(0),
         job_name_change_refill: StdDuration::from_secs(0),
         job_lift_expired_punishments: StdDuration::from_secs(0),

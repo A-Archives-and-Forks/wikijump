@@ -36,6 +36,7 @@ delay-ms = 5
 min-delay-poll-secs = 10  # 10 seconds
 max-delay-poll-secs = 360  # 6 minutes
 prune-session-secs = 300  # 5 minutes
+prune-upload-secs = 300  # 5 minutes
 prune-text-secs = 86400  # 1 day
 name-change-refill-secs = 86400  # 1 day
 lift-expired-punishments-secs = 86400  # 1 day
