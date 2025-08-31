@@ -808,7 +808,6 @@ dependencies = [
  "log",
  "maplit",
  "notify",
- "once_cell",
  "paste",
  "pretty_assertions",
  "rand 0.8.5",

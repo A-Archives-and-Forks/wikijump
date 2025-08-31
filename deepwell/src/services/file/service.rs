@@ -35,14 +35,14 @@ use crate::services::filter::{FilterClass, FilterType};
 use crate::services::{BlobService, FileRevisionService, FilterService, PageService};
 use crate::types::FileOrder;
 use crate::utils::regex_replace_in_place;
-use once_cell::sync::Lazy;
 use regex::Regex;
 use sea_orm::ActiveValue;
+use std::sync::LazyLock;
 
 pub const MAXIMUM_FILE_NAME_LENGTH: usize = 256;
 
-static LEADING_TRAILING_SPACES: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"(^\s+)|(\s+$)").unwrap());
+static LEADING_TRAILING_SPACES: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(^\s+)|(\s+$)").unwrap());
 
 #[derive(Debug)]
 pub struct FileService;

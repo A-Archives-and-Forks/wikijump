@@ -34,15 +34,15 @@ use crate::utils::{split_category, split_category_name};
 use ftml::data::PageInfo;
 use ftml::layout::Layout;
 use ftml::settings::{WikitextMode, WikitextSettings};
-use once_cell::sync::Lazy;
 use ref_map::*;
 use std::num::NonZeroI32;
+use std::sync::LazyLock;
 
 /// The changes for the first revision.
 /// The first revision is always considered to have changed everything.
 ///
 /// See `services/file_revision/service.rs`.
-static ALL_CHANGES: Lazy<Vec<String>> = Lazy::new(|| {
+static ALL_CHANGES: LazyLock<Vec<String>> = LazyLock::new(|| {
     vec![
         str!("wikitext"),
         str!("title"),

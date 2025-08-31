@@ -22,7 +22,7 @@ mod build {
     include!(concat!(env!("OUT_DIR"), "/built.rs"));
 }
 
-use once_cell::sync::Lazy;
+use std::sync::LazyLock;
 use time::format_description::well_known::Rfc2822;
 use time::OffsetDateTime;
 
@@ -33,12 +33,12 @@ pub use self::build::{
     RUSTC_VERSION, TARGET,
 };
 
-pub static BUILT_TIME_UTC: Lazy<OffsetDateTime> = Lazy::new(|| {
+pub static BUILT_TIME_UTC: LazyLock<OffsetDateTime> = LazyLock::new(|| {
     OffsetDateTime::parse(BUILT_TIME_UTC_STR, &Rfc2822)
         .expect("Unable to parse built time string")
 });
 
-pub static VERSION_INFO: Lazy<String> = Lazy::new(|| {
+pub static VERSION_INFO: LazyLock<String> = LazyLock::new(|| {
     let mut version = format!("v{PKG_VERSION}");
 
     if let Some(commit_hash) = *GIT_COMMIT_HASH_SHORT {
@@ -48,7 +48,7 @@ pub static VERSION_INFO: Lazy<String> = Lazy::new(|| {
     version
 });
 
-pub static COMPILE_INFO: Lazy<String> = Lazy::new(|| {
+pub static COMPILE_INFO: LazyLock<String> = LazyLock::new(|| {
     let mut info = str!("Compile info:\n");
     str_writeln!(&mut info, "* on {BUILT_TIME_UTC_STR}");
     str_writeln!(&mut info, "* by {RUSTC_VERSION}");
@@ -57,15 +57,16 @@ pub static COMPILE_INFO: Lazy<String> = Lazy::new(|| {
     info
 });
 
-pub static VERSION: Lazy<String> = Lazy::new(|| format!("{PKG_NAME} {}", *VERSION_INFO));
+pub static VERSION: LazyLock<String> =
+    LazyLock::new(|| format!("{PKG_NAME} {}", *VERSION_INFO));
 
-pub static FULL_VERSION: Lazy<String> =
-    Lazy::new(|| format!("{}\n\n{}", *VERSION, *COMPILE_INFO));
+pub static FULL_VERSION: LazyLock<String> =
+    LazyLock::new(|| format!("{}\n\n{}", *VERSION, *COMPILE_INFO));
 
-pub static GIT_COMMIT_HASH_SHORT: Lazy<Option<&'static str>> =
-    Lazy::new(|| build::GIT_COMMIT_HASH.map(|s| &s[..8]));
+pub static GIT_COMMIT_HASH_SHORT: LazyLock<Option<&'static str>> =
+    LazyLock::new(|| build::GIT_COMMIT_HASH.map(|s| &s[..8]));
 
-pub static HOSTNAME: Lazy<String> = Lazy::new(|| {
+pub static HOSTNAME: LazyLock<String> = LazyLock::new(|| {
     // According to the gethostname(3p) man page,
     // there don't seem to be any errors possible.
     //
