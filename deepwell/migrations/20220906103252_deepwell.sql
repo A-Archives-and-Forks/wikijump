@@ -491,8 +491,7 @@ CREATE TYPE file_revision_type AS ENUM (
 CREATE TYPE file_revision_change AS ENUM (
     'name',
     'blob',
-    'mime',
-    'licensing'
+    'mime'
 );
 
 CREATE TABLE file (
@@ -521,7 +520,6 @@ CREATE TABLE file_revision (
     s3_hash BYTEA NOT NULL,
     mime TEXT NOT NULL,
     size BIGINT NOT NULL,
-    licensing JSON NOT NULL,
     changes TEXT[] NOT NULL DEFAULT '{}', -- List of changes in this revision
     comments TEXT NOT NULL,
     hidden TEXT[] NOT NULL DEFAULT '{}', -- List of fields to be hidden/suppressed
@@ -536,8 +534,7 @@ CREATE TABLE file_revision (
         page,
         name,
         blob,
-        mime,
-        licensing
+        mime
     }'),
 
     -- Ensure first revision reports all changes
@@ -551,8 +548,7 @@ CREATE TABLE file_revision (
             page,
             name,
             blob,
-            mime,
-            licensing
+            mime
         }'
     ),
 
