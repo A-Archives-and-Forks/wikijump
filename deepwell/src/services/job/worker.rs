@@ -22,7 +22,9 @@
 
 use super::prelude::*;
 use crate::api::ServerState;
-use crate::services::{PageRevisionService, SessionService, TextService, UserService};
+use crate::services::{
+    BlobService, PageRevisionService, SessionService, TextService, UserService,
+};
 use crate::utils::debug_pointer;
 use rsmq_async::{Rsmq, RsmqConnection, RsmqMessage};
 use sea_orm::TransactionTrait;
@@ -192,6 +194,14 @@ impl JobWorker {
                 NextJob::Next {
                     job: Job::PruneSessions,
                     delay: Some(self.state.config.job_prune_session),
+                }
+            }
+            Job::PrunePendingUploads => {
+                debug!("Pruning all expired pending uploads from database and S3");
+                BlobService::prune(ctx).await?;
+                NextJob::Next {
+                    job: Job::PrunePendingUploads,
+                    delay: Some(self.state.config.job_prune_uploads),
                 }
             }
             Job::PruneText => {

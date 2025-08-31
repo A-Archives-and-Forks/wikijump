@@ -27,8 +27,8 @@ pub enum Job {
         depth: u32,
     },
     PruneSessions,
+    PrunePendingUploads,
     PruneText,
-    // TODO add job for pruning incomplete uploads (pending_blob table and corresponding columns for foreign keys)
     NameChangeRefill,
     LiftExpiredPunishments,
 }
