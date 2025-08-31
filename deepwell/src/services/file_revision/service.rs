@@ -27,16 +27,16 @@ use crate::models::{file, page, site};
 use crate::services::blob::{FinalizeBlobUploadOutput, EMPTY_BLOB_HASH, EMPTY_BLOB_MIME};
 use crate::services::{BlobService, OutdateService, PageService};
 use crate::types::{Bytes, FetchDirection};
-use once_cell::sync::Lazy;
 use sea_orm::{prelude::*, FromQueryResult};
 use std::num::NonZeroI32;
+use std::sync::LazyLock;
 
 /// The changes for the first revision.
 /// The first revision is always considered to have changed everything.
 ///
 /// See `services/page_revision/service.rs`.
-static ALL_CHANGES: Lazy<Vec<String>> =
-    Lazy::new(|| vec![str!("page"), str!("name"), str!("blob"), str!("mime")]);
+static ALL_CHANGES: LazyLock<Vec<String>> =
+    LazyLock::new(|| vec![str!("page"), str!("name"), str!("blob"), str!("mime")]);
 
 #[derive(Debug)]
 pub struct FileRevisionService;

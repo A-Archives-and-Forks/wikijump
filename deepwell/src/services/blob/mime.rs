@@ -21,7 +21,7 @@
 //! Evaluates MIME types using libmagic.
 //!
 //! Because it is a binding to a C library, it cannot be shared among threads.
-//! So we cannot use `once_cell::Lazy` and we can't have it in a coroutine.
+//! So we cannot use `LazyLock` and we can't have it in a coroutine.
 //! We don't load the `Magic` instance locally because it's an expensive operation
 //! and it would be inefficient to load it for each invocation.
 //!
