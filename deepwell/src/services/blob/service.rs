@@ -396,7 +396,7 @@ impl BlobService {
                         size,
                         created: true,
                     }),
-                    _ => s3_error(&response, "creating final S3 blob")?,
+                    _ => s3_error(&response, "creating finalized S3 blob")?,
                 }
             }
         }
