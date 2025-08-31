@@ -872,20 +872,6 @@ impl BlobService {
         find_or_error!(Self::get_metadata_optional(ctx, hash), Blob)
     }
 
-    #[allow(dead_code)] // TEMP
-    pub async fn exists(ctx: &ServiceContext<'_>, hash: &[u8]) -> Result<bool> {
-        // Special handling for the empty blob
-        if hash == EMPTY_BLOB_HASH {
-            debug!("Checking existence of the empty blob");
-            return Ok(true);
-        }
-
-        // Fetch existence from S3
-        let hex_hash = blob_hash_to_hex(hash);
-        let result = Self::head(ctx, &hex_hash).await?;
-        Ok(result.is_some())
-    }
-
     /// Possibly retrieve blob contents, if a flag is set.
     ///
     /// This utility conditionally retrieves the
@@ -920,6 +906,11 @@ impl BlobService {
                 s3_error(&response, "heading S3 blob")
             }
         }
+    }
+
+    async fn exists(ctx: &ServiceContext<'_>, path: &str) -> Result<bool> {
+        let head = Self::head(ctx, path).await?;
+        Ok(head.is_some())
     }
 
     pub async fn hard_delete(ctx: &ServiceContext<'_>, hash: &[u8]) -> Result<()> {
