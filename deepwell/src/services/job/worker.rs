@@ -251,7 +251,6 @@ impl JobWorker {
                 debug!("Job execution finished, follow-up job has been produced");
                 trace!("* Job:   {job:?}");
                 trace!("* Delay: {delay:?}");
-
                 JobService::queue_job(ctx, &job, delay).await?;
             }
         }
