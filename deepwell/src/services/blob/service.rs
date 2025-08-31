@@ -451,6 +451,44 @@ impl BlobService {
         Ok(output)
     }
 
+    // Prune operations
+
+    /// Deletes all expired pending blobs from the database and S3.
+    pub async fn prune(ctx: &ServiceContext<'_>) -> Result<()> {
+        let txn = ctx.transaction();
+        let bucket = ctx.s3_files_bucket();
+        info!("Pruning expired pending blobs from database and S3");
+
+        // Fetch all expired pending blobs
+        let pending_blobs = BlobPending::find()
+            .select_only()
+            .column(blob_pending::Column::ExternalId)
+            .column(blob_pending::Column::S3Path)
+            .filter(blob_pending::Column::ExpiresAt.lte(now()))
+            .into_tuple::<(String, String)>()
+            .all(txn)
+            .await?;
+
+        // Delete from the S3 bucket
+        for (_, s3_path) in &pending_blobs {
+            // Only try to delete if the object exists,
+            // ignore missing objects.
+            if Self::exists(ctx, s3_path).await? {
+                bucket.delete_object(&s3_path).await?;
+            }
+        }
+
+        // Delete from the database
+        let blob_ids = pending_blobs.into_iter().map(|(id, _)| id);
+
+        BlobPending::delete_many()
+            .filter(blob_pending::Column::ExternalId.is_in(blob_ids))
+            .exec(txn)
+            .await?;
+
+        Ok(())
+    }
+
     // Hard-deletion operations
 
     /// Does a dry run on a blob hard deletion, showing what would have been changed.
