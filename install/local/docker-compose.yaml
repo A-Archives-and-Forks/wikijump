@@ -71,7 +71,7 @@ services:
     restart: always
     healthcheck:
       test: ["CMD", "wikijump-health-check"]
-      interval: 120s
+      interval: 600s
       timeout: 2s
       retries: 3
     depends_on:
@@ -100,7 +100,7 @@ services:
       retries: 3
     depends_on:
       deepwell:
-        condition: service_healthy
+        condition: service_started
 
   wws:
     build:
