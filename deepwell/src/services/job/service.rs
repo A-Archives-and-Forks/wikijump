@@ -19,7 +19,7 @@
  */
 
 use super::prelude::*;
-use rsmq_async::RsmqConnection;
+use rsmq_async::{Rsmq, RsmqConnection};
 use std::time::Duration;
 
 pub const JOB_QUEUE_NAME: &str = "job";
@@ -58,12 +58,18 @@ impl JobService {
         job: &Job,
         delay: Option<Duration>,
     ) -> Result<()> {
+        let mut rsmq = ctx.rsmq();
+        Self::queue_job_inner(&mut rsmq, job, delay).await
+    }
+
+    pub async fn queue_job_inner(
+        rsmq: &mut Rsmq,
+        job: &Job,
+        delay: Option<Duration>,
+    ) -> Result<()> {
         info!("Queuing job {job:?} (delay {delay:?})");
         let payload = serde_json::to_vec(job)?;
-        ctx.rsmq()
-            .send_message(JOB_QUEUE_NAME, payload, delay)
-            .await?;
-
+        rsmq.send_message(JOB_QUEUE_NAME, payload, delay).await?;
         Ok(())
     }
 

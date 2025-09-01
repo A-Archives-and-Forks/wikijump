@@ -170,6 +170,19 @@ max-delay-poll-secs = 360  # 6 minutes
 # It is merely for clearing the database of already-expired tokens.
 prune-session-secs = 3600  # 1 hour
 
+# The period, in seconds, to prune all expired file uploads.
+#
+# Uploading files is a two step process:
+# 1. Upload the data, which creates a blob_pending row in the database.
+# 2. Reference that ID when adding a file revision.
+#
+# After this point, or if the upload is aborted, the blob_pending row
+# is no longer needed and can be deleted. This is mediated through the
+# expires_at column in that table, which is the point when we delete
+# the row. This also serves as the limit for how long a pending blob can
+# be (re)used to upload a file.
+prune-upload-secs = 7200  # 2 hours
+
 # The period, in seconds, to prune all unused text rows.
 #
 # The text table deduplicates identical text objects, and

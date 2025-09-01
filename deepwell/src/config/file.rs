@@ -123,6 +123,7 @@ struct Job {
     min_delay_poll_secs: u64,
     max_delay_poll_secs: u64,
     prune_session_secs: u64,
+    prune_upload_secs: u64,
     prune_text_secs: u64,
     name_change_refill_secs: u64,
     lift_expired_punishments_secs: u64,
@@ -284,6 +285,7 @@ impl ConfigFile {
                     min_delay_poll_secs: job_min_poll_delay_secs,
                     max_delay_poll_secs: job_max_poll_delay_secs,
                     prune_session_secs: job_prune_session_secs,
+                    prune_upload_secs: job_prune_upload_secs,
                     prune_text_secs: job_prune_text_secs,
                     name_change_refill_secs: job_name_change_refill_secs,
                     lift_expired_punishments_secs: job_lift_expired_punishments_secs,
@@ -339,6 +341,10 @@ impl ConfigFile {
         assert!(
             job_prune_session_secs < RSMQ_DELAY_LIMIT,
             "Session prune job period time too long",
+        );
+        assert!(
+            job_prune_upload_secs < RSMQ_DELAY_LIMIT,
+            "Pending upload prune job period time too long",
         );
         assert!(
             job_prune_text_secs < RSMQ_DELAY_LIMIT,
@@ -404,6 +410,7 @@ impl ConfigFile {
             job_min_poll_delay: StdDuration::from_secs(job_min_poll_delay_secs),
             job_max_poll_delay: StdDuration::from_secs(job_max_poll_delay_secs),
             job_prune_session: StdDuration::from_secs(job_prune_session_secs),
+            job_prune_uploads: StdDuration::from_secs(job_prune_upload_secs),
             job_prune_text: StdDuration::from_secs(job_prune_text_secs),
             job_name_change_refill: StdDuration::from_secs(job_name_change_refill_secs),
             job_lift_expired_punishments: StdDuration::from_secs(
