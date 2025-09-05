@@ -18,9 +18,10 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-/// Implements the types and all non-add methods for a relation.
+/// Implements the types and all methods for a relation.
+/// However, it includes options for eliding the creation method and/or struct.
 macro_rules! impl_relation {
-    // Don't add create() method impl
+    // Don't define create() method impl or its struct
     (
         $relation_type:ident,
         $dest_type:ident,
@@ -28,7 +29,7 @@ macro_rules! impl_relation {
         $from_type:ident,
         $from_name:ident,
         $data_type:ty,
-        NO_CREATE_IMPL $(,)?
+        NO_CREATE_IMPL_OR_STRUCT $(,)?
     ) => {
         paste! {
             // Methods
@@ -147,19 +148,6 @@ macro_rules! impl_relation {
 
             // Data types
 
-            // TODO: Unfortunately, currently, despite my best efforts, we are not able to
-            //       differentiate in the macro between () and other types, thus allowing us
-            //       to exclude the metadata field if it's nothing.
-            //
-            //       Properly fixing this will likely require a proc-macro. Which is annoying.
-            #[derive(Deserialize, Debug, Clone)]
-            pub struct [<Create $relation_type>] {
-                pub $dest_name: i64,
-                pub $from_name: i64,
-                pub metadata: $data_type,
-                pub created_by: i64,
-            }
-
             #[derive(Deserialize, Debug, Copy, Clone)]
             pub struct [<Get $relation_type>] {
                 pub $dest_name: i64,
@@ -175,7 +163,43 @@ macro_rules! impl_relation {
         }
     };
 
-    // Add create() method impl
+    // Define only the create struct
+    (
+        $relation_type:ident,
+        $dest_type:ident,
+        $dest_name:ident,
+        $from_type:ident,
+        $from_name:ident,
+        $data_type:ty,
+        NO_CREATE_IMPL $(,)?
+    ) => {
+        impl_relation!(
+            $relation_type,
+            $dest_type,
+            $dest_name,
+            $from_type,
+            $from_name,
+            $data_type,
+            NO_CREATE_IMPL_OR_STRUCT,
+        );
+
+        paste! {
+            // TODO: Unfortunately, currently, despite my best efforts, we are not able to
+            //       differentiate in the macro between () and other types, thus allowing us
+            //       to exclude the metadata field if it's nothing.
+            //
+            //       Properly fixing this will likely require a proc-macro. Which is annoying.
+            #[derive(Deserialize, Debug, Clone)]
+            pub struct [<Create $relation_type>] {
+                pub $dest_name: i64,
+                pub $from_name: i64,
+                pub metadata: $data_type,
+                pub created_by: i64,
+            }
+        }
+    };
+
+    // Define create() method impl and its struct
     (
         $relation_type:ident,
         $dest_type:ident,
@@ -223,7 +247,7 @@ macro_rules! impl_relation {
 }
 
 // TODO: change to create-or-edit kind of thing?
-/// Macro which runs the actual `create()` call for the relation.
+/// Macro which _runs_ the actual `create()` call for the relation.
 macro_rules! create_operation {
     (
         $ctx:expr,

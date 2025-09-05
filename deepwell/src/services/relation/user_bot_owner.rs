@@ -64,7 +64,7 @@ impl_relation!(
     User,
     owner_user,
     UserBotMetadata,
-    NO_CREATE_IMPL,
+    NO_CREATE_IMPL_OR_STRUCT,
 );
 
 impl RelationService {
