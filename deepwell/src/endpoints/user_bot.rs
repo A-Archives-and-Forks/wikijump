@@ -150,6 +150,14 @@ pub async fn bot_user_get_owners(
     match UserService::get_optional(ctx, reference).await? {
         None => Ok(None),
         Some(bot_user) => {
+            if bot_user.user_type != UserType::Bot {
+                error!(
+                    "Tried to get owners for non-bot user: '{}' (type {:?})",
+                    bot_user.name, bot_user.user_type,
+                );
+                return Err(ServiceError::UserWrongType);
+            }
+
             let owners =
                 RelationService::get_owners_for_bot(ctx, bot_user.user_id).await?;
 
@@ -164,8 +172,17 @@ pub async fn bot_user_get_bots(
 ) -> Result<Vec<UserBotOwner>> {
     let GetUser { user: reference } = params.parse()?;
     info!("Getting bot users owned by user {reference:?}");
-    let owner_user_id = UserService::get_id(ctx, reference).await?;
-    let owners = RelationService::get_bots_owned_by_user(ctx, owner_user_id).await?;
+
+    let owner_user = UserService::get(ctx, reference).await?;
+    if owner_user.user_type != UserType::Regular {
+        error!(
+            "Tried to get bots for non-regular user: '{}' (type {:?})",
+            owner_user.name, owner_user.user_type,
+        );
+        return Err(ServiceError::UserWrongType);
+    }
+
+    let owners = RelationService::get_bots_owned_by_user(ctx, owner_user.user_id).await?;
     Ok(owners)
 }
 
