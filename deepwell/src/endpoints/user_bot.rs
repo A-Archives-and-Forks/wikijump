@@ -161,8 +161,8 @@ pub async fn bot_user_get_bots(
 ) -> Result<Vec<UserBotOwner>> {
     let GetUser { user: reference } = params.parse()?;
     info!("Getting bot users owned by user {reference:?}");
-    let owner_user = UserService::get(ctx, reference).await?;
-    let owners = RelationService::get_bots_owned_by_user(ctx, owner_user.user_id).await?;
+    let owner_user_id = UserService::get_id(ctx, reference).await?;
+    let owners = RelationService::get_bots_owned_by_user(ctx, owner_user_id).await?;
     Ok(owners)
 }
 
