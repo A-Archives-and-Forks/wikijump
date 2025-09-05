@@ -138,7 +138,7 @@ pub async fn bot_user_create(
     Ok(output)
 }
 
-pub async fn bot_user_get(
+pub async fn bot_user_get_owners(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
 ) -> Result<Option<Vec<UserBotOwner>>> {
@@ -146,11 +146,24 @@ pub async fn bot_user_get(
     info!("Getting bot user {reference:?}");
     match UserService::get_optional(ctx, reference).await? {
         None => Ok(None),
-        Some(user) => {
-            let owners = RelationService::get_owners_for_bot(ctx, user.user_id).await?;
+        Some(bot_user) => {
+            let owners =
+                RelationService::get_owners_for_bot(ctx, bot_user.user_id).await?;
+
             Ok(Some(owners))
         }
     }
+}
+
+pub async fn bot_user_get_bots(
+    ctx: &ServiceContext<'_>,
+    params: Params<'static>,
+) -> Result<Vec<UserBotOwner>> {
+    let GetUser { user: reference } = params.parse()?;
+    info!("Getting bot users owned by user {reference:?}");
+    let owner_user = UserService::get(ctx, reference).await?;
+    let owners = RelationService::get_bots_owned_by_user(ctx, owner_user.user_id).await?;
+    Ok(owners)
 }
 
 pub async fn bot_user_owner_set(

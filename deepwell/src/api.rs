@@ -351,7 +351,8 @@ async fn build_module(app_state: ServerState) -> anyhow::Result<RpcModule<Server
 
     // Bot user
     register!("bot_user_create", bot_user_create);
-    register!("bot_user_get", bot_user_get);
+    register!("bot_user_get_owners", bot_user_get_owners); // gets all owners of a bot
+    register!("bot_user_get_bots", bot_user_get_bots); // gets all bots owned by a user
     register!("bot_user_owner_set", bot_user_owner_set);
     register!("bot_user_owner_remove", bot_user_owner_remove);
 
