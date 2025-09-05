@@ -36,15 +36,18 @@ pub struct CreateBotUser {
     pub email: String,
     pub locales: Vec<String>,
     pub purpose: String,
+    pub owners: Vec<i64>,
+    pub authorization_token: String,
+    pub created_by: i64,
 
     #[serde(flatten)]
     pub metadata: UserBotMetadata,
-    pub owners: Vec<i64>,
 
+    #[serde(default)]
     pub bypass_filter: bool,
+
+    #[serde(default)]
     pub bypass_email_verification: bool,
-    pub authorization_token: String,
-    pub created_by: i64,
 }
 
 /// Input structure for adding new bot owners.
