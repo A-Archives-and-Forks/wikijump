@@ -29,6 +29,7 @@
 //! For example:
 //! * `site` / `member` / `user` &mdash; User is a site member
 //! * `user` / `block` / `user` &mdash; User has blocked another user
+//! * `page` / `star` / `user` &mdash; User has starred a page
 
 #[allow(unused_imports)]
 mod prelude {
