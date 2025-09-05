@@ -255,7 +255,8 @@ impl RelationService {
                 Condition::all()
                     .add(relation::Column::RelationType.eq(relation_type.value()))
                     .add(object_type_column.eq(object_type))
-                    .add(object_id_column.eq(object_id)),
+                    .add(object_id_column.eq(object_id))
+                    .add(relation::Column::DeletedAt.is_null()),
             )
             .order_by_asc(relation::Column::CreatedAt)
             .all(txn)
