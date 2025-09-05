@@ -31,4 +31,3 @@ pub mod site_domain;
 pub mod text;
 pub mod text_block;
 pub mod user;
-pub mod user_bot_owner;

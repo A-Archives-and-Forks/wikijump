@@ -28,4 +28,3 @@ pub use super::site_domain::Entity as SiteDomain;
 pub use super::text::Entity as Text;
 pub use super::text_block::Entity as TextBlock;
 pub use super::user::Entity as User;
-pub use super::user_bot_owner::Entity as UserBotOwner;

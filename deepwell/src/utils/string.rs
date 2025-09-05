@@ -18,8 +18,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use std::sync::LazyLock;
 use regex::Regex;
+use std::sync::LazyLock;
 
 static LEADING_TRAILING_SPACES: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"(^\s+)|(\s+$)").unwrap());

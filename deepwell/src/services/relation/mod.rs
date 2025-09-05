@@ -50,6 +50,7 @@ mod site_member;
 mod site_user;
 mod structs;
 mod user_block;
+mod user_bot_owner;
 mod user_contact;
 mod user_follow;
 
@@ -60,6 +61,7 @@ pub use self::site_member::*;
 pub use self::site_user::*;
 pub use self::structs::*;
 pub use self::user_block::*;
+pub use self::user_bot_owner::*;
 pub use self::user_contact::*;
 pub use self::user_follow::*;
 
