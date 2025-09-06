@@ -34,15 +34,10 @@ use crate::services::file_revision::{
 use crate::services::filter::{FilterClass, FilterType};
 use crate::services::{BlobService, FileRevisionService, FilterService, PageService};
 use crate::types::FileOrder;
-use crate::utils::regex_replace_in_place;
-use regex::Regex;
+use crate::utils::trim_spaces_in_place;
 use sea_orm::ActiveValue;
-use std::sync::LazyLock;
 
 pub const MAXIMUM_FILE_NAME_LENGTH: usize = 256;
-
-static LEADING_TRAILING_SPACES: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"(^\s+)|(\s+$)").unwrap());
 
 #[derive(Debug)]
 pub struct FileService;
@@ -782,7 +777,7 @@ impl FileService {
 /// then it trims that off in-place.
 fn check_file_name(name: &mut String) -> Result<()> {
     // Removes leading or trailing whitespace
-    regex_replace_in_place(name, &LEADING_TRAILING_SPACES, "");
+    trim_spaces_in_place(name);
     debug!("Trimmed file name: '{name}'");
 
     // Disallow empty filenames

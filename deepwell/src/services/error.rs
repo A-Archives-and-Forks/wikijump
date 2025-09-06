@@ -180,6 +180,9 @@ pub enum Error {
     #[error("User email cannot be empty")]
     UserEmailEmpty,
 
+    #[error("User wrong type for this operation")]
+    UserWrongType,
+
     #[error("Message subject cannot be empty")]
     MessageSubjectEmpty,
 
@@ -400,6 +403,7 @@ impl Error {
             Error::UserNameTooShort => 4015,
             Error::UserSlugEmpty => 4016,
             Error::UserEmailEmpty => 4017,
+            Error::UserWrongType => 4033, // new
             Error::MessageSubjectEmpty => 4018,
             Error::MessageSubjectTooLong => 4019,
             Error::MessageBodyEmpty => 4020,

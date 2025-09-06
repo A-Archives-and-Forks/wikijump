@@ -90,7 +90,6 @@ pub mod special_page;
 pub mod text;
 pub mod text_block;
 pub mod user;
-pub mod user_bot_owner;
 pub mod view;
 pub mod vote;
 
@@ -128,7 +127,5 @@ pub use self::special_page::SpecialPageService;
 pub use self::text::TextService;
 pub use self::text_block::TextBlockService;
 pub use self::user::UserService;
-// TODO convert user-bot to a type of relation
-pub use self::user_bot_owner::UserBotOwnerService;
 pub use self::view::ViewService;
 pub use self::vote::VoteService;

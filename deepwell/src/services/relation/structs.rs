@@ -139,6 +139,7 @@ pub enum RelationType {
     #[allow(dead_code)] // TEMP
     UserContactRequest,
     UserBlock,
+    UserBotOwner,
 }
 
 impl RelationType {
@@ -158,6 +159,7 @@ impl RelationType {
             RelationType::UserContact => "contact",
             RelationType::UserContactRequest => "contact-request",
             RelationType::UserBlock => "block",
+            RelationType::UserBotOwner => "bot-owner",
         }
     }
 
@@ -182,6 +184,7 @@ impl RelationType {
             RelationType::UserContact => t!(User, User),
             RelationType::UserContactRequest => t!(User, User),
             RelationType::UserBlock => t!(User, User),
+            RelationType::UserBotOwner => t!(User, User),
         }
     }
 }

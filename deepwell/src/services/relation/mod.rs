@@ -29,6 +29,7 @@
 //! For example:
 //! * `site` / `member` / `user` &mdash; User is a site member
 //! * `user` / `block` / `user` &mdash; User has blocked another user
+//! * `page` / `star` / `user` &mdash; User has starred a page
 
 #[allow(unused_imports)]
 mod prelude {
@@ -49,6 +50,7 @@ mod site_member;
 mod site_user;
 mod structs;
 mod user_block;
+mod user_bot_owner;
 mod user_contact;
 mod user_follow;
 
@@ -59,6 +61,7 @@ pub use self::site_member::*;
 pub use self::site_user::*;
 pub use self::structs::*;
 pub use self::user_block::*;
+pub use self::user_bot_owner::*;
 pub use self::user_contact::*;
 pub use self::user_follow::*;
 
@@ -252,7 +255,8 @@ impl RelationService {
                 Condition::all()
                     .add(relation::Column::RelationType.eq(relation_type.value()))
                     .add(object_type_column.eq(object_type))
-                    .add(object_id_column.eq(object_id)),
+                    .add(object_id_column.eq(object_id))
+                    .add(relation::Column::DeletedAt.is_null()),
             )
             .order_by_asc(relation::Column::CreatedAt)
             .all(txn)

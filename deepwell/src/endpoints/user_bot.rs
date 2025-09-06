@@ -20,13 +20,48 @@
 
 use super::prelude::*;
 use crate::models::sea_orm_active_enums::UserType;
-use crate::models::user_bot_owner::Model as UserBotOwnerModel;
-use crate::services::user::{CreateUser, CreateUserOutput, GetUser, UpdateUserBody};
-use crate::services::user_bot_owner::{
-    BotOwner, BotUserOutput, CreateBotOwner, CreateBotUser, RemoveBotOwner,
-    RemoveBotOwnerOutput, UserBotOwnerService,
+use crate::services::relation::{
+    CreateSingleUserBotOwner, RelationService, RemoveUserBotOwner, UserBotMetadata,
+    UserBotOwner,
 };
+use crate::services::user::{CreateUser, CreateUserOutput, GetUser, UpdateUserBody};
 use crate::types::{Maybe, Reference};
+
+// Structs
+
+/// Input structure for creating a new bot user.
+#[derive(Deserialize, Debug, Clone)]
+pub struct CreateBotUser {
+    pub name: String,
+    pub email: String,
+    pub locales: Vec<String>,
+    pub purpose: String,
+    pub owners: Vec<i64>,
+    pub authorization_token: String,
+    pub created_by: i64,
+
+    #[serde(flatten)]
+    pub metadata: UserBotMetadata,
+
+    #[serde(default)]
+    pub bypass_filter: bool,
+
+    #[serde(default)]
+    pub bypass_email_verification: bool,
+}
+
+/// Input structure for adding new bot owners.
+#[derive(Deserialize, Debug, Clone)]
+pub struct CreateBotUserOwners {
+    pub bot_user_id: i64,
+    pub owners: Vec<i64>,
+
+    #[serde(flatten)]
+    pub metadata: UserBotMetadata,
+    pub created_by: i64,
+}
+
+// Endpoints
 
 pub async fn bot_user_create(
     ctx: &ServiceContext<'_>,
@@ -37,7 +72,9 @@ pub async fn bot_user_create(
         email,
         locales,
         purpose,
+        mut metadata,
         owners,
+        created_by,
         authorization_token,
         bypass_filter,
         bypass_email_verification,
@@ -46,6 +83,12 @@ pub async fn bot_user_create(
     info!("Creating new bot user with name '{name}'");
 
     // TODO verify auth token
+    // TODO add authorization token service
+    // format: [flag]-[uuid]
+    //         for instance B-1F305167-AE64-4486-809A-09D14659AB4A
+    //
+    //         B: create a bot user
+    //         S: create a site
     let _ = authorization_token;
 
     // Create bot user
@@ -63,10 +106,9 @@ pub async fn bot_user_create(
     )
     .await?;
 
+    // Set description, get bot user
     let bot_user_id = output.user_id;
-
-    // Set description
-    UserService::update(
+    let bot_user = UserService::update(
         ctx,
         Reference::Id(bot_user_id),
         UpdateUserBody {
@@ -76,78 +118,118 @@ pub async fn bot_user_create(
     )
     .await?;
 
-    // Add bot owners
-    debug!("Adding human owners for bot user ID {bot_user_id}");
-    for owner in owners {
-        let BotOwner {
-            user_id: human_user_id,
-            description,
-        } = owner;
+    // Normalize metadata field
+    RelationService::normalize_user_bot_metadata(&mut metadata);
 
-        debug!("Adding human user ID {human_user_id} as bot owner");
-        UserBotOwnerService::add(
+    // Add bot owners
+    debug!(
+        "Adding human owners for bot user '{}' ({})",
+        bot_user.name, bot_user_id,
+    );
+    for owner_user_id in owners {
+        let owner_user = UserService::get(ctx, Reference::Id(owner_user_id)).await?;
+        debug!(
+            "Adding human user '{}' (ID {}) as bot owner",
+            owner_user.name, owner_user_id,
+        );
+        RelationService::create_user_bot_owner(
             ctx,
-            CreateBotOwner {
-                human: Reference::Id(human_user_id),
-                bot: Reference::Id(bot_user_id),
-                description,
+            CreateSingleUserBotOwner {
+                bot_user: &bot_user,
+                owner_user: &owner_user,
+                created_by,
+                metadata: &metadata,
             },
         )
         .await?;
     }
 
-    // Return
     Ok(output)
 }
 
-pub async fn bot_user_get(
+pub async fn bot_user_get_owners(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<Option<BotUserOutput>> {
+) -> Result<Option<Vec<UserBotOwner>>> {
     let GetUser { user: reference } = params.parse()?;
     info!("Getting bot user {reference:?}");
     match UserService::get_optional(ctx, reference).await? {
         None => Ok(None),
-        Some(user) => {
-            let owners = UserBotOwnerService::get_all(ctx, user.user_id).await?;
-            let owners = owners
-                .into_iter()
-                .map(
-                    |UserBotOwnerModel {
-                         human_user_id: user_id,
-                         description,
-                         ..
-                     }| BotOwner {
-                        user_id,
-                        description,
-                    },
-                )
-                .collect();
+        Some(bot_user) => {
+            if bot_user.user_type != UserType::Bot {
+                error!(
+                    "Tried to get owners for non-bot user: '{}' (type {:?})",
+                    bot_user.name, bot_user.user_type,
+                );
+                return Err(ServiceError::UserWrongType);
+            }
 
-            Ok(Some(BotUserOutput { user, owners }))
+            let owners =
+                RelationService::get_owners_for_bot(ctx, bot_user.user_id).await?;
+
+            Ok(Some(owners))
         }
     }
+}
+
+pub async fn bot_user_get_bots(
+    ctx: &ServiceContext<'_>,
+    params: Params<'static>,
+) -> Result<Vec<UserBotOwner>> {
+    let GetUser { user: reference } = params.parse()?;
+    info!("Getting bot users owned by user {reference:?}");
+
+    let owner_user = UserService::get(ctx, reference).await?;
+    if owner_user.user_type != UserType::Regular {
+        error!(
+            "Tried to get bots for non-regular user: '{}' (type {:?})",
+            owner_user.name, owner_user.user_type,
+        );
+        return Err(ServiceError::UserWrongType);
+    }
+
+    let owners = RelationService::get_bots_owned_by_user(ctx, owner_user.user_id).await?;
+    Ok(owners)
 }
 
 pub async fn bot_user_owner_set(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<UserBotOwnerModel> {
-    let input: CreateBotOwner = params.parse()?;
-
+) -> Result<()> {
+    let input: CreateBotUserOwners = params.parse()?;
     info!(
-        "Adding or updating bot owner ({:?} <- {:?})",
-        input.bot, input.human,
+        "Adding or updating bot owners for {} ({} new owners)",
+        input.bot_user_id,
+        input.owners.len(),
     );
 
-    UserBotOwnerService::add(ctx, input).await
+    let bot_user = UserService::get(ctx, Reference::Id(input.bot_user_id)).await?;
+    for owner_user_id in input.owners {
+        let owner_user = UserService::get(ctx, Reference::Id(owner_user_id)).await?;
+        RelationService::create_user_bot_owner(
+            ctx,
+            CreateSingleUserBotOwner {
+                bot_user: &bot_user,
+                owner_user: &owner_user,
+                created_by: input.created_by,
+                metadata: &input.metadata,
+            },
+        )
+        .await?;
+    }
+
+    Ok(())
 }
 
 pub async fn bot_user_owner_remove(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<RemoveBotOwnerOutput> {
-    let input: RemoveBotOwner = params.parse()?;
-    info!("Remove bot owner ({:?} <- {:?})", input.bot, input.human);
-    UserBotOwnerService::remove(ctx, input).await
+) -> Result<()> {
+    let input: RemoveUserBotOwner = params.parse()?;
+    info!(
+        "Remove bot owner ({} <- {})",
+        input.bot_user, input.owner_user
+    );
+    RelationService::remove_user_bot_owner(ctx, input).await?;
+    Ok(())
 }

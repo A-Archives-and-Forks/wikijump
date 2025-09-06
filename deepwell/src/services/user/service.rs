@@ -316,42 +316,6 @@ impl UserService {
         find_or_error!(Self::get_optional(ctx, reference), User)
     }
 
-    /// Gets the user ID from a reference, looking up if necessary.
-    ///
-    /// Convenience method since this is much more common than the optional
-    /// case, and we don't want to perform a redundant check for site existence
-    /// later as part of the actual query.
-    pub async fn get_id(
-        ctx: &ServiceContext<'_>,
-        reference: Reference<'_>,
-    ) -> Result<i64> {
-        match reference {
-            Reference::Id(id) => Ok(id),
-            Reference::Slug(slug) => {
-                // For slugs we pass-through the call so that alias handling is done.
-                let UserModel { user_id, .. } =
-                    Self::get(ctx, Reference::Slug(slug)).await?;
-
-                Ok(user_id)
-            }
-        }
-    }
-
-    /// Gets a user, but fails if the user type doesn't match.
-    pub async fn get_with_user_type(
-        ctx: &ServiceContext<'_>,
-        reference: Reference<'_>,
-        user_type: UserType,
-    ) -> Result<UserModel> {
-        let user = Self::get(ctx, reference).await?;
-
-        if user.user_type == user_type {
-            Ok(user)
-        } else {
-            Err(Error::UserNotFound)
-        }
-    }
-
     pub async fn update(
         ctx: &ServiceContext<'_>,
         reference: Reference<'_>,
