@@ -106,10 +106,9 @@ pub async fn bot_user_create(
     )
     .await?;
 
+    // Set description, get bot user
     let bot_user_id = output.user_id;
-
-    // Set description
-    UserService::update(
+    let bot_user = UserService::update(
         ctx,
         Reference::Id(bot_user_id),
         UpdateUserBody {
@@ -123,14 +122,21 @@ pub async fn bot_user_create(
     RelationService::normalize_user_bot_metadata(&mut metadata);
 
     // Add bot owners
-    debug!("Adding human owners for bot user ID {bot_user_id}");
+    debug!(
+        "Adding human owners for bot user '{}' ({})",
+        bot_user.name, bot_user_id,
+    );
     for owner_user_id in owners {
-        debug!("Adding human user ID {owner_user_id} as bot owner");
+        let owner_user = UserService::get(ctx, Reference::Id(owner_user_id)).await?;
+        debug!(
+            "Adding human user '{}' (ID {}) as bot owner",
+            owner_user.name, owner_user_id,
+        );
         RelationService::create_user_bot_owner(
             ctx,
             CreateSingleUserBotOwner {
-                bot_user_id,
-                owner_user_id,
+                bot_user: &bot_user,
+                owner_user: &owner_user,
                 created_by,
                 metadata: &metadata,
             },
@@ -197,12 +203,14 @@ pub async fn bot_user_owner_set(
         input.owners.len(),
     );
 
+    let bot_user = UserService::get(ctx, Reference::Id(input.bot_user_id)).await?;
     for owner_user_id in input.owners {
+        let owner_user = UserService::get(ctx, Reference::Id(owner_user_id)).await?;
         RelationService::create_user_bot_owner(
             ctx,
             CreateSingleUserBotOwner {
-                bot_user_id: input.bot_user_id,
-                owner_user_id,
+                bot_user: &bot_user,
+                owner_user: &owner_user,
                 created_by: input.created_by,
                 metadata: &input.metadata,
             },

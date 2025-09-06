@@ -19,6 +19,8 @@
  */
 
 use super::prelude::*;
+use crate::models::sea_orm_active_enums::UserType;
+use crate::models::user::Model as UserModel;
 use crate::utils::trim_spaces_in_place;
 use time::OffsetDateTime;
 
@@ -26,8 +28,8 @@ use time::OffsetDateTime;
 
 #[derive(Debug, Copy, Clone)]
 pub struct CreateSingleUserBotOwner<'a> {
-    pub bot_user_id: i64,
-    pub owner_user_id: i64,
+    pub bot_user: &'a UserModel,
+    pub owner_user: &'a UserModel,
     pub created_by: i64,
     pub metadata: &'a UserBotMetadata,
 }
@@ -82,14 +84,36 @@ impl RelationService {
     pub async fn create_user_bot_owner(
         ctx: &ServiceContext<'_>,
         CreateSingleUserBotOwner {
-            bot_user_id,
-            owner_user_id,
+            bot_user,
+            owner_user,
             created_by,
             metadata,
         }: CreateSingleUserBotOwner<'_>,
     ) -> Result<()> {
+        let bot_user_id = bot_user.user_id;
+        let owner_user_id = owner_user.user_id;
+
         // Cannot be the owner if the bot is blocked
         Self::check_user_block(ctx, bot_user_id, owner_user_id, "follow").await?;
+
+        // Verify user types
+        if bot_user.user_type != UserType::Bot {
+            error!(
+                "Bot user must have user type Bot, not {:?}",
+                bot_user.user_type,
+            );
+            return Err(Error::UserWrongType);
+        }
+
+        // Should we allow 'site' users to own a bot?
+        // For situations where a bot is managed by the staff of a site.
+        if owner_user.user_type != UserType::Regular {
+            error!(
+                "Owner account of a bot must have user type Regular, not {:?}",
+                owner_user.user_type,
+            );
+            return Err(Error::UserWrongType);
+        }
 
         create_operation!(
             ctx,
