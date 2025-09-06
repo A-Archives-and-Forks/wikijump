@@ -257,13 +257,13 @@ async fn build_module(app_state: ServerState) -> anyhow::Result<RpcModule<Server
 
     // Site custom domain
     register!("custom_domain_create", site_custom_domain_create);
-    register!("custom_domain_delete", site_custom_domain_delete);
+    register!("custom_domain_remove", site_custom_domain_remove);
     register!("custom_domain_list", site_custom_domain_list);
 
     // Site membership
     register!("member_set", membership_set);
     register!("member_get", membership_get);
-    register!("member_delete", membership_delete);
+    register!("member_remove", membership_remove);
 
     // Category
     register!("category_get", category_get);
