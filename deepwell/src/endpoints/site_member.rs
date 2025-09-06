@@ -38,7 +38,7 @@ pub async fn membership_set(
     RelationService::create_site_member(ctx, input).await
 }
 
-pub async fn membership_delete(
+pub async fn membership_remove(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
 ) -> Result<RelationModel> {

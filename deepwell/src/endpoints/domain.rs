@@ -43,7 +43,7 @@ pub async fn site_custom_domain_create(
 }
 
 // TODO rename
-pub async fn site_custom_domain_delete(
+pub async fn site_custom_domain_remove(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
 ) -> Result<()> {
