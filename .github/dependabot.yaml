@@ -16,6 +16,6 @@ updates:
 
   # WWS
   - package-ecosystem: cargo
-    directory: "/ws"
+    directory: "/wws"
     schedule:
       interval: weekly
