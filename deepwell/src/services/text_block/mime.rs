@@ -174,7 +174,7 @@ pub fn mime_for_language<S: AsRef<str>>(language: &Option<S>) -> &'static str {
     ];
 
     let language = match language {
-        Some(ref language) => language.as_ref(),
+        Some(language) => language.as_ref(),
         None => return MIME_TEXT,
     };
 

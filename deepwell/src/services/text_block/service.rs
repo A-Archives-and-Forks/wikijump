@@ -151,7 +151,7 @@ impl TextBlockService {
         let mut models = Vec::with_capacity(max_index_usize);
         let mut previous_block_names = HashSet::with_capacity(max_index_usize);
         for (index, block) in blocks.iter().enumerate() {
-            let TextBlock {
+            let &TextBlock {
                 text,
                 text_type,
                 mime,
