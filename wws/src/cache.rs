@@ -86,7 +86,11 @@ impl Cache {
         Ok(value)
     }
 
-    pub async fn set_site_domain(&self, site_id: i64, preferred_domain: &str) -> Result<()> {
+    pub async fn set_site_domain(
+        &self,
+        site_id: i64,
+        preferred_domain: &str,
+    ) -> Result<()> {
         let mut conn = get_connection!(self.client);
         let key = redis_key!(site_domain => site_id);
         set!(conn, key, preferred_domain);
@@ -101,7 +105,12 @@ impl Cache {
         Ok(value)
     }
 
-    pub async fn set_page(&self, site_id: i64, page_slug: &str, page_id: i64) -> Result<()> {
+    pub async fn set_page(
+        &self,
+        site_id: i64,
+        page_slug: &str,
+        page_id: i64,
+    ) -> Result<()> {
         let mut conn = get_connection!(self.client);
         let key = redis_key!(page_slug => site_id, page_slug);
         set!(conn, key, page_id);
@@ -123,12 +132,14 @@ impl Cache {
         let values = conn.hget::<_, _, FileDataTuple>(&key, fields).await?;
         match values {
             // Ideally, all of these should be non-null, if it's a cache hit.
-            (Some(file_id), Some(mime), Some(size), Some(s3_hash)) => Ok(Some(FileData {
-                file_id,
-                mime,
-                size,
-                s3_hash,
-            })),
+            (Some(file_id), Some(mime), Some(size), Some(s3_hash)) => {
+                Ok(Some(FileData {
+                    file_id,
+                    mime,
+                    size,
+                    s3_hash,
+                }))
+            }
 
             // Cache miss
             (None, None, None, None) => Ok(None),

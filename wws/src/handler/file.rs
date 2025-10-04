@@ -110,10 +110,11 @@ pub async fn handle_file_fetch(
         "Returning file data",
     );
 
-    let (file_info, body) = match fetch_file(&state, &headers, &mut page_slug, &filename).await {
-        Ok(output) => output,
-        Err(response) => return response,
-    };
+    let (file_info, body) =
+        match fetch_file(&state, &headers, &mut page_slug, &filename).await {
+            Ok(output) => output,
+            Err(response) => return response,
+        };
 
     let result = Response::builder()
         .header(header::CONTENT_TYPE, &file_info.mime)
@@ -140,10 +141,11 @@ pub async fn handle_file_download(
         "Returning file download",
     );
 
-    let (file_info, body) = match fetch_file(&state, &headers, &mut page_slug, &filename).await {
-        Ok(output) => output,
-        Err(response) => return response,
-    };
+    let (file_info, body) =
+        match fetch_file(&state, &headers, &mut page_slug, &filename).await {
+            Ok(output) => output,
+            Err(response) => return response,
+        };
 
     Attachment::new(body)
         .filename(&filename)

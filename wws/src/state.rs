@@ -22,7 +22,9 @@ use crate::{
     cache::Cache,
     config::Secrets,
     deepwell::{Deepwell, FileData, PageData},
-    error::{build_special_error_response, FallbackError, ResponseResult, Result, SpecialError},
+    error::{
+        build_special_error_response, FallbackError, ResponseResult, Result, SpecialError,
+    },
 };
 use axum::{http::HeaderMap, response::IntoResponse};
 use s3::bucket::Bucket;
@@ -106,7 +108,10 @@ impl ServerStateInner {
         }
     }
 
-    pub async fn get_site_domain_or_response(&self, site_id: i64) -> ResponseResult<String> {
+    pub async fn get_site_domain_or_response(
+        &self,
+        site_id: i64,
+    ) -> ResponseResult<String> {
         match self.get_site_domain(site_id).await {
             Ok(domain) => Ok(domain),
             Err(error) => {
