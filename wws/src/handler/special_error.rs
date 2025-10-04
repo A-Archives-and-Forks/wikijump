@@ -19,7 +19,8 @@
  */
 
 use super::{
-    get_header, get_site_id, get_site_slug, HEADER_FILENAME, HEADER_PAGE_SLUG, HEADER_SPECIAL_ERROR,
+    get_header, get_site_id, get_site_slug, HEADER_FILENAME, HEADER_PAGE_SLUG,
+    HEADER_SPECIAL_ERROR,
 };
 use crate::{
     error::{build_special_error_response, FallbackError, SpecialError},

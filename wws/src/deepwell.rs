@@ -78,7 +78,11 @@ impl Deepwell {
         Ok(domain)
     }
 
-    pub async fn get_page(&self, site_id: i64, page_slug: &str) -> Result<Option<PageData>> {
+    pub async fn get_page(
+        &self,
+        site_id: i64,
+        page_slug: &str,
+    ) -> Result<Option<PageData>> {
         let params = rpc_object! {
             "site_id" => site_id,
             "page" => page_slug,
@@ -271,7 +275,10 @@ impl Deepwell {
         Ok(html)
     }
 
-    pub async fn special_error_file_root(&self, locales: &[String]) -> Result<SpecialErrorHtml> {
+    pub async fn special_error_file_root(
+        &self,
+        locales: &[String],
+    ) -> Result<SpecialErrorHtml> {
         let params = rpc_object! {
             "locales" => locales,
         };
