@@ -20,9 +20,9 @@
 
 use crate::{handler::*, state::ServerState};
 use axum::{
-    http::header::{HeaderValue, ACCESS_CONTROL_ALLOW_ORIGIN},
-    routing::{any, get},
     Router,
+    http::header::{ACCESS_CONTROL_ALLOW_ORIGIN, HeaderValue},
+    routing::{any, get},
 };
 use tower_http::{
     compression::CompressionLayer, normalize_path::NormalizePathLayer,

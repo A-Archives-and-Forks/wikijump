@@ -24,7 +24,7 @@
 //! compatible with DEEPWELL's Redis code.
 
 use crate::{deepwell::FileData, error::Result};
-use redis::{aio::MultiplexedConnection, AsyncCommands};
+use redis::{AsyncCommands, aio::MultiplexedConnection};
 
 macro_rules! get_connection {
     ($client:expr) => {

@@ -22,7 +22,7 @@ use super::get_site_id;
 use crate::{
     deepwell::{TextBlockIndex, TextBlockType},
     error::{
-        build_special_error_response, FallbackError, SpecialError, TextBlockErrorReason,
+        FallbackError, SpecialError, TextBlockErrorReason, build_special_error_response,
     },
     state::ServerState,
 };
