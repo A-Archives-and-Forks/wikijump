@@ -23,7 +23,7 @@ use crate::services::PasswordService;
 use crate::utils::assert_is_csprng;
 use data_encoding::BASE32_NOPAD;
 use rand::distributions::{Alphanumeric, DistString};
-use rand::{thread_rng, Rng};
+use rand::{Rng, thread_rng};
 use std::iter;
 
 pub fn generate_totp_secret() -> String {

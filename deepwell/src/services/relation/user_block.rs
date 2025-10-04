@@ -101,7 +101,9 @@ impl RelationService {
         if Self::user_block_exists(ctx, obj!(user_id_1, user_id_2)).await?
             || Self::user_block_exists(ctx, obj!(user_id_2, user_id_1)).await?
         {
-            error!("User ID {user_id_1} cannot {action} user ID {user_id_2} because there is a block");
+            error!(
+                "User ID {user_id_1} cannot {action} user ID {user_id_2} because there is a block"
+            );
             return Err(Error::UserBlockedUser);
         }
 

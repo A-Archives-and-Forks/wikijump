@@ -19,11 +19,11 @@
  */
 
 use super::{
-    get_header, get_site_id, get_site_slug, HEADER_FILENAME, HEADER_PAGE_SLUG,
-    HEADER_SPECIAL_ERROR,
+    HEADER_FILENAME, HEADER_PAGE_SLUG, HEADER_SPECIAL_ERROR, get_header, get_site_id,
+    get_site_slug,
 };
 use crate::{
-    error::{build_special_error_response, FallbackError, SpecialError},
+    error::{FallbackError, SpecialError, build_special_error_response},
     state::ServerState,
 };
 use axum::{

@@ -19,7 +19,7 @@
  */
 
 use tracing_subscriber::{
-    fmt, layer::SubscriberExt, registry, util::SubscriberInitExt, EnvFilter,
+    EnvFilter, fmt, layer::SubscriberExt, registry, util::SubscriberInitExt,
 };
 
 pub fn setup_tracing() {

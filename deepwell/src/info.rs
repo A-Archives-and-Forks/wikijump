@@ -23,8 +23,8 @@ mod build {
 }
 
 use std::sync::LazyLock;
-use time::format_description::well_known::Rfc2822;
 use time::OffsetDateTime;
+use time::format_description::well_known::Rfc2822;
 
 #[allow(unused_imports)]
 pub use self::build::{

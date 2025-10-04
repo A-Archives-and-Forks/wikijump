@@ -344,6 +344,8 @@ UNIT TEST INFO:
     if UPDATE_TEST_FILES {
         // We cannot allow tests to silently pass because someone is just auto-updating
         // whatever is generated to match.
-        panic!("UPDATE_TEST_FILES is set to true! Disable this flag before attempting to run CI");
+        panic!(
+            "UPDATE_TEST_FILES is set to true! Disable this flag before attempting to run CI"
+        );
     }
 }

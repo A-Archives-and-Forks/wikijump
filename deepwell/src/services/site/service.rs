@@ -23,7 +23,7 @@ use crate::constants::SYSTEM_USER_ID;
 use crate::models::sea_orm_active_enums::{AliasType, UserType};
 use crate::models::site::{self, Entity as Site, Model as SiteModel};
 use crate::services::alias::CreateAlias;
-use crate::services::domain::{DomainService, DEFAULT_SITE_SLUG};
+use crate::services::domain::{DEFAULT_SITE_SLUG, DomainService};
 use crate::services::relation::CreateSiteUser;
 use crate::services::user::{CreateUser, UpdateUserBody};
 use crate::services::{AliasService, Error, RelationService, UserService};
@@ -197,7 +197,9 @@ impl SiteService {
                         return Err(Error::CustomDomainWrongSite);
                     }
                     None => {
-                        error!("Attempting to set preferred domain to '{domain}', but this is not a known custom domain!");
+                        error!(
+                            "Attempting to set preferred domain to '{domain}', but this is not a known custom domain!"
+                        );
                         return Err(Error::CustomDomainNotFound);
                     }
                 }
@@ -299,15 +301,14 @@ impl SiteService {
         //
         // This uses separate queries rather than a join.
         // See UserService::get_optional() for more information.
-        if let Reference::Slug(ref slug) = reference {
-            if let Some(alias) =
+        if let Reference::Slug(ref slug) = reference
+            && let Some(alias) =
                 AliasService::get_optional(ctx, AliasType::Site, slug).await?
-            {
-                // If present, this is the actual site. Proceed with SELECT by id.
-                // Rewrite reference so in the "real" site search
-                // we locate directly via site ID.
-                reference = Reference::Id(alias.target_id);
-            }
+        {
+            // If present, this is the actual site. Proceed with SELECT by id.
+            // Rewrite reference so in the "real" site search
+            // we locate directly via site ID.
+            reference = Reference::Id(alias.target_id);
         }
 
         let site = match reference {

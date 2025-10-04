@@ -61,7 +61,9 @@ impl ViewService {
             session_token,
         }: GetPageView,
     ) -> Result<GetPageViewOutput> {
-        info!("Getting page view data for site ID {site_id}, route '{route:?}', locales '{locales_str:?}'");
+        info!(
+            "Getting page view data for site ID {site_id}, route '{route:?}', locales '{locales_str:?}'"
+        );
 
         let mut locales = parse_locales(&locales_str)?;
         let config = ctx.config();
@@ -298,7 +300,9 @@ impl ViewService {
             session_token,
         }: GetUserView<'_>,
     ) -> Result<GetUserViewOutput> {
-        info!("Getting user view data for site ID {site_id}, user '{user_ref:?}', locales '{locales_str:?}'");
+        info!(
+            "Getting user view data for site ID {site_id}, user '{user_ref:?}', locales '{locales_str:?}'"
+        );
 
         let mut locales = parse_locales(&locales_str)?;
         let viewer = Self::get_viewer(
@@ -532,10 +536,6 @@ impl ViewService {
         normalize(&mut target);
 
         // Return
-        if slug == target {
-            None
-        } else {
-            Some(target)
-        }
+        if slug == target { None } else { Some(target) }
     }
 }

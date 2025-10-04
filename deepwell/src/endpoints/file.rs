@@ -21,12 +21,12 @@
 use super::prelude::*;
 use crate::models::file::Model as FileModel;
 use crate::models::file_revision::Model as FileRevisionModel;
+use crate::services::Result;
 use crate::services::file::{
     CreateFile, CreateFileOutput, DeleteFile, DeleteFileOutput, EditFile, EditFileOutput,
     GetFileDetails, GetFileOutput, MoveFile, MoveFileOutput, RestoreFile,
     RestoreFileOutput, RollbackFile,
 };
-use crate::services::Result;
 use crate::services::{BlobService, FileRevisionService};
 use crate::types::{Bytes, FileDetails};
 

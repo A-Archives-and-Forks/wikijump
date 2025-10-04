@@ -18,10 +18,10 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use super::error::{fluent_load_err, LocalizationLoadError};
+use super::error::{LocalizationLoadError, fluent_load_err};
 use super::fallback::iterate_locale_fallbacks;
 use crate::services::Error as ServiceError;
-use fluent::{bundle, FluentArgs, FluentMessage, FluentResource};
+use fluent::{FluentArgs, FluentMessage, FluentResource, bundle};
 use fluent_syntax::ast::Pattern;
 use intl_memoizer::concurrent::IntlLangMemoizer;
 use std::borrow::Cow;

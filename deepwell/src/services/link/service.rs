@@ -146,8 +146,7 @@ impl LinkService {
         {
             warn!(
                 "Requesting missing page connections for page that exists (site id {}, page id {})",
-                site_id,
-                page.page_id,
+                site_id, page.page_id,
             );
 
             return Err(Error::PageExists);

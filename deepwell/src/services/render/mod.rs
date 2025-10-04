@@ -27,8 +27,8 @@ mod prelude {
         data::PageInfo,
         info::VERSION as FTML_VERSION,
         parsing::ParseError,
-        render::html::{HtmlOutput, HtmlRender},
         render::Render,
+        render::html::{HtmlOutput, HtmlRender},
         settings::WikitextSettings,
     };
 }

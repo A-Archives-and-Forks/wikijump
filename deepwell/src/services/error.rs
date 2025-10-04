@@ -18,12 +18,12 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use crate::hash::{blob_hash_to_hex, BlobHash};
+use crate::hash::{BlobHash, blob_hash_to_hex};
 use filemagic::FileMagicError;
 use jsonrpsee::types::error::ErrorObjectOwned;
 use reqwest::Error as ReqwestError;
 use s3::error::S3Error;
-use sea_orm::{error::DbErr, TransactionError};
+use sea_orm::{TransactionError, error::DbErr};
 use thiserror::Error as ThisError;
 use unic_langid::LanguageIdentifierError;
 
@@ -168,7 +168,9 @@ pub enum Error {
     #[error("Invalid session token, cannot be used for authentication")]
     InvalidSessionToken,
 
-    #[error("User ID {session_user_id} associated with session does not match active user ID {active_user_id}")]
+    #[error(
+        "User ID {session_user_id} associated with session does not match active user ID {active_user_id}"
+    )]
     SessionUserId {
         active_user_id: i64,
         session_user_id: i64,

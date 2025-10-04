@@ -54,13 +54,7 @@ static ALL_CHANGES: LazyLock<Vec<String>> = LazyLock::new(|| {
 
 macro_rules! conditional_future {
     ($conditional:expr, $future:expr $(,)?) => {
-        async move {
-            if $conditional {
-                $future.await
-            } else {
-                Ok(())
-            }
-        }
+        async move { if $conditional { $future.await } else { Ok(()) } }
     };
 }
 
@@ -142,33 +136,33 @@ impl PageRevisionService {
         // We check the values so that the only listed "changes"
         // are those that actually are different.
 
-        if let Maybe::Set(new_title) = body.title {
-            if title != new_title {
-                changes.push(str!("title"));
-                title = new_title;
-            }
+        if let Maybe::Set(new_title) = body.title
+            && title != new_title
+        {
+            changes.push(str!("title"));
+            title = new_title;
         }
 
-        if let Maybe::Set(new_alt_title) = body.alt_title {
-            if alt_title != new_alt_title {
-                changes.push(str!("alt_title"));
-                alt_title = new_alt_title;
-            }
+        if let Maybe::Set(new_alt_title) = body.alt_title
+            && alt_title != new_alt_title
+        {
+            changes.push(str!("alt_title"));
+            alt_title = new_alt_title;
         }
 
-        if let Maybe::Set(new_slug) = body.slug {
-            if slug != new_slug {
-                changes.push(str!("slug"));
-                old_slug = Some(slug);
-                slug = new_slug;
-            }
+        if let Maybe::Set(new_slug) = body.slug
+            && slug != new_slug
+        {
+            changes.push(str!("slug"));
+            old_slug = Some(slug);
+            slug = new_slug;
         }
 
-        if let Maybe::Set(new_tags) = body.tags {
-            if tags != new_tags {
-                changes.push(str!("tags"));
-                tags = new_tags;
-            }
+        if let Maybe::Set(new_tags) = body.tags
+            && tags != new_tags
+        {
+            changes.push(str!("tags"));
+            tags = new_tags;
         }
 
         // Get slug strings for the new location
@@ -682,7 +676,9 @@ impl PageRevisionService {
         }
 
         for &(check_depth, update_offset) in &ctx.config().rerender_skip {
-            debug!("Checking rerender-skip rule: depth {check_depth}, updated offset {update_offset:?}");
+            debug!(
+                "Checking rerender-skip rule: depth {check_depth}, updated offset {update_offset:?}"
+            );
             if depth >= check_depth && updated_recently!(update_offset) {
                 warn!("Skipping rerender job, too deep and updated too recently");
                 return Ok(());

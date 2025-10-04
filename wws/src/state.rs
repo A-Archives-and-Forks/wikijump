@@ -23,7 +23,7 @@ use crate::{
     config::Secrets,
     deepwell::{Deepwell, FileData, PageData},
     error::{
-        build_special_error_response, FallbackError, ResponseResult, Result, SpecialError,
+        FallbackError, ResponseResult, Result, SpecialError, build_special_error_response,
     },
 };
 use axum::{http::HeaderMap, response::IntoResponse};

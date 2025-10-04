@@ -22,7 +22,7 @@ use super::get_site_id;
 use crate::{path::get_path, state::ServerState};
 use axum::{
     extract::{Path, State},
-    http::{header::HeaderMap, Uri},
+    http::{Uri, header::HeaderMap},
     response::{IntoResponse, Redirect, Response},
 };
 

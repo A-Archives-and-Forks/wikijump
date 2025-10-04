@@ -51,7 +51,7 @@ pub enum Maybe<T> {
 impl<T> Maybe<T> {
     pub fn to_option(&self) -> Option<&T> {
         match self {
-            Maybe::Set(ref value) => Some(value),
+            Maybe::Set(value) => Some(value),
             Maybe::Unset => None,
         }
     }

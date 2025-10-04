@@ -67,7 +67,9 @@ impl RelationService {
         .await?;
 
         if !sites.is_empty() {
-            error!("Found a different relation with this site, cannot create relation: {sites:?}");
+            error!(
+                "Found a different relation with this site, cannot create relation: {sites:?}"
+            );
             return Err(Error::BadRequest);
         }
 
@@ -80,7 +82,9 @@ impl RelationService {
         .await?;
 
         if !users.is_empty() {
-            error!("Found a different relation with this user, cannot create relation: {users:?}");
+            error!(
+                "Found a different relation with this user, cannot create relation: {users:?}"
+            );
             return Err(Error::BadRequest);
         }
 

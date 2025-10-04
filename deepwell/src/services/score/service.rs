@@ -39,9 +39,9 @@ impl ScoreService {
     pub async fn get_scorer(
         _ctx: &ServiceContext<'_>,
         _page_id: i64,
-    ) -> Result<&'static impl Scorer> {
+    ) -> Result<impl Scorer> {
         // TODO
-        Ok(&TestScorer)
+        Ok(TestScorer)
     }
 
     /// Helper method for retrieving a `VoteMap` for a page.
