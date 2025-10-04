@@ -20,11 +20,11 @@
 
 use super::prelude::*;
 use crate::hash::slice_to_blob_hash;
+use crate::services::Result;
 use crate::services::blob::{
     BlobMetadata, CancelBlobUpload, GetBlobOutput, HardDelete, HardDeleteOutput,
     StartBlobUpload, StartBlobUploadOutput,
 };
-use crate::services::Result;
 use crate::types::Bytes;
 
 /// Temporary endpoint to get any blob by hash.

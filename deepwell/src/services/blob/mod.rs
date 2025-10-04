@@ -31,7 +31,7 @@ mod prelude {
         EMPTY_BLOB_HASH, EMPTY_BLOB_MIME, EMPTY_BLOB_TIMESTAMP, PRESIGN_DIRECTORY,
     };
     pub use super::structs::*;
-    pub use crate::hash::{blob_hash_to_hex, sha512_hash, BlobHash};
+    pub use crate::hash::{BlobHash, blob_hash_to_hex, sha512_hash};
 }
 
 mod mime;

@@ -25,7 +25,7 @@ use crate::models::file_revision::{
     self, Entity as FileRevision, Model as FileRevisionModel,
 };
 use crate::models::sea_orm_active_enums::FileRevisionType;
-use crate::services::blob::{FinalizeBlobUploadOutput, EMPTY_BLOB_HASH, EMPTY_BLOB_MIME};
+use crate::services::blob::{EMPTY_BLOB_HASH, EMPTY_BLOB_MIME, FinalizeBlobUploadOutput};
 use crate::services::file_revision::{
     CreateFileRevision, CreateFileRevisionBody, CreateFirstFileRevision,
     CreateResurrectionFileRevision, CreateTombstoneFileRevision, FileBlob,
@@ -260,7 +260,9 @@ impl FileService {
         // Get destination filename
         let mut name = name.unwrap_or_else(|| last_revision.name.clone());
 
-        info!("Moving file with ID {file_id} from page ID {current_page_id} to {destination_page_id}");
+        info!(
+            "Moving file with ID {file_id} from page ID {current_page_id} to {destination_page_id}"
+        );
 
         // Verify filename is valid
         check_file_name(&mut name)?;

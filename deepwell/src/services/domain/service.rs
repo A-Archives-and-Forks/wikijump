@@ -52,7 +52,9 @@ impl DomainService {
         let config = ctx.config();
         if domain.ends_with(&config.main_domain) || domain.ends_with(&config.files_domain)
         {
-            error!("Custom domains cannot be subdomains of the Wikijump main or files domain: {domain}");
+            error!(
+                "Custom domains cannot be subdomains of the Wikijump main or files domain: {domain}"
+            );
             return Err(Error::CustomDomainSubdomain);
         }
 

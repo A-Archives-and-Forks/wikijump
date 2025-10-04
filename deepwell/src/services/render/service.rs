@@ -20,7 +20,7 @@
 
 use super::prelude::*;
 use crate::models::sea_orm_active_enums::TextBlockType;
-use crate::services::text_block::{mime_for_language, TextBlock, MIME_HTML};
+use crate::services::text_block::{MIME_HTML, TextBlock, mime_for_language};
 use crate::services::{TextBlockService, TextService};
 use ftml::{prelude::*, tree::CodeBlock};
 use tokio::time::timeout;

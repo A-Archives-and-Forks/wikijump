@@ -36,7 +36,7 @@ use crate::endpoints::{
 use crate::locales::Localizations;
 use crate::services::blob::MimeAnalyzer;
 use crate::services::job::JobWorker;
-use crate::services::{into_rpc_error, ServiceContext};
+use crate::services::{ServiceContext, into_rpc_error};
 use crate::utils::debug_pointer;
 use crate::{database, redis as redis_db};
 use jsonrpsee::server::{RpcModule, Server, ServerHandle};

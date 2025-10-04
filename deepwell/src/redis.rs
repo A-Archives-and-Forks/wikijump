@@ -19,8 +19,8 @@
  */
 
 use crate::services::job::{
-    Job, JobService, JOB_QUEUE_DELAY, JOB_QUEUE_MAXIMUM_SIZE, JOB_QUEUE_NAME,
-    JOB_QUEUE_PROCESS_TIME,
+    JOB_QUEUE_DELAY, JOB_QUEUE_MAXIMUM_SIZE, JOB_QUEUE_NAME, JOB_QUEUE_PROCESS_TIME, Job,
+    JobService,
 };
 use anyhow::Result;
 use redis::aio::MultiplexedConnection;

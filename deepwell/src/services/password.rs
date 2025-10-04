@@ -21,7 +21,7 @@
 use super::prelude::*;
 use crate::utils::assert_is_csprng;
 use argon2::{
-    password_hash::SaltString, Argon2, PasswordHash, PasswordHasher, PasswordVerifier,
+    Argon2, PasswordHash, PasswordHasher, PasswordVerifier, password_hash::SaltString,
 };
 use rand::thread_rng;
 use tokio::time;

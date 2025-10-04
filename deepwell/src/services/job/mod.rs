@@ -27,8 +27,8 @@
 mod prelude {
     pub use super::super::prelude::*;
     pub use super::service::{
-        JobService, JOB_QUEUE_DELAY, JOB_QUEUE_MAXIMUM_SIZE, JOB_QUEUE_NAME,
-        JOB_QUEUE_PROCESS_TIME,
+        JOB_QUEUE_DELAY, JOB_QUEUE_MAXIMUM_SIZE, JOB_QUEUE_NAME, JOB_QUEUE_PROCESS_TIME,
+        JobService,
     };
     pub use super::structs::*;
 }

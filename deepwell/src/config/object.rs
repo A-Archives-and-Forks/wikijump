@@ -240,11 +240,7 @@ impl Config {
     pub fn log(&self) {
         #[inline]
         fn bool_str(value: bool) -> &'static str {
-            if value {
-                "enabled"
-            } else {
-                "disabled"
-            }
+            if value { "enabled" } else { "disabled" }
         }
 
         info!("Configuration details:");

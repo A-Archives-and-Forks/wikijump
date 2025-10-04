@@ -54,13 +54,7 @@ static ALL_CHANGES: LazyLock<Vec<String>> = LazyLock::new(|| {
 
 macro_rules! conditional_future {
     ($conditional:expr, $future:expr $(,)?) => {
-        async move {
-            if $conditional {
-                $future.await
-            } else {
-                Ok(())
-            }
-        }
+        async move { if $conditional { $future.await } else { Ok(()) } }
     };
 }
 
@@ -682,7 +676,9 @@ impl PageRevisionService {
         }
 
         for &(check_depth, update_offset) in &ctx.config().rerender_skip {
-            debug!("Checking rerender-skip rule: depth {check_depth}, updated offset {update_offset:?}");
+            debug!(
+                "Checking rerender-skip rule: depth {check_depth}, updated offset {update_offset:?}"
+            );
             if depth >= check_depth && updated_recently!(update_offset) {
                 warn!("Skipping rerender job, too deep and updated too recently");
                 return Ok(());

@@ -44,8 +44,8 @@ use rand::thread_rng;
 use s3::request::request_trait::ResponseData;
 use s3::serde_types::HeadObjectResult;
 use sea_orm::{
-    prelude::*, DatabaseBackend, FromQueryResult, Statement, StreamTrait,
-    TransactionTrait, UpdateResult,
+    DatabaseBackend, FromQueryResult, Statement, StreamTrait, TransactionTrait,
+    UpdateResult, prelude::*,
 };
 use sea_query::value::ArrayType;
 use std::collections::{HashMap, HashSet};
@@ -129,7 +129,9 @@ impl BlobService {
             path
         };
 
-        info!("Creating presign upload URL for blob at path {s3_path} with primary key {pending_blob_id}");
+        info!(
+            "Creating presign upload URL for blob at path {s3_path} with primary key {pending_blob_id}"
+        );
 
         // Create presign URL
         let bucket = ctx.s3_files_bucket();
@@ -189,7 +191,9 @@ impl BlobService {
         };
 
         if user_id != created_by {
-            error!("User mismatch, user ID {user_id} is attempting to use blob uploaded by {created_by}");
+            error!(
+                "User mismatch, user ID {user_id} is attempting to use blob uploaded by {created_by}"
+            );
             return Err(Error::BlobWrongUser);
         }
 

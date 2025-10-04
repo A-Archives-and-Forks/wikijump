@@ -195,8 +195,7 @@ impl SessionService {
         if old_session.user_id != user_id {
             error!(
                 "Requested session renewal, user IDs do not match! (current: {}, request: {})",
-                old_session.user_id,
-                user_id,
+                old_session.user_id, user_id,
             );
 
             return Err(Error::SessionUserId {
@@ -261,8 +260,7 @@ impl SessionService {
         if session.user_id != user_id {
             error!(
                 "Requested invalidation of other sessions, user IDs do not match! (current: {}, request: {})",
-                session.user_id,
-                user_id,
+                session.user_id, user_id,
             );
 
             return Err(Error::SessionUserId {

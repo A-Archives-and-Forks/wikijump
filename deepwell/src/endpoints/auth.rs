@@ -20,6 +20,7 @@
 
 use super::prelude::*;
 use crate::models::session::Model as SessionModel;
+use crate::services::Error;
 use crate::services::authentication::{
     AuthenticateUserOutput, AuthenticationService, LoginUser, LoginUserMfa,
     LoginUserOutput, MultiFactorAuthenticateUser,
@@ -32,7 +33,6 @@ use crate::services::session::{
     RenewSession,
 };
 use crate::services::user::GetUser;
-use crate::services::Error;
 
 pub async fn auth_login(
     ctx: &ServiceContext<'_>,

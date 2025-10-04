@@ -21,7 +21,7 @@
 use super::Config;
 use crate::info;
 use clap::builder::{BoolishValueParser, NonEmptyStringValueParser};
-use clap::{value_parser, Arg, ArgAction, Command};
+use clap::{Arg, ArgAction, Command, value_parser};
 use std::net::IpAddr;
 use std::path::PathBuf;
 use std::process;

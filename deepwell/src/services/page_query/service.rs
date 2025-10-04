@@ -333,7 +333,7 @@ impl PageQueryService {
         // Add on at the query-level (ORDER BY, LIMIT)
         {
             use sea_orm::query::Order;
-            use sea_query::{func::Func, SimpleExpr};
+            use sea_query::{SimpleExpr, func::Func};
 
             let OrderBySelector {
                 property,

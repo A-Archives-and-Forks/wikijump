@@ -39,7 +39,7 @@ use crate::models::sea_orm_active_enums::TextBlockType;
 use crate::models::text_block::{
     self, Entity as TextBlockTable, Model as TextBlockModel,
 };
-use sea_orm::{strum::IntoEnumIterator, ActiveEnum};
+use sea_orm::{ActiveEnum, strum::IntoEnumIterator};
 use std::collections::HashSet;
 
 /// Write out the S3 filename for this hosted text block.

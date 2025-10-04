@@ -308,7 +308,9 @@ impl AliasService {
                 )?;
 
                 if let (Some(site), Some(alias)) = (site_result, alias_result) {
-                    error!("Consistency error! Both site and alias tables have the slug '{slug}'");
+                    error!(
+                        "Consistency error! Both site and alias tables have the slug '{slug}'"
+                    );
 
                     panic!(
                         "Slug appears as both a site and an alias!\nSite: {site:#?}\nAlias: {alias:#?}",
@@ -328,7 +330,9 @@ impl AliasService {
                 )?;
 
                 if let (Some(user), Some(alias)) = (user_result, alias_result) {
-                    error!("Consistency error! Both user and alias tables have the slug '{slug}'");
+                    error!(
+                        "Consistency error! Both user and alias tables have the slug '{slug}'"
+                    );
 
                     panic!(
                         "Slug appears as both a user and an alias!\nUser: {user:#?}\nAlias: {alias:#?}",

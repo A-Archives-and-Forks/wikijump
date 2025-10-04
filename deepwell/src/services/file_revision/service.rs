@@ -19,15 +19,15 @@
  */
 
 use super::prelude::*;
-use crate::hash::{blob_hash_to_hex, slice_to_blob_hash, BlobHash};
+use crate::hash::{BlobHash, blob_hash_to_hex, slice_to_blob_hash};
 use crate::models::file_revision::{
     self, Entity as FileRevision, Model as FileRevisionModel,
 };
 use crate::models::{file, page, site};
-use crate::services::blob::{FinalizeBlobUploadOutput, EMPTY_BLOB_HASH, EMPTY_BLOB_MIME};
+use crate::services::blob::{EMPTY_BLOB_HASH, EMPTY_BLOB_MIME, FinalizeBlobUploadOutput};
 use crate::services::{BlobService, OutdateService, PageService};
 use crate::types::{Bytes, FetchDirection};
-use sea_orm::{prelude::*, FromQueryResult};
+use sea_orm::{FromQueryResult, prelude::*};
 use std::num::NonZeroI32;
 use std::sync::LazyLock;
 

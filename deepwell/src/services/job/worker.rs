@@ -135,7 +135,9 @@ impl JobWorker {
                     empty_queue_delay
                 }
                 Ok(JobProcessStatus::ReceivedJob) => {
-                    trace!("Job processing finished, sleeping a bit to avoid overloading the database");
+                    trace!(
+                        "Job processing finished, sleeping a bit to avoid overloading the database"
+                    );
                     empty_queue_delay = config!(job_min_poll_delay);
                     config!(job_work_delay)
                 }

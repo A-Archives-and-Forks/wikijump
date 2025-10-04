@@ -28,5 +28,5 @@ mod prelude {
 mod service;
 mod structs;
 
-pub use self::service::{DomainService, DEFAULT_SITE_SLUG};
+pub use self::service::{DEFAULT_SITE_SLUG, DomainService};
 pub use self::structs::*;
