@@ -669,12 +669,13 @@ impl PageService {
     ) -> Result<Option<PageModel>> {
         let txn = ctx.transaction();
         let page = Page::find_by_id(page_id).one(txn).await?;
-        if let Some(ref page) = page {
-            if !allow_deleted && page.deleted_at.is_some() {
-                // If we're not looking for deleted pages, then
-                // return nothing if the page whose ID match is.
-                return Ok(None);
-            }
+        if let Some(ref page) = page
+            && !allow_deleted
+            && page.deleted_at.is_some()
+        {
+            // If we're not looking for deleted pages, then
+            // return nothing if the page whose ID match is.
+            return Ok(None);
         }
 
         Ok(page)

@@ -92,31 +92,30 @@ impl FileRevisionService {
         // We check the values so that the only listed "changes"
         // are those that actually are different.
 
-        if let Maybe::Set(new_page_id) = body.page_id {
-            if page_id != new_page_id {
-                changes.push(str!("page"));
-                page_id = new_page_id;
-            }
+        if let Maybe::Set(new_page_id) = body.page_id
+            && page_id != new_page_id
+        {
+            changes.push(str!("page"));
+            page_id = new_page_id;
         }
 
-        if let Maybe::Set(new_name) = body.name {
-            if name != new_name {
-                changes.push(str!("name"));
-                name = new_name;
-            }
+        if let Maybe::Set(new_name) = body.name
+            && name != new_name
+        {
+            changes.push(str!("name"));
+            name = new_name;
         }
 
-        if let Maybe::Set(new_blob) = body.blob {
-            if s3_hash != new_blob.s3_hash
+        if let Maybe::Set(new_blob) = body.blob
+            && (s3_hash != new_blob.s3_hash
                 || size != new_blob.size
-                || mime != new_blob.mime
-            {
-                changes.push(str!("blob"));
-                s3_hash = new_blob.s3_hash.to_vec();
-                size = new_blob.size;
-                mime = new_blob.mime;
-                blob_created = Maybe::Set(new_blob.blob_created);
-            }
+                || mime != new_blob.mime)
+        {
+            changes.push(str!("blob"));
+            s3_hash = new_blob.s3_hash.to_vec();
+            size = new_blob.size;
+            mime = new_blob.mime;
+            blob_created = Maybe::Set(new_blob.blob_created);
         }
 
         // If nothing has changed, then don't create a new revision

@@ -693,11 +693,12 @@ impl FileService {
             .one(txn)
             .await?;
 
-        if let Some(ref file) = file {
-            if !allow_deleted && file.deleted_at.is_some() {
-                // If we're not looking for deleted files, then skip.
-                return Ok(None);
-            }
+        if let Some(ref file) = file
+            && !allow_deleted
+            && file.deleted_at.is_some()
+        {
+            // If we're not looking for deleted files, then skip.
+            return Ok(None);
         }
 
         Ok(file)

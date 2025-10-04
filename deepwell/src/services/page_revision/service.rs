@@ -136,33 +136,33 @@ impl PageRevisionService {
         // We check the values so that the only listed "changes"
         // are those that actually are different.
 
-        if let Maybe::Set(new_title) = body.title {
-            if title != new_title {
-                changes.push(str!("title"));
-                title = new_title;
-            }
+        if let Maybe::Set(new_title) = body.title
+            && title != new_title
+        {
+            changes.push(str!("title"));
+            title = new_title;
         }
 
-        if let Maybe::Set(new_alt_title) = body.alt_title {
-            if alt_title != new_alt_title {
-                changes.push(str!("alt_title"));
-                alt_title = new_alt_title;
-            }
+        if let Maybe::Set(new_alt_title) = body.alt_title
+            && alt_title != new_alt_title
+        {
+            changes.push(str!("alt_title"));
+            alt_title = new_alt_title;
         }
 
-        if let Maybe::Set(new_slug) = body.slug {
-            if slug != new_slug {
-                changes.push(str!("slug"));
-                old_slug = Some(slug);
-                slug = new_slug;
-            }
+        if let Maybe::Set(new_slug) = body.slug
+            && slug != new_slug
+        {
+            changes.push(str!("slug"));
+            old_slug = Some(slug);
+            slug = new_slug;
         }
 
-        if let Maybe::Set(new_tags) = body.tags {
-            if tags != new_tags {
-                changes.push(str!("tags"));
-                tags = new_tags;
-            }
+        if let Maybe::Set(new_tags) = body.tags
+            && tags != new_tags
+        {
+            changes.push(str!("tags"));
+            tags = new_tags;
         }
 
         // Get slug strings for the new location

@@ -366,10 +366,10 @@ impl ConfigFile {
 
         // Treats empty strings (which aren't valid paths anyways)
         // as null for the purpose of pid_file.
-        if let Some(ref path) = pid_file {
-            if path.as_os_str().is_empty() {
-                pid_file = None;
-            }
+        if let Some(ref path) = pid_file
+            && path.as_os_str().is_empty()
+        {
+            pid_file = None;
         }
 
         Config {
