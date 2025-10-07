@@ -68,3 +68,84 @@ macro_rules! fluent_str {
         FluentValue::String(cow!(&$value))
     };
 }
+
+/// Convenience macro for adding an entry to the audit log.
+macro_rules! audit {
+    ($ctx:expr, $event:expr) => {{
+        use crate::services::audit::AuditService;
+        AuditService::log($ctx, $event).await?;
+    }};
+
+    (user.create, $ctx:expr, $user_id:expr $(,)?) => {{
+        use crate::services::audit::AuditEvent;
+
+        audit!(
+            $ctx,
+            AuditEvent::UserCreate {
+                ip_address: todo!(),
+                user_id: $user_id,
+            }
+        );
+    }};
+
+    (site.create, $ctx:expr, $user_id:expr, $site_id:expr $(,)?) => {{
+        use crate::services::audit::AuditEvent;
+
+        audit!(
+            $ctx,
+            AuditEvent::SiteCreate {
+                ip_address: todo!(),
+                user_id: $user_id,
+                site_id: $site_id,
+            }
+        );
+    }};
+
+    (
+        page.create,
+        $ctx:expr,
+        $user_id:expr,
+        $site_id:expr,
+        $page_id:expr,
+        $category_id:expr,
+        $revision_id:expr $(,)?
+    ) => {{
+        use crate::services::audit::AuditEvent;
+
+        audit!(
+            $ctx,
+            AuditEvent::PageCreate {
+                ip_address: todo!(),
+                user_id: $user_id,
+                site_id: $site_id,
+                page_id: $page_id,
+                category_id: $category_id,
+                revision_id: $revision_id,
+            }
+        );
+    }};
+
+    (
+        page.edit,
+        $ctx:expr,
+        $user_id:expr,
+        $site_id:expr,
+        $page_id:expr,
+        $category_id:expr,
+        $revision_id:expr $(,)?
+    ) => {{
+        use crate::services::audit::AuditEvent;
+
+        audit!(
+            $ctx,
+            AuditEvent::PageEdit {
+                ip_address: todo!(),
+                user_id: $user_id,
+                site_id: $site_id,
+                page_id: $page_id,
+                category_id: $category_id,
+                revision_id: $revision_id,
+            }
+        );
+    }};
+}
