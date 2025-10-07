@@ -57,7 +57,7 @@ mod context;
 mod error;
 
 pub mod alias;
-// TODO create audit
+pub mod audit;
 pub mod authentication;
 pub mod blob;
 pub mod caddy;
