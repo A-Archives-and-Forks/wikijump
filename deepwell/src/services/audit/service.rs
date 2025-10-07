@@ -19,16 +19,38 @@
  */
 
 use super::prelude::*;
+use crate::models::audit_log::{self, Entity as AuditLog, Model as AuditLogModel};
 
 #[derive(Debug)]
 pub struct AuditService;
 
 impl AuditService {
     /// Write a new event to the audit log.
-    pub async fn log(ctx: &ServiceContext<'_>, event: AuditEvent) -> Result<()> {
-        let txn = ctx.transaction();
+    pub async fn log(ctx: &ServiceContext<'_>, event: AuditEvent) -> Result<i64> {
+        let RawAuditEvent {
+            event_type,
+            ip_address,
+            user_id,
+            site_id,
+            page_id,
+            extra_id_1,
+            extra_id_2,
+        } = event.extract();
 
-        // TODO
-        todo!()
+        let model = audit_log::ActiveModel {
+            event_type: Set(str!(event_type)),
+            ip_address: Set(str!(ip_address)),
+            user_id: Set(user_id),
+            site_id: Set(site_id),
+            page_id: Set(page_id),
+            extra_id_1: Set(extra_id_1),
+            extra_id_2: Set(extra_id_2),
+            ..Default::default()
+        };
+
+        let txn = ctx.transaction();
+        let AuditLogModel { event_id, .. } = model.insert(txn).await?;
+        info!("Adding audit log event '{event_type}' (ID {event_id})");
+        Ok(event_id)
     }
 }
