@@ -49,7 +49,7 @@ impl AuditService {
         };
 
         let txn = ctx.transaction();
-        let AuditLogModel { event_id, .. } = model.insert(txn).await?;
+        let event_id = AuditLog::insert(model).exec(txn).await?.last_insert_id;
         info!("Adding audit log event '{event_type}' (ID {event_id})");
         Ok(event_id)
     }
