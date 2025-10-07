@@ -131,7 +131,6 @@ macro_rules! audit {
         $user_id:expr,
         $site_id:expr,
         $page_id:expr,
-        $category_id:expr,
         $revision_id:expr $(,)?
     ) => {{
         use crate::services::audit::AuditEvent;
@@ -143,7 +142,6 @@ macro_rules! audit {
                 user_id: $user_id,
                 site_id: $site_id,
                 page_id: $page_id,
-                category_id: $category_id,
                 revision_id: $revision_id,
             }
         );

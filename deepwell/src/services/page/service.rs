@@ -216,6 +216,8 @@ impl PageService {
         let page = model.update(txn).await?;
         assert_latest_revision(&page);
 
+        audit!(page.edit, ctx, user_id, site_id, page_id, latest_revision_id);
+
         // Build and return
         Ok(revision_output)
     }

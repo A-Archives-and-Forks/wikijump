@@ -47,8 +47,7 @@ pub enum AuditEvent {
         user_id: i64,
         site_id: i64,
         page_id: i64,
-        category_id: i64,
-        revision_id: i64,
+        revision_id: Option<i64>,
     },
 }
 
@@ -101,7 +100,6 @@ impl AuditEvent {
                 user_id,
                 site_id,
                 page_id,
-                category_id,
                 revision_id,
             } => RawAuditEvent {
                 event_type: "page.edit",
@@ -109,8 +107,8 @@ impl AuditEvent {
                 user_id: Some(user_id),
                 site_id: Some(site_id),
                 page_id: Some(page_id),
-                extra_id_1: Some(category_id),
-                extra_id_2: Some(revision_id),
+                extra_id_1: revision_id,
+                extra_id_2: None,
             },
         }
     }
