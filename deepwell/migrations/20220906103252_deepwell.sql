@@ -716,6 +716,7 @@ CREATE TABLE audit_log (
     event_id BIGSERIAL PRIMARY KEY,
     event_type TEXT NOT NULL,  -- check enum value at runtime
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+    ip_address TEXT NOT NULL,  -- TODO change to INET
     user_id BIGINT,
     site_id BIGINT,
     page_id BIGINT,
