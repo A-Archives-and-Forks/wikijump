@@ -6,6 +6,8 @@ Note that the `audit_log` table is implemented using a variety of nullable colum
 
 Additionally, for performance reasons, this table does not use foreign keys in Postgres itself, though the code must ensure this invariant regardless.
 
+All event types take the form `[object].[operation]`, describing the data object being acted on and the kind of operation or event that has occurred.
+
 This file will document all event types, describe their data, and explain when this auditing event is raised.
 
 | Event Type        | Normal Columns                    | `extra_id_1`  | `extra_id_2`  |
