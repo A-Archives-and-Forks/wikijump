@@ -116,6 +116,8 @@ impl PageService {
         let page = model.update(txn).await?;
         assert_latest_revision(&page);
 
+        audit!(page.create, ctx, user_id, site_id, page_id, revision_id, category_id);
+
         // Build and return
         Ok(CreatePageOutput {
             page_id,

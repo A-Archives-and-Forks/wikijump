@@ -14,5 +14,5 @@ This file will document all event types, describe their data, and explain when t
 |-------------------|-----------------------------------|---------------|---------------|
 | `user.create`     | `user_id`                         |               |               |
 | `site.create`     | `site_id`                         |               |               |
-| `page.create`     | `user_id`, `site_id`, `page_id`   | Category ID   | Revision ID   |
+| `page.create`     | `user_id`, `site_id`, `page_id`   | Revision ID   | Category ID   |
 | `page.edit`       | `user_id`, `site_id`, `page_id`   | Category ID   | Revision ID   |
