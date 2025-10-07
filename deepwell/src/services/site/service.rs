@@ -48,6 +48,7 @@ impl SiteService {
             default_page,
             layout,
             locale,
+            ip_address,
         }: CreateSite,
     ) -> Result<CreateSiteOutput> {
         let txn = ctx.transaction();
@@ -89,6 +90,7 @@ impl SiteService {
                 password: String::new(),
                 bypass_filter: false,
                 bypass_email_verification: false,
+                ip_address,
             },
         )
         .await?;
@@ -115,7 +117,7 @@ impl SiteService {
         )
         .await?;
 
-        audit!(user.create, ctx, site.site_id);
+        audit!(user.create, ctx, ip_address, site.site_id);
 
         // Build and return
         Ok(CreateSiteOutput {

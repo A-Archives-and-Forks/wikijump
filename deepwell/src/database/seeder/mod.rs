@@ -44,6 +44,11 @@ use std::collections::HashMap;
 use std::fs;
 use std::io::Read;
 use std::path::{Path, PathBuf};
+use std::net::{IpAddr, Ipv6Addr};
+
+/// The IP address to record for any seeded data.
+/// This is just `localhost`.
+pub const SEED_IP_ADDRESS: IpAddr = IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 1));
 
 pub async fn seed(state: &ServerState) -> Result<()> {
     info!("Running seeder...");
@@ -94,6 +99,7 @@ pub async fn seed(state: &ServerState) -> Result<()> {
                 locales: user.locales,
                 bypass_filter: true,
                 bypass_email_verification: true,
+                ip_address: SEED_IP_ADDRESS,
             },
         )
         .await?;
@@ -161,6 +167,7 @@ pub async fn seed(state: &ServerState) -> Result<()> {
                 default_page: site.default_page,
                 layout: site.layout,
                 locale: site.locale,
+                ip_address: SEED_IP_ADDRESS,
             },
         )
         .await?;
@@ -230,6 +237,7 @@ pub async fn seed(state: &ServerState) -> Result<()> {
                     revision_comments: str!(),
                     user_id: SYSTEM_USER_ID,
                     bypass_filter: true,
+                    ip_address: SEED_IP_ADDRESS,
                 },
             )
             .await?;

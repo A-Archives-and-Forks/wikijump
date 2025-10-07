@@ -56,6 +56,7 @@ impl PageService {
             revision_comments: comments,
             user_id,
             bypass_filter,
+            ip_address,
         }: CreatePage,
     ) -> Result<CreatePageOutput> {
         let txn = ctx.transaction();
@@ -116,7 +117,16 @@ impl PageService {
         let page = model.update(txn).await?;
         assert_latest_revision(&page);
 
-        audit!(page.create, ctx, user_id, site_id, page_id, revision_id, category_id);
+        audit!(
+            page.create,
+            ctx,
+            ip_address,
+            user_id,
+            site_id,
+            page_id,
+            revision_id,
+            category_id,
+        );
 
         // Build and return
         Ok(CreatePageOutput {
@@ -142,6 +152,7 @@ impl PageService {
                     alt_title,
                     tags,
                 },
+            ip_address,
         }: EditPage<'_>,
     ) -> Result<Option<EditPageOutput>> {
         let txn = ctx.transaction();
@@ -216,7 +227,15 @@ impl PageService {
         let page = model.update(txn).await?;
         assert_latest_revision(&page);
 
-        audit!(page.edit, ctx, user_id, site_id, page_id, latest_revision_id);
+        audit!(
+            page.edit,
+            ctx,
+            ip_address,
+            user_id,
+            site_id,
+            page_id,
+            latest_revision_id
+        );
 
         // Build and return
         Ok(revision_output)

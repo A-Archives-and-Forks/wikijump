@@ -76,25 +76,25 @@ macro_rules! audit {
         AuditService::log($ctx, $event).await?;
     }};
 
-    (user.create, $ctx:expr, $user_id:expr $(,)?) => {{
+    (user.create, $ctx:expr, $ip_address:expr, $user_id:expr $(,)?) => {{
         use crate::services::audit::AuditEvent;
 
         audit!(
             $ctx,
             AuditEvent::UserCreate {
-                ip_address: todo!(),
+                ip_address: $ip_address,
                 user_id: $user_id,
             }
         );
     }};
 
-    (site.create, $ctx:expr, $site_id:expr $(,)?) => {{
+    (site.create, $ctx:expr, $ip_address:expr, $site_id:expr $(,)?) => {{
         use crate::services::audit::AuditEvent;
 
         audit!(
             $ctx,
             AuditEvent::SiteCreate {
-                ip_address: todo!(),
+                ip_address: $ip_address,
                 user_id: $user_id,
                 site_id: $site_id,
             }
@@ -104,6 +104,7 @@ macro_rules! audit {
     (
         page.create,
         $ctx:expr,
+        $ip_address:expr,
         $user_id:expr,
         $site_id:expr,
         $page_id:expr,
@@ -115,7 +116,7 @@ macro_rules! audit {
         audit!(
             $ctx,
             AuditEvent::PageCreate {
-                ip_address: todo!(),
+                ip_address: $ip_address,
                 user_id: $user_id,
                 site_id: $site_id,
                 page_id: $page_id,
@@ -128,6 +129,7 @@ macro_rules! audit {
     (
         page.edit,
         $ctx:expr,
+        $ip_address:expr,
         $user_id:expr,
         $site_id:expr,
         $page_id:expr,
@@ -138,7 +140,7 @@ macro_rules! audit {
         audit!(
             $ctx,
             AuditEvent::PageEdit {
-                ip_address: todo!(),
+                ip_address: $ip_address,
                 user_id: $user_id,
                 site_id: $site_id,
                 page_id: $page_id,

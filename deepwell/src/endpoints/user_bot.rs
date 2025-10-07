@@ -26,6 +26,7 @@ use crate::services::relation::{
 };
 use crate::services::user::{CreateUser, CreateUserOutput, GetUser, UpdateUserBody};
 use crate::types::{Maybe, Reference};
+use std::net::IpAddr;
 
 // Structs
 
@@ -48,6 +49,8 @@ pub struct CreateBotUser {
 
     #[serde(default)]
     pub bypass_email_verification: bool,
+
+    pub ip_address: IpAddr,
 }
 
 /// Input structure for adding new bot owners.
@@ -78,6 +81,7 @@ pub async fn bot_user_create(
         authorization_token,
         bypass_filter,
         bypass_email_verification,
+        ip_address,
     } = params.parse()?;
 
     info!("Creating new bot user with name '{name}'");
@@ -102,6 +106,7 @@ pub async fn bot_user_create(
             password: String::new(), // TODO configure user-bot password
             bypass_filter,
             bypass_email_verification,
+            ip_address,
         },
     )
     .await?;

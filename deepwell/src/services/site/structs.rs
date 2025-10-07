@@ -23,6 +23,7 @@ use crate::models::site::Model as SiteModel;
 use crate::models::site_domain::Model as SiteDomainModel;
 use crate::types::{Maybe, Reference};
 use ftml::layout::Layout;
+use std::net::IpAddr;
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct CreateSite {
@@ -33,6 +34,7 @@ pub struct CreateSite {
     pub default_page: Option<String>,
     pub layout: Option<Layout>,
     pub locale: String,
+    pub ip_address: IpAddr,
 }
 
 #[derive(Serialize, Debug, Clone)]

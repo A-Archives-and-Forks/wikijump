@@ -49,6 +49,7 @@ impl UserService {
             password,
             bypass_filter,
             bypass_email_verification,
+            ip_address,
         }: CreateUser,
     ) -> Result<CreateUserOutput> {
         let txn = ctx.transaction();
@@ -242,7 +243,7 @@ impl UserService {
         };
 
         let user_id = User::insert(user).exec(txn).await?.last_insert_id;
-        audit!(user.create, ctx, user_id);
+        audit!(user.create, ctx, ip_address, user_id);
         Ok(CreateUserOutput { user_id, slug })
     }
 

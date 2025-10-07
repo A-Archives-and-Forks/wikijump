@@ -25,6 +25,7 @@ use crate::services::score::ScoreValue;
 use crate::types::PageDetails;
 use ftml::layout::Layout;
 use ftml::parsing::ParseError;
+use std::net::IpAddr;
 use time::OffsetDateTime;
 
 #[derive(Deserialize, Debug, Clone)]
@@ -40,6 +41,8 @@ pub struct CreatePage {
 
     #[serde(default)]
     pub bypass_filter: bool,
+
+    pub ip_address: IpAddr,
 }
 
 #[derive(Serialize, Debug, Clone)]
@@ -168,6 +171,7 @@ pub struct EditPage<'a> {
 
     #[serde(flatten)]
     pub body: EditPageBody,
+    pub ip_address: IpAddr,
 }
 
 #[derive(Deserialize, Debug, Default, Clone)]

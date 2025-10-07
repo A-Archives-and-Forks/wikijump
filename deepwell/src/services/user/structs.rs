@@ -23,6 +23,7 @@ use crate::models::alias::Model as AliasModel;
 use crate::models::sea_orm_active_enums::UserType;
 use crate::models::user::Model as UserModel;
 use crate::types::Bytes;
+use std::net::IpAddr;
 use time::Date;
 
 #[derive(Deserialize, Debug, Clone)]
@@ -35,8 +36,11 @@ pub struct CreateUser {
 
     #[serde(default)]
     pub bypass_filter: bool,
+
     #[serde(default)]
     pub bypass_email_verification: bool,
+
+    pub ip_address: IpAddr,
 }
 
 #[derive(Serialize, Debug, Clone)]
