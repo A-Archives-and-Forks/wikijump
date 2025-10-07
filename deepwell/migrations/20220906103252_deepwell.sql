@@ -720,7 +720,8 @@ CREATE TABLE audit_log (
     user_id BIGINT,
     site_id BIGINT,
     page_id BIGINT,
-    other_id BIGINT,
+    extra_id_1 BIGINT,
+    extra_id_2 BIGINT,
 
     CHECK (strpos(event_type, '.') != 0)  -- all event types are '[object].[operation]'
 );
