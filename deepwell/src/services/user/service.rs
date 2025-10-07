@@ -242,6 +242,7 @@ impl UserService {
         };
 
         let user_id = User::insert(user).exec(txn).await?.last_insert_id;
+        audit!(user.create, ctx, user_id);
         Ok(CreateUserOutput { user_id, slug })
     }
 
