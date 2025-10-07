@@ -115,7 +115,9 @@ impl SiteService {
         )
         .await?;
 
-        // Return
+        audit!(user.create, ctx, site.site_id);
+
+        // Build and return
         Ok(CreateSiteOutput {
             site_id: site.site_id,
             site_user_id: user.user_id,

@@ -88,7 +88,7 @@ macro_rules! audit {
         );
     }};
 
-    (site.create, $ctx:expr, $user_id:expr, $site_id:expr $(,)?) => {{
+    (site.create, $ctx:expr, $site_id:expr $(,)?) => {{
         use crate::services::audit::AuditEvent;
 
         audit!(

@@ -13,6 +13,6 @@ This file will document all event types, describe their data, and explain when t
 | Event Type        | Normal Columns                    | `extra_id_1`  | `extra_id_2`  |
 |-------------------|-----------------------------------|---------------|---------------|
 | `user.create`     | `user_id`                         |               |               |
-| `site.create`     | `user_id`, `site_id`              |               |               |
+| `site.create`     | `site_id`                         |               |               |
 | `page.create`     | `user_id`, `site_id`, `page_id`   | Category ID   | Revision ID   |
 | `page.edit`       | `user_id`, `site_id`, `page_id`   | Category ID   | Revision ID   |
