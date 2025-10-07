@@ -23,6 +23,7 @@ use crate::models::page::{self, Entity as Page, Model as PageModel};
 use crate::models::page_category::Model as PageCategoryModel;
 use crate::models::page_revision::Model as PageRevisionModel;
 use crate::models::sea_orm_active_enums::PageRevisionType;
+use crate::services::audit::{AuditEvent, AuditService};
 use crate::services::filter::{FilterClass, FilterType};
 use crate::services::page_revision::{
     CreateFirstPageRevision, CreateFirstPageRevisionOutput, CreatePageRevision,
@@ -117,16 +118,18 @@ impl PageService {
         let page = model.update(txn).await?;
         assert_latest_revision(&page);
 
-        audit!(
-            page.create,
+        AuditService::log(
             ctx,
-            ip_address,
-            user_id,
-            site_id,
-            page_id,
-            revision_id,
-            category_id,
-        );
+            AuditEvent::PageCreate {
+                ip_address,
+                site_id,
+                page_id,
+                user_id,
+                revision_id,
+                category_id,
+            },
+        )
+        .await?;
 
         // Build and return
         Ok(CreatePageOutput {
@@ -227,15 +230,17 @@ impl PageService {
         let page = model.update(txn).await?;
         assert_latest_revision(&page);
 
-        audit!(
-            page.edit,
+        AuditService::log(
             ctx,
-            ip_address,
-            user_id,
-            site_id,
-            page_id,
-            latest_revision_id
-        );
+            AuditEvent::PageEdit {
+                ip_address,
+                site_id,
+                page_id,
+                user_id,
+                revision_id,
+            },
+        )
+        .await?;
 
         // Build and return
         Ok(revision_output)

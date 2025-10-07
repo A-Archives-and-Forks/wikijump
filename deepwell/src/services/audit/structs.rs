@@ -31,7 +31,6 @@ pub enum AuditEvent {
     },
     SiteCreate {
         ip_address: IpAddr,
-        user_id: i64,
         site_id: i64,
     },
     PageCreate {
@@ -68,12 +67,11 @@ impl AuditEvent {
             },
             AuditEvent::SiteCreate {
                 ip_address,
-                user_id,
                 site_id,
             } => RawAuditEvent {
                 event_type: "site.create",
                 ip_address,
-                user_id: Some(user_id),
+                user_id: None,
                 site_id: Some(site_id),
                 page_id: None,
                 extra_id_1: None,

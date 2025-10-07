@@ -43,8 +43,8 @@ use std::borrow::Cow;
 use std::collections::HashMap;
 use std::fs;
 use std::io::Read;
-use std::path::{Path, PathBuf};
 use std::net::{IpAddr, Ipv6Addr};
+use std::path::{Path, PathBuf};
 
 /// The IP address to record for any seeded data.
 /// This is just `localhost`.

@@ -22,6 +22,7 @@ use super::prelude::*;
 use crate::models::sea_orm_active_enums::{AliasType, UserType};
 use crate::models::user::{self, Entity as User, Model as UserModel};
 use crate::services::alias::CreateAlias;
+use crate::services::audit::{AuditEvent, AuditService};
 use crate::services::blob::{BlobService, FinalizeBlobUploadOutput};
 use crate::services::email::{EmailClassification, EmailService};
 use crate::services::filter::{FilterClass, FilterType};
@@ -243,7 +244,14 @@ impl UserService {
         };
 
         let user_id = User::insert(user).exec(txn).await?.last_insert_id;
-        audit!(user.create, ctx, ip_address, user_id);
+        AuditService::log(
+            ctx,
+            AuditEvent::UserCreate {
+                ip_address,
+                user_id,
+            },
+        )
+        .await?;
         Ok(CreateUserOutput { user_id, slug })
     }
 
