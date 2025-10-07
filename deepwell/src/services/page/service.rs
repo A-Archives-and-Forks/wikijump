@@ -36,6 +36,7 @@ use crate::services::{
 use crate::types::PageOrder;
 use crate::utils::{get_category_name, trim_default};
 use ftml::layout::Layout;
+use ref_map::*;
 use sea_orm::ActiveValue;
 use wikidot_normalize::normalize;
 
@@ -195,10 +196,7 @@ impl PageService {
         )
         .await?;
 
-        let latest_revision_id = match revision_output {
-            Some(ref output) => ActiveValue::Set(Some(output.revision_id)),
-            None => ActiveValue::NotSet,
-        };
+        let revision_id = revision_output.ref_map(|output| output.revision_id);
 
         // Set page updated_at and latest_revision_id columns.
         //
@@ -206,7 +204,10 @@ impl PageService {
         // But since this rerenders regardless, we need to update the page row.
         let model = page::ActiveModel {
             page_id: Set(page_id),
-            latest_revision_id,
+            latest_revision_id: match revision_id {
+                Some(revision_id) => ActiveValue::Set(Some(revision_id)),
+                None => ActiveValue::NotSet,
+            },
             updated_at: Set(Some(now())),
             ..Default::default()
         };
