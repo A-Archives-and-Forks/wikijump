@@ -46,7 +46,7 @@ macro_rules! str_writeln {
     }};
 }
 
-/// Convenience function for creating a borrowed `Cow` from a string slice.
+/// Convenience macro for creating a borrowed `Cow` from a string slice.
 macro_rules! cow {
     ($s:expr) => {{
         use std::borrow::Cow;
@@ -54,7 +54,7 @@ macro_rules! cow {
     }};
 }
 
-/// Convenience function like `cow!`, but for `Option<Cow<str>>`.
+/// Convenience macro like `cow!`, but for `Option<Cow<str>>`.
 macro_rules! cow_opt {
     ($s:expr) => {{
         use ref_map::*;
@@ -62,7 +62,7 @@ macro_rules! cow_opt {
     }};
 }
 
-/// Convenience function for making borrowed string `FluentValue`s.
+/// Convenience macro for making borrowed string `FluentValue`s.
 macro_rules! fluent_str {
     ($value:expr) => {
         FluentValue::String(cow!(&$value))
