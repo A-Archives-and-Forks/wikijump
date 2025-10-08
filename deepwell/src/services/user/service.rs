@@ -33,6 +33,11 @@ use sea_orm::ActiveValue;
 use std::cmp;
 use std::sync::LazyLock;
 
+/// Notes that this user account does not have a password set.
+/// It is not possible for any password hash to match this value,
+/// so no password can possibly match.
+pub const DISABLED_PASSWORD_HASH: &str = "!";
+
 static LEADING_TRAILING_CHARS: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"(^[\-\s]+)|([\-\s+]$)").unwrap());
 
@@ -165,7 +170,7 @@ impl UserService {
                 }
 
                 // Disabled password
-                str!("!")
+                str!(DISABLED_PASSWORD_HASH)
             }
             UserType::Bot => {
                 info!("Creating bot user '{slug}'");
