@@ -18,16 +18,26 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+use super::prelude::*;
 use ftml::layout::Layout;
+use std::borrow::Cow;
 use std::net::IpAddr;
+use time::Date;
+
+// Main structs
 
 /// An event on the audit log.
 ///
 /// Each type of event has a different set of fields that it provides
-#[derive(Deserialize, Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub enum AuditEvent<'a> {
     UserCreate {
         user_id: i64,
+    },
+    UserUpdate {
+        user_id: i64,
+        previous_fields: UserFields<'a>,
+        changed_fields: UserFields<'a>,
     },
     SiteCreate {
         site_id: i64,
@@ -84,8 +94,8 @@ pub enum AuditEvent<'a> {
 }
 
 impl<'a> AuditEvent<'a> {
-    pub fn extract(&self, ip_address: IpAddr) -> RawAuditEvent<'a> {
-        match *self {
+    pub fn extract(&self, ip_address: IpAddr) -> Result<RawAuditEvent<'a>> {
+        let raw_event = match *self {
             AuditEvent::UserCreate { user_id } => RawAuditEvent {
                 event_type: "user.create",
                 ip_address,
@@ -98,6 +108,27 @@ impl<'a> AuditEvent<'a> {
                 extra_string_2: None,
                 extra_number: None,
             },
+            AuditEvent::UserUpdate {
+                user_id,
+                ref previous_fields,
+                ref changed_fields,
+            } => {
+                let previous_fields_json = serde_json::to_string(previous_fields)?;
+                let changed_fields_json = serde_json::to_string(changed_fields)?;
+
+                RawAuditEvent {
+                    event_type: "user.update",
+                    ip_address,
+                    user_id: Some(user_id),
+                    site_id: None,
+                    page_id: None,
+                    extra_id_1: None,
+                    extra_id_2: None,
+                    extra_string_1: Some(Cow::Owned(previous_fields_json)),
+                    extra_string_2: Some(Cow::Owned(changed_fields_json)),
+                    extra_number: None,
+                }
+            }
             AuditEvent::SiteCreate { site_id } => RawAuditEvent {
                 event_type: "site.create",
                 ip_address,
@@ -160,8 +191,8 @@ impl<'a> AuditEvent<'a> {
                 page_id: Some(page_id),
                 extra_id_1: Some(revision_id),
                 extra_id_2: None,
-                extra_string_1: Some(old_slug),
-                extra_string_2: Some(new_slug),
+                extra_string_1: Some(cow!(old_slug)),
+                extra_string_2: Some(cow!(new_slug)),
                 extra_number: None,
             },
             AuditEvent::PageDelete {
@@ -178,7 +209,7 @@ impl<'a> AuditEvent<'a> {
                 page_id: Some(page_id),
                 extra_id_1: Some(revision_id),
                 extra_id_2: None,
-                extra_string_1: Some(page_slug),
+                extra_string_1: Some(cow!(page_slug)),
                 extra_string_2: None,
                 extra_number: None,
             },
@@ -197,7 +228,7 @@ impl<'a> AuditEvent<'a> {
                 page_id: Some(page_id),
                 extra_id_1: Some(revision_id),
                 extra_id_2: Some(category_id),
-                extra_string_1: Some(page_slug),
+                extra_string_1: Some(cow!(page_slug)),
                 extra_string_2: None,
                 extra_number: None,
             },
@@ -232,15 +263,18 @@ impl<'a> AuditEvent<'a> {
                 page_id: Some(page_id),
                 extra_id_1: None,
                 extra_id_2: None,
-                extra_string_1: layout.map(|l| l.value()),
+                extra_string_1: layout.map(|l| cow!(l.value())),
                 extra_string_2: None,
                 extra_number: None,
             },
-        }
+        };
+
+        Ok(raw_event)
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+/// The raw data fields to be inserted into the `audit_log` table.
+#[derive(Debug, Clone)]
 pub struct RawAuditEvent<'a> {
     pub event_type: &'static str,
     pub ip_address: IpAddr,
@@ -249,7 +283,28 @@ pub struct RawAuditEvent<'a> {
     pub page_id: Option<i64>,
     pub extra_id_1: Option<i64>,
     pub extra_id_2: Option<i64>,
-    pub extra_string_1: Option<&'a str>,
-    pub extra_string_2: Option<&'a str>,
+    pub extra_string_1: Option<Cow<'a, str>>,
+    pub extra_string_2: Option<Cow<'a, str>>,
     pub extra_number: Option<i32>,
+}
+
+// Ancillary tables
+
+#[derive(Serialize, Debug, Clone)]
+pub struct UserFields<'a> {
+    pub name: Maybe<&'a str>,
+    pub email: Maybe<&'a str>,
+    // NOTE: We don't log the password value, hash or otherwise,
+    //       instead we record whether a password value is *present*
+    //       or not. See DISABLED_PASSWORD_HASH in UserService.
+    pub password: Maybe<bool>,
+    pub locales: Maybe<&'a [String]>,
+    // NOTE: This is simply whether an avatar is set or not, not its value.
+    pub avatar: Maybe<bool>,
+    pub real_name: Maybe<Option<&'a str>>,
+    pub gender: Maybe<Option<&'a str>>,
+    pub birthday: Maybe<Option<Date>>,
+    pub location: Maybe<Option<&'a str>>,
+    pub biography: Maybe<Option<&'a str>>,
+    pub user_page: Maybe<Option<&'a str>>,
 }

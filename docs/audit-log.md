@@ -13,6 +13,7 @@ This file will document all event types, describe their data, and explain when t
 | Event Type            | Normal Columns                    | `extra_id_1`  | `extra_id_2`  | `extra_string_1`  | `extra_string_2`  | `extra_number`    | Notes |
 |-----------------------|-----------------------------------|---------------|---------------|-------------------|-------------------|-------------------| ------|
 | `user.create`         | `user_id`                         |               |               |                   |                   |                   |       |
+| `user.update`         | `user_id`                         |               |               | Previous fields   | Changed fields    |                   | Both "fields" strings are JSON objects. See the audit services for the shape of this object. |
 | `site.create`         | `site_id`                         |               |               |                   |                   |                   |       |
 | `page.create`         | `user_id`, `site_id`, `page_id`   | Revision ID   | Category ID   |                   |                   |                   |       |
 | `page.edit`           | `user_id`, `site_id`, `page_id`   | Revision ID   |               |                   |                   |                   | The revision ID can be `NULL` if the edit did not result in a new revision being created. |

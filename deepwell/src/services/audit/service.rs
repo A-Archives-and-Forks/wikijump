@@ -43,7 +43,7 @@ impl AuditService {
             extra_string_1,
             extra_string_2,
             extra_number,
-        } = event.extract(ip_address);
+        } = event.extract(ip_address)?;
 
         let model = audit_log::ActiveModel {
             event_type: Set(str!(event_type)),
