@@ -247,6 +247,7 @@ pub struct RollbackPage<'a> {
     pub revision_number: i32,
     pub revision_comments: String,
     pub user_id: i64,
+    pub ip_address: IpAddr,
 }
 
 #[derive(Deserialize, Debug, Copy, Clone)]

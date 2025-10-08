@@ -42,6 +42,7 @@ impl AuditService {
             extra_id_2,
             extra_string_1,
             extra_string_2,
+            extra_number,
         } = event.extract(ip_address);
 
         let model = audit_log::ActiveModel {
@@ -54,6 +55,7 @@ impl AuditService {
             extra_id_2: Set(extra_id_2),
             extra_string_1: Set(extra_string_1.map(|s| str!(s))),
             extra_string_2: Set(extra_string_2.map(|s| str!(s))),
+            extra_number: Set(extra_number),
             ..Default::default()
         };
 

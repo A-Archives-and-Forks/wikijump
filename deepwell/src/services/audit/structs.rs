@@ -67,6 +67,13 @@ pub enum AuditEvent<'a> {
         category_id: i64,
         page_slug: &'a str,
     },
+    PageRollback {
+        user_id: i64,
+        site_id: i64,
+        page_id: i64,
+        revision_id: Option<i64>,
+        revision_number: i32,
+    },
 }
 
 impl<'a> AuditEvent<'a> {
@@ -82,6 +89,7 @@ impl<'a> AuditEvent<'a> {
                 extra_id_2: None,
                 extra_string_1: None,
                 extra_string_2: None,
+                extra_number: None,
             },
             AuditEvent::SiteCreate { site_id } => RawAuditEvent {
                 event_type: "site.create",
@@ -93,6 +101,7 @@ impl<'a> AuditEvent<'a> {
                 extra_id_2: None,
                 extra_string_1: None,
                 extra_string_2: None,
+                extra_number: None,
             },
             AuditEvent::PageCreate {
                 user_id,
@@ -110,6 +119,7 @@ impl<'a> AuditEvent<'a> {
                 extra_id_2: Some(category_id),
                 extra_string_1: None,
                 extra_string_2: None,
+                extra_number: None,
             },
             AuditEvent::PageEdit {
                 user_id,
@@ -126,6 +136,7 @@ impl<'a> AuditEvent<'a> {
                 extra_id_2: None,
                 extra_string_1: None,
                 extra_string_2: None,
+                extra_number: None,
             },
             AuditEvent::PageMove {
                 user_id,
@@ -144,6 +155,7 @@ impl<'a> AuditEvent<'a> {
                 extra_id_2: None,
                 extra_string_1: Some(old_slug),
                 extra_string_2: Some(new_slug),
+                extra_number: None,
             },
             AuditEvent::PageDelete {
                 user_id,
@@ -161,6 +173,7 @@ impl<'a> AuditEvent<'a> {
                 extra_id_2: None,
                 extra_string_1: Some(page_slug),
                 extra_string_2: None,
+                extra_number: None,
             },
             AuditEvent::PageUndelete {
                 user_id,
@@ -179,6 +192,25 @@ impl<'a> AuditEvent<'a> {
                 extra_id_2: Some(category_id),
                 extra_string_1: Some(page_slug),
                 extra_string_2: None,
+                extra_number: None,
+            },
+            AuditEvent::PageRollback {
+                user_id,
+                site_id,
+                page_id,
+                revision_id,
+                revision_number,
+            } => RawAuditEvent {
+                event_type: "page.rollback",
+                ip_address,
+                user_id: Some(user_id),
+                site_id: Some(site_id),
+                page_id: Some(page_id),
+                extra_id_1: revision_id,
+                extra_id_2: None,
+                extra_string_1: None,
+                extra_string_2: None,
+                extra_number: Some(revision_number),
             },
         }
     }
@@ -195,4 +227,5 @@ pub struct RawAuditEvent<'a> {
     pub extra_id_2: Option<i64>,
     pub extra_string_1: Option<&'a str>,
     pub extra_string_2: Option<&'a str>,
+    pub extra_number: Option<i32>,
 }

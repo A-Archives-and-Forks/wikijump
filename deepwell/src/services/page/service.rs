@@ -543,6 +543,7 @@ impl PageService {
             revision_number,
             revision_comments: comments,
             user_id,
+            ip_address,
         }: RollbackPage<'_>,
     ) -> Result<Option<EditPageOutput>> {
         let txn = ctx.transaction();
@@ -603,6 +604,20 @@ impl PageService {
         };
 
         model.update(txn).await?;
+
+        // Audit log
+        AuditService::log(
+            ctx,
+            ip_address,
+            AuditEvent::PageRollback {
+                site_id,
+                page_id,
+                user_id,
+                revision_id: revision_output.ref_map(|output| output.revision_id),
+                revision_number,
+            },
+        )
+        .await?;
 
         // Build and return
         Ok(revision_output)

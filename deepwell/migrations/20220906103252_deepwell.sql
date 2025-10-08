@@ -724,6 +724,7 @@ CREATE TABLE audit_log (
     extra_id_2 BIGINT,
     extra_string_1 TEXT,
     extra_string_2 TEXT,
+    extra_number INT,
 
     CHECK (strpos(event_type, '.') != 0)  -- all event types are '[object].[operation]'
 );

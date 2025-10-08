@@ -23,6 +23,7 @@ pub struct Model {
     pub extra_string_1: Option<String>,
     #[sea_orm(column_type = "Text", nullable)]
     pub extra_string_2: Option<String>,
+    pub extra_number: Option<i32>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
