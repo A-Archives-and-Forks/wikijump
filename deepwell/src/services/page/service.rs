@@ -649,20 +649,38 @@ impl PageService {
     /// Sets the layout override for a page.
     pub async fn set_layout(
         ctx: &ServiceContext<'_>,
-        site_id: i64,
-        page_id: i64,
-        layout: Option<Layout>,
+        SetPageLayout {
+            site_id,
+            page_id,
+            layout,
+            user_id,
+            ip_address,
+        }: SetPageLayout,
     ) -> Result<()> {
         debug!("Setting page layout for site ID {site_id} page ID {page_id}");
 
+        // Update in database
         let txn = ctx.transaction();
         let model = page::ActiveModel {
             page_id: Set(page_id),
             layout: Set(layout.map(|l| str!(l.value()))),
             ..Default::default()
         };
-
         model.update(txn).await?;
+
+        // Audit log
+        AuditService::log(
+            ctx,
+            ip_address,
+            AuditEvent::PageLayoutUpdate {
+                user_id,
+                site_id,
+                page_id,
+                layout,
+            },
+        )
+        .await?;
+
         Ok(())
     }
 

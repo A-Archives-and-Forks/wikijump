@@ -18,6 +18,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+use ftml::layout::Layout;
 use std::net::IpAddr;
 
 /// An event on the audit log.
@@ -73,6 +74,12 @@ pub enum AuditEvent<'a> {
         page_id: i64,
         revision_id: Option<i64>,
         revision_number: i32,
+    },
+    PageLayoutUpdate {
+        user_id: i64,
+        site_id: i64,
+        page_id: i64,
+        layout: Option<Layout>,
     },
 }
 
@@ -211,6 +218,23 @@ impl<'a> AuditEvent<'a> {
                 extra_string_1: None,
                 extra_string_2: None,
                 extra_number: Some(revision_number),
+            },
+            AuditEvent::PageLayoutUpdate {
+                user_id,
+                site_id,
+                page_id,
+                layout,
+            } => RawAuditEvent {
+                event_type: "page_layout.update",
+                ip_address,
+                user_id: Some(user_id),
+                site_id: Some(site_id),
+                page_id: Some(page_id),
+                extra_id_1: None,
+                extra_id_2: None,
+                extra_string_1: layout.map(|l| l.value()),
+                extra_string_2: None,
+                extra_number: None,
             },
         }
     }

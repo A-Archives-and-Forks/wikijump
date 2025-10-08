@@ -255,6 +255,8 @@ pub struct SetPageLayout {
     pub site_id: i64,
     pub page_id: i64,
     pub layout: Option<Layout>,
+    pub user_id: i64,
+    pub ip_address: IpAddr,
 }
 
 pub type EditPageOutput = CreatePageRevisionOutput;

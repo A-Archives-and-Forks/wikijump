@@ -215,23 +215,20 @@ pub async fn page_set_layout(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
 ) -> Result<()> {
-    let SetPageLayout {
-        site_id,
-        page_id,
-        layout,
-    } = params.parse()?;
+    let input: SetPageLayout = params.parse()?;
 
     info!(
-        "Setting layout override for page {} in site ID {} to layout {}",
-        page_id,
-        site_id,
-        match layout {
+        "Setting layout override for page ID {} in site ID {} to layout {} (set by user ID {})",
+        input.page_id,
+        input.site_id,
+        match input.layout {
             Some(layout) => layout.value(),
             None => "none (default)",
         },
+        input.user_id,
     );
 
-    PageService::set_layout(ctx, site_id, page_id, layout).await
+    PageService::set_layout(ctx, input).await
 }
 
 async fn build_page_output(
