@@ -17,6 +17,6 @@ This file will document all event types, describe their data, and explain when t
 | `page.create`     | `user_id`, `site_id`, `page_id`   | Revision ID   | Category ID   |                   |                   |                   |       |
 | `page.edit`       | `user_id`, `site_id`, `page_id`   | Revision ID   |               |                   |                   |                   | The revision ID can be `NULL` if the edit did not result in a new revision being created. |
 | `page.move`       | `user_id`, `site_id`, `page_id`   | Revision ID   |               | Old Page Slug     | New Page Slug     |                   |       |
-| `page.delete`     | `user_id`, `site_id`, `page_id`   | Revision ID   |               | Page Slug         |                   |                   | The page slug is the value at the time of deletion. |
-| `page.undelete`   | `user_id`, `site_id`, `page_id`   | Revision ID   | Category ID   | Page Slug         |                   |                   | The page slug is the location the page is being restored to. |
-| `page.rollback`   | `user_id`, `site_id`, `page_id`   | Revision ID   | Category ID   |                   |                   | Revision number   | The revision number is which version the page is being rolled back to. |
+| `page.delete`     | `user_id`, `site_id`, `page_id`   | Revision ID   |               | Page Slug         |                   |                   | "Page slug" is the page's slug at the time of deletion. |
+| `page.undelete`   | `user_id`, `site_id`, `page_id`   | Revision ID   | Category ID   | Page Slug         |                   |                   | "Page slug" is the location the page is being restored to. |
+| `page.rollback`   | `user_id`, `site_id`, `page_id`   | Revision ID   | Category ID   |                   |                   | Revision number   | "Revision number" is the revision the page is being rolled back to. |
