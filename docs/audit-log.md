@@ -20,3 +20,4 @@ This file will document all event types, describe their data, and explain when t
 | `page.delete`     | `user_id`, `site_id`, `page_id`   | Revision ID   |               | Page Slug         |                   |                   | "Page slug" is the page's slug at the time of deletion. |
 | `page.undelete`   | `user_id`, `site_id`, `page_id`   | Revision ID   | Category ID   | Page Slug         |                   |                   | "Page slug" is the location the page is being restored to. |
 | `page.rollback`   | `user_id`, `site_id`, `page_id`   | Revision ID   | Category ID   |                   |                   | Revision number   | "Revision number" is the revision the page is being rolled back to. |
+| `page.undo`       | `user_id`, `site_id`, `page_id`   | Revision ID   | Category ID   |                   |                   | Revision number   | "Revision number" is the revision's changes being undone. **This operation is not implemented yet.** |
