@@ -153,9 +153,9 @@ impl SiteService {
         };
 
         // For updating the corresponding site user
+        let mut site_user_body = UpdateUserBody::default();
         let site_user_id =
             RelationService::get_site_user_id_for_site(ctx, site.site_id).await?;
-        let mut site_user_body = UpdateUserBody::default();
 
         if let Maybe::Set(name) = input.name {
             model.name = Set(name);
