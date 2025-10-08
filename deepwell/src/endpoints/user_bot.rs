@@ -116,6 +116,7 @@ pub async fn bot_user_create(
     let bot_user = UserService::update(
         ctx,
         Reference::Id(bot_user_id),
+        ip_address,
         UpdateUserBody {
             biography: Maybe::Set(Some(purpose)),
             ..Default::default()

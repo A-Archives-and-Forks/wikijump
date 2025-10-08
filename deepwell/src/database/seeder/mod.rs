@@ -107,6 +107,7 @@ pub async fn seed(state: &ServerState) -> Result<()> {
         UserService::update(
             &ctx,
             Reference::Id(user_id),
+            SEED_IP_ADDRESS,
             UpdateUserBody {
                 email_verified: Maybe::Set(true),
                 real_name: Maybe::Set(user.real_name),
@@ -210,6 +211,7 @@ pub async fn seed(state: &ServerState) -> Result<()> {
                 ..Default::default()
             },
             SYSTEM_USER_ID,
+            SEED_IP_ADDRESS,
         )
         .await?;
 

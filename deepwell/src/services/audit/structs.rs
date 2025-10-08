@@ -290,9 +290,10 @@ pub struct RawAuditEvent<'a> {
 
 // Ancillary tables
 
-#[derive(Serialize, Debug, Clone)]
+#[derive(Serialize, Debug, Clone, Default)]
 pub struct UserFields<'a> {
     pub name: Maybe<&'a str>,
+    pub slug: Maybe<Cow<'a, str>>,
     pub email: Maybe<&'a str>,
     // NOTE: We don't log the password value, hash or otherwise,
     //       instead we record whether a password value is *present*

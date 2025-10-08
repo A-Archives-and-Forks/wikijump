@@ -33,6 +33,7 @@ use ftml::layout::Layout;
 use ref_map::*;
 use sea_orm::NotSet;
 use std::borrow::Cow;
+use std::net::IpAddr;
 use wikidot_normalize::normalize;
 
 #[derive(Debug)]
@@ -100,6 +101,7 @@ impl SiteService {
         UserService::update(
             ctx,
             Reference::Id(user.user_id),
+            ip_address,
             UpdateUserBody {
                 biography: Maybe::Set(Some(description)),
                 ..Default::default()
@@ -141,6 +143,7 @@ impl SiteService {
         reference: Reference<'_>,
         input: UpdateSiteBody,
         updating_user_id: i64,
+        ip_address: IpAddr,
     ) -> Result<SiteModel> {
         let txn = ctx.transaction();
         let site = Self::get(ctx, reference).await?;
@@ -229,7 +232,8 @@ impl SiteService {
         let new_site = model.update(txn).await?;
 
         // Update site user
-        UserService::update(ctx, Reference::Id(site_user_id), site_user_body).await?;
+        UserService::update(ctx, Reference::Id(site_user_id), ip_address, site_user_body)
+            .await?;
 
         // Run verification afterwards if the slug changed
         if site.slug != new_site.slug {

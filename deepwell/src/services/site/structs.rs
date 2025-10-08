@@ -64,6 +64,7 @@ pub struct UpdateSite<'a> {
 
     #[serde(flatten)]
     pub body: UpdateSiteBody,
+    pub ip_address: IpAddr,
 }
 
 #[derive(Deserialize, Debug, Clone, Default)]

@@ -30,7 +30,9 @@ use crate::services::{AliasService, FilterService, PasswordService};
 use crate::utils::regex_replace_in_place;
 use regex::Regex;
 use sea_orm::ActiveValue;
+use std::borrow::Cow;
 use std::cmp;
+use std::net::IpAddr;
 use std::sync::LazyLock;
 
 /// Notes that this user account does not have a password set.
@@ -326,10 +328,84 @@ impl UserService {
     pub async fn update(
         ctx: &ServiceContext<'_>,
         reference: Reference<'_>,
+        ip_address: IpAddr,
         input: UpdateUserBody,
     ) -> Result<UserModel> {
+        use crate::services::audit::UserFields;
+
         let txn = ctx.transaction();
         let user = Self::get(ctx, reference).await?;
+
+        // Gather data for audit log entry
+        {
+            let mut previous_fields = UserFields::default();
+            let mut changed_fields = UserFields::default();
+
+            macro_rules! add_changed_field {
+                ($field:ident) => {{
+                    if let Maybe::Set(value) = &input.$field {
+                        previous_fields.$field = Maybe::Set(&user.$field);
+                        changed_fields.$field = Maybe::Set(value);
+                    }
+                }};
+                (move $field:ident) => {{
+                    if let Maybe::Set(value) = input.$field {
+                        previous_fields.$field = Maybe::Set(user.$field);
+                        changed_fields.$field = Maybe::Set(value);
+                    }
+                }};
+                (ref $field:ident) => {{
+                    if let Maybe::Set(value) = &input.$field {
+                        previous_fields.$field = Maybe::Set(user.$field.as_deref());
+                        changed_fields.$field = Maybe::Set(value.as_deref());
+                    }
+                }};
+            }
+
+            add_changed_field!(email);
+            add_changed_field!(locales);
+            add_changed_field!(ref real_name);
+            add_changed_field!(ref gender);
+            add_changed_field!(move birthday);
+            add_changed_field!(ref location);
+            add_changed_field!(ref biography);
+            add_changed_field!(ref user_page);
+
+            if let Maybe::Set(name) = &input.name {
+                previous_fields.name = Maybe::Set(&user.name);
+                changed_fields.name = Maybe::Set(name);
+
+                let new_slug = get_user_slug(name, user.user_type);
+                if user.slug != new_slug {
+                    previous_fields.slug = Maybe::Set(Cow::Borrowed(&user.slug));
+                    changed_fields.slug = Maybe::Set(Cow::Owned(new_slug));
+                }
+            }
+
+            if let Maybe::Set(password) = &input.password {
+                previous_fields.password =
+                    Maybe::Set(user.password != DISABLED_PASSWORD_HASH);
+                changed_fields.password = Maybe::Set(!password.is_empty());
+            }
+
+            if let Maybe::Set(blob_id) = &input.avatar_uploaded_blob_id {
+                previous_fields.avatar = Maybe::Set(blob_id.is_some());
+                changed_fields.avatar = Maybe::Set(blob_id.is_some());
+            }
+
+            AuditService::log(
+                ctx,
+                ip_address,
+                AuditEvent::UserUpdate {
+                    user_id: user.user_id,
+                    previous_fields,
+                    changed_fields,
+                },
+            )
+            .await?;
+        }
+
+        // Add fields to update
 
         let mut model = user::ActiveModel {
             user_id: Set(user.user_id),

@@ -39,7 +39,6 @@ pub struct CreateUser {
 
     #[serde(default)]
     pub bypass_email_verification: bool,
-
     pub ip_address: IpAddr,
 }
 
@@ -67,6 +66,7 @@ pub struct UpdateUser<'a> {
 
     #[serde(flatten)]
     pub body: UpdateUserBody,
+    pub ip_address: IpAddr,
 }
 
 #[derive(Deserialize, Debug, Default, Clone)]
