@@ -121,8 +121,8 @@ impl PageService {
         // Audit log
         AuditService::log(
             ctx,
+            ip_address,
             AuditEvent::PageCreate {
-                ip_address,
                 site_id,
                 page_id,
                 user_id,
@@ -234,8 +234,8 @@ impl PageService {
         // Audit log
         AuditService::log(
             ctx,
+            ip_address,
             AuditEvent::PageEdit {
-                ip_address,
                 site_id,
                 page_id,
                 user_id,
@@ -341,8 +341,8 @@ impl PageService {
             }) => {
                 AuditService::log(
                     ctx,
+                    ip_address,
                     AuditEvent::PageMove {
-                        ip_address,
                         site_id,
                         page_id,
                         user_id,
@@ -419,8 +419,8 @@ impl PageService {
         // Audit log
         AuditService::log(
             ctx,
+            ip_address,
             AuditEvent::PageDelete {
-                ip_address,
                 site_id,
                 page_id,
                 user_id,
@@ -512,8 +512,8 @@ impl PageService {
         // Audit log
         AuditService::log(
             ctx,
+            ip_address,
             AuditEvent::PageUndelete {
-                ip_address,
                 site_id,
                 page_id,
                 user_id,

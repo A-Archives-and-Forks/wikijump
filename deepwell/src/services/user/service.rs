@@ -244,14 +244,7 @@ impl UserService {
         };
 
         let user_id = User::insert(user).exec(txn).await?.last_insert_id;
-        AuditService::log(
-            ctx,
-            AuditEvent::UserCreate {
-                ip_address,
-                user_id,
-            },
-        )
-        .await?;
+        AuditService::log(ctx, ip_address, AuditEvent::UserCreate { user_id }).await?;
         Ok(CreateUserOutput { user_id, slug })
     }
 

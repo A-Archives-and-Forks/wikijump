@@ -20,13 +20,18 @@
 
 use super::prelude::*;
 use crate::models::audit_log::{self, Entity as AuditLog, Model as AuditLogModel};
+use std::net::IpAddr;
 
 #[derive(Debug)]
 pub struct AuditService;
 
 impl AuditService {
     /// Write a new event to the audit log.
-    pub async fn log(ctx: &ServiceContext<'_>, event: AuditEvent<'_>) -> Result<i64> {
+    pub async fn log(
+        ctx: &ServiceContext<'_>,
+        ip_address: IpAddr,
+        event: AuditEvent<'_>,
+    ) -> Result<i64> {
         let RawAuditEvent {
             event_type,
             ip_address,
@@ -37,7 +42,7 @@ impl AuditService {
             extra_id_2,
             extra_string_1,
             extra_string_2,
-        } = event.extract();
+        } = event.extract(ip_address);
 
         let model = audit_log::ActiveModel {
             event_type: Set(str!(event_type)),

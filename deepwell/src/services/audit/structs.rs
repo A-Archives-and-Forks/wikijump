@@ -26,15 +26,12 @@ use std::net::IpAddr;
 #[derive(Deserialize, Debug, Copy, Clone)]
 pub enum AuditEvent<'a> {
     UserCreate {
-        ip_address: IpAddr,
         user_id: i64,
     },
     SiteCreate {
-        ip_address: IpAddr,
         site_id: i64,
     },
     PageCreate {
-        ip_address: IpAddr,
         user_id: i64,
         site_id: i64,
         page_id: i64,
@@ -42,14 +39,12 @@ pub enum AuditEvent<'a> {
         category_id: i64,
     },
     PageEdit {
-        ip_address: IpAddr,
         user_id: i64,
         site_id: i64,
         page_id: i64,
         revision_id: Option<i64>,
     },
     PageMove {
-        ip_address: IpAddr,
         user_id: i64,
         site_id: i64,
         page_id: i64,
@@ -58,7 +53,6 @@ pub enum AuditEvent<'a> {
         new_slug: &'a str,
     },
     PageDelete {
-        ip_address: IpAddr,
         user_id: i64,
         site_id: i64,
         page_id: i64,
@@ -66,7 +60,6 @@ pub enum AuditEvent<'a> {
         page_slug: &'a str,
     },
     PageUndelete {
-        ip_address: IpAddr,
         user_id: i64,
         site_id: i64,
         page_id: i64,
@@ -77,12 +70,9 @@ pub enum AuditEvent<'a> {
 }
 
 impl<'a> AuditEvent<'a> {
-    pub fn extract(&self) -> RawAuditEvent<'a> {
+    pub fn extract(&self, ip_address: IpAddr) -> RawAuditEvent<'a> {
         match *self {
-            AuditEvent::UserCreate {
-                ip_address,
-                user_id,
-            } => RawAuditEvent {
+            AuditEvent::UserCreate { user_id } => RawAuditEvent {
                 event_type: "user.create",
                 ip_address,
                 user_id: Some(user_id),
@@ -93,10 +83,7 @@ impl<'a> AuditEvent<'a> {
                 extra_string_1: None,
                 extra_string_2: None,
             },
-            AuditEvent::SiteCreate {
-                ip_address,
-                site_id,
-            } => RawAuditEvent {
+            AuditEvent::SiteCreate { site_id } => RawAuditEvent {
                 event_type: "site.create",
                 ip_address,
                 user_id: None,
@@ -108,7 +95,6 @@ impl<'a> AuditEvent<'a> {
                 extra_string_2: None,
             },
             AuditEvent::PageCreate {
-                ip_address,
                 user_id,
                 site_id,
                 page_id,
@@ -126,7 +112,6 @@ impl<'a> AuditEvent<'a> {
                 extra_string_2: None,
             },
             AuditEvent::PageEdit {
-                ip_address,
                 user_id,
                 site_id,
                 page_id,
@@ -143,7 +128,6 @@ impl<'a> AuditEvent<'a> {
                 extra_string_2: None,
             },
             AuditEvent::PageMove {
-                ip_address,
                 user_id,
                 site_id,
                 page_id,
@@ -162,7 +146,6 @@ impl<'a> AuditEvent<'a> {
                 extra_string_2: Some(new_slug),
             },
             AuditEvent::PageDelete {
-                ip_address,
                 user_id,
                 site_id,
                 page_id,
@@ -180,7 +163,6 @@ impl<'a> AuditEvent<'a> {
                 extra_string_2: None,
             },
             AuditEvent::PageUndelete {
-                ip_address,
                 user_id,
                 site_id,
                 page_id,

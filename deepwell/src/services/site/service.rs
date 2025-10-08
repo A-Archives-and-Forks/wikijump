@@ -120,8 +120,8 @@ impl SiteService {
 
         AuditService::log(
             ctx,
+            ip_address,
             AuditEvent::SiteCreate {
-                ip_address,
                 site_id: site.site_id,
             },
         )
