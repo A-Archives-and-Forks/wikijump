@@ -323,7 +323,6 @@ impl UserService {
         reference: Reference<'_>,
         input: UpdateUserBody,
     ) -> Result<UserModel> {
-        // NOTE: Name filter validation occurs in update_name(), not here
         let txn = ctx.transaction();
         let user = Self::get(ctx, reference).await?;
 
@@ -334,6 +333,7 @@ impl UserService {
 
         // Add each field
         if let Maybe::Set(name) = input.name {
+            // NOTE: Name filter validation occurs in update_name(), not here
             Self::update_name(ctx, name, &user, &mut model, input.bypass_filter).await?;
         }
 
