@@ -339,6 +339,8 @@ impl PageService {
                 revision_number,
                 parser_errors,
             }) => {
+                // Audit log
+                // Only in this path since the other is an error
                 AuditService::log(
                     ctx,
                     ip_address,
