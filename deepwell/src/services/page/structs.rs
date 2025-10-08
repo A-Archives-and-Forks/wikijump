@@ -192,6 +192,7 @@ pub struct MovePage<'a> {
     pub revision_comments: String,
     pub user_id: i64,
     // NOTE: slug field is a parameter, not in the body
+    pub ip_address: IpAddr,
 }
 
 #[derive(Serialize, Debug, Clone)]

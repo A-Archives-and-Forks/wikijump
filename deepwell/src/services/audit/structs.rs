@@ -24,7 +24,7 @@ use std::net::IpAddr;
 ///
 /// Each type of event has a different set of fields that it provides
 #[derive(Deserialize, Debug, Copy, Clone)]
-pub enum AuditEvent {
+pub enum AuditEvent<'a> {
     UserCreate {
         ip_address: IpAddr,
         user_id: i64,
@@ -48,11 +48,20 @@ pub enum AuditEvent {
         page_id: i64,
         revision_id: Option<i64>,
     },
+    PageMove {
+        ip_address: IpAddr,
+        user_id: i64,
+        site_id: i64,
+        page_id: i64,
+        revision_id: i64,
+        old_slug: &'a str,
+        new_slug: &'a str,
+    },
 }
 
-impl AuditEvent {
-    pub fn extract(self) -> RawAuditEvent {
-        match self {
+impl<'a> AuditEvent<'a> {
+    pub fn extract(&self) -> RawAuditEvent<'a> {
+        match *self {
             AuditEvent::UserCreate {
                 ip_address,
                 user_id,
@@ -115,6 +124,25 @@ impl AuditEvent {
                 extra_id_2: None,
                 extra_string_1: None,
                 extra_string_2: None,
+            },
+            AuditEvent::PageMove {
+                ip_address,
+                user_id,
+                site_id,
+                page_id,
+                revision_id,
+                old_slug,
+                new_slug,
+            } => RawAuditEvent {
+                event_type: "page.move",
+                ip_address,
+                user_id: Some(user_id),
+                site_id: Some(site_id),
+                page_id: Some(page_id),
+                extra_id_1: Some(revision_id),
+                extra_id_2: None,
+                extra_string_1: Some(old_slug),
+                extra_string_2: Some(new_slug),
             },
         }
     }

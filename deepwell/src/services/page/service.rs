@@ -118,6 +118,7 @@ impl PageService {
         let page = model.update(txn).await?;
         assert_latest_revision(&page);
 
+        // Audit log
         AuditService::log(
             ctx,
             AuditEvent::PageCreate {
@@ -230,6 +231,7 @@ impl PageService {
         let page = model.update(txn).await?;
         assert_latest_revision(&page);
 
+        // Audit log
         AuditService::log(
             ctx,
             AuditEvent::PageEdit {
@@ -256,6 +258,7 @@ impl PageService {
             last_revision_id,
             revision_comments: comments,
             user_id,
+            ip_address,
         }: MovePage<'_>,
     ) -> Result<MovePageOutput> {
         let txn = ctx.transaction();
@@ -330,19 +333,34 @@ impl PageService {
         assert_latest_revision(&page);
 
         // Build and return
-
         match revision_output {
             Some(CreatePageRevisionOutput {
                 revision_id,
                 revision_number,
                 parser_errors,
-            }) => Ok(MovePageOutput {
-                old_slug,
-                new_slug,
-                revision_id,
-                revision_number,
-                parser_errors,
-            }),
+            }) => {
+                AuditService::log(
+                    ctx,
+                    AuditEvent::PageMove {
+                        ip_address,
+                        site_id,
+                        page_id,
+                        user_id,
+                        revision_id,
+                        old_slug: &old_slug,
+                        new_slug: &new_slug,
+                    },
+                )
+                .await?;
+
+                Ok(MovePageOutput {
+                    old_slug,
+                    new_slug,
+                    revision_id,
+                    revision_number,
+                    parser_errors,
+                })
+            }
             None => {
                 error!("Page move did not create new revision");
                 Err(Error::BadRequest)

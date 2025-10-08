@@ -16,3 +16,4 @@ This file will document all event types, describe their data, and explain when t
 | `site.create`     | `site_id`                         |               |               |                  |                  |       |
 | `page.create`     | `user_id`, `site_id`, `page_id`   | Revision ID   | Category ID   |                  |                  |       |
 | `page.edit`       | `user_id`, `site_id`, `page_id`   | Revision ID   |               |                  |                  | The revision ID can be `NULL` if the edit did not result in a new revision being created. |
+| `page.move`       | `user_id`, `site_id`, `page_id`   | Revision ID   |               | Old Page Slug    | New Page Slug    |       |
