@@ -344,7 +344,6 @@ impl UserService {
 
             // Validate email
             let email_validation_output = EmailService::validate(&email).await?;
-
             let is_alias = match email_validation_output.classification {
                 EmailClassification::Normal => false,
                 EmailClassification::Alias => true,
