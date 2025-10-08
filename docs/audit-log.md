@@ -10,10 +10,11 @@ All event types take the form `[object].[operation]`, describing the data object
 
 This file will document all event types, describe their data, and explain when this auditing event is raised.
 
-| Event Type        | Normal Columns                    | `extra_id_1`  | `extra_id_2`  | `extra_string_1` | `extra_string_2` | Notes |
-|-------------------|-----------------------------------|---------------|---------------|------------------|------------------| ------|
-| `user.create`     | `user_id`                         |               |               |                  |                  |       |
-| `site.create`     | `site_id`                         |               |               |                  |                  |       |
-| `page.create`     | `user_id`, `site_id`, `page_id`   | Revision ID   | Category ID   |                  |                  |       |
-| `page.edit`       | `user_id`, `site_id`, `page_id`   | Revision ID   |               |                  |                  | The revision ID can be `NULL` if the edit did not result in a new revision being created. |
-| `page.move`       | `user_id`, `site_id`, `page_id`   | Revision ID   |               | Old Page Slug    | New Page Slug    |       |
+| Event Type        | Normal Columns                    | `extra_id_1`  | `extra_id_2`  | `extra_string_1`  | `extra_string_2`  | Notes |
+|-------------------|-----------------------------------|---------------|---------------|-------------------|-------------------| ------|
+| `user.create`     | `user_id`                         |               |               |                   |                   |       |
+| `site.create`     | `site_id`                         |               |               |                   |                   |       |
+| `page.create`     | `user_id`, `site_id`, `page_id`   | Revision ID   | Category ID   |                   |                   |       |
+| `page.edit`       | `user_id`, `site_id`, `page_id`   | Revision ID   |               |                   |                   | The revision ID can be `NULL` if the edit did not result in a new revision being created. |
+| `page.move`       | `user_id`, `site_id`, `page_id`   | Revision ID   |               | Old Page Slug     | New Page Slug     |       |
+| `page.delete`     | `user_id`, `site_id`, `page_id`   | Revision ID   |               | Page Slug         |                   |       |

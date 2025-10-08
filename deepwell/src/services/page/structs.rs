@@ -211,6 +211,7 @@ pub struct DeletePage<'a> {
     pub last_revision_id: i64,
     pub revision_comments: String,
     pub user_id: i64,
+    pub ip_address: IpAddr,
 }
 
 #[derive(Serialize, Debug, Clone)]

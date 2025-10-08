@@ -376,6 +376,7 @@ impl PageService {
             last_revision_id,
             user_id,
             revision_comments: comments,
+            ip_address,
         }: DeletePage<'_>,
     ) -> Result<DeletePageOutput> {
         let txn = ctx.transaction();
@@ -414,6 +415,20 @@ impl PageService {
         };
         let page = model.update(txn).await?;
         assert_latest_revision(&page);
+
+        // Audit log
+        AuditService::log(
+            ctx,
+            AuditEvent::PageDelete {
+                ip_address,
+                site_id,
+                page_id,
+                user_id,
+                revision_id: output.revision_id,
+                page_slug: &page.slug,
+            },
+        )
+        .await?;
 
         // Finally, clear out any hosted text blocks
         //
