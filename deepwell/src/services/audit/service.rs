@@ -26,7 +26,7 @@ pub struct AuditService;
 
 impl AuditService {
     /// Write a new event to the audit log.
-    pub async fn log(ctx: &ServiceContext<'_>, event: AuditEvent) -> Result<i64> {
+    pub async fn log(ctx: &ServiceContext<'_>, event: AuditEvent<'_>) -> Result<i64> {
         let RawAuditEvent {
             event_type,
             ip_address,
@@ -35,6 +35,8 @@ impl AuditService {
             page_id,
             extra_id_1,
             extra_id_2,
+            extra_string_1,
+            extra_string_2,
         } = event.extract();
 
         let model = audit_log::ActiveModel {
@@ -45,6 +47,8 @@ impl AuditService {
             page_id: Set(page_id),
             extra_id_1: Set(extra_id_1),
             extra_id_2: Set(extra_id_2),
+            extra_string_1: Set(extra_string_1.map(|s| str!(s))),
+            extra_string_2: Set(extra_string_2.map(|s| str!(s))),
             ..Default::default()
         };
 

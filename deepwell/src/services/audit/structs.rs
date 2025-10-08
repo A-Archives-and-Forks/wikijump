@@ -64,6 +64,8 @@ impl AuditEvent {
                 page_id: None,
                 extra_id_1: None,
                 extra_id_2: None,
+                extra_string_1: None,
+                extra_string_2: None,
             },
             AuditEvent::SiteCreate {
                 ip_address,
@@ -76,6 +78,8 @@ impl AuditEvent {
                 page_id: None,
                 extra_id_1: None,
                 extra_id_2: None,
+                extra_string_1: None,
+                extra_string_2: None,
             },
             AuditEvent::PageCreate {
                 ip_address,
@@ -92,6 +96,8 @@ impl AuditEvent {
                 page_id: Some(page_id),
                 extra_id_1: Some(revision_id),
                 extra_id_2: Some(category_id),
+                extra_string_1: None,
+                extra_string_2: None,
             },
             AuditEvent::PageEdit {
                 ip_address,
@@ -107,13 +113,15 @@ impl AuditEvent {
                 page_id: Some(page_id),
                 extra_id_1: revision_id,
                 extra_id_2: None,
+                extra_string_1: None,
+                extra_string_2: None,
             },
         }
     }
 }
 
 #[derive(Debug, Copy, Clone)]
-pub struct RawAuditEvent {
+pub struct RawAuditEvent<'a> {
     pub event_type: &'static str,
     pub ip_address: IpAddr,
     pub user_id: Option<i64>,
@@ -121,4 +129,6 @@ pub struct RawAuditEvent {
     pub page_id: Option<i64>,
     pub extra_id_1: Option<i64>,
     pub extra_id_2: Option<i64>,
+    pub extra_string_1: Option<&'a str>,
+    pub extra_string_2: Option<&'a str>,
 }

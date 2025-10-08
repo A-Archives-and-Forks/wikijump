@@ -19,6 +19,10 @@ pub struct Model {
     pub page_id: Option<i64>,
     pub extra_id_1: Option<i64>,
     pub extra_id_2: Option<i64>,
+    #[sea_orm(column_type = "Text", nullable)]
+    pub extra_string_1: Option<String>,
+    #[sea_orm(column_type = "Text", nullable)]
+    pub extra_string_2: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
