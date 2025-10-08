@@ -450,6 +450,7 @@ impl PageService {
             user_id,
             slug,
             revision_comments: comments,
+            ip_address,
         }: RestorePage,
     ) -> Result<RestorePageOutput> {
         let txn = ctx.transaction();
@@ -507,6 +508,21 @@ impl PageService {
         };
         let page = model.update(txn).await?;
         assert_latest_revision(&page);
+
+        // Audit log
+        AuditService::log(
+            ctx,
+            AuditEvent::PageUndelete {
+                ip_address,
+                site_id,
+                page_id,
+                user_id,
+                revision_id: output.revision_id,
+                category_id: category.category_id,
+                page_slug: &slug,
+            },
+        )
+        .await?;
 
         Ok((output, slug).into())
     }

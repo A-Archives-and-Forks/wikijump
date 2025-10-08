@@ -228,6 +228,7 @@ pub struct RestorePage {
     pub revision_comments: String,
     pub user_id: i64,
     pub slug: Option<String>,
+    pub ip_address: IpAddr,
 }
 
 #[derive(Serialize, Debug, Clone)]
