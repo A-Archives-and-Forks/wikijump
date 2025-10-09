@@ -39,7 +39,8 @@ export async function POST(event) {
         description,
         defaultPage,
         locale,
-        layout
+        layout,
+        event.getClientAddress()
       )
     }
 
