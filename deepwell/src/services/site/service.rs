@@ -183,7 +183,7 @@ impl SiteService {
 
             if let Maybe::Set(layout) = input.layout {
                 let old_layout = site.layout.as_ref().map(|value| {
-                    Layout::from_str(&value)
+                    Layout::from_str(value)
                         .expect("Invalid layout value found in database")
                 });
                 previous_fields.layout = Maybe::Set(old_layout);
