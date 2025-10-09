@@ -32,7 +32,6 @@ use crate::services::session::{
     CreateSession, GetOtherSessions, GetOtherSessionsOutput, InvalidateOtherSessions,
     RenewSession,
 };
-use crate::services::user::GetUser;
 
 pub async fn auth_login(
     ctx: &ServiceContext<'_>,
@@ -208,9 +207,16 @@ pub async fn auth_mfa_setup(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
 ) -> Result<MultiFactorSetupOutput> {
-    let GetUser { user: reference } = params.parse()?;
-    let user = UserService::get(ctx, reference).await?;
-    MfaService::setup(ctx, &user).await
+    let MultiFactorConfigure {
+        user_id,
+        session_token,
+        ip_address,
+    } = params.parse()?;
+
+    let user =
+        SessionService::get_user_with_id(ctx, &session_token, false, user_id).await?;
+
+    MfaService::setup(ctx, &user, ip_address).await
 }
 
 pub async fn auth_mfa_disable(
@@ -220,22 +226,13 @@ pub async fn auth_mfa_disable(
     let MultiFactorConfigure {
         user_id,
         session_token,
+        ip_address,
     } = params.parse()?;
 
-    let user = SessionService::get_user(ctx, &session_token, false).await?;
-    if user.user_id != user_id {
-        error!(
-            "Passed user ID ({}) does not match session token ({})",
-            user_id, user.user_id,
-        );
+    let user =
+        SessionService::get_user_with_id(ctx, &session_token, false, user_id).await?;
 
-        return Err(Error::SessionUserId {
-            active_user_id: user_id,
-            session_user_id: user.user_id,
-        });
-    }
-
-    MfaService::disable(ctx, user.user_id).await
+    MfaService::disable(ctx, user.user_id, ip_address).await
 }
 
 pub async fn auth_mfa_reset_recovery(
@@ -245,20 +242,11 @@ pub async fn auth_mfa_reset_recovery(
     let MultiFactorConfigure {
         user_id,
         session_token,
+        ip_address,
     } = params.parse()?;
 
-    let user = SessionService::get_user(ctx, &session_token, false).await?;
-    if user.user_id != user_id {
-        error!(
-            "Passed user ID ({}) does not match session token ({})",
-            user_id, user.user_id,
-        );
+    let user =
+        SessionService::get_user_with_id(ctx, &session_token, false, user_id).await?;
 
-        return Err(Error::SessionUserId {
-            active_user_id: user_id,
-            session_user_id: user.user_id,
-        });
-    }
-
-    MfaService::reset_recovery_codes(ctx, &user).await
+    MfaService::reset_recovery_codes(ctx, &user, ip_address).await
 }

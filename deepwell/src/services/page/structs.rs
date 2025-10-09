@@ -25,6 +25,7 @@ use crate::services::score::ScoreValue;
 use crate::types::PageDetails;
 use ftml::layout::Layout;
 use ftml::parsing::ParseError;
+use std::net::IpAddr;
 use time::OffsetDateTime;
 
 #[derive(Deserialize, Debug, Clone)]
@@ -40,6 +41,8 @@ pub struct CreatePage {
 
     #[serde(default)]
     pub bypass_filter: bool,
+
+    pub ip_address: IpAddr,
 }
 
 #[derive(Serialize, Debug, Clone)]
@@ -168,6 +171,7 @@ pub struct EditPage<'a> {
 
     #[serde(flatten)]
     pub body: EditPageBody,
+    pub ip_address: IpAddr,
 }
 
 #[derive(Deserialize, Debug, Default, Clone)]
@@ -188,6 +192,7 @@ pub struct MovePage<'a> {
     pub revision_comments: String,
     pub user_id: i64,
     // NOTE: slug field is a parameter, not in the body
+    pub ip_address: IpAddr,
 }
 
 #[derive(Serialize, Debug, Clone)]
@@ -206,6 +211,7 @@ pub struct DeletePage<'a> {
     pub last_revision_id: i64,
     pub revision_comments: String,
     pub user_id: i64,
+    pub ip_address: IpAddr,
 }
 
 #[derive(Serialize, Debug, Clone)]
@@ -222,6 +228,7 @@ pub struct RestorePage {
     pub revision_comments: String,
     pub user_id: i64,
     pub slug: Option<String>,
+    pub ip_address: IpAddr,
 }
 
 #[derive(Serialize, Debug, Clone)]
@@ -240,6 +247,7 @@ pub struct RollbackPage<'a> {
     pub revision_number: i32,
     pub revision_comments: String,
     pub user_id: i64,
+    pub ip_address: IpAddr,
 }
 
 #[derive(Deserialize, Debug, Copy, Clone)]
@@ -247,6 +255,8 @@ pub struct SetPageLayout {
     pub site_id: i64,
     pub page_id: i64,
     pub layout: Option<Layout>,
+    pub user_id: i64,
+    pub ip_address: IpAddr,
 }
 
 pub type EditPageOutput = CreatePageRevisionOutput;

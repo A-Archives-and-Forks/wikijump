@@ -66,11 +66,12 @@ pub async fn user_edit(
 ) -> Result<UserModel> {
     let UpdateUser {
         user: reference,
+        ip_address,
         body,
     } = params.parse()?;
 
     info!("Updating user {reference:?}");
-    UserService::update(ctx, reference, body).await
+    UserService::update(ctx, reference, ip_address, body).await
 }
 
 pub async fn user_delete(

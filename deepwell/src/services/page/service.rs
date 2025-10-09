@@ -23,6 +23,7 @@ use crate::models::page::{self, Entity as Page, Model as PageModel};
 use crate::models::page_category::Model as PageCategoryModel;
 use crate::models::page_revision::Model as PageRevisionModel;
 use crate::models::sea_orm_active_enums::PageRevisionType;
+use crate::services::audit::{AuditEvent, AuditService};
 use crate::services::filter::{FilterClass, FilterType};
 use crate::services::page_revision::{
     CreateFirstPageRevision, CreateFirstPageRevisionOutput, CreatePageRevision,
@@ -36,6 +37,7 @@ use crate::services::{
 use crate::types::PageOrder;
 use crate::utils::{get_category_name, trim_default};
 use ftml::layout::Layout;
+use ref_map::*;
 use sea_orm::ActiveValue;
 use wikidot_normalize::normalize;
 
@@ -55,6 +57,7 @@ impl PageService {
             revision_comments: comments,
             user_id,
             bypass_filter,
+            ip_address,
         }: CreatePage,
     ) -> Result<CreatePageOutput> {
         let txn = ctx.transaction();
@@ -115,6 +118,20 @@ impl PageService {
         let page = model.update(txn).await?;
         assert_latest_revision(&page);
 
+        // Audit log
+        AuditService::log(
+            ctx,
+            ip_address,
+            AuditEvent::PageCreate {
+                site_id,
+                page_id,
+                user_id,
+                revision_id,
+                category_id,
+            },
+        )
+        .await?;
+
         // Build and return
         Ok(CreatePageOutput {
             page_id,
@@ -139,6 +156,7 @@ impl PageService {
                     alt_title,
                     tags,
                 },
+            ip_address,
         }: EditPage<'_>,
     ) -> Result<Option<EditPageOutput>> {
         let txn = ctx.transaction();
@@ -195,10 +213,7 @@ impl PageService {
         )
         .await?;
 
-        let latest_revision_id = match revision_output {
-            Some(ref output) => ActiveValue::Set(Some(output.revision_id)),
-            None => ActiveValue::NotSet,
-        };
+        let revision_id = revision_output.ref_map(|output| output.revision_id);
 
         // Set page updated_at and latest_revision_id columns.
         //
@@ -206,12 +221,28 @@ impl PageService {
         // But since this rerenders regardless, we need to update the page row.
         let model = page::ActiveModel {
             page_id: Set(page_id),
-            latest_revision_id,
+            latest_revision_id: match revision_id {
+                Some(revision_id) => ActiveValue::Set(Some(revision_id)),
+                None => ActiveValue::NotSet,
+            },
             updated_at: Set(Some(now())),
             ..Default::default()
         };
         let page = model.update(txn).await?;
         assert_latest_revision(&page);
+
+        // Audit log
+        AuditService::log(
+            ctx,
+            ip_address,
+            AuditEvent::PageEdit {
+                site_id,
+                page_id,
+                user_id,
+                revision_id,
+            },
+        )
+        .await?;
 
         // Build and return
         Ok(revision_output)
@@ -227,6 +258,7 @@ impl PageService {
             last_revision_id,
             revision_comments: comments,
             user_id,
+            ip_address,
         }: MovePage<'_>,
     ) -> Result<MovePageOutput> {
         let txn = ctx.transaction();
@@ -301,19 +333,36 @@ impl PageService {
         assert_latest_revision(&page);
 
         // Build and return
-
         match revision_output {
             Some(CreatePageRevisionOutput {
                 revision_id,
                 revision_number,
                 parser_errors,
-            }) => Ok(MovePageOutput {
-                old_slug,
-                new_slug,
-                revision_id,
-                revision_number,
-                parser_errors,
-            }),
+            }) => {
+                // Audit log
+                // Only in this path since the other is an error
+                AuditService::log(
+                    ctx,
+                    ip_address,
+                    AuditEvent::PageMove {
+                        site_id,
+                        page_id,
+                        user_id,
+                        revision_id,
+                        old_slug: &old_slug,
+                        new_slug: &new_slug,
+                    },
+                )
+                .await?;
+
+                Ok(MovePageOutput {
+                    old_slug,
+                    new_slug,
+                    revision_id,
+                    revision_number,
+                    parser_errors,
+                })
+            }
             None => {
                 error!("Page move did not create new revision");
                 Err(Error::BadRequest)
@@ -329,6 +378,7 @@ impl PageService {
             last_revision_id,
             user_id,
             revision_comments: comments,
+            ip_address,
         }: DeletePage<'_>,
     ) -> Result<DeletePageOutput> {
         let txn = ctx.transaction();
@@ -368,6 +418,20 @@ impl PageService {
         let page = model.update(txn).await?;
         assert_latest_revision(&page);
 
+        // Audit log
+        AuditService::log(
+            ctx,
+            ip_address,
+            AuditEvent::PageDelete {
+                site_id,
+                page_id,
+                user_id,
+                revision_id: output.revision_id,
+                page_slug: &page.slug,
+            },
+        )
+        .await?;
+
         // Finally, clear out any hosted text blocks
         //
         // We do this last because this involves
@@ -388,6 +452,7 @@ impl PageService {
             user_id,
             slug,
             revision_comments: comments,
+            ip_address,
         }: RestorePage,
     ) -> Result<RestorePageOutput> {
         let txn = ctx.transaction();
@@ -446,6 +511,21 @@ impl PageService {
         let page = model.update(txn).await?;
         assert_latest_revision(&page);
 
+        // Audit log
+        AuditService::log(
+            ctx,
+            ip_address,
+            AuditEvent::PageUndelete {
+                site_id,
+                page_id,
+                user_id,
+                revision_id: output.revision_id,
+                category_id: category.category_id,
+                page_slug: &slug,
+            },
+        )
+        .await?;
+
         Ok((output, slug).into())
     }
 
@@ -465,6 +545,7 @@ impl PageService {
             revision_number,
             revision_comments: comments,
             user_id,
+            ip_address,
         }: RollbackPage<'_>,
     ) -> Result<Option<EditPageOutput>> {
         let txn = ctx.transaction();
@@ -526,6 +607,20 @@ impl PageService {
 
         model.update(txn).await?;
 
+        // Audit log
+        AuditService::log(
+            ctx,
+            ip_address,
+            AuditEvent::PageRollback {
+                site_id,
+                page_id,
+                user_id,
+                revision_id: revision_output.ref_map(|output| output.revision_id),
+                revision_number,
+            },
+        )
+        .await?;
+
         // Build and return
         Ok(revision_output)
     }
@@ -547,26 +642,45 @@ impl PageService {
         _page_id: i64,
         _revision_number: i32,
     ) -> Result<EditPageOutput> {
+        // TODO update audit-log.md
         todo!()
     }
 
     /// Sets the layout override for a page.
     pub async fn set_layout(
         ctx: &ServiceContext<'_>,
-        site_id: i64,
-        page_id: i64,
-        layout: Option<Layout>,
+        SetPageLayout {
+            site_id,
+            page_id,
+            layout,
+            user_id,
+            ip_address,
+        }: SetPageLayout,
     ) -> Result<()> {
         debug!("Setting page layout for site ID {site_id} page ID {page_id}");
 
+        // Update in database
         let txn = ctx.transaction();
         let model = page::ActiveModel {
             page_id: Set(page_id),
             layout: Set(layout.map(|l| str!(l.value()))),
             ..Default::default()
         };
-
         model.update(txn).await?;
+
+        // Audit log
+        AuditService::log(
+            ctx,
+            ip_address,
+            AuditEvent::PageLayoutUpdate {
+                user_id,
+                site_id,
+                page_id,
+                layout,
+            },
+        )
+        .await?;
+
         Ok(())
     }
 

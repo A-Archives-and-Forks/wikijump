@@ -22,6 +22,7 @@ use super::prelude::*;
 use crate::models::sea_orm_active_enums::{AliasType, UserType};
 use crate::models::user::{self, Entity as User, Model as UserModel};
 use crate::services::alias::CreateAlias;
+use crate::services::audit::{AuditEvent, AuditService};
 use crate::services::blob::{BlobService, FinalizeBlobUploadOutput};
 use crate::services::email::{EmailClassification, EmailService};
 use crate::services::filter::{FilterClass, FilterType};
@@ -29,8 +30,15 @@ use crate::services::{AliasService, FilterService, PasswordService};
 use crate::utils::regex_replace_in_place;
 use regex::Regex;
 use sea_orm::ActiveValue;
+use std::borrow::Cow;
 use std::cmp;
+use std::net::IpAddr;
 use std::sync::LazyLock;
+
+/// Notes that this user account does not have a password set.
+/// It is not possible for any password hash to match this value,
+/// so no password can possibly match.
+pub const DISABLED_PASSWORD_HASH: &str = "!";
 
 static LEADING_TRAILING_CHARS: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"(^[\-\s]+)|([\-\s+]$)").unwrap());
@@ -49,6 +57,7 @@ impl UserService {
             password,
             bypass_filter,
             bypass_email_verification,
+            ip_address,
         }: CreateUser,
     ) -> Result<CreateUserOutput> {
         let txn = ctx.transaction();
@@ -163,7 +172,7 @@ impl UserService {
                 }
 
                 // Disabled password
-                str!("!")
+                str!(DISABLED_PASSWORD_HASH)
             }
             UserType::Bot => {
                 info!("Creating bot user '{slug}'");
@@ -242,6 +251,7 @@ impl UserService {
         };
 
         let user_id = User::insert(user).exec(txn).await?.last_insert_id;
+        AuditService::log(ctx, ip_address, AuditEvent::UserCreate { user_id }).await?;
         Ok(CreateUserOutput { user_id, slug })
     }
 
@@ -318,11 +328,84 @@ impl UserService {
     pub async fn update(
         ctx: &ServiceContext<'_>,
         reference: Reference<'_>,
+        ip_address: IpAddr,
         input: UpdateUserBody,
     ) -> Result<UserModel> {
-        // NOTE: Name filter validation occurs in update_name(), not here
+        use crate::services::audit::UserFields;
+
         let txn = ctx.transaction();
         let user = Self::get(ctx, reference).await?;
+
+        // Gather data for audit log entry
+        {
+            let mut previous_fields = UserFields::default();
+            let mut changed_fields = UserFields::default();
+
+            macro_rules! add_changed_field {
+                ($field:ident) => {{
+                    if let Maybe::Set(value) = &input.$field {
+                        previous_fields.$field = Maybe::Set(&user.$field);
+                        changed_fields.$field = Maybe::Set(value);
+                    }
+                }};
+                (move $field:ident) => {{
+                    if let Maybe::Set(value) = input.$field {
+                        previous_fields.$field = Maybe::Set(user.$field);
+                        changed_fields.$field = Maybe::Set(value);
+                    }
+                }};
+                (ref $field:ident) => {{
+                    if let Maybe::Set(value) = &input.$field {
+                        previous_fields.$field = Maybe::Set(user.$field.as_deref());
+                        changed_fields.$field = Maybe::Set(value.as_deref());
+                    }
+                }};
+            }
+
+            add_changed_field!(email);
+            add_changed_field!(locales);
+            add_changed_field!(ref real_name);
+            add_changed_field!(ref gender);
+            add_changed_field!(move birthday);
+            add_changed_field!(ref location);
+            add_changed_field!(ref biography);
+            add_changed_field!(ref user_page);
+
+            if let Maybe::Set(name) = &input.name {
+                previous_fields.name = Maybe::Set(&user.name);
+                changed_fields.name = Maybe::Set(name);
+
+                let new_slug = get_user_slug(name, user.user_type);
+                if user.slug != new_slug {
+                    previous_fields.slug = Maybe::Set(Cow::Borrowed(&user.slug));
+                    changed_fields.slug = Maybe::Set(Cow::Owned(new_slug));
+                }
+            }
+
+            if let Maybe::Set(password) = &input.password {
+                previous_fields.password =
+                    Maybe::Set(user.password != DISABLED_PASSWORD_HASH);
+                changed_fields.password = Maybe::Set(!password.is_empty());
+            }
+
+            if let Maybe::Set(blob_id) = &input.avatar_uploaded_blob_id {
+                previous_fields.avatar = Maybe::Set(blob_id.is_some());
+                changed_fields.avatar = Maybe::Set(blob_id.is_some());
+            }
+
+            AuditService::log(
+                ctx,
+                ip_address,
+                AuditEvent::UserUpdate {
+                    user_id: user.user_id,
+                    previous_fields,
+                    changed_fields,
+                },
+            )
+            .await?;
+        }
+
+        // Add fields to update
 
         let mut model = user::ActiveModel {
             user_id: Set(user.user_id),
@@ -331,6 +414,7 @@ impl UserService {
 
         // Add each field
         if let Maybe::Set(name) = input.name {
+            // NOTE: Name filter validation occurs in update_name(), not here
             Self::update_name(ctx, name, &user, &mut model, input.bypass_filter).await?;
         }
 
@@ -341,7 +425,6 @@ impl UserService {
 
             // Validate email
             let email_validation_output = EmailService::validate(&email).await?;
-
             let is_alias = match email_validation_output.classification {
                 EmailClassification::Normal => false,
                 EmailClassification::Alias => true,
@@ -605,6 +688,7 @@ impl UserService {
         multi_factor_recovery_codes: ActiveValue<Option<Vec<String>>>,
     ) -> Result<()> {
         info!("Setting MFA secret fields for user ID {user_id}");
+        // NOTE: Audit log events are set in MfaService, not here
 
         let txn = ctx.transaction();
         let model = user::ActiveModel {

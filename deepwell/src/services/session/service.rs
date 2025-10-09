@@ -153,6 +153,31 @@ impl SessionService {
         Ok(user)
     }
 
+    /// Gets the associated `UserModel` from a session, and checks it against a user ID.
+    ///
+    /// This performs `get_user()` then ensures that the user matches the provided user ID.
+    pub async fn get_user_with_id(
+        ctx: &ServiceContext<'_>,
+        session_token: &str,
+        restricted: bool,
+        user_id: i64,
+    ) -> Result<UserModel> {
+        let user = Self::get_user(ctx, session_token, restricted).await?;
+        if user.user_id != user_id {
+            error!(
+                "Passed user ID ({}) does not match session token ({})",
+                user_id, user.user_id,
+            );
+
+            return Err(Error::SessionUserId {
+                active_user_id: user_id,
+                session_user_id: user.user_id,
+            });
+        }
+
+        Ok(user)
+    }
+
     /// Gets all active sessions for a user.
     /// For instance, useful for listing all sessions and their information.
     pub async fn get_all(

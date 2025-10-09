@@ -159,7 +159,7 @@ CREATE TYPE relation_object_type AS ENUM (
 
 CREATE TABLE relation (
     relation_id BIGSERIAL PRIMARY KEY,
-    relation_type TEXT NOT NULL,  -- check enum value in runtime
+    relation_type TEXT NOT NULL,  -- check enum value at runtime
     dest_type relation_object_type NOT NULL,
     dest_id BIGINT NOT NULL,
     from_type relation_object_type NOT NULL,
@@ -695,4 +695,36 @@ CREATE TABLE filter (
     description TEXT NOT NULL,
 
     UNIQUE (site_id, regex, deleted_at)
+);
+
+--
+-- Audit Log
+--
+
+-- This very large table contains the platform's audit log.
+--
+-- Like relations, it is an algebraic data type, all rows
+-- with the same event_type have the same data fields. These
+-- columns are nullable to accomodate this.
+--
+-- Observe that there are no foreign keys here:
+-- While we maintain that constraint in code, we are not
+-- burdening Postgres with maintaining extremely large numbers
+-- of these foreign keys.
+--
+CREATE TABLE audit_log (
+    event_id BIGSERIAL PRIMARY KEY,
+    event_type TEXT NOT NULL,  -- check enum value at runtime
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+    ip_address TEXT NOT NULL,  -- TODO change to INET
+    user_id BIGINT,
+    site_id BIGINT,
+    page_id BIGINT,
+    extra_id_1 BIGINT,
+    extra_id_2 BIGINT,
+    extra_string_1 TEXT,
+    extra_string_2 TEXT,
+    extra_number INT,
+
+    CHECK (strpos(event_type, '.') != 0)  -- all event types are '[object].[operation]'
 );

@@ -11,7 +11,8 @@ export async function siteUpdate(
   description: Optional<String>,
   defaultPage: Optional<String>,
   locale: Optional<String>,
-  layout: Optional<Nullable<Layout>>
+  layout: Optional<Nullable<Layout>>,
+  ipAddress: string
 ): Promise<object> {
   return client.request("site_update", {
     site: siteId,
@@ -25,6 +26,7 @@ export async function siteUpdate(
     layout:
       layout !== undefined
         ? Layout[layout?.toUpperCase() as keyof typeof Layout] ?? null
-        : undefined
+        : undefined,
+    ip_address: ipAddress
   })
 }

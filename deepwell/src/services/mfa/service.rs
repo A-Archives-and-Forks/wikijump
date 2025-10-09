@@ -21,8 +21,10 @@
 use super::prelude::*;
 use crate::models::sea_orm_active_enums::UserType;
 use crate::models::user::Model as UserModel;
+use crate::services::audit::{AuditEvent, AuditService, UpdateMfaOperation};
 use crate::services::{PasswordService, UserService};
 use sea_orm::ActiveValue;
+use std::net::IpAddr;
 use subtle::ConstantTimeEq;
 
 #[derive(Debug)]
@@ -35,6 +37,7 @@ impl MfaService {
     pub async fn setup(
         ctx: &ServiceContext<'_>,
         user: &UserModel,
+        ip_address: IpAddr,
     ) -> Result<MultiFactorSetupOutput> {
         info!("Setting up MFA for user ID {}", user.user_id);
 
@@ -66,6 +69,17 @@ impl MfaService {
         )
         .await?;
 
+        // Audit log
+        AuditService::log(
+            ctx,
+            ip_address,
+            AuditEvent::UserUpdateMfa {
+                user_id: user.user_id,
+                operation: UpdateMfaOperation::Setup,
+            },
+        )
+        .await?;
+
         // Return to user for their storage
         Ok(MultiFactorSetupOutput {
             totp_secret,
@@ -79,6 +93,7 @@ impl MfaService {
     pub async fn reset_recovery_codes(
         ctx: &ServiceContext<'_>,
         user: &UserModel,
+        ip_address: IpAddr,
     ) -> Result<MultiFactorResetOutput> {
         info!("Resetting MFA recovery codes for user ID {}", user.user_id);
 
@@ -103,6 +118,17 @@ impl MfaService {
         )
         .await?;
 
+        // Audit log
+        AuditService::log(
+            ctx,
+            ip_address,
+            AuditEvent::UserUpdateMfa {
+                user_id: user.user_id,
+                operation: UpdateMfaOperation::ResetRecoveryCodes,
+            },
+        )
+        .await?;
+
         // Return to user for their storage
         Ok(MultiFactorResetOutput {
             recovery_codes: recovery.recovery_codes,
@@ -113,7 +139,11 @@ impl MfaService {
     ///
     /// After this is run, the user does not need MFA to sign in,
     /// and has no recovery codes or TOTP secret.
-    pub async fn disable(ctx: &ServiceContext<'_>, user_id: i64) -> Result<()> {
+    pub async fn disable(
+        ctx: &ServiceContext<'_>,
+        user_id: i64,
+        ip_address: IpAddr,
+    ) -> Result<()> {
         info!("Tearing down MFA for user ID {user_id}");
 
         UserService::set_mfa_secrets(
@@ -122,7 +152,20 @@ impl MfaService {
             ActiveValue::Set(None),
             ActiveValue::Set(None),
         )
-        .await
+        .await?;
+
+        // Audit log
+        AuditService::log(
+            ctx,
+            ip_address,
+            AuditEvent::UserUpdateMfa {
+                user_id,
+                operation: UpdateMfaOperation::Disable,
+            },
+        )
+        .await?;
+
+        Ok(())
     }
 
     /// Verifies if the TOTP passed for this user is valid.

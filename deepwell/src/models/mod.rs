@@ -3,6 +3,7 @@
 pub mod prelude;
 
 pub mod alias;
+pub mod audit_log;
 pub mod blob_blacklist;
 pub mod blob_pending;
 pub mod file;

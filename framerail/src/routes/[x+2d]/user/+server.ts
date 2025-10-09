@@ -32,7 +32,7 @@ export async function POST(event) {
       avatar
     }
 
-    let res = await userEdit(session?.user_id, body)
+    let res = await userEdit(session?.user_id, event.getClientAddress(), body)
 
     return new Response(JSON.stringify(res))
   } catch (error) {

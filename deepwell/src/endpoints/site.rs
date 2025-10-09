@@ -65,8 +65,9 @@ pub async fn site_update(
         site,
         body,
         user_id,
+        ip_address,
     } = params.parse()?;
 
     info!("Updating site {site:?}");
-    SiteService::update(ctx, site, body, user_id).await
+    SiteService::update(ctx, site, body, user_id, ip_address).await
 }

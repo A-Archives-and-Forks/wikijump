@@ -25,6 +25,7 @@ use data_encoding::BASE32_NOPAD;
 use rand::distributions::{Alphanumeric, DistString};
 use rand::{Rng, thread_rng};
 use std::iter;
+use std::net::IpAddr;
 
 pub fn generate_totp_secret() -> String {
     let mut rng = thread_rng();
@@ -87,6 +88,7 @@ impl RecoveryCodes {
 pub struct MultiFactorConfigure {
     pub user_id: i64,
     pub session_token: String,
+    pub ip_address: IpAddr,
 }
 
 #[derive(Serialize, Debug, Clone)]
