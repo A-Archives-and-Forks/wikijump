@@ -23,7 +23,7 @@ use crate::constants::SYSTEM_USER_ID;
 use crate::models::sea_orm_active_enums::{AliasType, UserType};
 use crate::models::site::{self, Entity as Site, Model as SiteModel};
 use crate::services::alias::CreateAlias;
-use crate::services::audit::{AuditEvent, AuditService};
+use crate::services::audit::{AuditEvent, AuditService, SiteFields};
 use crate::services::domain::{DEFAULT_SITE_SLUG, DomainService};
 use crate::services::relation::CreateSiteUser;
 use crate::services::user::{CreateUser, UpdateUserBody};
@@ -34,6 +34,7 @@ use ref_map::*;
 use sea_orm::NotSet;
 use std::borrow::Cow;
 use std::net::IpAddr;
+use std::str::FromStr;
 use wikidot_normalize::normalize;
 
 #[derive(Debug)]
@@ -151,6 +152,56 @@ impl SiteService {
             site_id: Set(site.site_id),
             ..Default::default()
         };
+
+        // Gather data for audit lgo entry
+        {
+            let mut previous_fields = SiteFields::default();
+            let mut changed_fields = SiteFields::default();
+
+            macro_rules! add_changed_field {
+                ($field:ident) => {{
+                    if let Maybe::Set(value) = &input.$field {
+                        previous_fields.$field = Maybe::Set(&site.$field);
+                        changed_fields.$field = Maybe::Set(value);
+                    }
+                }};
+                (ref $field:ident) => {{
+                    if let Maybe::Set(value) = &input.$field {
+                        previous_fields.$field = Maybe::Set(site.$field.as_deref());
+                        changed_fields.$field = Maybe::Set(value.as_deref());
+                    }
+                }};
+            }
+
+            add_changed_field!(name);
+            add_changed_field!(slug);
+            add_changed_field!(tagline);
+            add_changed_field!(description);
+            add_changed_field!(locale);
+            add_changed_field!(default_page);
+            add_changed_field!(ref preferred_domain);
+
+            if let Maybe::Set(layout) = input.layout {
+                let old_layout = site.layout.as_ref().map(|value| {
+                    Layout::from_str(&value)
+                        .expect("Invalid layout value found in database")
+                });
+                previous_fields.layout = Maybe::Set(old_layout);
+                changed_fields.layout = Maybe::Set(layout);
+            }
+
+            AuditService::log(
+                ctx,
+                ip_address,
+                AuditEvent::SiteUpdate {
+                    site_id: site.site_id,
+                    user_id: updating_user_id,
+                    previous_fields,
+                    changed_fields,
+                },
+            )
+            .await?;
+        }
 
         // For updating the corresponding site user
         let mut site_user_body = UpdateUserBody::default();

@@ -42,6 +42,12 @@ pub enum AuditEvent<'a> {
     SiteCreate {
         site_id: i64,
     },
+    SiteUpdate {
+        site_id: i64,
+        user_id: i64,
+        previous_fields: SiteFields<'a>,
+        changed_fields: SiteFields<'a>,
+    },
     PageCreate {
         user_id: i64,
         site_id: i64,
@@ -141,6 +147,28 @@ impl<'a> AuditEvent<'a> {
                 extra_string_2: None,
                 extra_number: None,
             },
+            AuditEvent::SiteUpdate {
+                user_id,
+                site_id,
+                ref previous_fields,
+                ref changed_fields,
+            } => {
+                let previous_fields_json = serde_json::to_string(previous_fields)?;
+                let changed_fields_json = serde_json::to_string(changed_fields)?;
+
+                RawAuditEvent {
+                    event_type: "site.update",
+                    ip_address,
+                    user_id: Some(user_id),
+                    site_id: Some(site_id),
+                    page_id: None,
+                    extra_id_1: None,
+                    extra_id_2: None,
+                    extra_string_1: Some(Cow::Owned(previous_fields_json)),
+                    extra_string_2: Some(Cow::Owned(changed_fields_json)),
+                    extra_number: None,
+                }
+            }
             AuditEvent::PageCreate {
                 user_id,
                 site_id,
@@ -308,4 +336,16 @@ pub struct UserFields<'a> {
     pub location: Maybe<Option<&'a str>>,
     pub biography: Maybe<Option<&'a str>>,
     pub user_page: Maybe<Option<&'a str>>,
+}
+
+#[derive(Serialize, Debug, Clone, Default)]
+pub struct SiteFields<'a> {
+    pub name: Maybe<&'a str>,
+    pub slug: Maybe<&'a str>,
+    pub tagline: Maybe<&'a str>,
+    pub description: Maybe<&'a str>,
+    pub locale: Maybe<&'a str>,
+    pub default_page: Maybe<&'a str>,
+    pub preferred_domain: Maybe<Option<&'a str>>,
+    pub layout: Maybe<Option<Layout>>,
 }
