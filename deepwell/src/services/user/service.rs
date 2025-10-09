@@ -688,6 +688,7 @@ impl UserService {
         multi_factor_recovery_codes: ActiveValue<Option<Vec<String>>>,
     ) -> Result<()> {
         info!("Setting MFA secret fields for user ID {user_id}");
+        // NOTE: Audit log events are set in MfaService, not here
 
         let txn = ctx.transaction();
         let model = user::ActiveModel {

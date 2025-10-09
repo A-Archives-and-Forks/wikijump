@@ -39,6 +39,10 @@ pub enum AuditEvent<'a> {
         previous_fields: UserFields<'a>,
         changed_fields: UserFields<'a>,
     },
+    UserUpdateMfa {
+        user_id: i64,
+        operation: UpdateMfaOperation,
+    },
     SiteCreate {
         site_id: i64,
     },
@@ -135,6 +139,18 @@ impl<'a> AuditEvent<'a> {
                     extra_number: None,
                 }
             }
+            AuditEvent::UserUpdateMfa { user_id, operation } => RawAuditEvent {
+                event_type: "user.update_mfa",
+                ip_address,
+                user_id: Some(user_id),
+                site_id: None,
+                page_id: None,
+                extra_id_1: None,
+                extra_id_2: None,
+                extra_string_1: Some(cow!(operation.value())),
+                extra_string_2: None,
+                extra_number: None,
+            },
             AuditEvent::SiteCreate { site_id } => RawAuditEvent {
                 event_type: "site.create",
                 ip_address,
@@ -316,7 +332,7 @@ pub struct RawAuditEvent<'a> {
     pub extra_number: Option<i32>,
 }
 
-// Ancillary tables
+// Ancillary structures
 
 #[derive(Serialize, Debug, Clone, Default)]
 pub struct UserFields<'a> {
@@ -348,4 +364,21 @@ pub struct SiteFields<'a> {
     pub default_page: Maybe<&'a str>,
     pub preferred_domain: Maybe<Option<&'a str>>,
     pub layout: Maybe<Option<Layout>>,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum UpdateMfaOperation {
+    Setup,
+    ResetRecoveryCodes,
+    Disable,
+}
+
+impl UpdateMfaOperation {
+    pub fn value(self) -> &'static str {
+        match self {
+            UpdateMfaOperation::Setup => "setup",
+            UpdateMfaOperation::ResetRecoveryCodes => "reset_recovery_codes",
+            UpdateMfaOperation::Disable => "disable",
+        }
+    }
 }

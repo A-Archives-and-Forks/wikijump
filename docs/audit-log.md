@@ -14,6 +14,7 @@ This file will document all event types, describe their data, and explain when t
 |-----------------------|-----------------------------------|---------------|---------------|-------------------|-------------------|-------------------| ------|
 | `user.create`         | `user_id`                         |               |               |                   |                   |                   |       |
 | `user.update`         | `user_id`                         |               |               | Previous fields   | Changed fields    |                   | Both "fields" strings are JSON objects. See the audit services for the shape of this object. |
+| `user.update_mfa`     | `user_id`                         |               |               | Update type       |                   |                   | This simply notes when/where the MFA secrets were updated. "Update type" is a string enum. |
 | `site.create`         | `site_id`                         |               |               |                   |                   |                   |       |
 | `site.update`         | `user_id`, `site_id`,             |               |               | Previous fields   | Changed fields    |                   | Both "fields" strings are JSON objects. Very similar to `user.update`. |
 | `page.create`         | `user_id`, `site_id`, `page_id`   | Revision ID   | Category ID   |                   |                   |                   |       |
