@@ -32,7 +32,6 @@ use crate::services::session::{
     CreateSession, GetOtherSessions, GetOtherSessionsOutput, InvalidateOtherSessions,
     RenewSession,
 };
-use crate::types::Reference;
 
 pub async fn auth_login(
     ctx: &ServiceContext<'_>,
@@ -214,7 +213,9 @@ pub async fn auth_mfa_setup(
         ip_address,
     } = params.parse()?;
 
-    let user = UserService::get(ctx, Reference::Id(user_id)).await?;
+    let user =
+        SessionService::get_user_with_id(ctx, &session_token, false, user_id).await?;
+
     MfaService::setup(ctx, &user, ip_address).await
 }
 
@@ -228,18 +229,8 @@ pub async fn auth_mfa_disable(
         ip_address,
     } = params.parse()?;
 
-    let user = SessionService::get_user(ctx, &session_token, false).await?;
-    if user.user_id != user_id {
-        error!(
-            "Passed user ID ({}) does not match session token ({})",
-            user_id, user.user_id,
-        );
-
-        return Err(Error::SessionUserId {
-            active_user_id: user_id,
-            session_user_id: user.user_id,
-        });
-    }
+    let user =
+        SessionService::get_user_with_id(ctx, &session_token, false, user_id).await?;
 
     MfaService::disable(ctx, user.user_id, ip_address).await
 }
@@ -254,18 +245,8 @@ pub async fn auth_mfa_reset_recovery(
         ip_address,
     } = params.parse()?;
 
-    let user = SessionService::get_user(ctx, &session_token, false).await?;
-    if user.user_id != user_id {
-        error!(
-            "Passed user ID ({}) does not match session token ({})",
-            user_id, user.user_id,
-        );
-
-        return Err(Error::SessionUserId {
-            active_user_id: user_id,
-            session_user_id: user.user_id,
-        });
-    }
+    let user =
+        SessionService::get_user_with_id(ctx, &session_token, false, user_id).await?;
 
     MfaService::reset_recovery_codes(ctx, &user, ip_address).await
 }
