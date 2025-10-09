@@ -335,34 +335,56 @@ pub struct RawAuditEvent<'a> {
 // Ancillary structures
 
 #[derive(Serialize, Debug, Clone, Default)]
+#[serde(default)]
 pub struct UserFields<'a> {
+    #[serde(skip_serializing_if = "Maybe::is_unset")]
     pub name: Maybe<&'a str>,
+    #[serde(skip_serializing_if = "Maybe::is_unset")]
     pub slug: Maybe<Cow<'a, str>>,
+    #[serde(skip_serializing_if = "Maybe::is_unset")]
     pub email: Maybe<&'a str>,
     // NOTE: We don't log the password value, hash or otherwise,
     //       instead we record whether a password value is *present*
     //       or not. See DISABLED_PASSWORD_HASH in UserService.
+    #[serde(skip_serializing_if = "Maybe::is_unset")]
     pub password: Maybe<bool>,
+    #[serde(skip_serializing_if = "Maybe::is_unset")]
     pub locales: Maybe<&'a [String]>,
     // NOTE: This is simply whether an avatar is set or not, not its value.
+    #[serde(skip_serializing_if = "Maybe::is_unset")]
     pub avatar: Maybe<bool>,
+    #[serde(skip_serializing_if = "Maybe::is_unset")]
     pub real_name: Maybe<Option<&'a str>>,
+    #[serde(skip_serializing_if = "Maybe::is_unset")]
     pub gender: Maybe<Option<&'a str>>,
+    #[serde(skip_serializing_if = "Maybe::is_unset")]
     pub birthday: Maybe<Option<Date>>,
+    #[serde(skip_serializing_if = "Maybe::is_unset")]
     pub location: Maybe<Option<&'a str>>,
+    #[serde(skip_serializing_if = "Maybe::is_unset")]
     pub biography: Maybe<Option<&'a str>>,
+    #[serde(skip_serializing_if = "Maybe::is_unset")]
     pub user_page: Maybe<Option<&'a str>>,
 }
 
 #[derive(Serialize, Debug, Clone, Default)]
+#[serde(default)]
 pub struct SiteFields<'a> {
+    #[serde(skip_serializing_if = "Maybe::is_unset")]
     pub name: Maybe<&'a str>,
+    #[serde(skip_serializing_if = "Maybe::is_unset")]
     pub slug: Maybe<&'a str>,
+    #[serde(skip_serializing_if = "Maybe::is_unset")]
     pub tagline: Maybe<&'a str>,
+    #[serde(skip_serializing_if = "Maybe::is_unset")]
     pub description: Maybe<&'a str>,
+    #[serde(skip_serializing_if = "Maybe::is_unset")]
     pub locale: Maybe<&'a str>,
+    #[serde(skip_serializing_if = "Maybe::is_unset")]
     pub default_page: Maybe<&'a str>,
+    #[serde(skip_serializing_if = "Maybe::is_unset")]
     pub preferred_domain: Maybe<Option<&'a str>>,
+    #[serde(skip_serializing_if = "Maybe::is_unset")]
     pub layout: Maybe<Option<Layout>>,
 }
 
