@@ -235,7 +235,6 @@ CREATE TABLE page_category (
     site_id BIGINT NOT NULL REFERENCES site(site_id),
     slug TEXT NOT NULL,
     layout TEXT, -- category-specific override for DOM layout
-    license license,  -- category-specific override for content license
 
     UNIQUE (site_id, slug)
 );
