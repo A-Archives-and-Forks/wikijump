@@ -40,7 +40,6 @@ header = Đầu Trang
 help = Trợ giúp
 inbox = Hộp thư
 invitations = Lời mời
-license = Giấy phép
 load = Tải
 main-content = Nội Dung Chính
 messages = Tin nhắn

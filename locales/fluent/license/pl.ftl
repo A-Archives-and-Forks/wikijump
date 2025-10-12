@@ -1,0 +1,3 @@
+### Licencja
+
+license = Licencja

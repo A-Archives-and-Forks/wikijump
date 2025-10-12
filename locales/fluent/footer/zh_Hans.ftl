@@ -9,7 +9,7 @@ footer-menu =
   .report-flag = 标记为令人反感
 
 footer-license =
-  本页内容授权位于 { $license } 协议之下。
+  本页内容授权位于 <a href="{ $license_url }">{ $license }</a> 协议之下。
 
 footer-license-unless =
-  除非另有声明，否则本页内容授权位于 { $license } 协议之下。
+  除非另有声明，否则本页内容授权位于 <a href="{ $license_url }">{ $license }</a> 协议之下。

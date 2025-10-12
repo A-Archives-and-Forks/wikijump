@@ -70,6 +70,8 @@ impl ViewService {
         let Viewer {
             site,
             site_file_domain,
+            license_name,
+            license_url,
             user_session,
         } = Self::get_viewer(
             ctx,
@@ -250,6 +252,8 @@ impl ViewService {
         let viewer = Viewer {
             site,
             site_file_domain,
+            license_name,
+            license_url,
             user_session,
         };
         let output = match status {
@@ -427,7 +431,7 @@ impl ViewService {
     /// * Session token → User ID and their permissions
     ///
     /// Note that we do *not* need to get the site ID from the domain
-    /// since WWS has already done the domain lookup logic for ups.
+    /// since WWS has already done the domain lookup logic for us.
     ///
     /// Then using this information, the caller can perform some common
     /// operations, such as slug normalization or redirect site aliases.
@@ -487,11 +491,15 @@ impl ViewService {
         // Get site information
         let site = SiteService::get(ctx, Reference::Id(site_id)).await?;
         let site_file_domain = DomainService::get_files(config, &site.slug);
+        let license_name = site.license.translate(ctx.localization(), locales)?;
+        let license_url = site.license.url();
 
         // Return
         Ok(Viewer {
             site,
             site_file_domain,
+            license_name,
+            license_url,
             user_session,
         })
     }

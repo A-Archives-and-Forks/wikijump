@@ -19,6 +19,7 @@
  */
 
 use super::prelude::*;
+use crate::license::License;
 use ftml::layout::Layout;
 use std::borrow::Cow;
 use std::net::IpAddr;
@@ -378,6 +379,8 @@ pub struct SiteFields<'a> {
     pub tagline: Maybe<&'a str>,
     #[serde(skip_serializing_if = "Maybe::is_unset")]
     pub description: Maybe<&'a str>,
+    #[serde(skip_serializing_if = "Maybe::is_unset")]
+    pub license: Maybe<License>,
     #[serde(skip_serializing_if = "Maybe::is_unset")]
     pub locale: Maybe<&'a str>,
     #[serde(skip_serializing_if = "Maybe::is_unset")]

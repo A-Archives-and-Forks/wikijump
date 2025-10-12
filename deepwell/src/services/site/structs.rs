@@ -18,6 +18,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+use crate::license::License;
 use crate::models::alias::Model as AliasModel;
 use crate::models::site::Model as SiteModel;
 use crate::models::site_domain::Model as SiteDomainModel;
@@ -33,6 +34,7 @@ pub struct CreateSite {
     pub description: String,
     pub default_page: Option<String>,
     pub layout: Option<Layout>,
+    pub license: License,
     pub locale: String,
     pub ip_address: IpAddr,
 }
@@ -78,4 +80,5 @@ pub struct UpdateSiteBody {
     pub default_page: Maybe<String>,
     pub preferred_domain: Maybe<Option<String>>,
     pub layout: Maybe<Option<Layout>>,
+    pub license: Maybe<License>,
 }

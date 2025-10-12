@@ -49,6 +49,7 @@ mod database;
 mod endpoints;
 mod hash;
 mod info;
+mod license;
 mod locales;
 mod redis;
 mod services;
