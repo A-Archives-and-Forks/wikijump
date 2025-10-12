@@ -9,7 +9,7 @@ footer-menu =
   .report-flag = Flag as objectionable
 
 footer-license =
-  The content of this page is licensed under the { $license }.
+  The content of this page is licensed under the <a href="{ $license_url }">{ $license }</a>.
 
 footer-license-unless =
-  Unless stated otherwise, the content of this page is licensed under the { $license }.
+  Unless stated otherwise, the content of this page is licensed under the <a href="{ $license_url }">{ $license }</a>.
