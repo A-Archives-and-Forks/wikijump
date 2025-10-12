@@ -427,7 +427,7 @@ impl ViewService {
     /// * Session token → User ID and their permissions
     ///
     /// Note that we do *not* need to get the site ID from the domain
-    /// since WWS has already done the domain lookup logic for ups.
+    /// since WWS has already done the domain lookup logic for us.
     ///
     /// Then using this information, the caller can perform some common
     /// operations, such as slug normalization or redirect site aliases.
