@@ -36,6 +36,55 @@ pub enum FileRevisionType {
 #[derive(
     Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Copy, Serialize, Deserialize,
 )]
+#[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "license")]
+#[serde(rename_all = "kebab-case")]
+pub enum License {
+    #[sea_orm(string_value = "cc-by-sa-4.0")]
+    CcBySa40,
+    #[sea_orm(string_value = "cc-by-4.0")]
+    CcBy40,
+    #[sea_orm(string_value = "cc-by-nd-4.0")]
+    CcByNd40,
+    #[sea_orm(string_value = "cc-by-nc-4.0")]
+    CcByNc40,
+    #[sea_orm(string_value = "cc-by-nc-sa-4.0")]
+    CcByNcSa40,
+    #[sea_orm(string_value = "cc-by-nc-nd-4.0")]
+    CcByNcNd40,
+    #[sea_orm(string_value = "cc-by-sa-3.0")]
+    CcBySa30,
+    #[sea_orm(string_value = "cc-by-3.0")]
+    CcBy30,
+    #[sea_orm(string_value = "cc-by-nd-3.0")]
+    CcByNd30,
+    #[sea_orm(string_value = "cc-by-nc-3.0")]
+    CcByNc30,
+    #[sea_orm(string_value = "cc-by-nc-sa-3.0")]
+    CcByNcSa30,
+    #[sea_orm(string_value = "cc-by-nc-nd-3.0")]
+    CcByNcNd30,
+    #[sea_orm(string_value = "cc-by-sa-2.5")]
+    CcBySa25,
+    #[sea_orm(string_value = "cc-by-2.5")]
+    CcBy25,
+    #[sea_orm(string_value = "cc-by-nd-2.5")]
+    CcByNd25,
+    #[sea_orm(string_value = "cc-by-nc-2.5")]
+    CcByNc25,
+    #[sea_orm(string_value = "cc-by-nc-sa-2.5")]
+    CcByNcSa25,
+    #[sea_orm(string_value = "cc-by-nc-nd-2.5")]
+    CcByNcNd25,
+    #[sea_orm(string_value = "gnu-fdl-1.3")]
+    GnuFdl13,
+    #[sea_orm(string_value = "gnu-fdl-1.2")]
+    GnuFdl12,
+    #[sea_orm(string_value = "gnu-fdl-1.1")]
+    GnuFdl11,
+}
+#[derive(
+    Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Copy, Serialize, Deserialize,
+)]
 #[sea_orm(
     rs_type = "String",
     db_type = "Enum",
