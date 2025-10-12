@@ -20,9 +20,9 @@
 
 //! Constant data for licenses usable by Wikijump sites.
 
-use fluent::FluentArgs;
 use crate::locales::Localizations;
 use crate::services::Result;
+use fluent::FluentArgs;
 use unic_langid::LanguageIdentifier;
 
 pub use crate::models::sea_orm_active_enums::License;
@@ -93,14 +93,8 @@ impl License {
         locales: &[LanguageIdentifier],
     ) -> Result<String> {
         assert!(!locales.is_empty(), "No languages specified");
-
         let args = FluentArgs::new();
-        let name = localization.translate(
-            locales,
-            self.fluent_key(),
-            &args,
-        )?;
-
+        let name = localization.translate(locales, self.fluent_key(), &args)?;
         Ok(name.to_string())
     }
 }

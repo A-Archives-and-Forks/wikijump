@@ -18,10 +18,10 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+use crate::license::License;
 use crate::models::alias::Model as AliasModel;
 use crate::models::site::Model as SiteModel;
 use crate::models::site_domain::Model as SiteDomainModel;
-use crate::license::License;
 use crate::types::{Maybe, Reference};
 use ftml::layout::Layout;
 use std::net::IpAddr;
