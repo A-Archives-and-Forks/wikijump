@@ -20,7 +20,7 @@
 
 //! Constant data for licenses usable by Wikijump sites.
 
-use crate::models::sea_orm_active_enums::License;
+pub use crate::models::sea_orm_active_enums::License;
 
 impl License {
     pub fn slug(self) -> &'static str {
