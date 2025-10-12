@@ -139,6 +139,8 @@ pub enum GetAdminViewOutput {
 pub struct Viewer {
     pub site: SiteModel,
     pub site_file_domain: String,
+    pub license_name: String,
+    pub license_url: &'static str,
     pub user_session: Option<UserSession>,
 }
 

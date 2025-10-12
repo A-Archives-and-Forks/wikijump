@@ -70,6 +70,8 @@ impl ViewService {
         let Viewer {
             site,
             site_file_domain,
+            license_name,
+            license_url,
             user_session,
         } = Self::get_viewer(
             ctx,
@@ -250,6 +252,8 @@ impl ViewService {
         let viewer = Viewer {
             site,
             site_file_domain,
+            license_name,
+            license_url,
             user_session,
         };
         let output = match status {
@@ -487,11 +491,15 @@ impl ViewService {
         // Get site information
         let site = SiteService::get(ctx, Reference::Id(site_id)).await?;
         let site_file_domain = DomainService::get_files(config, &site.slug);
+        let license_name = site.license.translate(ctx.localization(), &locales)?;
+        let license_url = site.license.url();
 
         // Return
         Ok(Viewer {
             site,
             site_file_domain,
+            license_name,
+            license_url,
             user_session,
         })
     }

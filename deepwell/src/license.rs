@@ -89,8 +89,8 @@ impl License {
 
     pub fn translate(
         self,
-        locales: &[LanguageIdentifier],
         localization: &Localizations,
+        locales: &[LanguageIdentifier],
     ) -> Result<String> {
         assert!(!locales.is_empty(), "No languages specified");
 
