@@ -20,35 +20,14 @@
 
 //! Constant data for licenses usable by Wikijump sites.
 
+use fluent::FluentArgs;
+use crate::locales::Localizations;
+use crate::services::Result;
+use unic_langid::LanguageIdentifier;
+
 pub use crate::models::sea_orm_active_enums::License;
 
 impl License {
-    pub fn slug(self) -> &'static str {
-        match self {
-            License::CcBySa40 => "cc-by-sa-4.0",
-            License::CcBy40 => "cc-by-4.0",
-            License::CcByNd40 => "cc-by-nd-4.0",
-            License::CcByNc40 => "cc-by-nc-4.0",
-            License::CcByNcSa40 => "cc-by-nc-sa-4.0",
-            License::CcByNcNd40 => "cc-by-nc-nd-4.0",
-            License::CcBySa30 => "cc-by-sa-3.0",
-            License::CcBy30 => "cc-by-3.0",
-            License::CcByNd30 => "cc-by-nd-3.0",
-            License::CcByNc30 => "cc-by-nc-3.0",
-            License::CcByNcSa30 => "cc-by-nc-sa-3.0",
-            License::CcByNcNd30 => "cc-by-nc-nd-3.0",
-            License::CcBySa25 => "cc-by-sa-2.5",
-            License::CcBy25 => "cc-by-2.5",
-            License::CcByNd25 => "cc-by-nd-2.5",
-            License::CcByNc25 => "cc-by-nc-2.5",
-            License::CcByNcSa25 => "cc-by-nc-sa-2.5",
-            License::CcByNcNd25 => "cc-by-nc-nd-2.5",
-            License::GnuFdl13 => "gnu-fdl-1.3",
-            License::GnuFdl12 => "gnu-fdl-1.2",
-            License::GnuFdl11 => "gnu-fdl-1.1",
-        }
-    }
-
     pub fn url(self) -> &'static str {
         match self {
             License::CcBySa40 => "https://creativecommons.org/licenses/by-sa/4.0/",
@@ -73,5 +52,55 @@ impl License {
             License::GnuFdl12 => "https://www.gnu.org/licenses/old-licenses/fdl-1.2.html",
             License::GnuFdl11 => "https://www.gnu.org/licenses/old-licenses/fdl-1.1.html",
         }
+    }
+
+    fn fluent_key(self) -> &'static str {
+        match self {
+            // Creative Commons 4.0
+            License::CcBySa40 => "license.cc-by-sa-4-0",
+            License::CcBy40 => "license.cc-by-4-0",
+            License::CcByNd40 => "license.cc-by-nd-4-0",
+            License::CcByNc40 => "license.cc-by-nc-4-0",
+            License::CcByNcSa40 => "license.cc-by-nc-sa-4-0",
+            License::CcByNcNd40 => "license.cc-by-nc-nd-4-0",
+
+            // Creative Commons 3.0
+            License::CcBySa30 => "license.cc-by-sa-3-0",
+            License::CcBy30 => "license.cc-by-3-0",
+            License::CcByNd30 => "license.cc-by-nd-3-0",
+            License::CcByNc30 => "license.cc-by-nc-3-0",
+            License::CcByNcSa30 => "license.cc-by-nc-sa-3-0",
+            License::CcByNcNd30 => "license.cc-by-nc-nd-3-0",
+
+            // Creative Commons 2.5
+            License::CcBySa25 => "license.cc-by-sa-2-5",
+            License::CcBy25 => "license.cc-by-2-5",
+            License::CcByNd25 => "license.cc-by-nd-2-5",
+            License::CcByNc25 => "license.cc-by-nc-2-5",
+            License::CcByNcSa25 => "license.cc-by-nc-sa-2-5",
+            License::CcByNcNd25 => "license.cc-by-nc-nd-2-5",
+
+            // GNU Free Documentation License
+            License::GnuFdl13 => "license.gnu-fdl-1-3",
+            License::GnuFdl12 => "license.gnu-fdl-1-2",
+            License::GnuFdl11 => "license.gnu-fdl-1-1",
+        }
+    }
+
+    pub fn translate(
+        self,
+        locales: &[LanguageIdentifier],
+        localization: &Localizations,
+    ) -> Result<String> {
+        assert!(!locales.is_empty(), "No languages specified");
+
+        let args = FluentArgs::new();
+        let name = localization.translate(
+            locales,
+            self.fluent_key(),
+            &args,
+        )?;
+
+        Ok(name.to_string())
     }
 }
