@@ -491,7 +491,7 @@ impl ViewService {
         // Get site information
         let site = SiteService::get(ctx, Reference::Id(site_id)).await?;
         let site_file_domain = DomainService::get_files(config, &site.slug);
-        let license_name = site.license.translate(ctx.localization(), &locales)?;
+        let license_name = site.license.translate(ctx.localization(), locales)?;
         let license_url = site.license.url();
 
         // Return
