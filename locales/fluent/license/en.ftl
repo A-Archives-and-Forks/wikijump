@@ -1,6 +1,6 @@
 ### License
 
-license =
+license = License
   .cc-by-sa-4-0     = Creative Commons Attribution-ShareAlike 4.0
   .cc-by-4-0        = Creative Commons Attribution 4.0
   .cc-by-nd-4-0     = Creative Commons Attribution-NoDerivs 4.0

@@ -40,7 +40,6 @@ header = Nagłówek strony
 help = Pomoc
 inbox = Skrzynka odbiorcza
 invitations = Zaproszenia
-license = Licencja
 load = Ładuj
 main-content = Główna zawartość
 messages = Wiadomość

@@ -40,7 +40,6 @@ header = 페이지 헤더
 help = 도움말
 inbox = 사서함
 invitations = 초대
-license = 라이선스
 load = 불러오기
 main-content = 주 콘텐츠
 messages = 메시지

@@ -47,7 +47,6 @@ history = History
 inbox = Inbox
 invitations = Invitations
 layout = Layout
-license = License
 load = Load
 main-content = Main Content
 messages = Messages
