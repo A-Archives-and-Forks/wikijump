@@ -167,6 +167,7 @@ pub async fn seed(state: &ServerState) -> Result<()> {
                 description: site.description,
                 default_page: site.default_page,
                 layout: site.layout,
+                license: site.license,
                 locale: site.locale,
                 ip_address: SEED_IP_ADDRESS,
             },

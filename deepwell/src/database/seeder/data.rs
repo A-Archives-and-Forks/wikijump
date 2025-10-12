@@ -18,7 +18,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use crate::models::sea_orm_active_enums::UserType;
+use crate::models::sea_orm_active_enums::{License, UserType};
 use anyhow::Result;
 use ftml::layout::Layout;
 use serde::Deserialize;
@@ -144,6 +144,7 @@ pub struct Site {
     #[serde(default)]
     pub default_page: Option<String>,
     pub layout: Option<Layout>,
+    pub license: License,
     pub locale: String,
 }
 

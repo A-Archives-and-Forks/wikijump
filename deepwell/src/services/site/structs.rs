@@ -21,6 +21,7 @@
 use crate::models::alias::Model as AliasModel;
 use crate::models::site::Model as SiteModel;
 use crate::models::site_domain::Model as SiteDomainModel;
+use crate::license::License;
 use crate::types::{Maybe, Reference};
 use ftml::layout::Layout;
 use std::net::IpAddr;
@@ -33,6 +34,7 @@ pub struct CreateSite {
     pub description: String,
     pub default_page: Option<String>,
     pub layout: Option<Layout>,
+    pub license: License,
     pub locale: String,
     pub ip_address: IpAddr,
 }

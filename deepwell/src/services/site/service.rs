@@ -50,6 +50,7 @@ impl SiteService {
             description,
             default_page,
             layout,
+            license,
             locale,
             ip_address,
         }: CreateSite,
@@ -76,6 +77,7 @@ impl SiteService {
                 None => NotSet,
             },
             layout: Set(layout.map(|l| str!(l.value()))),
+            license: Set(license),
             locale: Set(locale.clone()),
             ..Default::default()
         };
