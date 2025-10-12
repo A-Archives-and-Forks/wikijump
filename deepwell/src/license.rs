@@ -51,6 +51,7 @@ impl License {
             License::GnuFdl13 => "https://www.gnu.org/licenses/fdl-1.3.html",
             License::GnuFdl12 => "https://www.gnu.org/licenses/old-licenses/fdl-1.2.html",
             License::GnuFdl11 => "https://www.gnu.org/licenses/old-licenses/fdl-1.1.html",
+            License::Cc0 => "https://creativecommons.org/public-domain/cc0/",
         }
     }
 
@@ -84,6 +85,9 @@ impl License {
             License::GnuFdl13 => "license.gnu-fdl-1-3",
             License::GnuFdl12 => "license.gnu-fdl-1-2",
             License::GnuFdl11 => "license.gnu-fdl-1-1",
+
+            // Public Domain
+            License::Cc0 => "license.cc0",
         }
     }
 

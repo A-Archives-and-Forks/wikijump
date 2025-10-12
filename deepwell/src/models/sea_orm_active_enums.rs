@@ -81,6 +81,8 @@ pub enum License {
     GnuFdl12,
     #[sea_orm(string_value = "gnu-fdl-1.1")]
     GnuFdl11,
+    #[sea_orm(string_value = "cc0")]
+    Cc0,
 }
 #[derive(
     Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Copy, Serialize, Deserialize,

@@ -22,3 +22,4 @@ license =
   .gnu-fdl-1-3      = GNU Free Documentation License 1.3
   .gnu-fdl-1-2      = GNU Free Documentation License 1.2
   .gnu-fdl-1-1      = GNU Free Documentation License 1.1
+  .cc0              = Public Domain (CC0)
