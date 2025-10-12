@@ -80,4 +80,5 @@ pub struct UpdateSiteBody {
     pub default_page: Maybe<String>,
     pub preferred_domain: Maybe<Option<String>>,
     pub layout: Maybe<Option<Layout>>,
+    pub license: Maybe<License>,
 }

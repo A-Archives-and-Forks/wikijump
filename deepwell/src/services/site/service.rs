@@ -173,12 +173,19 @@ impl SiteService {
                         changed_fields.$field = Maybe::Set(value.as_deref());
                     }
                 }};
+                (move $field:ident) => {{
+                    if let Maybe::Set(value) = input.$field {
+                        previous_fields.$field = Maybe::Set(site.$field);
+                        changed_fields.$field = Maybe::Set(value);
+                    }
+                }};
             }
 
             add_changed_field!(name);
             add_changed_field!(slug);
             add_changed_field!(tagline);
             add_changed_field!(description);
+            add_changed_field!(move license);
             add_changed_field!(locale);
             add_changed_field!(default_page);
             add_changed_field!(ref preferred_domain);
@@ -278,6 +285,10 @@ impl SiteService {
 
         if let Maybe::Set(layout) = input.layout {
             model.layout = Set(layout.map(|l| str!(l.value())));
+        }
+
+        if let Maybe::Set(license) = input.license {
+            model.license = Set(license);
         }
 
         // Update site
