@@ -42,3 +42,13 @@ pub async fn category_get_all(
     info!("Getting all page categories in site ID {site_id}");
     CategoryService::get_all(ctx, site_id).await
 }
+
+pub async fn category_get_all_active(
+    ctx: &ServiceContext<'_>,
+    params: Params<'static>,
+) -> Result<Vec<PageCategoryModel>> {
+    let GetSite { site } = params.parse()?;
+    let site_id = SiteService::get_id(ctx, site).await?;
+    info!("Getting all active page categories in site ID {site_id}");
+    CategoryService::get_all_active(ctx, site_id).await
+}
