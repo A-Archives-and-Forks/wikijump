@@ -18,4 +18,10 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-// TODO
+use std::borrow::Cow;
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct NavigationPages<'a> {
+    pub top_bar_page: Cow<'a, str>,
+    pub side_bar_page: Cow<'a, str>,
+}

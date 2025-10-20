@@ -21,6 +21,7 @@
 use super::prelude::*;
 use crate::services::{CategoryService, PageService, SiteService};
 use ftml::layout::Layout;
+use std::borrow::Cow;
 
 #[derive(Debug)]
 pub struct SettingsService;
@@ -33,7 +34,7 @@ impl SettingsService {
     /// associated with the site is used.
     ///
     /// If no page ID is specified, then searching
-    /// starts with site layout overrides.
+    /// starts with site layout settings.
     pub async fn get_layout(
         ctx: &ServiceContext<'_>,
         site_id: i64,
@@ -71,5 +72,38 @@ impl SettingsService {
 
         debug!("Using platform-level layout");
         Ok(ctx.config().default_page_layout)
+    }
+
+    /// Get the navigation pages for this page category.
+    ///
+    /// If this category has nav page overrides, then those
+    /// are returned. Otherwise, the respective navigation
+    /// pages for the site is used.
+    ///
+    /// If no category ID is specified, then searching
+    /// starts with site nav page settings.
+    ///
+    /// Note that empty strings have a special meaning,
+    /// specifying that this navigation element is not included.
+    pub async fn get_nav_pages(
+        ctx: &ServiceContext<'_>,
+        site_id: i64,
+        category_id: Option<i64>,
+    ) -> Result<NavigationPages<'static>> {
+        let site = SiteService::get(ctx, Reference::Id(site_id)).await?;
+        let (override_top_bar, override_side_bar) = match category_id {
+            None => (None, None),
+            Some(category_id) => {
+                let category =
+                    CategoryService::get(ctx, site_id, Reference::Id(category_id))
+                        .await?;
+                (category.top_bar_page, category.side_bar_page)
+            }
+        };
+
+        Ok(NavigationPages {
+            top_bar_page: Cow::Owned(override_top_bar.unwrap_or(site.top_bar_page)),
+            side_bar_page: Cow::Owned(override_side_bar.unwrap_or(site.side_bar_page)),
+        })
     }
 }
