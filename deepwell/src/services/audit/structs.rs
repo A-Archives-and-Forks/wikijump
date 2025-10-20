@@ -386,6 +386,10 @@ pub struct SiteFields<'a> {
     #[serde(skip_serializing_if = "Maybe::is_unset")]
     pub default_page: Maybe<&'a str>,
     #[serde(skip_serializing_if = "Maybe::is_unset")]
+    pub top_bar_page: Maybe<&'a str>,
+    #[serde(skip_serializing_if = "Maybe::is_unset")]
+    pub side_bar_page: Maybe<&'a str>,
+    #[serde(skip_serializing_if = "Maybe::is_unset")]
     pub preferred_domain: Maybe<Option<&'a str>>,
     #[serde(skip_serializing_if = "Maybe::is_unset")]
     pub layout: Maybe<Option<Layout>>,

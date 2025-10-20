@@ -78,6 +78,8 @@ pub struct UpdateSiteBody {
     pub description: Maybe<String>,
     pub locale: Maybe<String>,
     pub default_page: Maybe<String>,
+    pub top_bar_page: Maybe<String>,
+    pub side_bar_page: Maybe<String>,
     pub preferred_domain: Maybe<Option<String>>,
     pub layout: Maybe<Option<Layout>>,
     pub license: Maybe<License>,
