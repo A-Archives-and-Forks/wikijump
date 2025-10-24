@@ -102,8 +102,8 @@ impl SettingsService {
         };
 
         Ok(NavigationPages {
-            top_bar_page: Cow::Owned(override_top_bar.unwrap_or(site.top_bar_page)),
-            side_bar_page: Cow::Owned(override_side_bar.unwrap_or(site.side_bar_page)),
+            top_bar_page: override_top_bar.unwrap_or(site.top_bar_page),
+            side_bar_page: override_side_bar.unwrap_or(site.side_bar_page),
         })
     }
 }

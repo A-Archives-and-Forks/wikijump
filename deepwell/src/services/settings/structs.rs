@@ -21,7 +21,7 @@
 use std::borrow::Cow;
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct NavigationPages<'a> {
-    pub top_bar_page: Cow<'a, str>,
-    pub side_bar_page: Cow<'a, str>,
+pub struct NavigationPages {
+    pub top_bar_page: String,
+    pub side_bar_page: String,
 }
