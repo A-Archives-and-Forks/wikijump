@@ -18,10 +18,35 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use std::borrow::Cow;
+/// Describes a navigation page slug.
+///
+/// This can either be `Enabled(_)`, containing the page slug to use (if it exists),
+/// or `Disabled`, which means this navigation element should *not* be rendered
+/// for this category.
+///
+/// # Invariants
+/// * `Enabled(_)` never contains an empty string.
+#[derive(Debug)]
+pub enum NavigationPage {
+    Enabled(String),
+    Disabled,
+}
 
-#[derive(Serialize, Deserialize, Debug)]
+impl From<String> for NavigationPage {
+    fn from(page_slug: String) -> NavigationPage {
+        if page_slug.is_empty() {
+            NavigationPage::Disabled
+        } else {
+            NavigationPage::Enabled(page_slug)
+        }
+    }
+}
+
+/// Describes the navigation pages to be used for a category.
+///
+/// The top item
+#[derive(Debug)]
 pub struct NavigationPages {
-    pub top_bar_page: String,
-    pub side_bar_page: String,
+    pub top_bar_page: NavigationPage,
+    pub side_bar_page: NavigationPage,
 }

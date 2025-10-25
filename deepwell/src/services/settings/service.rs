@@ -85,11 +85,11 @@ impl SettingsService {
     ///
     /// Note that empty strings have a special meaning,
     /// specifying that this navigation element is not included.
-    pub async fn get_nav_pages(
+    pub async fn get_nav_page_slugs(
         ctx: &ServiceContext<'_>,
         site_id: i64,
         category_id: Option<i64>,
-    ) -> Result<NavigationPages<'static>> {
+    ) -> Result<NavigationPages> {
         let site = SiteService::get(ctx, Reference::Id(site_id)).await?;
         let (override_top_bar, override_side_bar) = match category_id {
             None => (None, None),
@@ -102,8 +102,8 @@ impl SettingsService {
         };
 
         Ok(NavigationPages {
-            top_bar_page: override_top_bar.unwrap_or(site.top_bar_page),
-            side_bar_page: override_side_bar.unwrap_or(site.side_bar_page),
+            top_bar_page: override_top_bar.unwrap_or(site.top_bar_page).into(),
+            side_bar_page: override_side_bar.unwrap_or(site.side_bar_page).into(),
         })
     }
 }
