@@ -5,14 +5,14 @@ import { Layout } from "$lib/types"
 export async function siteUpdate(
   siteId: number,
   userId: number,
+  userIpAddr: string,
   name: Optional<String>,
   slug: Optional<String>,
   tagline: Optional<String>,
   description: Optional<String>,
   defaultPage: Optional<String>,
   locale: Optional<String>,
-  layout: Optional<Nullable<Layout>>,
-  ipAddress: string
+  layout: Optional<Nullable<Layout>>
 ): Promise<object> {
   return client.request("site_update", {
     site: siteId,
@@ -27,6 +27,6 @@ export async function siteUpdate(
       layout !== undefined
         ? Layout[layout?.toUpperCase() as keyof typeof Layout] ?? null
         : undefined,
-    ip_address: ipAddress
+    ip_address: userIpAddr
   })
 }

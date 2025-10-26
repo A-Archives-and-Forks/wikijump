@@ -44,6 +44,7 @@ export async function POST(event) {
         siteId,
         pageId,
         session?.user_id,
+        ipAddr,
         slug,
         lastRevId,
         comments,
@@ -72,6 +73,7 @@ export async function POST(event) {
         siteId,
         pageId,
         session?.user_id,
+        ipAddr,
         slug,
         lastRevId,
         newSlug,
@@ -101,6 +103,7 @@ export async function POST(event) {
         siteId,
         pageId,
         session?.user_id,
+        ipAddr,
         slug,
         lastRevId,
         revisionNumber,
@@ -118,7 +121,7 @@ export async function POST(event) {
     } else if (extra.includes("layout")) {
       let layout = data.get("layout")?.toString().trim() ?? null
 
-      res = await page.pageLayout(siteId, pageId, session?.user_id, layout)
+      res = await page.pageLayout(siteId, pageId, session?.user_id, ipAddr, layout)
     } else if (extra.includes("parent-set")) {
       let addParentStr = data.get("add-parents")?.toString().trim() ?? ""
       let addParents = addParentStr.split(" ").filter((p) => p)
@@ -140,7 +143,7 @@ export async function POST(event) {
     } else if (extra.includes("restore")) {
       let comments = data.get("comments")?.toString() ?? ""
 
-      res = await page.pageRestore(siteId, pageId, session?.user_id, comments)
+      res = await page.pageRestore(siteId, pageId, session?.user_id, ipAddr, comments)
     } else if (extra.includes("score")) {
       res = await page.pageScore(siteId, pageId, slug)
     } else if (extra.includes("file-list")) {
@@ -198,7 +201,6 @@ export async function POST(event) {
         fileId,
         name,
         file,
-        null,
         lastRevId,
         comments
       )
@@ -306,6 +308,7 @@ export async function DELETE(event) {
       siteId,
       pageId,
       session?.user_id,
+      ipAddr,
       slug,
       lastRevId,
       comments

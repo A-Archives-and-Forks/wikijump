@@ -18,7 +18,7 @@ export async function userView(
 
 export async function userEdit(
   userId: number,
-  ipAddress: string,
+  userIpAddr: string,
   params: Record<string, any>
 ): Promise<object> {
   let data: Record<string, any> = {}
@@ -60,7 +60,7 @@ export async function userEdit(
 
   return client.request("user_edit", {
     user: userId,
-    ip_address: ipAddress,
+    ip_address: userIpAddr,
     ...data
   })
 }

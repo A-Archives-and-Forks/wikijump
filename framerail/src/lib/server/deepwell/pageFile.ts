@@ -49,7 +49,7 @@ export async function pageFileCreate(
     user_id: userId,
     name: name ?? file.name,
     uploaded_blob_id: presign.pending_blob_id,
-    revision_comments: revisionComments
+    revision_comments: revisionComments ?? ""
   })
 }
 

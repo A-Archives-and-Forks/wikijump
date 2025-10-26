@@ -7,6 +7,7 @@ export async function pageDelete(
   siteId: number,
   pageId: Optional<number>,
   userId: number,
+  userIpAddr: string,
   slug: string,
   lastRevisionId: number,
   revisionComments: Optional<string>
@@ -15,6 +16,7 @@ export async function pageDelete(
     site_id: siteId,
     page: pageId ?? slug,
     user_id: userId,
+    ip_address: userIpAddr,
     last_revision_id: lastRevisionId,
     revision_comments: revisionComments
   })
@@ -24,6 +26,7 @@ export async function pageEdit(
   siteId: number,
   pageId: Optional<number>,
   userId: number,
+  userIpAddr: string,
   slug: string,
   lastRevisionId: Optional<number>,
   revisionComments: Optional<string>,
@@ -38,6 +41,7 @@ export async function pageEdit(
     page: pageId ?? slug,
     slug,
     user_id: userId,
+    ip_address: userIpAddr,
     last_revision_id: lastRevisionId,
     revision_comments: revisionComments,
     wikitext,
@@ -70,6 +74,7 @@ export async function pageMove(
   siteId: number,
   pageId: Optional<number>,
   userId: number,
+  userIpAddr: string,
   slug: string,
   lastRevisionId: number,
   newSlug: string,
@@ -80,6 +85,7 @@ export async function pageMove(
     page: pageId ?? slug,
     new_slug: newSlug,
     user_id: userId,
+    ip_address: userIpAddr,
     last_revision_id: lastRevisionId,
     revision_comments: revisionComments
   })
@@ -107,6 +113,7 @@ export async function pageRollback(
   siteId: number,
   pageId: Optional<number>,
   userId: number,
+  userIpAddr: string,
   slug: string,
   lastRevisionId: number,
   revisionNumber: Optional<number>,
@@ -116,6 +123,7 @@ export async function pageRollback(
     site_id: siteId,
     page: pageId ?? slug,
     user_id: userId,
+    ip_address: userIpAddr,
     last_revision_id: lastRevisionId,
     revision_number: revisionNumber ?? defaults.page.history.revisionNumber,
     revision_comments: revisionComments
@@ -171,12 +179,14 @@ export async function pageLayout(
   siteId: number,
   pageId: number,
   userId: number,
+  userIpAddr: string,
   layout: Optional<Nullable<Layout>>
 ): Promise<object> {
   return client.request("page_set_layout", {
     site_id: siteId,
     page_id: pageId,
     user_id: userId,
+    ip_address: userIpAddr,
     layout: Layout[layout?.toUpperCase() as keyof typeof Layout] ?? null
   })
 }
@@ -219,12 +229,14 @@ export async function pageRestore(
   siteId: number,
   pageId: number,
   userId: number,
+  userIpAddr: string,
   revisionComments: Optional<string>
 ): Promise<object> {
   return client.request("page_restore", {
     site_id: siteId,
     page_id: pageId,
     user_id: userId,
+    ip_address: userIpAddr,
     revision_comments: revisionComments
   })
 }
