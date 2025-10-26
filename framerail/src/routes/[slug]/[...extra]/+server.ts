@@ -201,7 +201,6 @@ export async function POST(event) {
         fileId,
         name,
         file,
-        null,
         lastRevId,
         comments
       )
