@@ -33,14 +33,14 @@ export async function POST(event) {
       res = await siteUpdate(
         siteId,
         session?.user_id,
+        ipAddr,
         name,
         slug,
         tagline,
         description,
         defaultPage,
         locale,
-        layout,
-        event.getClientAddress()
+        layout
       )
     }
 
