@@ -598,10 +598,16 @@ impl PageService {
         )
         .await?;
 
+        let latest_revision_id = match revision_output {
+            Some(ref output) => ActiveValue::Set(Some(output.revision_id)),
+            None => ActiveValue::NotSet,
+        };
+
         // Set page updated_at column.
         let model = page::ActiveModel {
             page_id: Set(page_id),
             updated_at: Set(Some(now())),
+            latest_revision_id,
             ..Default::default()
         };
 
