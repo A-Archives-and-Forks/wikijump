@@ -23,6 +23,7 @@ use crate::models::page_revision::{
     self, Entity as PageRevision, Model as PageRevisionModel,
 };
 use crate::models::sea_orm_active_enums::PageRevisionType;
+use crate::models::text::{self, Entity as Text, Model as TextModel};
 use crate::services::render::RenderOutput;
 use crate::services::score::ScoreValue;
 use crate::services::{
@@ -35,6 +36,7 @@ use ftml::data::PageInfo;
 use ftml::layout::Layout;
 use ftml::settings::{WikitextMode, WikitextSettings};
 use ref_map::*;
+use sea_query::{Order, Query};
 use std::num::NonZeroI32;
 use std::sync::LazyLock;
 
@@ -786,6 +788,7 @@ impl PageRevisionService {
         Ok(())
     }
 
+    /// Get the latest revision of this page.
     pub async fn get_latest(
         ctx: &ServiceContext<'_>,
         site_id: i64,
@@ -807,6 +810,55 @@ impl PageRevisionService {
             .ok_or(Error::PageRevisionNotFound)?;
 
         Ok(revision)
+    }
+
+    /// Gets the wikitext from the latest revision of a page or null if it doesn't exist.
+    ///
+    /// This is a specific helper method since it requires a join.
+    pub async fn get_wikitext_optional(
+        ctx: &ServiceContext<'_>,
+        site_id: i64,
+        reference: Reference<'_>,
+    ) -> Result<Option<String>> {
+        let page_condition = match reference {
+            Reference::Id(page_id) => page_revision::Column::PageId.eq(page_id),
+            Reference::Slug(page_slug) => {
+                page_revision::Column::Slug.eq(page_slug.as_ref())
+            }
+        };
+
+        let txn = ctx.transaction();
+        let wikitext = Text::find()
+            .filter(
+                text::Column::Hash.in_subquery(
+                    Query::select()
+                        .column(page_revision::Column::WikitextHash)
+                        .from(page_revision::Entity)
+                        .and_where(page_revision::Column::SiteId.eq(site_id))
+                        .and_where(page_condition)
+                        .order_by(page_revision::Column::RevisionNumber, Order::Desc)
+                        .to_owned(),
+                ),
+            )
+            .into_tuple()
+            .one(txn)
+            .await?;
+
+        Ok(wikitext)
+    }
+
+    /// Gets the wikitext from the latest revision of a page.
+    ///
+    /// This is the non-optional version of `get_wikitext()`.
+    pub async fn get_wikitext(
+        ctx: &ServiceContext<'_>,
+        site_id: i64,
+        reference: Reference<'_>,
+    ) -> Result<String> {
+        find_or_error!(
+            Self::get_wikitext_optional(ctx, site_id, reference),
+            PageRevision,
+        )
     }
 
     pub async fn get_optional(
