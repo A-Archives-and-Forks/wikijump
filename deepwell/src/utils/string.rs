@@ -77,3 +77,41 @@ pub fn trim_end_matches_in_place(string: &mut String, pattern: &str) {
 pub fn trim_spaces_in_place(string: &mut String) {
     regex_replace_in_place(string, &LEADING_TRAILING_SPACES, "");
 }
+
+// Tests
+
+#[test]
+fn test_replace_in_place() {
+    macro_rules! test {
+        ($input:expr => $output:expr, $pattern:expr => $replacement:expr $(,)?) => {{
+            let mut string = str!($input);
+            replace_in_place(&mut string, $pattern, $replacement);
+            assert_eq!(string, $output, "Replaced contents did not match expected");
+        }};
+    }
+
+    test!("" => "", "/" => "_");
+    test!("foo/bar" => "foo + bar", "/" => " + ");
+    test!("apple banana cherry" => "pple bnn cherry", "a" => "");
+    test!("apple banana cherry" => "applexi banana chexirry", "e" => "exi");
+    test!("class pass hassle dash" => "cly py hyle dash", "ass" => "y");
+}
+
+#[test]
+fn test_regex_replace_in_place() {
+    macro_rules! test {
+        ($input:expr => $output:expr, $regex:expr => $replacement:expr $(,)?) => {{
+            let mut string = str!($input);
+            let regex = Regex::new($regex).expect("Unable to compile regex");
+            regex_replace_in_place(&mut string, &regex, $replacement);
+            assert_eq!(string, $output, "Replaced contents did not match expected");
+        }};
+    }
+
+    test!("apple banana cherry" => "axle banana chexy", r"p{2}|r{2}|n{2}" => "x");
+    test!("apple banana cherry" => "_ b_ cherry", r"a\w+" => "_");
+    test!(
+        "After 12.5 years, he could only achieve a high score of -5000 in 2 games" => "After $NUMBER years, he could only achieve a high score of $NUMBER in $NUMBER games",
+        r"-?[0-9]+(\.[0-9])?" => "$NUMBER",
+    );
+}
