@@ -36,9 +36,14 @@ static LEADING_TRAILING_SPACES: LazyLock<Regex> =
 pub fn replace_in_place(string: &mut String, pattern: &str, replacement: &str) {
     assert!(!pattern.is_empty(), "Cannot call replace_in_place() with an empty string");
 
-    while let Some(index) = string.find(pattern) {
+    // Resume each iteration of search after the last replacement.
+    // Avoids issues with infinite loops if the replacement contains the pattern.
+    let mut start_index = 0;
+    while let Some(substr_index) = &string[start_index..].find(pattern) {
+        let index = start_index + substr_index;
         let end = index + pattern.len();
         string.replace_range(index..end, replacement);
+        start_index = end;
     }
 }
 
@@ -98,8 +103,11 @@ fn test_replace_in_place() {
     test!("" => "", "/" => "_");
     test!("foo/bar" => "foo + bar", "/" => " + ");
     test!("apple banana cherry" => "pple bnn cherry", "a" => "");
-    test!("apple banana cherry" => "applexi banana chexirry", "e" => "exi");
+    test!("apple banana cherry" => "appluxi banana chuxirry", "e" => "uxi");
     test!("class pass hassle dash" => "cly py hyle dash", "ass" => "y");
+    // should terminate despite replacement value
+    test!("apple banana cherry" => "applexi banana chexirry", "e" => "exi");
+    test!("e ee eee" => "eye eyeeye eyeeyeeye", "e" => "eye");
 }
 
 #[test]
