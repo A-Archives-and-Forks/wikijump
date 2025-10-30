@@ -37,7 +37,7 @@ pub fn replace_in_place(string: &mut String, pattern: &str, replacement: &str) {
     assert!(!pattern.is_empty(), "Cannot call replace_in_place() with an empty string");
 
     while let Some(index) = string.find(pattern) {
-        let end = index + replacement.len();
+        let end = index + pattern.len();
         string.replace_range(index..end, replacement);
     }
 }
