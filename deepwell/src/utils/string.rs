@@ -30,7 +30,12 @@ static LEADING_TRAILING_SPACES: LazyLock<Regex> =
 //       replace all the non-regex cases with one function that uses the Pattern trait!
 
 /// Replaces all instances of the given fixed string in the buffer, in-place.
+///
+/// # Panics
+/// Panics if `pattern` is an empty string.
 pub fn replace_in_place(string: &mut String, pattern: &str, replacement: &str) {
+    assert!(!pattern.is_empty(), "Cannot call replace_in_place() with an empty string");
+
     while let Some(index) = string.find(pattern) {
         let end = index + replacement.len();
         string.replace_range(index..end, replacement);
@@ -95,6 +100,13 @@ fn test_replace_in_place() {
     test!("apple banana cherry" => "pple bnn cherry", "a" => "");
     test!("apple banana cherry" => "applexi banana chexirry", "e" => "exi");
     test!("class pass hassle dash" => "cly py hyle dash", "ass" => "y");
+}
+
+#[test]
+#[should_panic]
+fn test_replace_in_place_empty() {
+    let mut string = str!("apple banana");
+    replace_in_place(&mut string, "", "cherry");
 }
 
 #[test]
