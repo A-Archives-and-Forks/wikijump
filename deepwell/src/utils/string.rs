@@ -26,8 +26,23 @@ static LEADING_TRAILING_SPACES: LazyLock<Regex> =
 
 // General replacement
 
+// TODO: When https://doc.rust-lang.org/stable/std/str/pattern/trait.Pattern.html is stabilized,
+//       replace all the non-regex cases with one function that uses the Pattern trait!
+
 /// Replaces all instances of the given fixed string in the buffer, in-place.
 pub fn replace_in_place(string: &mut String, pattern: &str, replacement: &str) {
+    while let Some(index) = string.find(pattern) {
+        let end = index + replacement.len();
+        string.replace_range(index..end, replacement);
+    }
+}
+
+/// Replaces all instances of the given character(s) in the buffer, in-place.
+///
+/// This is distinct from a substring search, as any _individual_ instances of the characters
+/// are replaced. For instance, with an input string of `"foo/bar.xyz"` and a pattern of
+/// `&['/', '.']` being replaced with `"_"`, then the output will be `"foo_bar_xyz"`.
+pub fn char_replace_in_place(string: &mut String, pattern: &[char], replacement: &str) {
     while let Some(index) = string.find(pattern) {
         let end = index + replacement.len();
         string.replace_range(index..end, replacement);

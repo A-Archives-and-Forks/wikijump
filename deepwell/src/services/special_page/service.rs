@@ -22,7 +22,7 @@ use super::prelude::*;
 use crate::models::site::Model as SiteModel;
 use crate::services::{PageRevisionService, PageService, RenderService, TextService};
 use crate::types::Reference;
-use crate::utils::split_category;
+use crate::utils::{char_replace_in_place, split_category};
 use fluent::{FluentArgs, FluentValue};
 use ftml::prelude::*;
 use ref_map::*;
@@ -164,10 +164,23 @@ impl SpecialPageService {
         args.set("category", fluent_str!(category));
         args.set("domain", fluent_str!(ctx.config().main_domain_no_dot));
 
-        let wikitext = ctx
+        let mut wikitext = ctx
             .localization()
-            .translate(locales, translate_key, &args)?;
+            .translate(locales, translate_key, &args)?
+            .into_owned();
 
-        Ok(wikitext.into_owned())
+        // Fluent adds U+2068 and U+2069 characters to assist text layout engines
+        // when dealing with LTR / RTL text. However, this causes parsing issues
+        // for us in wikitext, since these characters can gum up string concatenation
+        // cases like URL construction.
+        //
+        // So as a special case here, we strip out any of these characters.
+        // We don't remove these characters from other locale strings since they are
+        // a desired localization property of Fluent.
+        //
+        // See https://fluent-compiler.readthedocs.io/en/latest/usage.html#:~:text=You%20will%20notice%20the%20extra%20characters%20\u2068%20and%20\u2069%20in%20the%20output.
+        char_replace_in_place(&mut wikitext, &['\u{2068}', '\u{2069}'], "");
+
+        Ok(wikitext)
     }
 }
