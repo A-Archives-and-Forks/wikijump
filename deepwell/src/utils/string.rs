@@ -46,7 +46,7 @@ pub fn replace_in_place(string: &mut String, pattern: &str, replacement: &str) {
         let index = start_index + substr_index;
         let end = index + pattern.len();
         string.replace_range(index..end, replacement);
-        start_index = end;
+        start_index = end + replacement.len() - 1;
     }
 }
 
