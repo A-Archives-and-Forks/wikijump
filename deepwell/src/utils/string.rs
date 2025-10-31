@@ -126,3 +126,59 @@ fn test_regex_replace_in_place() {
         r"-?[0-9]+(\.[0-9])?" => "$NUMBER",
     );
 }
+
+#[test]
+fn test_trim_start_matches_in_place() {
+    macro_rules! test {
+        ($input:expr => $output:expr, $pattern:expr $(,)?) => {{
+            let mut string = str!($input);
+            trim_start_matches_in_place(&mut string, $pattern);
+            assert_eq!(string, $output, "Trimmed contents did not match expected");
+        }};
+    }
+
+    test!("" => "", "_");
+    test!("_foo_" => "foo_", "_");
+    test!(">>> foo" => "foo", ">>> ");
+    test!("[foo]" => "[foo]", ">>> ");
+}
+
+#[test]
+fn test_trim_end_matches_in_place() {
+    macro_rules! test {
+        ($input:expr => $output:expr, $pattern:expr $(,)?) => {{
+            let mut string = str!($input);
+            trim_end_matches_in_place(&mut string, $pattern);
+            assert_eq!(string, $output, "Trimmed contents did not match expected");
+        }};
+    }
+
+    test!("" => "", "_");
+    test!("_foo_" => "_foo", "_");
+    test!(">>> foo" => ">>> foo", ">>> ");
+    test!("foo <<<" => "foo", " <<<");
+}
+
+#[test]
+fn test_trim_spaces_in_place() {
+    macro_rules! test {
+        ($input:expr => $output:expr $(,)?) => {{
+            let mut string = str!($input);
+            trim_spaces_in_place(&mut string);
+            assert_eq!(string, $output, "Trimmed contents did not match expected");
+        }};
+
+        // Unmodified case, where no substition occurs
+        ($input:expr $(,)?) => {
+            test!($input => $input)
+        };
+    }
+
+    test!("");
+    test!("foo");
+    test!(" foo" => "foo");
+    test!("foo " => "foo");
+    test!("\t apple\n\n" => "apple");
+    test!("banana         " => "banana");
+    test!("\r\t  cherry" => "cherry");
+}
