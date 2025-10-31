@@ -27,25 +27,26 @@ static LEADING_TRAILING_SPACES: LazyLock<Regex> =
 // General replacement
 
 // TODO: When https://doc.rust-lang.org/stable/std/str/pattern/trait.Pattern.html is stabilized,
-//       replace all the non-regex cases with one function that uses the Pattern trait!
+//       use it in the definition of replace_in_place() if possible.
 
 /// Replaces all instances of the given fixed string in the buffer, in-place.
-pub fn replace_in_place(string: &mut String, pattern: &str, replacement: &str) {
-    while let Some(index) = string.find(pattern) {
-        let end = index + replacement.len();
-        string.replace_range(index..end, replacement);
-    }
-}
-
-/// Replaces all instances of the given character(s) in the buffer, in-place.
 ///
-/// This is distinct from a substring search, as any _individual_ instances of the characters
-/// are replaced. For instance, with an input string of `"foo/bar.xyz"` and a pattern of
-/// `&['/', '.']` being replaced with `"_"`, then the output will be `"foo_bar_xyz"`.
-pub fn char_replace_in_place(string: &mut String, pattern: &[char], replacement: &str) {
-    while let Some(index) = string.find(pattern) {
-        let end = index + replacement.len();
+/// # Panics
+/// Panics if `pattern` is an empty string.
+pub fn replace_in_place(string: &mut String, pattern: &str, replacement: &str) {
+    assert!(
+        !pattern.is_empty(),
+        "Cannot call replace_in_place() with an empty string"
+    );
+
+    // Resume each iteration of search after the last replacement.
+    // Avoids issues with infinite loops if the replacement contains the pattern.
+    let mut start_index = 0;
+    while let Some(substr_index) = &string[start_index..].find(pattern) {
+        let index = start_index + substr_index;
+        let end = index + pattern.len();
         string.replace_range(index..end, replacement);
+        start_index = end + replacement.len() - 1;
     }
 }
 
@@ -67,8 +68,8 @@ pub fn trim_start_matches_in_place(string: &mut String, pattern: &str) {
 /// Removes the given suffix in the buffer, if it exists, in-place.
 #[allow(dead_code)]
 pub fn trim_end_matches_in_place(string: &mut String, pattern: &str) {
-    if string.starts_with(pattern) {
-        string.drain(pattern.len() - 1..);
+    if string.ends_with(pattern) {
+        string.drain(string.len() - pattern.len()..);
     }
 }
 
@@ -76,4 +77,112 @@ pub fn trim_end_matches_in_place(string: &mut String, pattern: &str) {
 #[inline]
 pub fn trim_spaces_in_place(string: &mut String) {
     regex_replace_in_place(string, &LEADING_TRAILING_SPACES, "");
+}
+
+// Tests
+
+#[test]
+fn test_replace_in_place() {
+    macro_rules! test {
+        ($input:expr => $output:expr, $pattern:expr => $replacement:expr $(,)?) => {{
+            let mut string = str!($input);
+            replace_in_place(&mut string, $pattern, $replacement);
+            assert_eq!(string, $output, "Replaced contents did not match expected");
+        }};
+    }
+
+    test!("" => "", "/" => "_");
+    test!("foo/bar" => "foo + bar", "/" => " + ");
+    test!("apple banana cherry" => "pple bnn cherry", "a" => "");
+    test!("apple banana cherry" => "appluxi banana chuxirry", "e" => "uxi");
+    test!("class pass hassle dash" => "cly py hyle dash", "ass" => "y");
+    // should terminate despite replacement value
+    test!("apple banana cherry" => "applexi banana chexirry", "e" => "exi");
+    test!("e ee eee" => "eye eyeeye eyeeyeeye", "e" => "eye");
+}
+
+#[test]
+#[should_panic]
+fn test_replace_in_place_empty() {
+    let mut string = str!("apple banana");
+    replace_in_place(&mut string, "", "cherry");
+}
+
+#[test]
+fn test_regex_replace_in_place() {
+    macro_rules! test {
+        ($input:expr => $output:expr, $regex:expr => $replacement:expr $(,)?) => {{
+            let mut string = str!($input);
+            let regex = Regex::new($regex).expect("Unable to compile regex");
+            regex_replace_in_place(&mut string, &regex, $replacement);
+            assert_eq!(string, $output, "Replaced contents did not match expected");
+        }};
+    }
+
+    test!("apple banana cherry" => "axle banana chexy", r"p{2}|r{2}|n{2}" => "x");
+    test!("apple banana cherry" => "_ b_ cherry", r"a\w+" => "_");
+    test!(
+        "After 12.5 years, he could only achieve a high score of -5000 in 2 games" => "After $NUMBER years, he could only achieve a high score of $NUMBER in $NUMBER games",
+        r"-?[0-9]+(\.[0-9])?" => "$NUMBER",
+    );
+    test!("猫の手も借りたい" => "猫手借", "[\u{3042}-\u{3094}]+" => "");
+}
+
+#[test]
+fn test_trim_start_matches_in_place() {
+    macro_rules! test {
+        ($input:expr => $output:expr, $pattern:expr $(,)?) => {{
+            let mut string = str!($input);
+            trim_start_matches_in_place(&mut string, $pattern);
+            assert_eq!(string, $output, "Trimmed contents did not match expected");
+        }};
+    }
+
+    test!("" => "", "_");
+    test!("_foo_" => "foo_", "_");
+    test!(">>> foo" => "foo", ">>> ");
+    test!("[foo]" => "[foo]", ">>> ");
+    test!("悪い🥭!" => "🥭!", "悪い");
+}
+
+#[test]
+fn test_trim_end_matches_in_place() {
+    macro_rules! test {
+        ($input:expr => $output:expr, $pattern:expr $(,)?) => {{
+            let mut string = str!($input);
+            trim_end_matches_in_place(&mut string, $pattern);
+            assert_eq!(string, $output, "Trimmed contents did not match expected");
+        }};
+    }
+
+    test!("" => "", "_");
+    test!("_foo_" => "_foo", "_");
+    test!(">>> foo" => ">>> foo", ">>> ");
+    test!("foo <<<" => "foo", " <<<");
+    test!("🥭 腐った" => "🥭 ", "腐った");
+}
+
+#[test]
+fn test_trim_spaces_in_place() {
+    macro_rules! test {
+        ($input:expr => $output:expr $(,)?) => {{
+            let mut string = str!($input);
+            trim_spaces_in_place(&mut string);
+            assert_eq!(string, $output, "Trimmed contents did not match expected");
+        }};
+
+        // Unmodified case, where no substition occurs
+        ($input:expr $(,)?) => {
+            test!($input => $input)
+        };
+    }
+
+    test!("");
+    test!("foo");
+    test!(" foo" => "foo");
+    test!("foo " => "foo");
+    test!("\t apple\n\n" => "apple");
+    test!("banana         " => "banana");
+    test!("\r\t  cherry" => "cherry");
+    test!(" 🥭  " => "🥭");
 }
