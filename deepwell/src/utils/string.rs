@@ -34,7 +34,10 @@ static LEADING_TRAILING_SPACES: LazyLock<Regex> =
 /// # Panics
 /// Panics if `pattern` is an empty string.
 pub fn replace_in_place(string: &mut String, pattern: &str, replacement: &str) {
-    assert!(!pattern.is_empty(), "Cannot call replace_in_place() with an empty string");
+    assert!(
+        !pattern.is_empty(),
+        "Cannot call replace_in_place() with an empty string"
+    );
 
     // Resume each iteration of search after the last replacement.
     // Avoids issues with infinite loops if the replacement contains the pattern.
