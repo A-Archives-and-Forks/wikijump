@@ -22,11 +22,13 @@ use super::prelude::*;
 use crate::models::site::Model as SiteModel;
 use crate::services::{PageRevisionService, PageService, RenderService, TextService};
 use crate::types::Reference;
-use crate::utils::{char_replace_in_place, split_category};
+use crate::utils::{regex_replace_in_place, split_category};
 use fluent::{FluentArgs, FluentValue};
 use ftml::prelude::*;
 use ref_map::*;
+use regex::Regex;
 use std::borrow::Cow;
+use std::sync::LazyLock;
 use unic_langid::LanguageIdentifier;
 
 #[derive(Debug)]
@@ -179,7 +181,10 @@ impl SpecialPageService {
         // a desired localization property of Fluent.
         //
         // See https://fluent-compiler.readthedocs.io/en/latest/usage.html#:~:text=You%20will%20notice%20the%20extra%20characters%20\u2068%20and%20\u2069%20in%20the%20output.
-        char_replace_in_place(&mut wikitext, &['\u{2068}', '\u{2069}'], "");
+        static CONTROL_CHAR_REGEX: LazyLock<Regex> =
+            LazyLock::new(|| Regex::new("[\u{2068}|\u{2069}]").unwrap());
+
+        regex_replace_in_place(&mut wikitext, &CONTROL_CHAR_REGEX, "");
 
         Ok(wikitext)
     }
