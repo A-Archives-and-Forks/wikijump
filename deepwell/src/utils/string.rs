@@ -125,6 +125,7 @@ fn test_regex_replace_in_place() {
         "After 12.5 years, he could only achieve a high score of -5000 in 2 games" => "After $NUMBER years, he could only achieve a high score of $NUMBER in $NUMBER games",
         r"-?[0-9]+(\.[0-9])?" => "$NUMBER",
     );
+    test!("猫の手も借りたい" => "猫手借", "[\u{3042}-\u{3094}]+" => "");
 }
 
 #[test]
@@ -141,6 +142,7 @@ fn test_trim_start_matches_in_place() {
     test!("_foo_" => "foo_", "_");
     test!(">>> foo" => "foo", ">>> ");
     test!("[foo]" => "[foo]", ">>> ");
+    test!("悪い🥭!" => "🥭!", "悪い");
 }
 
 #[test]
@@ -157,6 +159,7 @@ fn test_trim_end_matches_in_place() {
     test!("_foo_" => "_foo", "_");
     test!(">>> foo" => ">>> foo", ">>> ");
     test!("foo <<<" => "foo", " <<<");
+    test!("🥭 腐った" => "🥭 ", "腐った");
 }
 
 #[test]
@@ -181,4 +184,5 @@ fn test_trim_spaces_in_place() {
     test!("\t apple\n\n" => "apple");
     test!("banana         " => "banana");
     test!("\r\t  cherry" => "cherry");
+    test!(" 🥭  " => "🥭");
 }
