@@ -182,7 +182,7 @@ impl SpecialPageService {
         //
         // See https://fluent-compiler.readthedocs.io/en/latest/usage.html#:~:text=You%20will%20notice%20the%20extra%20characters%20\u2068%20and%20\u2069%20in%20the%20output.
         static CONTROL_CHAR_REGEX: LazyLock<Regex> =
-            LazyLock::new(|| Regex::new("[\u{2068}|\u{2069}]").unwrap());
+            LazyLock::new(|| Regex::new("[\u{2068}\u{2069}]").unwrap());
 
         regex_replace_in_place(&mut wikitext, &CONTROL_CHAR_REGEX, "");
 
