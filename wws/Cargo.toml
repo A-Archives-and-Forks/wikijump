@@ -16,7 +16,7 @@ edition = "2024"
 accept-language = "3"
 anyhow = "1"
 axum = { version = "0.8", features = ["http1", "http2", "macros", "tokio", "tower-log", "tracing"], default-features = false }
-axum-extra = { version = "0.10", features = ["attachment"] }
+axum-extra = { version = "0.12", features = ["attachment"] }
 clap = "4"
 color-backtrace = "0.7"
 dotenvy = "0.15"
