@@ -112,7 +112,8 @@ impl TextService {
     ///
     /// Not to be confused with the following methods:
     /// * `get_optional()` &mdash; Returns `None` if the text doesn't exist instead of an error.
-    /// * `get_maybe()` &mdash; Doesn't accept an `Option` hash reference.
+    /// * `get_conditional()` &mdash; Doesn't accept an `Option` hash reference.
+    /// * `get_conditional_option()` &mdash; Combination of `get_conditional()` and `get_option()`.
     pub async fn get_option<B: AsRef<[u8]>>(
         ctx: &ServiceContext<'_>,
         hash: &Option<B>,
@@ -124,6 +125,26 @@ impl TextService {
                 let text = Self::get(ctx, hash).await?;
                 Ok(Some(text))
             }
+        }
+    }
+
+    /// A combination of `get_conditional()` and `get_option()`.
+    ///
+    /// That is, it will fetch a text if and only if:
+    /// * `should_fetch` is true
+    /// * `hash` is `Some(_)`
+    ///
+    /// If both conditions are met, then it is identical to returning
+    /// the results of `TextService::get()` in a `Some(_)`.
+    pub async fn get_conditional_option<B: AsRef<[u8]>>(
+        ctx: &ServiceContext<'_>,
+        should_fetch: bool,
+        hash: &Option<B>,
+    ) -> Result<Option<String>> {
+        if should_fetch {
+            Self::get_option(ctx, hash).await
+        } else {
+            Ok(None)
         }
     }
 
