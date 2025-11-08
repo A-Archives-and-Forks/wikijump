@@ -247,8 +247,8 @@ async fn build_page_output(
 
     // Get text data, if requested
     let (wikitext, compiled_html) = try_join!(
-        TextService::get_maybe(ctx, details.wikitext, &revision.wikitext_hash),
-        TextService::get_maybe(ctx, details.compiled_html, &revision.compiled_hash),
+        TextService::get_conditional(ctx, details.wikitext, &revision.wikitext_hash),
+        TextService::get_conditional(ctx, details.compiled_html, &revision.compiled_hash),
     )?;
 
     // Calculate score and determine layout

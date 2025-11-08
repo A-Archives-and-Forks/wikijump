@@ -77,7 +77,7 @@ impl TextService {
     /// text given by the specified hash only
     /// if the flag `should_fetch` is true.
     /// Otherwise, it does no action, returning `None`.
-    pub async fn get_maybe(
+    pub async fn get_conditional(
         ctx: &ServiceContext<'_>,
         should_fetch: bool,
         hash: &[u8],

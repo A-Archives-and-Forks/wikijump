@@ -160,8 +160,8 @@ async fn filter_and_populate_revision(
 
     // Get text data, if requested
     let (wikitext, compiled_html) = try_join!(
-        TextService::get_maybe(ctx, details.wikitext, &wikitext_hash),
-        TextService::get_maybe(ctx, details.compiled_html, &compiled_hash),
+        TextService::get_conditional(ctx, details.wikitext, &wikitext_hash),
+        TextService::get_conditional(ctx, details.compiled_html, &compiled_hash),
     )?;
 
     Ok(PageRevisionModelFiltered {
