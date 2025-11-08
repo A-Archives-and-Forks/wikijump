@@ -22,11 +22,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Rust Toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-
       - name: Cargo Cache
         uses: actions/cache@v4
         with:
@@ -51,14 +46,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Rust Toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-          components: rustfmt, clippy
-
       - name: Cargo Cache
         uses: actions/cache@v4
         with:
@@ -68,8 +55,14 @@ jobs:
             wws/target
           key: ${{ runner.os }}-wws-lint-${{ hashFiles('wws/**/Cargo.toml') }}
 
+      - name: Machete
+        uses: bnjbvr/cargo-machete@main
+        with:
+          paths:
+            - wws
+
       - name: Rustfmt
         run: cd wws && cargo fmt --all -- --check
 
       - name: Clippy
-        run: cd wws && cargo clippy --no-deps
+        run: cd wws && cargo clippy --tests --no-deps

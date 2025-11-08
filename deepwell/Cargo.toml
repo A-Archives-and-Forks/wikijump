@@ -27,7 +27,6 @@ color-backtrace = "0.7"
 cuid2 = "0.1"
 data-encoding = "2"
 dotenvy = "0.15"
-either = "1"
 femme = "2"
 filemagic = "0.13"
 fluent = "0.17"
@@ -76,7 +75,7 @@ pretty_assertions = "1"
 [build-dependencies]
 built = { version = "0.8", features = ["chrono", "git2"] }
 
-# Warnings and Errors
+# Lints
 
 [lints.rust]
 unsafe_code = "forbid"
@@ -84,6 +83,9 @@ missing_debug_implementations = "deny"
 
 [lints.clippy]
 large_enum_variant = "allow"
+
+[package.metadata.cargo-machete]
+ignored = ["rust-s3"]  # renamed to s3
 
 # Performance options
 

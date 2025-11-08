@@ -29,7 +29,6 @@ serde = { version = "1", features = ["derive"] }
 str-macro = "1"
 thiserror = "2"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
-tower = "0.5"
 tower-http = { version = "0.6.6", features = ["add-extension", "compression-br", "compression-deflate", "compression-gzip", "compression-zstd", "normalize-path", "set-header", "trace"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
@@ -37,3 +36,12 @@ wikidot-normalize = "0.12"
 
 [build-dependencies]
 built = { version = "0.8", features = ["git2"] }
+
+# Lints
+
+[lints.rust]
+unsafe_code = "forbid"
+missing_debug_implementations = "deny"
+
+[package.metadata.cargo-machete]
+ignored = ["rust-s3"]  # renamed to s3
