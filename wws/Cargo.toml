@@ -39,5 +39,9 @@ built = { version = "0.8", features = ["git2"] }
 
 # Lints
 
+[lints.rust]
+unsafe_code = "forbid"
+missing_debug_implementations = "deny"
+
 [package.metadata.cargo-machete]
 ignored = ["rust-s3"]  # renamed to s3
