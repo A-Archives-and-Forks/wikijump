@@ -27,11 +27,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Rust Toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-
       - name: Cargo Cache
         uses: actions/cache@v4
         with:
@@ -63,15 +58,13 @@ jobs:
     runs-on: ubuntu-latest
     env:
       RUSTFLAGS: -D warnings
+    container:
+      image: xd009642/tarpaulin:develop-nightly
+      options: --security-opt seccomp=unconfined
 
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-
-      - name: Rust Toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
 
       - name: Cargo Cache
         uses: actions/cache@v4
@@ -85,15 +78,9 @@ jobs:
       - name: System Dependencies
         run: sudo apt update && sudo apt install libmagic-dev
 
-      - name: Install Tarpaulin
-        uses: actions-rs/install@v0.1
-        with:
-          crate: cargo-tarpaulin
-          version: latest
-          use-tool-cache: true
-
       - name: Generate Coverage
-        run: cd deepwell && cargo tarpaulin
+        run: |
+          cargo +nightly tarpaulin --verbose --all-features --workspace --timeout 120 --out xml
 
       - name: Export Coverage
         uses: codecov/codecov-action@v5
@@ -112,14 +99,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Rust Toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-          components: rustfmt, clippy
-
       - name: Cargo Cache
         uses: actions/cache@v4
         with:
@@ -132,8 +111,14 @@ jobs:
       - name: System Dependencies
         run: sudo apt update && sudo apt install libmagic-dev
 
+      - name: Machete
+        uses: bnjbvr/cargo-machete@main
+        with:
+          paths:
+            - deepwell
+
       - name: Rustfmt
         run: cd deepwell && cargo fmt --all -- --check
 
       - name: Clippy
-        run: cd deepwell && cargo clippy --no-deps
+        run: cd deepwell && cargo clippy --tests --no-deps
