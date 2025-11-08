@@ -90,6 +90,43 @@ impl TextService {
         }
     }
 
+    /// Syntactic sugar for `Option<[u8]>` → `Option<String>`.
+    ///
+    /// This is effectively equivalent to `Option::map()` for `TextService::get()`,
+    /// but because it is `async` and returns `Result`, the actual equivalent code
+    /// would be:
+    /// ```rs
+    /// # fn get_option(ctx: &ServiceContext<'_>, hash: Option<&[u8]>) -> Result<Option<String>> {
+    /// match hash {
+    ///     None => Ok(None),
+    ///     Some(hash) => {
+    ///         let text = TextService::get(ctx, hash).await?;
+    ///         Ok(Some(text))
+    ///     }
+    /// }
+    /// # }
+    /// ```
+    ///
+    /// Put another way, if `hash` is `Some(_)` then the result will always be `Some(_)`,
+    /// and if `hash` is `None` then the result will always be `None`.
+    ///
+    /// Not to be confused with the following methods:
+    /// * `get_optional()` &mdash; Returns `None` if the text doesn't exist instead of an error.
+    /// * `get_maybe()` &mdash; Doesn't accept an `Option` hash reference.
+    pub async fn get_option<B: AsRef<[u8]>>(
+        ctx: &ServiceContext<'_>,
+        hash: &Option<B>,
+    ) -> Result<Option<String>> {
+        match hash {
+            None => Ok(None),
+            Some(hash) => {
+                let hash = hash.as_ref();
+                let text = Self::get(ctx, hash).await?;
+                Ok(Some(text))
+            }
+        }
+    }
+
     /// Creates a text entry with this data, if it does not already exist.
     pub async fn create(ctx: &ServiceContext<'_>, contents: String) -> Result<TextHash> {
         let txn = ctx.transaction();
