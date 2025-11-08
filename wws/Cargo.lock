@@ -3280,7 +3280,6 @@ dependencies = [
  "str-macro",
  "thiserror 2.0.17",
  "tokio",
- "tower",
  "tower-http",
  "tracing",
  "tracing-subscriber",
