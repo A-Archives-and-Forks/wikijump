@@ -43,8 +43,6 @@ impl From<String> for NavigationPage {
 }
 
 /// Describes the navigation pages to be used for a category.
-///
-/// The top item
 #[derive(Debug)]
 pub struct NavigationPages {
     pub top_bar_page: NavigationPage,
