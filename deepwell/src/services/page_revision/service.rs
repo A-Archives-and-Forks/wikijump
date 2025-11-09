@@ -24,7 +24,7 @@ use crate::models::page_revision::{
 };
 use crate::models::sea_orm_active_enums::PageRevisionType;
 use crate::models::text::{self, Entity as Text, Model as TextModel};
-use crate::services::render::RenderOutput;
+use crate::services::render::RenderPageOutput;
 use crate::services::score::ScoreValue;
 use crate::services::{
     LinkService, OutdateService, PageService, ParentService, RenderService, ScoreService,
@@ -122,7 +122,9 @@ impl PageRevisionService {
         let mut changes = Vec::new();
         let PageRevisionModel {
             mut wikitext_hash,
-            mut compiled_hash,
+            mut compiled_body_html_hash,
+            mut compiled_top_bar_html_hash,
+            mut compiled_side_bar_html_hash,
             mut compiled_at,
             mut compiled_generator,
             hidden,
@@ -234,7 +236,10 @@ impl PageRevisionService {
 
             // Update fields
             parser_errors = Some(render_output.errors);
-            replace_hash(&mut compiled_hash, &render_output.compiled_hash);
+            replace_hash(
+                &mut compiled_body_html_hash,
+                &render_output.compiled_body_html_hash,
+            );
             compiled_generator = render_output.compiled_generator;
             compiled_at = now();
         }
@@ -313,7 +318,9 @@ impl PageRevisionService {
             user_id: Set(user_id),
             changes: Set(changes),
             wikitext_hash: Set(wikitext_hash),
-            compiled_hash: Set(compiled_hash),
+            compiled_body_html_hash: Set(compiled_body_html_hash),
+            compiled_top_bar_html_hash: Set(compiled_top_bar_html_hash),
+            compiled_side_bar_html_hash: Set(compiled_side_bar_html_hash),
             compiled_at: Set(compiled_at),
             compiled_generator: Set(compiled_generator),
             comments: Set(comments),
@@ -379,11 +386,13 @@ impl PageRevisionService {
             tags: &[], // Initial revision always has empty tags
         };
 
-        let RenderOutput {
+        let RenderPageOutput {
             // TODO: use html_output
             html_output: _,
             errors,
-            compiled_hash,
+            compiled_body_html_hash,
+            compiled_top_bar_html_hash,
+            compiled_side_bar_html_hash,
             compiled_at,
             compiled_generator,
         } = Self::render_and_update_links(ctx, site_id, page_id, wikitext, render_input)
@@ -401,7 +410,9 @@ impl PageRevisionService {
             user_id: Set(user_id),
             changes: Set(ALL_CHANGES.clone()),
             wikitext_hash: Set(wikitext_hash.to_vec()),
-            compiled_hash: Set(compiled_hash.to_vec()),
+            compiled_body_html_hash: Set(compiled_body_html_hash.to_vec()),
+            compiled_top_bar_html_hash: Set(compiled_top_bar_html_hash.map(Vec::from)),
+            compiled_side_bar_html_hash: Set(compiled_side_bar_html_hash.map(Vec::from)),
             compiled_at: Set(compiled_at),
             compiled_generator: Set(compiled_generator),
             comments: Set(comments),
@@ -442,7 +453,9 @@ impl PageRevisionService {
 
         let PageRevisionModel {
             wikitext_hash,
-            compiled_hash,
+            compiled_body_html_hash,
+            compiled_top_bar_html_hash,
+            compiled_side_bar_html_hash,
             compiled_at,
             compiled_generator,
             title,
@@ -466,8 +479,10 @@ impl PageRevisionService {
             site_id: Set(site_id),
             user_id: Set(user_id),
             changes: Set(vec![]),
-            wikitext_hash: Set(wikitext_hash),
-            compiled_hash: Set(compiled_hash),
+            wikitext_hash: Set(wikitext_hash.to_vec()),
+            compiled_body_html_hash: Set(compiled_body_html_hash.to_vec()),
+            compiled_top_bar_html_hash: Set(compiled_top_bar_html_hash.map(Vec::from)),
+            compiled_side_bar_html_hash: Set(compiled_side_bar_html_hash.map(Vec::from)),
             compiled_at: Set(compiled_at),
             compiled_generator: Set(compiled_generator),
             comments: Set(comments),
@@ -518,7 +533,9 @@ impl PageRevisionService {
 
         let PageRevisionModel {
             wikitext_hash,
-            mut compiled_hash,
+            mut compiled_body_html_hash,
+            mut compiled_top_bar_html_hash,
+            mut compiled_side_bar_html_hash,
             hidden,
             title,
             alt_title,
@@ -550,17 +567,21 @@ impl PageRevisionService {
         };
 
         let wikitext = TextService::get(ctx, &wikitext_hash).await?;
-        let RenderOutput {
+        let RenderPageOutput {
             // TODO: use html_output
             html_output: _,
             errors,
-            compiled_hash: new_compiled_hash,
+            compiled_body_html_hash: new_body_html_hash,
+            compiled_top_bar_html_hash: new_top_bar_html_hash,
+            compiled_side_bar_html_hash: new_side_bar_html_hash,
             compiled_at,
             compiled_generator,
         } = Self::render_and_update_links(ctx, site_id, page_id, wikitext, render_input)
             .await?;
 
-        replace_hash(&mut compiled_hash, &new_compiled_hash);
+        replace_hash(&mut compiled_body_html_hash, &new_body_html_hash);
+        replace_hash_opt(&mut compiled_top_bar_html_hash, new_top_bar_html_hash);
+        replace_hash_opt(&mut compiled_side_bar_html_hash, new_side_bar_html_hash);
 
         // Run outdater
         OutdateService::process_page_displace(ctx, site_id, page_id, &new_slug, 0)
@@ -575,7 +596,9 @@ impl PageRevisionService {
             user_id: Set(user_id),
             changes: Set(changes),
             wikitext_hash: Set(wikitext_hash),
-            compiled_hash: Set(compiled_hash),
+            compiled_body_html_hash: Set(compiled_body_html_hash.to_vec()),
+            compiled_top_bar_html_hash: Set(compiled_top_bar_html_hash.map(Vec::from)),
+            compiled_side_bar_html_hash: Set(compiled_side_bar_html_hash.map(Vec::from)),
             compiled_at: Set(compiled_at),
             compiled_generator: Set(compiled_generator),
             comments: Set(comments),
@@ -613,7 +636,7 @@ impl PageRevisionService {
             score,
             tags,
         }: RenderPageInfo<'_>,
-    ) -> Result<RenderOutput> {
+    ) -> Result<RenderPageOutput> {
         // Get site
         let site = SiteService::get(ctx, Reference::from(site_id)).await?;
 
@@ -706,8 +729,11 @@ impl PageRevisionService {
         };
 
         // TODO use html_output
-        let RenderOutput {
-            compiled_hash,
+        let RenderPageOutput {
+            html_output: _,
+            compiled_body_html_hash,
+            compiled_top_bar_html_hash,
+            compiled_side_bar_html_hash,
             compiled_generator,
             ..
         } = Self::render_and_update_links(ctx, site_id, page_id, wikitext, render_input)
@@ -720,7 +746,9 @@ impl PageRevisionService {
         let model = page_revision::ActiveModel {
             updated_at: Set(Some(now())),
             revision_id: Set(revision.revision_id),
-            compiled_hash: Set(compiled_hash.to_vec()),
+            compiled_body_html_hash: Set(compiled_body_html_hash.to_vec()),
+            compiled_top_bar_html_hash: Set(compiled_top_bar_html_hash.map(Vec::from)),
+            compiled_side_bar_html_hash: Set(compiled_side_bar_html_hash.map(Vec::from)),
             compiled_generator: Set(compiled_generator),
             ..Default::default()
         };
@@ -1005,7 +1033,7 @@ fn replace_hash(dest: &mut Vec<u8>, src: &[u8]) {
     dest.as_mut_slice().copy_from_slice(src);
 }
 
-fn replace_hash_opt(dest: &mut Option<Vec<u8>>, src: Option<&[u8]>) {
+fn replace_hash_opt<B: AsRef<[u8]>>(dest: &mut Option<Vec<u8>>, src: Option<B>) {
     // NOTE: We aren't using "match (dest, src)" here because of
     //       borrow checker issues.
 
@@ -1060,7 +1088,10 @@ fn test_replace_hash_opt() {
 
             replace_hash_opt(&mut dest, src);
 
-            assert_eq!(dest, expected, "Actual optional buffer doesn't match expected");
+            assert_eq!(
+                dest, expected,
+                "Actual optional buffer doesn't match expected",
+            );
         }};
     }
 

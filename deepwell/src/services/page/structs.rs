@@ -117,7 +117,7 @@ pub struct GetPageOutput {
     pub revision_number: i32,
     pub revision_user_id: i64,
     pub wikitext: Option<String>,
-    pub compiled_html: Option<String>,
+    pub compiled_body_html: Option<String>,
 
     #[serde(with = "time::serde::rfc3339")]
     pub compiled_at: OffsetDateTime,

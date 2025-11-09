@@ -130,7 +130,13 @@ impl ViewService {
         }
 
         // Get wikitext and HTML to return for this page.
-        let (status, wikitext, compiled_html) = match PageService::get_optional(
+        let (
+            status,
+            wikitext,
+            compiled_body_html,
+            compiled_top_bar_html,
+            compiled_side_bar_html,
+        ) = match PageService::get_optional(
             ctx,
             site.site_id,
             Reference::Slug(cow!(page_full_slug)),
@@ -174,9 +180,22 @@ impl ViewService {
                             .await?;
                     };
 
-                    let (wikitext, compiled_html) = try_join!(
+                    let (
+                        wikitext,
+                        compiled_body_html,
+                        compiled_top_bar_html,
+                        compiled_side_bar_html,
+                    ) = try_join!(
                         TextService::get(ctx, &page_revision.wikitext_hash),
-                        TextService::get(ctx, &page_revision.compiled_hash),
+                        TextService::get(ctx, &page_revision.compiled_body_html_hash),
+                        TextService::get_option(
+                            ctx,
+                            &page_revision.compiled_top_bar_html_hash,
+                        ),
+                        TextService::get_option(
+                            ctx,
+                            &page_revision.compiled_side_bar_html_hash,
+                        ),
                     )?;
 
                     let attributions = RelationService::get_page_attributions(
@@ -195,7 +214,9 @@ impl ViewService {
                             attributions,
                         },
                         wikitext,
-                        compiled_html,
+                        compiled_body_html,
+                        compiled_top_bar_html,
+                        compiled_side_bar_html,
                     )
                 } else {
                     warn!("User doesn't have page access, returning permission page");
@@ -222,13 +243,22 @@ impl ViewService {
                     let RenderOutput {
                         html_output:
                             HtmlOutput {
-                                body: compiled_html,
+                                body: compiled_body_html,
                                 ..
                             },
                         ..
                     } = render_output;
 
-                    (page_status, wikitext, compiled_html)
+                    let compiled_top_bar_html = todo!();
+                    let compiled_side_bar_html = todo!();
+
+                    (
+                        page_status,
+                        wikitext,
+                        compiled_body_html,
+                        compiled_top_bar_html,
+                        compiled_side_bar_html,
+                    )
                 }
             }
             // The page is missing, fetch the "missing page" data (_404).
@@ -249,13 +279,22 @@ impl ViewService {
                 let RenderOutput {
                     html_output:
                         HtmlOutput {
-                            body: compiled_html,
+                            body: compiled_body_html,
                             ..
                         },
                     ..
                 } = render_output;
 
-                (PageStatus::Missing, wikitext, compiled_html)
+                let compiled_top_bar_html = todo!();
+                let compiled_side_bar_html = todo!();
+
+                (
+                    PageStatus::Missing,
+                    wikitext,
+                    compiled_body_html,
+                    compiled_top_bar_html,
+                    compiled_side_bar_html,
+                )
             }
         };
 
@@ -281,27 +320,35 @@ impl ViewService {
                 attributions,
                 redirect_page,
                 wikitext,
-                compiled_html,
+                compiled_body_html,
+                compiled_top_bar_html,
+                compiled_side_bar_html,
             },
             PageStatus::Missing => GetPageViewOutput::Missing {
                 viewer,
                 options,
                 redirect_page,
                 wikitext,
-                compiled_html,
+                compiled_body_html,
+                compiled_top_bar_html,
+                compiled_side_bar_html,
             },
             PageStatus::Private => GetPageViewOutput::Permissions {
                 viewer,
                 options,
                 redirect_page,
-                compiled_html,
+                compiled_body_html,
+                compiled_top_bar_html,
+                compiled_side_bar_html,
                 banned: false,
             },
             PageStatus::Banned => GetPageViewOutput::Permissions {
                 viewer,
                 options,
                 redirect_page,
-                compiled_html,
+                compiled_body_html,
+                compiled_top_bar_html,
+                compiled_side_bar_html,
                 banned: true,
             },
         };

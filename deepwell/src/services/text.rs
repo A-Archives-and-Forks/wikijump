@@ -191,7 +191,15 @@ impl TextService {
                     ))
                     .add(not_in_column!(
                         PageRevision,
-                        page_revision::Column::CompiledHash,
+                        page_revision::Column::CompiledBodyHtmlHash,
+                    ))
+                    .add(not_in_column!(
+                        PageRevision,
+                        page_revision::Column::CompiledTopBarHtmlHash,
+                    ))
+                    .add(not_in_column!(
+                        PageRevision,
+                        page_revision::Column::CompiledSideBarHtmlHash,
                     ))
                     .add(not_in_column!(
                         MessageDraft,

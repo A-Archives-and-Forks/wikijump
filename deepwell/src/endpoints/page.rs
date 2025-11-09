@@ -246,9 +246,13 @@ async fn build_page_output(
             .await?;
 
     // Get text data, if requested
-    let (wikitext, compiled_html) = try_join!(
+    let (wikitext, compiled_body_html) = try_join!(
         TextService::get_conditional(ctx, details.wikitext, &revision.wikitext_hash),
-        TextService::get_conditional(ctx, details.compiled_html, &revision.compiled_hash),
+        TextService::get_conditional(
+            ctx,
+            details.compiled_html,
+            &revision.compiled_body_html_hash,
+        ),
     )?;
 
     // Calculate score and determine layout
@@ -274,7 +278,7 @@ async fn build_page_output(
         revision_number: revision.revision_number,
         revision_user_id: revision.user_id,
         wikitext,
-        compiled_html,
+        compiled_body_html,
         compiled_at: revision.compiled_at,
         compiled_generator: revision.compiled_generator,
         revision_comments: revision.comments,

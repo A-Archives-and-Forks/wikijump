@@ -68,7 +68,9 @@ pub enum GetPageViewOutput {
         attributions: Vec<PageAttribution>,
         redirect_page: Option<String>,
         wikitext: String,
-        compiled_html: String,
+        compiled_body_html: String,
+        compiled_top_bar_html: Option<String>,
+        compiled_side_bar_html: Option<String>,
     },
 
     Missing {
@@ -77,7 +79,9 @@ pub enum GetPageViewOutput {
         options: PageOptions,
         redirect_page: Option<String>,
         wikitext: String,
-        compiled_html: String,
+        compiled_body_html: String,
+        compiled_top_bar_html: Option<String>,
+        compiled_side_bar_html: Option<String>,
     },
 
     Permissions {
@@ -85,7 +89,9 @@ pub enum GetPageViewOutput {
         viewer: Viewer,
         options: PageOptions,
         redirect_page: Option<String>,
-        compiled_html: String,
+        compiled_body_html: String,
+        compiled_top_bar_html: Option<String>,
+        compiled_side_bar_html: Option<String>,
         banned: bool,
     },
 }

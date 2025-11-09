@@ -19,6 +19,7 @@
  */
 
 use super::prelude::*;
+use crate::hash::TextHash;
 use crate::models::sea_orm_active_enums::TextBlockType;
 use crate::services::text_block::{MIME_HTML, TextBlock, mime_for_language};
 use crate::services::{TextBlockService, TextService};
@@ -35,7 +36,19 @@ impl RenderService {
         page_info: &PageInfo<'_>,
         settings: &WikitextSettings,
     ) -> Result<RenderOutput> {
-        Self::render_inner(ctx, wikitext, page_info, settings, None).await
+        let RenderInnerOutput {
+            html_output,
+            errors,
+            compiled_hash,
+        } = Self::render_inner(ctx, wikitext, page_info, settings, None).await?;
+
+        Ok(RenderOutput {
+            html_output,
+            errors,
+            compiled_hash,
+            compiled_at: now(),
+            compiled_generator: FTML_VERSION.clone(),
+        })
     }
 
     pub async fn render_page(
@@ -44,9 +57,27 @@ impl RenderService {
         page_info: &PageInfo<'_>,
         layout: Layout,
         page_id: i64,
-    ) -> Result<RenderOutput> {
+    ) -> Result<RenderPageOutput> {
         let settings = WikitextSettings::from_mode(WikitextMode::Page, layout);
-        Self::render_inner(ctx, wikitext, page_info, &settings, Some(page_id)).await
+        let RenderInnerOutput {
+            html_output,
+            errors,
+            compiled_hash: compiled_body_html_hash,
+        } = Self::render_inner(ctx, wikitext, page_info, &settings, Some(page_id))
+            .await?;
+
+        // TODO render nav pages (if relevant)
+        let (compiled_top_bar_html_hash, compiled_side_bar_html_hash) = todo!();
+
+        Ok(RenderPageOutput {
+            html_output,
+            errors,
+            compiled_body_html_hash,
+            compiled_top_bar_html_hash,
+            compiled_side_bar_html_hash,
+            compiled_at: now(),
+            compiled_generator: FTML_VERSION.clone(),
+        })
     }
 
     async fn render_inner(
@@ -55,8 +86,7 @@ impl RenderService {
         page_info: &PageInfo<'_>,
         settings: &WikitextSettings,
         page_id: Option<i64>,
-    ) -> Result<RenderOutput> {
-        let compiled_generator = FTML_VERSION.clone();
+    ) -> Result<RenderInnerOutput> {
         let config = ctx.config();
 
         // We isolate the actual tasks for rendering,
@@ -138,12 +168,17 @@ impl RenderService {
         }
 
         // Build and return
-        Ok(RenderOutput {
+        Ok(RenderInnerOutput {
             html_output,
             errors,
             compiled_hash,
-            compiled_at: now(),
-            compiled_generator,
         })
     }
+}
+
+#[derive(Debug)]
+struct RenderInnerOutput {
+    html_output: HtmlOutput,
+    errors: Vec<ParseError>,
+    compiled_hash: TextHash,
 }

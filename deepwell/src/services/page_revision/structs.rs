@@ -172,7 +172,9 @@ pub struct PageRevisionModelFiltered {
     pub user_id: i64,
     pub changes: Vec<String>,
     pub wikitext: Option<String>,
-    pub compiled_html: Option<String>,
+    pub compiled_body_html: Option<String>,
+    pub compiled_top_bar_html: Option<String>,
+    pub compiled_side_bar_html: Option<String>,
 
     #[serde(with = "time::serde::rfc3339")]
     pub compiled_at: OffsetDateTime,

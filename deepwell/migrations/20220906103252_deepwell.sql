@@ -337,7 +337,9 @@ CREATE TABLE page_revision (
     from_wikidot BOOLEAN NOT NULL DEFAULT false,
     changes TEXT[] NOT NULL, -- List of changes in this revision
     wikitext_hash BYTEA NOT NULL REFERENCES text(hash),
-    compiled_hash BYTEA NOT NULL REFERENCES text(hash),
+    compiled_body_html_hash BYTEA NOT NULL REFERENCES text(hash),
+    compiled_top_bar_html_hash BYTEA REFERENCES text(hash),
+    compiled_side_bar_html_hash BYTEA REFERENCES text(hash),
     compiled_at TIMESTAMP WITH TIME ZONE NOT NULL,
     compiled_generator TEXT NOT NULL,
     comments TEXT NOT NULL,
