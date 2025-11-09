@@ -129,31 +129,17 @@ impl SettingsService {
             site_id: i64,
             page: &NavigationPage,
         ) -> Result<Option<String>> {
-            // If the nav page is disabled, then no data
             let page_slug = match page {
                 NavigationPage::Enabled(page_slug) => page_slug,
                 NavigationPage::Disabled => return Ok(None),
             };
 
-            // If the nav page doesn't exist, also no data
-            //
-            // It is not an error for individual pages if a nav page is
-            // set but does not exist at the time. When it is created it
-            // can be picked up and will rerender affected pages.
-            let page =
-                match PageService::get_optional(ctx, site_id, Reference::Slug(page_slug))
-                    .await?
-                {
-                    Some(page) => page,
-                    None => return Ok(None),
-                };
-
-            let page_revision =
-                PageRevisionService::get_latest(ctx, site_id, page.page_id).await?;
-
-            let wikitext = TextService::get(ctx, &page_revision.wikitext_hash).await?;
-
-            Ok(Some(wikitext))
+            PageRevisionService::get_wikitext_optional(
+                ctx,
+                site_id,
+                Reference::Slug(cow!(page_slug)),
+            )
+            .await
         }
 
         let (top_bar_page_wikitext, side_bar_page_wikitext) = try_join!(

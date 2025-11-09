@@ -31,7 +31,7 @@ use crate::services::{
     SettingsService, SiteService, TextService,
 };
 use crate::types::FetchDirection;
-use crate::utils::{split_category, split_category_name};
+use crate::utils::{split_category, split_category_name, trim_default};
 use ftml::data::PageInfo;
 use ftml::layout::Layout;
 use ftml::settings::{WikitextMode, WikitextSettings};
@@ -841,8 +841,11 @@ impl PageRevisionService {
     }
 
     /// Gets the wikitext from the latest revision of a page or null if it doesn't exist.
-    ///
     /// This is a specific helper method since it requires a join.
+    ///
+    /// NOTE: This accepts page slugs with an explicit `_default:` category, but
+    ///       does *not* handle non-normalized page slugs. In such a case, it
+    ///       won't find the appropriate page!
     pub async fn get_wikitext_optional(
         ctx: &ServiceContext<'_>,
         site_id: i64,
@@ -851,7 +854,7 @@ impl PageRevisionService {
         let page_condition = match reference {
             Reference::Id(page_id) => page_revision::Column::PageId.eq(page_id),
             Reference::Slug(page_slug) => {
-                page_revision::Column::Slug.eq(page_slug.as_ref())
+                page_revision::Column::Slug.eq(trim_default(page_slug.as_ref()))
             }
         };
 
