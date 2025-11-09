@@ -116,7 +116,8 @@ impl ViewService {
             language: Cow::Owned(str!(&locales[0])),
         };
 
-        // Helper structure to designate which variant of GetPageViewOutput to return.
+        // Helper structures to designate which variant of GetPageViewOutput to return.
+
         #[derive(Debug)]
         enum PageStatus {
             Found {
@@ -129,14 +130,23 @@ impl ViewService {
             Banned,
         }
 
+        #[derive(Debug)]
+        struct PageReturn {
+            page_status: PageStatus,
+            wikitext: String,
+            compiled_body_html: String,
+            compiled_top_bar_html: Option<String>,
+            compiled_side_bar_html: Option<String>,
+        }
+
         // Get wikitext and HTML to return for this page.
-        let (
-            status,
+        let PageReturn {
+            page_status,
             wikitext,
             compiled_body_html,
             compiled_top_bar_html,
             compiled_side_bar_html,
-        ) = match PageService::get_optional(
+        } = match PageService::get_optional(
             ctx,
             site.site_id,
             Reference::Slug(cow!(page_full_slug)),
@@ -207,8 +217,8 @@ impl ViewService {
                     )
                     .await?;
 
-                    (
-                        PageStatus::Found {
+                    PageReturn {
+                        page_status: PageStatus::Found {
                             page,
                             page_revision,
                             attributions,
@@ -217,7 +227,7 @@ impl ViewService {
                         compiled_body_html,
                         compiled_top_bar_html,
                         compiled_side_bar_html,
-                    )
+                    }
                 } else {
                     warn!("User doesn't have page access, returning permission page");
 
@@ -252,13 +262,13 @@ impl ViewService {
                     let compiled_top_bar_html = todo!();
                     let compiled_side_bar_html = todo!();
 
-                    (
+                    PageReturn {
                         page_status,
                         wikitext,
                         compiled_body_html,
                         compiled_top_bar_html,
                         compiled_side_bar_html,
-                    )
+                    }
                 }
             }
             // The page is missing, fetch the "missing page" data (_404).
@@ -288,13 +298,13 @@ impl ViewService {
                 let compiled_top_bar_html = todo!();
                 let compiled_side_bar_html = todo!();
 
-                (
-                    PageStatus::Missing,
+                PageReturn {
+                    page_status: PageStatus::Missing,
                     wikitext,
                     compiled_body_html,
                     compiled_top_bar_html,
                     compiled_side_bar_html,
-                )
+                }
             }
         };
 
@@ -307,7 +317,7 @@ impl ViewService {
             license_url,
             user_session,
         };
-        let output = match status {
+        let output = match page_status {
             PageStatus::Found {
                 page,
                 page_revision,
