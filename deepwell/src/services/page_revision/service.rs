@@ -1045,3 +1045,27 @@ fn next_revision_number(previous: &PageRevisionModel, site_id: i64, page_id: i64
     // Get the new revision number
     previous.revision_number + 1
 }
+
+#[test]
+fn test_replace_hash_opt() {
+    macro_rules! test {
+        ($dest:expr, $src:expr => $expected:expr $(,)?) => {{
+            let dest_raw: Option<&[u8]> = $dest;
+            let mut dest = dest_raw.map(Vec::from);
+
+            let expected_raw: Option<&[u8]> = $expected;
+            let expected = expected_raw.map(Vec::from);
+
+            let src: Option<&[u8]> = $src;
+
+            replace_hash_opt(&mut dest, src);
+
+            assert_eq!(dest, expected, "Actual optional buffer doesn't match expected");
+        }};
+    }
+
+    test!(None, None => None);
+    test!(None, Some(b"bar") => Some(b"bar"));
+    test!(Some(b"foo"), None => None);
+    test!(Some(b"foo"), Some(b"bar") => Some(b"bar"));
+}
