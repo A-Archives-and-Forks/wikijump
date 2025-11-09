@@ -1005,6 +1005,32 @@ fn replace_hash(dest: &mut Vec<u8>, src: &[u8]) {
     dest.as_mut_slice().copy_from_slice(src);
 }
 
+fn replace_hash_opt(dest: &mut Option<Vec<u8>>, src: Option<&[u8]>) {
+    // NOTE: We aren't using "match (dest, src)" here because of
+    //       borrow checker issues.
+
+    let src = match src {
+        // We only need to overwrite and we're done
+        None => {
+            *dest = None;
+            return;
+        }
+
+        // Otherwise, extract the data to be written
+        Some(ref bytes) => bytes.as_ref(),
+    };
+
+    // We can borrow the buffer and overwrite it
+    if let Some(dest) = dest {
+        replace_hash(dest, src);
+        return;
+    }
+
+    // It's empty, we have to allocate a new buffer
+    debug_assert!(dest.is_none(), "Destination not None after check");
+    *dest = Some(src.to_vec());
+}
+
 fn next_revision_number(previous: &PageRevisionModel, site_id: i64, page_id: i64) -> i32 {
     // Check for basic consistency
     assert_eq!(
