@@ -44,7 +44,14 @@ impl From<String> for NavigationPage {
 
 /// Describes the navigation pages to be used for a category.
 #[derive(Debug)]
-pub struct NavigationPages {
+pub struct NavigationPageSlugs {
     pub top_bar_page: NavigationPage,
     pub side_bar_page: NavigationPage,
+}
+
+/// Contains the page wikitexts for the navigation pages for a category.
+#[derive(Debug)]
+pub struct NavigationPageWikitext {
+    pub top_bar_page_wikitext: Option<String>,
+    pub side_bar_page_wikitext: Option<String>,
 }
