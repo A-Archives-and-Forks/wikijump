@@ -126,6 +126,7 @@ export async function loadPage(
       "wiki-page-revision-type.undo": {},
 
       // Page vote
+      "wiki-page-vote": {},
       "wiki-page-vote-list": {},
       "wiki-page-vote-set": {},
       "wiki-page-vote-remove": {},

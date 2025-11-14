@@ -37,6 +37,8 @@ wiki-page-revision-type = Type
 
 ### Wiki Page Vote
 
+wiki-page-vote = Page rating
+
 wiki-page-vote-set = Cast vote
 
 wiki-page-vote-remove = Cancel vote

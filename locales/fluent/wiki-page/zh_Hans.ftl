@@ -37,6 +37,8 @@ wiki-page-revision-type = 类型
 
 ### 维基页面评分
 
+wiki-page-vote = 页面评分
+
 wiki-page-vote-set = 进行评分
 
 wiki-page-vote-remove = 取消评分
