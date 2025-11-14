@@ -112,189 +112,193 @@
       >
     </div>
   {/if}
-  <div id="page-options-container">
-    <div id="page-info">
-      {$page.data.internationalization["wiki-page-revision"]}, {$page.data
-        .internationalization["wiki-page-last-edit"]}
-    </div>
-    <div
-      id="page-options-bottom"
-      class="page-options-bottom"
-      class:hidden={!!$page.data.options?.edit}
-    >
-      <!-- svelte-ignore a11y-invalid-attribute -->
-      <a
-        id="edit-button"
-        class="btn btn-default"
-        href="javascript:;"
-        type="button"
-        on:click={navigateEdit}
-      >
-        {$page.data.internationalization?.edit}
-      </a>
-      <!-- svelte-ignore a11y-invalid-attribute -->
-      <a
-        id="pagerate-button"
-        class="btn btn-default"
-        href="javascript:;"
-        type="button"
-        on:click={() => {
-          showSource = false
-          pagePaneState.set(PagePane.Vote)
-        }}
-      >
-        {$page.data.internationalization?.vote}
-      </a>
-      <!-- svelte-ignore a11y-invalid-attribute -->
-      <a
-        id="history-button"
-        class="btn btn-default"
-        href="javascript:;"
-        type="button"
-        on:click={() => {
-          showSource = false
-          pagePaneState.set(PagePane.History)
-        }}
-      >
-        {$page.data.internationalization?.history}
-      </a>
-      <!-- svelte-ignore a11y-invalid-attribute -->
-      <a
-        id="files-button"
-        class="btn btn-default"
-        href="javascript:;"
-        type="button"
-        on:click={() => {
-          showSource = false
-          pagePaneState.set(PagePane.File)
-        }}
-      >
-        {$page.data.internationalization?.files}
-      </a>
 
-      <!-- svelte-ignore a11y-invalid-attribute -->
-      <a
-        id="more-options-button"
-        class="btn btn-default"
-        href="javascript:;"
-        type="button"
-        on:click={() => {
-          toggleShowPageOptions()
-        }}
-      >
-        {(showPageOptions ? "- " : "+ ") + $page.data.internationalization?.options}
-      </a>
+  {#if $page.data.options?.edit}
+    <div id="page-options-container">
+      <div id="page-info">
+        {$page.data.internationalization["wiki-page-revision"]}, {$page.data
+          .internationalization["wiki-page-last-edit"]}
+      </div>
     </div>
-  </div>
+    <div id="action-area">
+      <EditorPane />
+    </div>
+  {:else}
+    <div id="page-options-container">
+      <div id="page-info">
+        {$page.data.internationalization["wiki-page-revision"]}, {$page.data
+          .internationalization["wiki-page-last-edit"]}
+      </div>
+      <div
+        id="page-options-bottom"
+        class="page-options-bottom"
+        class:hidden={!!$page.data.options?.edit}
+      >
+        <!-- svelte-ignore a11y-invalid-attribute -->
+        <a
+          id="edit-button"
+          class="btn btn-default"
+          href="javascript:;"
+          type="button"
+          on:click={navigateEdit}
+        >
+          {$page.data.internationalization?.edit}
+        </a>
+        <!-- svelte-ignore a11y-invalid-attribute -->
+        <a
+          id="pagerate-button"
+          class="btn btn-default"
+          href="javascript:;"
+          type="button"
+          on:click={() => {
+            showSource = false
+            pagePaneState.set(PagePane.Vote)
+          }}
+        >
+          {$page.data.internationalization?.vote}
+        </a>
+        <!-- svelte-ignore a11y-invalid-attribute -->
+        <a
+          id="history-button"
+          class="btn btn-default"
+          href="javascript:;"
+          type="button"
+          on:click={() => {
+            showSource = false
+            pagePaneState.set(PagePane.History)
+          }}
+        >
+          {$page.data.internationalization?.history}
+        </a>
+        <!-- svelte-ignore a11y-invalid-attribute -->
+        <a
+          id="files-button"
+          class="btn btn-default"
+          href="javascript:;"
+          type="button"
+          on:click={() => {
+            showSource = false
+            pagePaneState.set(PagePane.File)
+          }}
+        >
+          {$page.data.internationalization?.files}
+        </a>
 
-  {#if showPageOptions}
-    <div id="page-options-bottom-2" class="page-options-bottom form-actions">
-      <!-- svelte-ignore a11y-invalid-attribute -->
-      <a
-        id="view-source-button"
-        class="btn btn-default"
-        href="javascript:;"
-        type="button"
-        on:click={() => (showSource = true)}
-      >
-        {$page.data.internationalization?.["wiki-page-view-source"]}
-      </a>
-      <!-- svelte-ignore a11y-invalid-attribute -->
-      <a
-        id="layout-button"
-        class="btn btn-default"
-        href="javascript:;"
-        type="button"
-        on:click={() => {
-          showSource = false
-          pagePaneState.set(PagePane.Layout)
-        }}
-      >
-        {$page.data.internationalization?.layout}
-      </a>
-      <!-- svelte-ignore a11y-invalid-attribute -->
-      <a
-        id="parent-page-button"
-        class="btn btn-default"
-        href="javascript:;"
-        type="button"
-        on:click={() => {
-          showSource = false
-          pagePaneState.set(PagePane.Parent)
-        }}
-      >
-        {$page.data.internationalization?.parents}
-      </a>
-      <!-- svelte-ignore a11y-invalid-attribute -->
-      <a
-        id="rename-move-button"
-        class="btn btn-default"
-        href="javascript:;"
-        type="button"
-        on:click={() => {
-          showSource = false
-          pagePaneState.set(PagePane.Move)
-        }}
-      >
-        {$page.data.internationalization?.move}
-      </a>
-      <!-- svelte-ignore a11y-invalid-attribute -->
-      <a
-        id="delete-button"
-        class="btn btn-default"
-        href="javascript:;"
-        type="button"
-        on:click={handleDelete}
-      >
-        {$page.data.internationalization?.delete}
-      </a>
+        <!-- svelte-ignore a11y-invalid-attribute -->
+        <a
+          id="more-options-button"
+          class="btn btn-default"
+          href="javascript:;"
+          type="button"
+          on:click={() => {
+            toggleShowPageOptions()
+          }}
+        >
+          {(showPageOptions ? "- " : "+ ") + $page.data.internationalization?.options}
+        </a>
+      </div>
+    </div>
+
+    {#if showPageOptions}
+      <div id="page-options-bottom-2" class="page-options-bottom form-actions">
+        <!-- svelte-ignore a11y-invalid-attribute -->
+        <a
+          id="view-source-button"
+          class="btn btn-default"
+          href="javascript:;"
+          type="button"
+          on:click={() => (showSource = true)}
+        >
+          {$page.data.internationalization?.["wiki-page-view-source"]}
+        </a>
+        <!-- svelte-ignore a11y-invalid-attribute -->
+        <a
+          id="layout-button"
+          class="btn btn-default"
+          href="javascript:;"
+          type="button"
+          on:click={() => {
+            showSource = false
+            pagePaneState.set(PagePane.Layout)
+          }}
+        >
+          {$page.data.internationalization?.layout}
+        </a>
+        <!-- svelte-ignore a11y-invalid-attribute -->
+        <a
+          id="parent-page-button"
+          class="btn btn-default"
+          href="javascript:;"
+          type="button"
+          on:click={() => {
+            showSource = false
+            pagePaneState.set(PagePane.Parent)
+          }}
+        >
+          {$page.data.internationalization?.parents}
+        </a>
+        <!-- svelte-ignore a11y-invalid-attribute -->
+        <a
+          id="rename-move-button"
+          class="btn btn-default"
+          href="javascript:;"
+          type="button"
+          on:click={() => {
+            showSource = false
+            pagePaneState.set(PagePane.Move)
+          }}
+        >
+          {$page.data.internationalization?.move}
+        </a>
+        <!-- svelte-ignore a11y-invalid-attribute -->
+        <a
+          id="delete-button"
+          class="btn btn-default"
+          href="javascript:;"
+          type="button"
+          on:click={handleDelete}
+        >
+          {$page.data.internationalization?.delete}
+        </a>
+      </div>
+    {/if}
+
+    <div id="action-area" class:hidden={!showSource && $pagePaneState === PagePane.None}>
+      {#if showSource || $pagePaneState !== PagePane.None}
+        <!-- svelte-ignore a11y-invalid-attribute -->
+        <a
+          class="action-area-close btn btn-danger"
+          href="javascript:;"
+          type="button"
+          on:click={() => {
+            showSource = false
+            pagePaneState.set(PagePane.None)
+          }}
+        >
+          {$page.data.internationalization?.close}
+        </a>
+      {/if}
+
+      {#if showSource}
+        <h1 class="page-source-header">
+          {$page.data.internationalization?.["wiki-page-source"]}
+        </h1>
+        <div class="page-source">{$page.data.wikitext ?? ""}</div>
+      {:else if $pagePaneState === PagePane.Move}
+        <MovePane />
+      {:else if $pagePaneState === PagePane.Layout}
+        <LayoutPane />
+      {:else if $pagePaneState === PagePane.Parent}
+        <ParentPane />
+      {:else if $pagePaneState === PagePane.Vote}
+        <VotePane />
+      {:else if $pagePaneState === PagePane.File}
+        <FilePane />
+      {:else if $pagePaneState === PagePane.History}
+        <HistoryPane {setRevision} {setShowRevision} />
+      {/if}
     </div>
   {/if}
-
-  <div
-    id="action-area"
-    class:hidden={!showSource &&
-      !$page.data.options?.edit &&
-      $pagePaneState === PagePane.None}
-  >
-    {#if showSource || $pagePaneState !== PagePane.None}
-      <!-- svelte-ignore a11y-invalid-attribute -->
-      <a
-        class="action-area-close btn btn-danger"
-        href="javascript:;"
-        type="button"
-        on:click={() => {
-          showSource = false
-          pagePaneState.set(PagePane.None)
-        }}
-      >
-        {$page.data.internationalization?.close}
-      </a>
-    {/if}
-
-    {#if $page.data.options?.edit}
-      <EditorPane />
-    {/if}
-
-    {#if showSource}
-      <h1 class="page-source-header">
-        {$page.data.internationalization?.["wiki-page-source"]}
-      </h1>
-      <div class="page-source">{$page.data.wikitext ?? ""}</div>
-    {:else if $pagePaneState === PagePane.Move}
-      <MovePane />
-    {:else if $pagePaneState === PagePane.Layout}
-      <LayoutPane />
-    {:else if $pagePaneState === PagePane.Parent}
-      <ParentPane />
-    {:else if $pagePaneState === PagePane.Vote}
-      <VotePane />
-    {:else if $pagePaneState === PagePane.File}
-      <FilePane />
-    {:else if $pagePaneState === PagePane.History}
-      <HistoryPane {setRevision} {setShowRevision} />
-    {/if}
-  </div>
 {:else}
   <h1>UNTRANSLATED:Loaded page</h1>
   <p>

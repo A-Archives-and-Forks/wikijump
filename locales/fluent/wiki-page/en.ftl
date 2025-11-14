@@ -45,6 +45,8 @@ wiki-page-vote-score = Rating
 
 ### Wiki Page Edit
 
+wiki-page-edit = Edit the page
+
 wiki-page-move-new-slug = New slug
 
 wiki-page-layout =

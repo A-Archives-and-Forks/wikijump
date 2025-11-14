@@ -157,6 +157,7 @@ export async function loadPage(
       "wiki-page-file-restore.new-name": {},
 
       // Misc
+      "wiki-page-edit": {},
       "wiki-page-move-new-slug": {},
       "wiki-page-no-render": {},
       "wiki-page-source": {},

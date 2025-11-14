@@ -45,6 +45,8 @@ wiki-page-vote-score = 现时评分
 
 ### 维基页面编辑
 
+wiki-page-edit = 编辑页面
+
 wiki-page-move-new-slug = 新页面网址
 
 wiki-page-layout =
