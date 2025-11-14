@@ -1,10 +1,11 @@
 <script lang="ts">
   import { page } from "$app/stores"
   import { goto } from "$app/navigation"
-  import { useErrorPopup, usePagePaneState } from "$lib/stores"
-  import { PagePane } from "$lib/types"
+  import { useErrorPopup, usePageLayoutState, usePagePaneState } from "$lib/stores"
+  import { Layout, PagePane } from "$lib/types"
   let showErrorPopup = useErrorPopup()
   let pagePaneState = usePagePaneState()
+  let pageLayout = usePageLayoutState()
   let moveInputNewSlugElem: HTMLInputElement
 
   async function handleMove() {
@@ -39,6 +40,16 @@
   }
 </script>
 
+{#if $pageLayout === Layout.WIKIDOT}
+  <h1 class="page-move-header">
+    {$page.data.internationalization?.["wiki-page-move"]}
+  </h1>
+{:else}
+  <h2 class="page-move-header">
+    {$page.data.internationalization?.["wiki-page-move"]}
+  </h2>
+{/if}
+
 <form
   id="page-move"
   class="page-move"
@@ -57,24 +68,43 @@
     class="page-move-comments"
     placeholder={$page.data.internationalization?.["wiki-page-revision-comments"]}
   />
-  <div class="action-row page-move-actions">
-    <button
-      class="action-button page-move-button button-cancel clickable"
-      type="button"
-      on:click|stopPropagation={() => {
-        pagePaneState.set(PagePane.None)
-      }}
-    >
-      {$page.data.internationalization?.cancel}
-    </button>
-    <button
-      class="action-button page-move-button button-move clickable"
-      type="submit"
-      on:click|stopPropagation
-    >
-      {$page.data.internationalization?.move}
-    </button>
-  </div>
+  {#if $pageLayout === Layout.WIKIDOT}
+    <div class="buttons">
+      <input
+        class="btn btn-danger"
+        type="button"
+        value={$page.data.internationalization?.cancel}
+        on:click|stopPropagation={() => {
+          pagePaneState.set(PagePane.None)
+        }}
+      />
+      <input
+        class="btn btn-primary"
+        type="submit"
+        value={$page.data.internationalization?.move}
+        on:click|stopPropagation
+      />
+    </div>
+  {:else}
+    <div class="action-row page-move-actions">
+      <button
+        class="action-button page-move-button button-cancel clickable"
+        type="button"
+        on:click|stopPropagation={() => {
+          pagePaneState.set(PagePane.None)
+        }}
+      >
+        {$page.data.internationalization?.cancel}
+      </button>
+      <button
+        class="action-button page-move-button button-move clickable"
+        type="submit"
+        on:click|stopPropagation
+      >
+        {$page.data.internationalization?.move}
+      </button>
+    </div>
+  {/if}
 </form>
 
 <style lang="scss">

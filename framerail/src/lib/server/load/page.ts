@@ -161,6 +161,7 @@ export async function loadPage(
 
       // Misc
       "wiki-page-edit": {},
+      "wiki-page-move": {},
       "wiki-page-move-new-slug": {},
       "wiki-page-no-render": {},
       "wiki-page-source": {},

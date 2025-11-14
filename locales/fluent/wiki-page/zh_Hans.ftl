@@ -49,6 +49,8 @@ wiki-page-vote-score = 现时评分
 
 wiki-page-edit = 编辑页面
 
+wiki-page-move = 移动页面
+
 wiki-page-move-new-slug = 新页面网址
 
 wiki-page-layout = 页面布局
