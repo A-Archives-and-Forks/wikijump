@@ -208,7 +208,7 @@ as soon as we can figure out prettier support for it.
           <h1 class="page-restore-header">
             {$page.error?.internationalization?.["wiki-page-restore"]}
           </h1>
-  
+
           <form
             id="page-restore"
             class="page-restore"
@@ -216,7 +216,9 @@ as soon as we can figure out prettier support for it.
             on:submit|preventDefault={handleRestore}
           >
             <fieldset>
-              <legend>{$page.error.internationalization?.["wiki-page-restore-select"]}</legend>
+              <legend
+                >{$page.error.internationalization?.["wiki-page-restore-select"]}</legend
+              >
               {#each deletedPages as deletedPage}
                 <input
                   id={`restore-page-id-${deletedPage.page_id}`}
@@ -278,7 +280,9 @@ as soon as we can figure out prettier support for it.
           on:submit|preventDefault={handleRestore}
         >
           <fieldset>
-            <legend>{$page.error.internationalization?.["wiki-page-restore-select"]}</legend>
+            <legend
+              >{$page.error.internationalization?.["wiki-page-restore-select"]}</legend
+            >
             {#each deletedPages as deletedPage}
               <input
                 id={`restore-page-id-${deletedPage.page_id}`}
