@@ -10,6 +10,8 @@ wiki-page-last-edit = 最后编辑于: { $date } ({ $days ->
   *[other] { $days } 日前
 })
 
+wiki-page-source = 页面源代码
+
 wiki-page-view-source = 检视源代码
 
 wiki-page-revision-number = 版本编号

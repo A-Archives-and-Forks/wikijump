@@ -10,6 +10,8 @@ wiki-page-last-edit = last edited: { $date } ({ $days ->
   *[other] { $days } days ago
 })
 
+wiki-page-source = Page source
+
 wiki-page-view-source = View Source
 
 wiki-page-revision-number = Revision #

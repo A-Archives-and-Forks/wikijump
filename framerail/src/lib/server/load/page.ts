@@ -100,6 +100,7 @@ export async function loadPage(
       "vote": {},
       "layout": {},
       "parents": {},
+      "options": {},
 
       // Page history
       "wiki-page-revision": {
@@ -158,6 +159,7 @@ export async function loadPage(
       // Misc
       "wiki-page-move-new-slug": {},
       "wiki-page-no-render": {},
+      "wiki-page-source": {},
       "wiki-page-view-source": {}
     }
   } else {
