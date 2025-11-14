@@ -223,7 +223,7 @@ as soon as we can figure out prettier support for it.
 
 <style global lang="scss">
   .debug {
-    width: 80vw;
+    width: 100%;
     height: 60vh;
   }
 
@@ -234,7 +234,7 @@ as soon as we can figure out prettier support for it.
     gap: 15px;
     align-items: stretch;
     justify-content: stretch;
-    width: 80vw;
+    width: 100%;
   }
 
   .editor-wikitext {

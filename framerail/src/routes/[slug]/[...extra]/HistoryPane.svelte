@@ -183,7 +183,7 @@
 
 <style lang="scss">
   .revision-source {
-    width: 80vw;
+    width: 100%;
     height: 60vh;
   }
 

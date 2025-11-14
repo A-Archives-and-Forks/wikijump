@@ -633,7 +633,7 @@
     gap: 15px;
     align-items: stretch;
     justify-content: stretch;
-    width: 80vw;
+    width: 100%;
   }
 
   .file-list {

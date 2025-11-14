@@ -215,7 +215,7 @@
 
 <style global lang="scss">
   .debug {
-    width: 80vw;
+    width: 100%;
     height: 60vh;
   }
 
@@ -244,7 +244,7 @@
   }
 
   .page-source {
-    width: 80vw;
+    width: 100%;
     height: 60vh;
   }
 
