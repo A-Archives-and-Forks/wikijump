@@ -3,6 +3,7 @@ import { parseAcceptLangHeader } from "$lib/locales"
 import { getFileByHash } from "$lib/server/deepwell/file"
 import { translate } from "$lib/server/deepwell/translate"
 import { userView } from "$lib/server/deepwell/user"
+import { loadSiteInfo } from "$lib/server/load/site-info"
 import type { TranslateKeys } from "$lib/types"
 import { error, redirect } from "@sveltejs/kit"
 
