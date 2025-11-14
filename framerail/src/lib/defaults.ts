@@ -3,6 +3,7 @@ const defaults = {
   translateKeys: {
     // Error
     "error": {},
+    "close": {},
 
     // Footer
     "footer-powered-by": {},
