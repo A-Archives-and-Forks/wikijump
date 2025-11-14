@@ -877,7 +877,6 @@ dependencies = [
  "cuid2",
  "data-encoding",
  "dotenvy",
- "either",
  "femme",
  "filemagic",
  "fluent",
