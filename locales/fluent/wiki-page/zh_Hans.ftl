@@ -14,6 +14,8 @@ wiki-page-source = 页面源代码
 
 wiki-page-view-source = 检视源代码
 
+wiki-page-revision-history = 页面修订历史
+
 wiki-page-revision-number = 版本编号
 
 wiki-page-revision-created-at = 创建日期

@@ -14,6 +14,8 @@ wiki-page-source = Page source
 
 wiki-page-view-source = View Source
 
+wiki-page-revision-history = Page revision history
+
 wiki-page-revision-number = Revision #
 
 wiki-page-revision-created-at = Creation

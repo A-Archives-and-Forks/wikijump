@@ -110,6 +110,7 @@ export async function loadPage(
         date: new Date(updatedAt).toLocaleString(locales),
         days: daysDiff
       },
+      "wiki-page-revision-history": {},
       "wiki-page-revision-number": {},
       "wiki-page-revision-created-at": {},
       "wiki-page-revision-user": {},
