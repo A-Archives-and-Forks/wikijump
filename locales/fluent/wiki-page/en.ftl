@@ -62,7 +62,9 @@ wiki-page-layout = Page layout
   .wikidot = Wikidot (Legacy)
   .wikijump = Wikijump
 
-wiki-page-restore = Select page to restore
+wiki-page-restore = Restore page
+
+wiki-page-restore-select = Select page to restore
 
 wiki-page-deleted = Deleted at { $datetime }
 

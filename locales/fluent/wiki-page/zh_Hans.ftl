@@ -62,7 +62,9 @@ wiki-page-layout = 页面布局
   .wikidot = Wikidot（旧）
   .wikijump = Wikijump
 
-wiki-page-restore = 选择需恢复的页面
+wiki-page-restore = 恢复页面
+
+wiki-page-restore-select = 选择需恢复的页面
 
 wiki-page-deleted = 于{ $datetime }删除
 
