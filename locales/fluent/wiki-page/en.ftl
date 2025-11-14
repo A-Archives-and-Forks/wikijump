@@ -51,6 +51,8 @@ wiki-page-vote-score = Rating
 
 wiki-page-edit = Edit the page
 
+wiki-page-create = Create new page
+
 wiki-page-move = Move page
 
 wiki-page-move-new-slug = New slug

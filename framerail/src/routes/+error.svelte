@@ -1,9 +1,10 @@
 <script lang="ts">
   import { page } from "$app/stores"
   import { goto, invalidateAll } from "$app/navigation"
-  import { useErrorPopup } from "$lib/stores"
+  import { useErrorPopup, usePageLayoutState } from "$lib/stores"
   import { Layout } from "$lib/types"
   let showErrorPopup = useErrorPopup()
+  let pageLayout = usePageLayoutState()
 
   let showRestoreAction = false
   let deletedPages: Record<string, any>[] = []
@@ -88,6 +89,16 @@ as soon as we can figure out prettier support for it.
   UNTRANSLATED:Page not found
 
   {#if $page.error.options?.edit}
+    {#if $pageLayout === Layout.WIKIDOT}
+      <h1 class="page-create-header">
+        {$page.error?.internationalization?.["wiki-page-create"]}
+      </h1>
+    {:else}
+      <h2 class="page-create-header">
+        {$page.error?.internationalization?.["wiki-page-create"]}
+      </h2>
+    {/if}
+
     <form id="editor" class="editor" method="POST" on:submit|preventDefault={saveCreate}>
       <input
         name="title"
@@ -125,22 +136,39 @@ as soon as we can figure out prettier support for it.
         class="editor-comments"
         placeholder={$page.error.internationalization?.["wiki-page-revision-comments"]}
       />
-      <div class="action-row editor-actions">
-        <button
-          class="action-button editor-button button-cancel clickable"
-          type="button"
-          on:click|stopPropagation={cancelCreate}
-        >
-          {$page.error.internationalization?.cancel}
-        </button>
-        <button
-          class="action-button editor-button button-save clickable"
-          type="submit"
-          on:click|stopPropagation
-        >
-          {$page.error.internationalization?.save}
-        </button>
-      </div>
+      {#if $pageLayout === Layout.WIKIDOT}
+        <div class="buttons">
+          <input
+            class="btn btn-danger"
+            type="button"
+            value={$page.error.internationalization?.cancel}
+            on:click|stopPropagation={cancelCreate}
+          />
+          <input
+            class="btn btn-primary"
+            type="submit"
+            value={$page.error.internationalization?.save}
+            on:click|stopPropagation
+          />
+        </div>
+      {:else}
+        <div class="action-row editor-actions">
+          <button
+            class="action-button editor-button button-cancel clickable"
+            type="button"
+            on:click|stopPropagation={cancelCreate}
+          >
+            {$page.error.internationalization?.cancel}
+          </button>
+          <button
+            class="action-button editor-button button-save clickable"
+            type="submit"
+            on:click|stopPropagation
+          >
+            {$page.error.internationalization?.save}
+          </button>
+        </div>
+      {/if}
     </form>
   {:else}
     {@html $page.error.compiled_html}
