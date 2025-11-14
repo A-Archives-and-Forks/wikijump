@@ -487,9 +487,16 @@
     text-align: right;
   }
 
-  .page-source {
+  textarea.page-source {
     width: 100%;
     height: 60vh;
+  }
+
+  div.page-source {
+    width: calc(100% - 4em - 2px);
+    padding: 1em 2em;
+    height: fit-content;
+    white-space: pre-wrap;
   }
 
   .action-row {
