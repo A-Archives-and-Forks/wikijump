@@ -1,10 +1,10 @@
 <script lang="ts">
   import { page } from "$app/stores"
-  import { invalidateAll } from "$app/navigation"
-  import { useErrorPopup, usePagePaneState } from "$lib/stores"
+  import { useErrorPopup, usePageLayoutState, usePagePaneState } from "$lib/stores"
   import { Layout, PagePane } from "$lib/types"
   let showErrorPopup = useErrorPopup()
   let pagePaneState = usePagePaneState()
+  let pageLayout = usePageLayoutState()
 
   async function handleLayout() {
     let form = document.getElementById("page-layout")
@@ -23,10 +23,21 @@
       })
     } else {
       pagePaneState.set(PagePane.None)
-      invalidateAll()
+      pageLayout.set(fdata.get("layout") ?? $page.data.site.layout)
+      window.location.reload()
     }
   }
 </script>
+
+{#if $pageLayout === Layout.WIKIDOT}
+  <h1 class="page-layout-header">
+    {$page.data.internationalization?.["wiki-page-layout"]}
+  </h1>
+{:else}
+  <h2 class="page-layout-header">
+    {$page.data.internationalization?.["wiki-page-layout"]}
+  </h2>
+{/if}
 
 <form
   id="page-layout"
@@ -44,24 +55,43 @@
       >
     {/each}
   </select>
-  <div class="action-row page-layout-actions">
-    <button
-      class="action-button page-layout-button button-cancel clickable"
-      type="button"
-      on:click|stopPropagation={() => {
-        pagePaneState.set(PagePane.None)
-      }}
-    >
-      {$page.data.internationalization?.cancel}
-    </button>
-    <button
-      class="action-button page-layout-button button-save clickable"
-      type="submit"
-      on:click|stopPropagation
-    >
-      {$page.data.internationalization?.save}
-    </button>
-  </div>
+  {#if $pageLayout === Layout.WIKIDOT}
+    <div class="buttons">
+      <input
+        class="btn btn-danger"
+        type="button"
+        value={$page.data.internationalization?.cancel}
+        on:click|stopPropagation={() => {
+          pagePaneState.set(PagePane.None)
+        }}
+      />
+      <input
+        class="btn btn-primary"
+        type="submit"
+        value={$page.data.internationalization?.save}
+        on:click|stopPropagation
+      />
+    </div>
+  {:else}
+    <div class="action-row page-layout-actions">
+      <button
+        class="action-button page-layout-button button-cancel clickable"
+        type="button"
+        on:click|stopPropagation={() => {
+          pagePaneState.set(PagePane.None)
+        }}
+      >
+        {$page.data.internationalization?.cancel}
+      </button>
+      <button
+        class="action-button page-layout-button button-save clickable"
+        type="submit"
+        on:click|stopPropagation
+      >
+        {$page.data.internationalization?.save}
+      </button>
+    </div>
+  {/if}
 </form>
 
 <style lang="scss">

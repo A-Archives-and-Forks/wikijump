@@ -51,7 +51,7 @@ wiki-page-edit = 编辑页面
 
 wiki-page-move-new-slug = 新页面网址
 
-wiki-page-layout =
+wiki-page-layout = 页面布局
   .default = 预设布局
   .wikidot = Wikidot（旧）
   .wikijump = Wikijump

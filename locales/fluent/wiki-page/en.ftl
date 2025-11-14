@@ -51,7 +51,7 @@ wiki-page-edit = Edit the page
 
 wiki-page-move-new-slug = New slug
 
-wiki-page-layout =
+wiki-page-layout = Page layout
   .default = Default layout
   .wikidot = Wikidot (Legacy)
   .wikijump = Wikijump

@@ -73,6 +73,7 @@ export async function loadPage(
     "alt-title": {},
     "tags": {},
     "wiki-page-revision-comments": {},
+    "wiki-page-layout": {},
     "wiki-page-layout.default": {},
     "wiki-page-layout.wikidot": {},
     "wiki-page-layout.wikijump": {}
