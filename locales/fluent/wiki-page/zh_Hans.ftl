@@ -95,6 +95,9 @@ wiki-page-file-restore = 恢复
   .new-page = 新页面网址
   .new-name = 新档案名
 
+### 维基页面父页面
+
+wiki-page-parent = 父页面
 ### 特殊页面
 
 wiki-page-missing = 你访问的页面 //{ $slug }// 并不存在。

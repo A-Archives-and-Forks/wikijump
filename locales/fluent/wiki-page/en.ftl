@@ -95,6 +95,9 @@ wiki-page-file-restore = Restore
   .new-page = Destination page
   .new-name = New file name
 
+### Wiki page parents
+
+wiki-page-parent = Page parents
 ### Special Page fallback strings
 
 wiki-page-missing = The page //{ $slug }// you want to access does not exist.
