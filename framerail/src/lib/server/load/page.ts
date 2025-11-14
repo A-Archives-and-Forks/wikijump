@@ -133,6 +133,7 @@ export async function loadPage(
       "files": {},
       "upload": {},
       "restore": {},
+      "wiki-page-file": {},
       "wiki-page-file-no-files": {},
       "wiki-page-file-select": {},
       "wiki-page-file-name": {},

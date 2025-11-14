@@ -68,7 +68,7 @@ wiki-page-file-name = 档案名：
 
 wiki-page-file-move-destination-page = 新页面网址
 
-wiki-page-file =
+wiki-page-file = 页面附件
   .name = 档案名
   .created-at = 创建日期
   .updated-at = 最后编辑日期

@@ -68,7 +68,7 @@ wiki-page-file-name = File name:
 
 wiki-page-file-move-destination-page = Destination page
 
-wiki-page-file =
+wiki-page-file = Page files
   .name = File name
   .created-at = Created at
   .updated-at = Updated at
