@@ -1,4 +1,4 @@
-import { PagePane } from "./types"
+import { Layout, PagePane } from "./types"
 import { useWritable } from "./use-shared-store"
 
 export const useErrorPopup = () =>
@@ -9,3 +9,5 @@ export const useErrorPopup = () =>
   })
 
 export const usePagePaneState = () => useWritable("pagePane", PagePane.None)
+
+export const usePageLayoutState = () => useWritable("pageLayout", Layout.WIKIJUMP)
