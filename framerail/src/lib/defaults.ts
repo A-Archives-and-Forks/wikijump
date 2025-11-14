@@ -9,7 +9,8 @@ const defaults = {
     "terms": {},
     "privacy": {},
     "docs": {},
-    "security": {}
+    "security": {},
+    "footer-license-unless": {}
   },
   page: {
     history: {

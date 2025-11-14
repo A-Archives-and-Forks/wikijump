@@ -90,6 +90,10 @@
           $page.error?.internationalization?.["footer-powered-by"]}
       </div>
     </svelte:fragment>
+    <svelte:fragment slot="license">
+      {@html $page.data?.internationalization?.["footer-license-unless"] ??
+        $page.error?.internationalization?.["footer-license-unless"]}
+    </svelte:fragment>
   </Wikidot>
 {:else}
   <SigmaEsque>

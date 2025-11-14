@@ -78,6 +78,11 @@ export async function loadPage(
     "wiki-page-layout.wikijump": {}
   }
 
+  translateKeys["footer-license-unless"] = {
+    license: viewData.license_name,
+    "license_url": viewData.license_url
+  }
+
   if (errorStatus === null) {
     // Calculate difference of days since latest page edit
     let updatedAt = Date.parse(viewData.page.updated_at ?? viewData.page.created_at)

@@ -23,6 +23,11 @@ export async function loadUser(username?: string, request, cookies) {
   const viewData = response.data
   viewData.view = response.type
 
+  translateKeys["footer-license-unless"] = {
+    license: viewData.license_name,
+    "license_url": viewData.license_url
+  }
+
   let errorStatus = null
 
   switch (response.type) {
