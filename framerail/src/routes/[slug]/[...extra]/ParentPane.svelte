@@ -2,10 +2,11 @@
   import { page } from "$app/stores"
   import { invalidateAll } from "$app/navigation"
   import { onMount } from "svelte"
-  import { useErrorPopup, usePagePaneState } from "$lib/stores"
-  import { PagePane } from "$lib/types"
+  import { useErrorPopup, usePageLayoutState, usePagePaneState } from "$lib/stores"
+  import { Layout, PagePane } from "$lib/types"
   let showErrorPopup = useErrorPopup()
   let pagePaneState = usePagePaneState()
+  let pageLayout = usePageLayoutState()
   let parents = ""
 
   async function setParents() {
@@ -64,6 +65,16 @@
   })
 </script>
 
+{#if $pageLayout === Layout.WIKIDOT}
+  <h1 class="page-parent-header">
+    {$page.data.internationalization?.["wiki-page-parent"]}
+  </h1>
+{:else}
+  <h2 class="page-parent-header">
+    {$page.data.internationalization?.["wiki-page-parent"]}
+  </h2>
+{/if}
+
 <form
   id="page-parent"
   class="page-parent"
@@ -77,24 +88,43 @@
     type="text"
     value={parents}
   />
-  <div class="action-row page-parent-actions">
-    <button
-      class="action-button page-parent-button button-cancel clickable"
-      type="button"
-      on:click|stopPropagation={() => {
-        pagePaneState.set(PagePane.None)
-      }}
-    >
-      {$page.data.internationalization?.cancel}
-    </button>
-    <button
-      class="action-button page-parent-button button-save clickable"
-      type="submit"
-      on:click|stopPropagation
-    >
-      {$page.data.internationalization?.save}
-    </button>
-  </div>
+  {#if $pageLayout === Layout.WIKIDOT}
+    <div class="buttons">
+      <input
+        class="btn btn-danger"
+        type="button"
+        value={$page.data.internationalization?.cancel}
+        on:click|stopPropagation={() => {
+          pagePaneState.set(PagePane.None)
+        }}
+      />
+      <input
+        class="btn btn-primary"
+        type="submit"
+        value={$page.data.internationalization?.save}
+        on:click|stopPropagation
+      />
+    </div>
+  {:else}
+    <div class="action-row page-parent-actions">
+      <button
+        class="action-button page-parent-button button-cancel clickable"
+        type="button"
+        on:click|stopPropagation={() => {
+          pagePaneState.set(PagePane.None)
+        }}
+      >
+        {$page.data.internationalization?.cancel}
+      </button>
+      <button
+        class="action-button page-parent-button button-save clickable"
+        type="submit"
+        on:click|stopPropagation
+      >
+        {$page.data.internationalization?.save}
+      </button>
+    </div>
+  {/if}
 </form>
 
 <style lang="scss">
@@ -104,7 +134,7 @@
     gap: 15px;
     align-items: stretch;
     justify-content: stretch;
-    width: 80vw;
+    width: 100%;
     padding: 0 0 2em;
   }
 </style>

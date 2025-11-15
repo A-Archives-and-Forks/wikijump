@@ -3,13 +3,15 @@ const defaults = {
   translateKeys: {
     // Error
     "error": {},
+    "close": {},
 
     // Footer
     "footer-powered-by": {},
     "terms": {},
     "privacy": {},
     "docs": {},
-    "security": {}
+    "security": {},
+    "footer-license-unless": {}
   },
   page: {
     history: {

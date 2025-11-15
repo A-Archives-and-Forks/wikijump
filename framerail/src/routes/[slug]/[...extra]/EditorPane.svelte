@@ -1,8 +1,10 @@
 <script lang="ts">
   import { page } from "$app/stores"
   import { goto } from "$app/navigation"
-  import { useErrorPopup } from "$lib/stores"
+  import { useErrorPopup, usePageLayoutState } from "$lib/stores"
+  import { Layout } from "$lib/types"
   let showErrorPopup = useErrorPopup()
+  let pageLayout = usePageLayoutState()
 
   function cancelEdit() {
     let options: string[] = []
@@ -38,6 +40,16 @@
   }
 </script>
 
+{#if $pageLayout === Layout.WIKIDOT}
+  <h1 class="page-edit-header">
+    {$page.data.internationalization?.["wiki-page-edit"]}
+  </h1>
+{:else}
+  <h2 class="page-edit-header">
+    {$page.data.internationalization?.["wiki-page-edit"]}
+  </h2>
+{/if}
+
 <form id="editor" class="editor" method="POST" on:submit|preventDefault={saveEdit}>
   <input
     name="title"
@@ -66,22 +78,41 @@
     class="editor-comments"
     placeholder={$page.data.internationalization?.["wiki-page-revision-comments"]}
   />
-  <div class="action-row editor-actions">
-    <button
-      class="action-button editor-button button-cancel clickable"
-      type="button"
-      on:click|stopPropagation={cancelEdit}
-    >
-      {$page.data.internationalization?.cancel}
-    </button>
-    <button
-      class="action-button editor-button button-save clickable"
-      type="submit"
-      on:click|stopPropagation
-    >
-      {$page.data.internationalization?.save}
-    </button>
-  </div>
+  {#if $pageLayout === Layout.WIKIDOT}
+    <div class="buttons alignleft">
+      <input
+        name="cancel"
+        class="btn btn-danger"
+        type="button"
+        value={$page.data.internationalization?.cancel}
+        on:click|stopPropagation={cancelEdit}
+      />
+      <input
+        name="save"
+        class="btn btn-primary"
+        type="submit"
+        value={$page.data.internationalization?.save}
+        on:click|stopPropagation
+      />
+    </div>
+  {:else}
+    <div class="action-row editor-actions">
+      <button
+        class="action-button editor-button button-cancel clickable"
+        type="button"
+        on:click|stopPropagation={cancelEdit}
+      >
+        {$page.data.internationalization?.cancel}
+      </button>
+      <button
+        class="action-button editor-button button-save clickable"
+        type="submit"
+        on:click|stopPropagation
+      >
+        {$page.data.internationalization?.save}
+      </button>
+    </div>
+  {/if}
 </form>
 
 <style lang="scss">
@@ -95,7 +126,7 @@
     gap: 15px;
     align-items: stretch;
     justify-content: stretch;
-    width: 80vw;
+    width: 100%;
   }
 
   .editor-wikitext {

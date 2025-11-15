@@ -73,9 +73,15 @@ export async function loadPage(
     "alt-title": {},
     "tags": {},
     "wiki-page-revision-comments": {},
+    "wiki-page-layout": {},
     "wiki-page-layout.default": {},
     "wiki-page-layout.wikidot": {},
     "wiki-page-layout.wikijump": {}
+  }
+
+  translateKeys["footer-license-unless"] = {
+    license: viewData.license_name,
+    "license_url": viewData.license_url
   }
 
   if (errorStatus === null) {
@@ -95,6 +101,7 @@ export async function loadPage(
       "vote": {},
       "layout": {},
       "parents": {},
+      "options": {},
 
       // Page history
       "wiki-page-revision": {
@@ -104,6 +111,7 @@ export async function loadPage(
         date: new Date(updatedAt).toLocaleString(locales),
         days: daysDiff
       },
+      "wiki-page-revision-history": {},
       "wiki-page-revision-number": {},
       "wiki-page-revision-created-at": {},
       "wiki-page-revision-user": {},
@@ -118,6 +126,7 @@ export async function loadPage(
       "wiki-page-revision-type.undo": {},
 
       // Page vote
+      "wiki-page-vote": {},
       "wiki-page-vote-list": {},
       "wiki-page-vote-set": {},
       "wiki-page-vote-remove": {},
@@ -127,6 +136,7 @@ export async function loadPage(
       "files": {},
       "upload": {},
       "restore": {},
+      "wiki-page-file": {},
       "wiki-page-file-no-files": {},
       "wiki-page-file-select": {},
       "wiki-page-file-name": {},
@@ -151,8 +161,12 @@ export async function loadPage(
       "wiki-page-file-restore.new-name": {},
 
       // Misc
+      "wiki-page-edit": {},
+      "wiki-page-parent": {},
+      "wiki-page-move": {},
       "wiki-page-move-new-slug": {},
       "wiki-page-no-render": {},
+      "wiki-page-source": {},
       "wiki-page-view-source": {}
     }
   } else {
@@ -162,6 +176,8 @@ export async function loadPage(
       // Page actions
       "restore": {},
       "wiki-page-restore": {},
+      "wiki-page-restore-select": {},
+      "wiki-page-create": {},
       "wiki-page-deleted": {
         // To be determined lazily
         datetime: "{$datetime}"

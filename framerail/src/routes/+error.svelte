@@ -1,9 +1,10 @@
 <script lang="ts">
   import { page } from "$app/stores"
   import { goto, invalidateAll } from "$app/navigation"
-  import { useErrorPopup } from "$lib/stores"
+  import { useErrorPopup, usePageLayoutState } from "$lib/stores"
   import { Layout } from "$lib/types"
   let showErrorPopup = useErrorPopup()
+  let pageLayout = usePageLayoutState()
 
   let showRestoreAction = false
   let deletedPages: Record<string, any>[] = []
@@ -88,6 +89,16 @@ as soon as we can figure out prettier support for it.
   UNTRANSLATED:Page not found
 
   {#if $page.error.options?.edit}
+    {#if $pageLayout === Layout.WIKIDOT}
+      <h1 class="page-create-header">
+        {$page.error?.internationalization?.["wiki-page-create"]}
+      </h1>
+    {:else}
+      <h2 class="page-create-header">
+        {$page.error?.internationalization?.["wiki-page-create"]}
+      </h2>
+    {/if}
+
     <form id="editor" class="editor" method="POST" on:submit|preventDefault={saveCreate}>
       <input
         name="title"
@@ -125,93 +136,204 @@ as soon as we can figure out prettier support for it.
         class="editor-comments"
         placeholder={$page.error.internationalization?.["wiki-page-revision-comments"]}
       />
-      <div class="action-row editor-actions">
-        <button
-          class="action-button editor-button button-cancel clickable"
-          type="button"
-          on:click|stopPropagation={cancelCreate}
-        >
-          {$page.error.internationalization?.cancel}
-        </button>
-        <button
-          class="action-button editor-button button-save clickable"
-          type="submit"
-          on:click|stopPropagation
-        >
-          {$page.error.internationalization?.save}
-        </button>
-      </div>
-    </form>
-  {:else}
-    {@html $page.error.compiled_html}
-
-    <div class="action-row editor-actions">
-      <button
-        class="action-button editor-button button-restore clickable"
-        type="button"
-        on:click={getDeleted}
-      >
-        {$page.error.internationalization?.restore}
-      </button>
-    </div>
-
-    {#if showRestoreAction}
-      <form
-        id="page-restore"
-        class="page-restore"
-        method="POST"
-        on:submit|preventDefault={handleRestore}
-      >
-        <fieldset>
-          <legend>{$page.error.internationalization?.["wiki-page-restore"]}</legend>
-          {#each deletedPages as deletedPage}
-            <input
-              id={`restore-page-id-${deletedPage.page_id}`}
-              name="page-id"
-              class="page-restore-id"
-              type="radio"
-              value={deletedPage.page_id}
-            />
-            <label for={`restore-page-id-${deletedPage.page_id}`}>
-              <span class="page-restore-title">{deletedPage.title}</span
-              >{#if deletedPage.alt_title}&nbsp;-&nbsp;<span
-                  class="page-restore-alt-title">{deletedPage.alt_title}</span
-                >{/if} (<span class="page-restore-rating"
-                >{(deletedPage.rating > 0 ? "+" : "") + deletedPage.rating}</span
-              >) - {$page.error.internationalization?.["wiki-page-deleted"].replace(
-                "{$datetime}",
-                new Date(deletedPage.page_deleted_at).toLocaleString()
-              )}
-            </label>
-            <br />
-          {/each}
-        </fieldset>
-
-        <textarea
-          name="comments"
-          class="page-restore-comments"
-          placeholder={$page.error.internationalization?.["wiki-page-revision-comments"]}
-        />
-
-        <div class="action-row page-restore-actions">
-          <button
-            class="action-button page-restore-button button-cancel clickable"
+      {#if $pageLayout === Layout.WIKIDOT}
+        <div class="buttons">
+          <input
+            class="btn btn-danger"
             type="button"
-            on:click|stopPropagation={() => {
-              showRestoreAction = false
-            }}
+            value={$page.error.internationalization?.cancel}
+            on:click|stopPropagation={cancelCreate}
+          />
+          <input
+            class="btn btn-primary"
+            type="submit"
+            value={$page.error.internationalization?.save}
+            on:click|stopPropagation
+          />
+        </div>
+      {:else}
+        <div class="action-row editor-actions">
+          <button
+            class="action-button editor-button button-cancel clickable"
+            type="button"
+            on:click|stopPropagation={cancelCreate}
           >
             {$page.error.internationalization?.cancel}
           </button>
           <button
-            class="action-button page-restore-button button-restore clickable"
+            class="action-button editor-button button-save clickable"
             type="submit"
             on:click|stopPropagation
           >
-            {$page.error.internationalization?.restore}
+            {$page.error.internationalization?.save}
           </button>
         </div>
-      </form>
+      {/if}
+    </form>
+  {:else}
+    <div id="page-content">
+      {@html $page.error.compiled_html}
+    </div>
+
+    {#if $pageLayout === Layout.WIKIDOT}
+      <div id="page-options-container">
+        <div id="page-options-bottom" class="page-options-bottom">
+          <!-- svelte-ignore a11y-invalid-attribute -->
+          <a
+            id="restore-button"
+            class="btn btn-default"
+            href="javascript:;"
+            type="button"
+            on:click={getDeleted}
+          >
+            {$page.error.internationalization?.restore}
+          </a>
+        </div>
+      </div>
+    {:else}
+      <div class="action-row editor-actions">
+        <button
+          class="action-button editor-button button-restore clickable"
+          type="button"
+          on:click={getDeleted}
+        >
+          {$page.error.internationalization?.restore}
+        </button>
+      </div>
+    {/if}
+
+    {#if showRestoreAction}
+      {#if $pageLayout === Layout.WIKIDOT}
+        <div id="action-area">
+          <h1 class="page-restore-header">
+            {$page.error?.internationalization?.["wiki-page-restore"]}
+          </h1>
+
+          <form
+            id="page-restore"
+            class="page-restore"
+            method="POST"
+            on:submit|preventDefault={handleRestore}
+          >
+            <fieldset>
+              <legend
+                >{$page.error.internationalization?.["wiki-page-restore-select"]}</legend
+              >
+              {#each deletedPages as deletedPage}
+                <input
+                  id={`restore-page-id-${deletedPage.page_id}`}
+                  name="page-id"
+                  class="page-restore-id"
+                  type="radio"
+                  value={deletedPage.page_id}
+                />
+                <label for={`restore-page-id-${deletedPage.page_id}`}>
+                  <span class="page-restore-title">{deletedPage.title}</span
+                  >{#if deletedPage.alt_title}&nbsp;-&nbsp;<span
+                      class="page-restore-alt-title">{deletedPage.alt_title}</span
+                    >{/if} (<span class="page-restore-rating"
+                    >{(deletedPage.rating > 0 ? "+" : "") + deletedPage.rating}</span
+                  >) - {$page.error.internationalization?.["wiki-page-deleted"].replace(
+                    "{$datetime}",
+                    new Date(deletedPage.page_deleted_at).toLocaleString()
+                  )}
+                </label>
+                <br />
+              {/each}
+            </fieldset>
+
+            <textarea
+              name="comments"
+              class="page-restore-comments"
+              placeholder={$page.error.internationalization?.[
+                "wiki-page-revision-comments"
+              ]}
+            />
+
+            <div class="buttons">
+              <input
+                class="btn btn-primary"
+                type="button"
+                value={$page.error.internationalization?.cancel}
+                on:click|stopPropagation={() => {
+                  showRestoreAction = false
+                }}
+              />
+              <input
+                class="btn btn-primary"
+                type="submit"
+                value={$page.error.internationalization?.restore}
+                on:click|stopPropagation
+              />
+            </div>
+          </form>
+        </div>
+      {:else}
+        <h2 class="page-restore-header">
+          {$page.error?.internationalization?.["wiki-page-restore"]}
+        </h2>
+
+        <form
+          id="page-restore"
+          class="page-restore"
+          method="POST"
+          on:submit|preventDefault={handleRestore}
+        >
+          <fieldset>
+            <legend
+              >{$page.error.internationalization?.["wiki-page-restore-select"]}</legend
+            >
+            {#each deletedPages as deletedPage}
+              <input
+                id={`restore-page-id-${deletedPage.page_id}`}
+                name="page-id"
+                class="page-restore-id"
+                type="radio"
+                value={deletedPage.page_id}
+              />
+              <label for={`restore-page-id-${deletedPage.page_id}`}>
+                <span class="page-restore-title">{deletedPage.title}</span
+                >{#if deletedPage.alt_title}&nbsp;-&nbsp;<span
+                    class="page-restore-alt-title">{deletedPage.alt_title}</span
+                  >{/if} (<span class="page-restore-rating"
+                  >{(deletedPage.rating > 0 ? "+" : "") + deletedPage.rating}</span
+                >) - {$page.error.internationalization?.["wiki-page-deleted"].replace(
+                  "{$datetime}",
+                  new Date(deletedPage.page_deleted_at).toLocaleString()
+                )}
+              </label>
+              <br />
+            {/each}
+          </fieldset>
+
+          <textarea
+            name="comments"
+            class="page-restore-comments"
+            placeholder={$page.error.internationalization?.[
+              "wiki-page-revision-comments"
+            ]}
+          />
+
+          <div class="action-row page-restore-actions">
+            <button
+              class="action-button page-restore-button button-cancel clickable"
+              type="button"
+              on:click|stopPropagation={() => {
+                showRestoreAction = false
+              }}
+            >
+              {$page.error.internationalization?.cancel}
+            </button>
+            <button
+              class="action-button page-restore-button button-restore clickable"
+              type="submit"
+              on:click|stopPropagation
+            >
+              {$page.error.internationalization?.restore}
+            </button>
+          </div>
+        </form>
+      {/if}
     {/if}
   {/if}
 {:else if $page.error.view === "permissions"}
@@ -223,7 +345,7 @@ as soon as we can figure out prettier support for it.
 
 <style global lang="scss">
   .debug {
-    width: 80vw;
+    width: 100%;
     height: 60vh;
   }
 
@@ -234,7 +356,7 @@ as soon as we can figure out prettier support for it.
     gap: 15px;
     align-items: stretch;
     justify-content: stretch;
-    width: 80vw;
+    width: 100%;
   }
 
   .editor-wikitext {

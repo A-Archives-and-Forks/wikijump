@@ -3,6 +3,7 @@ import { parseAcceptLangHeader } from "$lib/locales"
 import { getFileByHash } from "$lib/server/deepwell/file"
 import { translate } from "$lib/server/deepwell/translate"
 import { userView } from "$lib/server/deepwell/user"
+import { loadSiteInfo } from "$lib/server/load/site-info"
 import type { TranslateKeys } from "$lib/types"
 import { error, redirect } from "@sveltejs/kit"
 
@@ -21,6 +22,11 @@ export async function loadUser(username?: string, request, cookies) {
 
   const viewData = response.data
   viewData.view = response.type
+
+  translateKeys["footer-license-unless"] = {
+    license: viewData.license_name,
+    "license_url": viewData.license_url
+  }
 
   let errorStatus = null
 

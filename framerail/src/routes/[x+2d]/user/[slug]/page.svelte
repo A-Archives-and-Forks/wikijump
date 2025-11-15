@@ -92,7 +92,7 @@
 
 <style global lang="scss">
   .debug {
-    width: 80vw;
+    width: 100%;
     height: 60vh;
   }
 </style>

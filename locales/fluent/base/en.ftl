@@ -53,6 +53,7 @@ messages = Messages
 move = Move
 navigation = Navigation
 notifications = Notifications
+options = Options
 parents = Parents
 preview = Preview
 privacy = Privacy

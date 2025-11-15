@@ -200,7 +200,7 @@
 
 <style global lang="scss">
   .debug {
-    width: 80vw;
+    width: 100%;
     height: 60vh;
   }
 
@@ -214,7 +214,7 @@
     gap: 15px;
     align-items: stretch;
     justify-content: stretch;
-    width: 80vw;
+    width: 100%;
   }
 
   .action-row {

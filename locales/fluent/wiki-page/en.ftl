@@ -10,7 +10,11 @@ wiki-page-last-edit = last edited: { $date } ({ $days ->
   *[other] { $days } days ago
 })
 
+wiki-page-source = Page source
+
 wiki-page-view-source = View Source
+
+wiki-page-revision-history = Page revision history
 
 wiki-page-revision-number = Revision #
 
@@ -33,6 +37,8 @@ wiki-page-revision-type = Type
 
 ### Wiki Page Vote
 
+wiki-page-vote = Page rating
+
 wiki-page-vote-set = Cast vote
 
 wiki-page-vote-remove = Cancel vote
@@ -43,14 +49,22 @@ wiki-page-vote-score = Rating
 
 ### Wiki Page Edit
 
+wiki-page-edit = Edit the page
+
+wiki-page-create = Create new page
+
+wiki-page-move = Move page
+
 wiki-page-move-new-slug = New slug
 
-wiki-page-layout =
+wiki-page-layout = Page layout
   .default = Default layout
   .wikidot = Wikidot (Legacy)
   .wikijump = Wikijump
 
-wiki-page-restore = Select page to restore
+wiki-page-restore = Restore page
+
+wiki-page-restore-select = Select page to restore
 
 wiki-page-deleted = Deleted at { $datetime }
 
@@ -64,7 +78,7 @@ wiki-page-file-name = File name:
 
 wiki-page-file-move-destination-page = Destination page
 
-wiki-page-file =
+wiki-page-file = Page files
   .name = File name
   .created-at = Created at
   .updated-at = Updated at
@@ -85,6 +99,9 @@ wiki-page-file-restore = Restore
   .new-page = Destination page
   .new-name = New file name
 
+### Wiki page parents
+
+wiki-page-parent = Page parents
 ### Special Page fallback strings
 
 wiki-page-missing = The page //{ $slug }// you want to access does not exist.

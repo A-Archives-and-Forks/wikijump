@@ -10,7 +10,11 @@ wiki-page-last-edit = 最后编辑于: { $date } ({ $days ->
   *[other] { $days } 日前
 })
 
+wiki-page-source = 页面源代码
+
 wiki-page-view-source = 检视源代码
+
+wiki-page-revision-history = 页面修订历史
 
 wiki-page-revision-number = 版本编号
 
@@ -33,6 +37,8 @@ wiki-page-revision-type = 类型
 
 ### 维基页面评分
 
+wiki-page-vote = 页面评分
+
 wiki-page-vote-set = 进行评分
 
 wiki-page-vote-remove = 取消评分
@@ -43,14 +49,22 @@ wiki-page-vote-score = 现时评分
 
 ### 维基页面编辑
 
+wiki-page-edit = 编辑页面
+
+wiki-page-create = 建立新页面
+
+wiki-page-move = 移动页面
+
 wiki-page-move-new-slug = 新页面网址
 
-wiki-page-layout =
+wiki-page-layout = 页面布局
   .default = 预设布局
   .wikidot = Wikidot（旧）
   .wikijump = Wikijump
 
-wiki-page-restore = 选择需恢复的页面
+wiki-page-restore = 恢复页面
+
+wiki-page-restore-select = 选择需恢复的页面
 
 wiki-page-deleted = 于{ $datetime }删除
 
@@ -64,7 +78,7 @@ wiki-page-file-name = 档案名：
 
 wiki-page-file-move-destination-page = 新页面网址
 
-wiki-page-file =
+wiki-page-file = 页面附件
   .name = 档案名
   .created-at = 创建日期
   .updated-at = 最后编辑日期
@@ -85,6 +99,9 @@ wiki-page-file-restore = 恢复
   .new-page = 新页面网址
   .new-name = 新档案名
 
+### 维基页面父页面
+
+wiki-page-parent = 父页面
 ### 特殊页面
 
 wiki-page-missing = 你访问的页面 //{ $slug }// 并不存在。
