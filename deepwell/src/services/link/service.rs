@@ -471,6 +471,7 @@ async fn count_connections(
     PageRef {
         site: site_slug,
         page: page_slug,
+        extra: _,
     }: &PageRef,
     connection_type: ConnectionType,
     connections: &mut HashMap<(i64, ConnectionType), i32>,
