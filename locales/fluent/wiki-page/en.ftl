@@ -62,6 +62,8 @@ wiki-page-layout = Page layout
   .wikidot = Wikidot (Legacy)
   .wikijump = Wikijump
 
+wiki-page-delete = Delete page
+
 wiki-page-restore = Restore page
 
 wiki-page-restore-select = Select page to restore

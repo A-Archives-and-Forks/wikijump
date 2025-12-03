@@ -1,3 +1,4 @@
+export { default as DeletePane } from "./DeletePane.svelte"
 export { default as EditorPane } from "./EditorPane.svelte"
 export { default as FilePane } from "./FilePane.svelte"
 export { default as HistoryPane } from "./HistoryPane.svelte"

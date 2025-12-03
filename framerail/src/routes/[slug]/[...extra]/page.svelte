@@ -1,8 +1,8 @@
 <script lang="ts">
   import { page } from "$app/stores"
-  import { goto, invalidateAll } from "$app/navigation"
+  import { goto } from "$app/navigation"
   import { onMount } from "svelte"
-  import { useErrorPopup, usePageLayoutState, usePagePaneState } from "$lib/stores"
+  import { usePageLayoutState, usePagePaneState } from "$lib/stores"
   import { Layout, PagePane } from "$lib/types"
   import {
     EditorPane,
@@ -11,9 +11,9 @@
     LayoutPane,
     MovePane,
     ParentPane,
-    VotePane
+    VotePane,
+    DeletePane
   } from "."
-  let showErrorPopup = useErrorPopup()
   let pagePaneState = usePagePaneState()
   let pageLayout = usePageLayoutState()
 
@@ -21,24 +21,6 @@
   let showPageOptions = false
   let showRevision = false
   let revision: Record<string, any> = {}
-
-  async function handleDelete() {
-    let fdata = new FormData()
-    fdata.set("site-id", $page.data.site.site_id)
-    fdata.set("page-id", $page.data.page.page_id)
-    fdata.set("last-revision-id", $page.data.page_revision.revision_id)
-    let res = await fetch(`/${$page.data.page.slug}`, {
-      method: "DELETE",
-      body: fdata
-    }).then((res) => res.json())
-    if (res?.message) {
-      showErrorPopup.set({
-        state: true,
-        message: res.message,
-        data: res.data
-      })
-    } else invalidateAll()
-  }
 
   function navigateEdit() {
     let options: string[] = []
@@ -256,7 +238,10 @@
           class="btn btn-default"
           href="javascript:;"
           type="button"
-          on:click={handleDelete}
+          on:click={() => {
+            showSource = false
+            pagePaneState.set(PagePane.Delete)
+          }}
         >
           {$page.data.internationalization?.delete}
         </a>
@@ -296,6 +281,8 @@
         <FilePane />
       {:else if $pagePaneState === PagePane.History}
         <HistoryPane {setRevision} {setShowRevision} />
+      {:else if $pagePaneState === PagePane.Delete}
+        <DeletePane />
       {/if}
     </div>
   {/if}
@@ -385,7 +372,9 @@
       <button
         class="action-button editor-button button-delete clickable"
         type="button"
-        on:click={handleDelete}
+        on:click={() => {
+          pagePaneState.set(PagePane.Delete)
+        }}
       >
         {$page.data.internationalization?.delete}
       </button>
@@ -454,6 +443,8 @@
     <FilePane />
   {:else if $pagePaneState === PagePane.History}
     <HistoryPane {setRevision} {setShowRevision} />
+  {:else if $pagePaneState === PagePane.Delete}
+    <DeletePane />
   {/if}
 {/if}
 

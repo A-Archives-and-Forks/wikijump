@@ -102,6 +102,7 @@ export async function loadPage(
       "layout": {},
       "parents": {},
       "options": {},
+      "confirm": {},
 
       // Page history
       "wiki-page-revision": {
@@ -163,6 +164,7 @@ export async function loadPage(
       // Misc
       "wiki-page-edit": {},
       "wiki-page-parent": {},
+      "wiki-page-delete": {},
       "wiki-page-move": {},
       "wiki-page-move-new-slug": {},
       "wiki-page-no-render": {},
