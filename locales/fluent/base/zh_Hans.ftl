@@ -30,6 +30,7 @@ cancel = 取消
 change = 修改
 clear = 清空
 close = 关闭
+confirm = 确认
 dashboard = 仪表盘
 delete = 删除
 docs = 文档

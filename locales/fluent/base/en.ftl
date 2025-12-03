@@ -31,6 +31,7 @@ cancel = Cancel
 change = Change
 clear = clear
 close = Close
+confirm = Confirm
 dashboard = Dashboard
 delete = Delete
 docs = Docs
