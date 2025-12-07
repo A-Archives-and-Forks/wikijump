@@ -561,16 +561,31 @@ impl PageService {
             PageRevisionService::get_latest(ctx, site_id, page_id),
         )?;
 
-        // TODO Handle hidden fields, see https://scuttle.atlassian.net/browse/WJ-1285
-        let _ = target_revision.hidden;
-
         // Check last revision ID
         check_last_revision(Some(&last_revision), latest_revision_id, last_revision_id)?;
 
+        let PageRevisionModel {
+            wikitext_hash,
+            title,
+            alt_title,
+            tags,
+            hidden,
+            ..
+        } = target_revision;
+
+        let hide_wikitext = hidden.iter().any(|field| field == "wikitext");
+        let hide_title = hidden.iter().any(|field| field == "title");
+        let hide_alt_title = hidden.iter().any(|field| field == "alt_title");
+        let hide_tags = hidden.iter().any(|field| field == "tags");
+
         // NOTE: we can't just copy the wikitext_hash because we
-        //       need its actual value for rendering.
+        //       need its actual value for rendering unless it has been hidden.
         //       This isn't run here, but in PageRevisionService::create().
-        let wikitext = TextService::get(ctx, &target_revision.wikitext_hash).await?;
+        let wikitext = if hide_wikitext {
+            Maybe::Unset
+        } else {
+            Maybe::Set(TextService::get(ctx, &wikitext_hash).await?)
+        };
 
         // Create new revision
         //
@@ -581,10 +596,18 @@ impl PageService {
             revision_type: PageRevisionType::Rollback,
             comments,
             body: CreatePageRevisionBody {
-                wikitext: Maybe::Set(wikitext),
-                title: Maybe::Set(target_revision.title),
-                alt_title: Maybe::Set(target_revision.alt_title),
-                tags: Maybe::Set(target_revision.tags),
+                wikitext,
+                title: if hide_title { Maybe::Unset } else { Maybe::Set(title) },
+                alt_title: if hide_alt_title {
+                    Maybe::Unset
+                } else {
+                    Maybe::Set(alt_title)
+                },
+                tags: if hide_tags {
+                    Maybe::Unset
+                } else {
+                    Maybe::Set(tags)
+                },
                 slug: Maybe::Unset, // rollbacks should never move a page
             },
         };

@@ -508,9 +508,6 @@ impl FileService {
             FileRevisionService::get_latest(ctx, site_id, page_id, file_id),
         )?;
 
-        // TODO Handle hidden fields, see https://scuttle.atlassian.net/browse/WJ-1285
-        let _ = target_revision.hidden;
-
         // Check last revision ID
         check_last_revision(&last_revision, last_revision_id)?;
 
@@ -520,13 +517,19 @@ impl FileService {
             s3_hash,
             mime,
             size,
+            hidden,
             ..
         } = target_revision;
+
+        let hide_name = hidden.iter().any(|field| field == "name");
+        let hide_s3_hash = hidden.iter().any(|field| field == "s3_hash");
+        let hide_mime = hidden.iter().any(|field| field == "mime");
+        let hide_size = hidden.iter().any(|field| field == "size");
 
         let mut new_name = ActiveValue::NotSet;
 
         // Check name change
-        if last_revision.name != name {
+        if !hide_name && last_revision.name != name {
             Self::check_conflicts(ctx, page_id, &name, "rollback").await?;
             new_name = ActiveValue::Set(name.clone());
 
@@ -539,12 +542,22 @@ impl FileService {
         //
         // Copy the body of the target revision
 
-        let blob = FileBlob {
-            s3_hash: slice_to_blob_hash(&s3_hash),
-            mime,
-            size,
-            // in a rollback, by definition the blob was already uploaded
-            blob_created: false,
+        let blob = if hide_s3_hash || hide_mime || hide_size {
+            Maybe::Unset
+        } else {
+            Maybe::Set(FileBlob {
+                s3_hash: slice_to_blob_hash(&s3_hash),
+                mime,
+                size,
+                // in a rollback, by definition the blob was already uploaded
+                blob_created: false,
+            })
+        };
+
+        let name_body = if hide_name {
+            Maybe::Unset
+        } else {
+            Maybe::Set(name)
         };
 
         let revision_input = CreateFileRevision {
@@ -555,8 +568,8 @@ impl FileService {
             revision_comments,
             revision_type: FileRevisionType::Rollback,
             body: CreateFileRevisionBody {
-                name: Maybe::Set(name),
-                blob: Maybe::Set(blob),
+                name: name_body,
+                blob,
                 page_id: Maybe::Unset, // rollbacks should never move files
             },
         };
