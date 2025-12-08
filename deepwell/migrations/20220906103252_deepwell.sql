@@ -202,7 +202,6 @@ CREATE TABLE relation (
     deleted_by BIGINT REFERENCES "user"(user_id),
     deleted_at TIMESTAMP WITH TIME ZONE,
 
-    UNIQUE (relation_type, dest_type, dest_id, from_type, from_id, overwritten_at, deleted_at),
     CHECK ((overwritten_by IS NULL) = (overwritten_at IS NULL)),  -- ensure overwritten field consistency
     CHECK ((deleted_by IS NULL) = (deleted_at IS NULL)),          -- ensure deleted field consistency
     CHECK (
@@ -210,6 +209,24 @@ CREATE TABLE relation (
         ((overwritten_by IS NULL) != (deleted_at IS NULL))        -- or they are overwritten XOR deleted
     )
 );
+
+CREATE UNIQUE INDEX relation_unique_general_active
+    ON relation (relation_type, dest_type, dest_id, from_type, from_id, overwritten_at, deleted_at)
+    WHERE relation_type <> 'page-attribution';
+
+CREATE UNIQUE INDEX relation_unique_page_attribution_active
+    ON relation (
+        relation_type,
+        dest_type,
+        dest_id,
+        from_type,
+        from_id,
+        (metadata ->> 'attribution_type'),
+        (metadata ->> 'attribution_date'),
+        coalesce(overwritten_at, 'infinity'),
+        coalesce(deleted_at, 'infinity')
+    )
+    WHERE relation_type = 'page-attribution';
 
 --
 -- Session
@@ -368,18 +385,6 @@ CREATE TABLE page_parent (
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
 
     PRIMARY KEY (parent_page_id, child_page_id)
-);
-
-CREATE TABLE page_attribution (
-    page_id BIGINT REFERENCES page(page_id),
-    user_id BIGINT REFERENCES "user"(user_id),
-    -- Text enum describing the kind of attribution
-    -- Currently synced to Crom: 'author', 'rewrite', 'translator', 'maintainer'
-    attribution_type TEXT NOT NULL,
-    attribution_date DATE NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
-
-    PRIMARY KEY (page_id, user_id, attribution_type, attribution_date)
 );
 
 CREATE TABLE page_lock (

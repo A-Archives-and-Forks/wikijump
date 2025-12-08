@@ -15,7 +15,6 @@ pub mod message_recipient;
 pub mod message_record;
 pub mod message_report;
 pub mod page;
-pub mod page_attribution;
 pub mod page_category;
 pub mod page_connection;
 pub mod page_connection_missing;

@@ -43,6 +43,7 @@ mod prelude {
 #[macro_use]
 mod macros;
 
+mod page_attribution;
 mod page_star;
 mod page_watch;
 mod site_ban;
@@ -54,6 +55,7 @@ mod user_bot_owner;
 mod user_contact;
 mod user_follow;
 
+pub use self::page_attribution::*;
 pub use self::page_star::*;
 pub use self::page_watch::*;
 pub use self::site_ban::*;
