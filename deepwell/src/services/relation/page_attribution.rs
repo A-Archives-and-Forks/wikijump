@@ -21,7 +21,7 @@
 use super::prelude::*;
 use time::Date;
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum PageAttributionKind {
     Author,
@@ -30,7 +30,7 @@ pub enum PageAttributionKind {
     Maintainer,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PageAttributionMetadata {
     pub attribution_type: PageAttributionKind,
     pub attribution_date: Date,
@@ -80,8 +80,17 @@ impl RelationService {
             .is_some();
 
         if already_exists {
+            debug!(
+                "Page attribution already exists for page {} user {} ({:?} @ {})",
+                page_id, user_id, metadata.attribution_type, metadata.attribution_date,
+            );
             return Ok(());
         }
+
+        debug!(
+            "Creating page attribution for page {} user {} ({:?} @ {})",
+            page_id, user_id, metadata.attribution_type, metadata.attribution_date,
+        );
 
         RelationType::PageAttribution
             .types()
