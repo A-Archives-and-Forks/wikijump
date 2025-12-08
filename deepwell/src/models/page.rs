@@ -31,8 +31,6 @@ pub enum Relation {
     File,
     #[sea_orm(has_many = "super::file_revision::Entity")]
     FileRevision,
-    #[sea_orm(has_many = "super::page_attribution::Entity")]
-    PageAttribution,
     #[sea_orm(
         belongs_to = "super::page_category::Entity",
         from = "Column::PageCategoryId",
@@ -78,12 +76,6 @@ impl Related<super::file::Entity> for Entity {
 impl Related<super::file_revision::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::FileRevision.def()
-    }
-}
-
-impl Related<super::page_attribution::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::PageAttribution.def()
     }
 }
 

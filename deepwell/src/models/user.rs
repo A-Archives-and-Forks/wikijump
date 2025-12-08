@@ -70,8 +70,6 @@ pub enum Relation {
     MessageRecipient,
     #[sea_orm(has_many = "super::message_record::Entity")]
     MessageRecord,
-    #[sea_orm(has_many = "super::page_attribution::Entity")]
-    PageAttribution,
     #[sea_orm(has_many = "super::page_lock::Entity")]
     PageLock,
     #[sea_orm(has_many = "super::page_revision::Entity")]
@@ -125,12 +123,6 @@ impl Related<super::message_recipient::Entity> for Entity {
 impl Related<super::message_record::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::MessageRecord.def()
-    }
-}
-
-impl Related<super::page_attribution::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::PageAttribution.def()
     }
 }
 

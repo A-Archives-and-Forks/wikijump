@@ -133,6 +133,7 @@ pub enum RelationType {
     SiteMember,
     PageStar,
     PageWatch,
+    PageAttribution,
     UserFollow,
     #[allow(dead_code)] // TEMP
     UserContact,
@@ -155,6 +156,7 @@ impl RelationType {
             RelationType::SiteMember => "member",
             RelationType::PageStar => "star",
             RelationType::PageWatch => "watch",
+            RelationType::PageAttribution => "page-attribution",
             RelationType::UserFollow => "follow",
             RelationType::UserContact => "contact",
             RelationType::UserContactRequest => "contact-request",
@@ -180,6 +182,7 @@ impl RelationType {
             RelationType::SiteMember => t!(Site, User),
             RelationType::PageStar => t!(Page, User),
             RelationType::PageWatch => t!(Page, User),
+            RelationType::PageAttribution => t!(Page, User),
             RelationType::UserFollow => t!(User, User),
             RelationType::UserContact => t!(User, User),
             RelationType::UserContactRequest => t!(User, User),
