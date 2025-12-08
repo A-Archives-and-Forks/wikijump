@@ -46,8 +46,9 @@ pub struct CreatePageAttribution {
 
 impl RelationService {
     /// Creates a page attribution relation without overwriting other attributions
-    /// for the same page / user combination. This mirrors the legacy uniqueness of
-    /// (page_id, user_id, attribution_type, attribution_date).
+    /// for the same page / user combination. This mirrors the unique constraint of
+    /// (page_id, user_id, attribution_type, attribution_date) from the former
+    /// dedicated table.
     #[allow(dead_code)] // TEMP
     pub async fn create_page_attribution(
         ctx: &ServiceContext<'_>,
