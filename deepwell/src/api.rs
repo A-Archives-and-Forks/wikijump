@@ -29,9 +29,9 @@
 use crate::config::{Config, Secrets};
 use crate::endpoints::{
     auth::*, blob::*, category::*, domain::*, email::*, file::*, file_revision::*,
-    info::*, link::*, locale::*, message::*, misc::*, page::*, page_revision::*,
-    parent::*, routing::*, site::*, site_member::*, special_error::*, text::*,
-    text_block::*, user::*, user_bot::*, view::*, vote::*,
+    info::*, link::*, locale::*, message::*, misc::*, page::*, page_attribution::*,
+    page_revision::*, parent::*, routing::*, site::*, site_member::*, special_error::*,
+    text::*, text_block::*, user::*, user_bot::*, view::*, vote::*,
 };
 use crate::locales::Localizations;
 use crate::services::blob::MimeAnalyzer;
@@ -283,6 +283,11 @@ async fn build_module(app_state: ServerState) -> anyhow::Result<RpcModule<Server
     register!("page_rerender", page_rerender);
     register!("page_restore", page_restore);
     register!("page_set_layout", page_set_layout);
+
+    // Page attributions
+    register!("page_attribution_get_page", page_attribution_get_page);
+    register!("page_attribution_update", page_attribution_update);
+    register!("page_attribution_delete", page_attribution_delete);
 
     // Page revisions
     register!("page_revision_create", page_revision_edit);
