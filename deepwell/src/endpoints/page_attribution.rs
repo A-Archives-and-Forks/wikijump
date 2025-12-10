@@ -20,17 +20,20 @@
 
 use super::prelude::*;
 use crate::services::relation::{
-    GetPageAttributions, PageAttribution, RelationService, RemovePageAttribution,
-    UpdatePageAttribution,
+    ClearPageAttributions, GetPageAttributions, PageAttribution, RelationService,
+    SetPageAttributions,
 };
 
 pub async fn page_attribution_get_page(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
 ) -> Result<Vec<PageAttribution>> {
-    let input: GetPageAttributions = params.parse()?;
+    let input: GetPageAttributions<'_> = params.parse()?;
 
-    info!("Getting page attributions for page {}", input.page_id);
+    info!(
+        "Getting page attributions for page {:?} on site {}",
+        input.page, input.site_id,
+    );
 
     RelationService::get_page_attributions(ctx, input).await
 }
@@ -38,31 +41,30 @@ pub async fn page_attribution_get_page(
 pub async fn page_attribution_update(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<PageAttribution> {
-    let input: UpdatePageAttribution = params.parse()?;
+) -> Result<Vec<PageAttribution>> {
+    let input: SetPageAttributions<'_> = params.parse()?;
 
     info!(
-        "Updating page attribution for page {} user {} ({:?} @ {}) (relation {:?})",
-        input.page_id,
-        input.user_id,
-        input.metadata.attribution_type,
-        input.metadata.attribution_date,
-        input.relation_id,
+        "Setting {} page attributions for page {:?} on site {} (requested by {})",
+        input.attributions.len(),
+        input.page,
+        input.site_id,
+        input.updated_by,
     );
 
-    RelationService::update_page_attribution(ctx, input).await
+    RelationService::set_page_attributions(ctx, input).await
 }
 
 pub async fn page_attribution_delete(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<PageAttribution> {
-    let input: RemovePageAttribution = params.parse()?;
+) -> Result<Vec<PageAttribution>> {
+    let input: ClearPageAttributions<'_> = params.parse()?;
 
     info!(
-        "Deleting page attribution relation {} (requested by {})",
-        input.relation_id, input.removed_by,
+        "Clearing page attributions for page {:?} on site {} (requested by {})",
+        input.page, input.site_id, input.removed_by,
     );
 
-    RelationService::remove_page_attribution(ctx, input).await
+    RelationService::clear_page_attributions(ctx, input).await
 }

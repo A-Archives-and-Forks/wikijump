@@ -19,9 +19,12 @@
  */
 
 use super::prelude::*;
+use crate::services::PageService;
+use crate::types::Reference;
+use std::collections::BTreeSet;
 use time::{Date, OffsetDateTime};
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 #[serde(rename_all = "snake_case")]
 pub enum PageAttributionKind {
     Author,
@@ -30,7 +33,7 @@ pub enum PageAttributionKind {
     Maintainer,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct PageAttributionMetadata {
     pub attribution_type: PageAttributionKind,
     pub attribution_date: Date,
@@ -62,23 +65,30 @@ pub struct CreatePageAttribution {
 }
 
 #[derive(Deserialize, Debug, Clone)]
-pub struct UpdatePageAttribution {
-    pub relation_id: Option<i64>,
-    pub page_id: i64,
+pub struct PageAttributionInput {
     pub user_id: i64,
     pub metadata: PageAttributionMetadata,
-    pub created_by: i64,
 }
 
-#[derive(Deserialize, Debug, Copy, Clone)]
-pub struct GetPageAttributions {
-    pub page_id: i64,
+#[derive(Deserialize, Debug, Clone)]
+pub struct SetPageAttributions<'a> {
+    pub site_id: i64,
+    pub page: Reference<'a>,
+    pub updated_by: i64,
+    pub attributions: Vec<PageAttributionInput>,
 }
 
-#[derive(Deserialize, Debug, Copy, Clone)]
-pub struct RemovePageAttribution {
-    pub relation_id: i64,
+#[derive(Deserialize, Debug, Clone)]
+pub struct ClearPageAttributions<'a> {
+    pub site_id: i64,
+    pub page: Reference<'a>,
     pub removed_by: i64,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct GetPageAttributions<'a> {
+    pub site_id: i64,
+    pub page: Reference<'a>,
 }
 
 impl RelationService {
@@ -95,6 +105,7 @@ impl RelationService {
             created_by,
         }: CreatePageAttribution,
     ) -> Result<PageAttribution> {
+        let txn = ctx.transaction();
         let metadata_json = serde_json::to_value(&metadata)?;
 
         if let Some(model) =
@@ -105,7 +116,7 @@ impl RelationService {
                 page_id, user_id, metadata.attribution_type, metadata.attribution_date,
             );
 
-            return PageAttribution::try_from_model(model);
+            return PageAttribution::try_from(model);
         }
 
         debug!(
@@ -128,8 +139,8 @@ impl RelationService {
             ..Default::default()
         };
 
-        let model = model.insert(ctx.transaction()).await?;
-        PageAttribution::try_from_model(model)
+        let model = model.insert(txn).await?;
+        PageAttribution::try_from(model)
     }
 
     #[allow(dead_code)]
@@ -147,113 +158,99 @@ impl RelationService {
 
     pub async fn get_page_attributions(
         ctx: &ServiceContext<'_>,
-        GetPageAttributions { page_id }: GetPageAttributions,
+        GetPageAttributions { site_id, page }: GetPageAttributions<'_>,
     ) -> Result<Vec<PageAttribution>> {
-        debug!("Getting page attributions for page {}", page_id);
-
+        let page = PageService::get(ctx, site_id, page).await?;
         let txn = ctx.transaction();
         let models = Relation::find()
-            .filter(
-                Condition::all()
-                    .add(relation::Column::RelationType.eq(
-                        RelationType::PageAttribution.value(),
-                    ))
-                    .add(relation::Column::DestType.eq(RelationObjectType::Page))
-                    .add(relation::Column::FromType.eq(RelationObjectType::User))
-                    .add(relation::Column::DestId.eq(page_id))
-                    .add(relation::Column::OverwrittenAt.is_null())
-                    .add(relation::Column::DeletedAt.is_null()),
-            )
-            .order_by_asc(relation::Column::CreatedAt)
+            .filter(page_attributions_condition(page.page_id))
             .all(txn)
             .await?;
 
-        models
+        let mut attributions = models
             .into_iter()
-            .map(PageAttribution::try_from_model)
-            .collect()
+            .map(PageAttribution::try_from)
+            .collect::<Result<Vec<_>>>()?;
+
+        sort_attributions(&mut attributions);
+        Ok(attributions)
     }
 
-    pub async fn update_page_attribution(
+    pub async fn set_page_attributions(
         ctx: &ServiceContext<'_>,
-        UpdatePageAttribution {
-            relation_id,
-            page_id,
-            user_id,
-            metadata,
-            created_by,
-        }: UpdatePageAttribution,
-    ) -> Result<PageAttribution> {
-        let metadata_json = serde_json::to_value(&metadata)?;
+        SetPageAttributions {
+            site_id,
+            page,
+            updated_by,
+            attributions,
+        }: SetPageAttributions<'_>,
+    ) -> Result<Vec<PageAttribution>> {
+        let page = PageService::get(ctx, site_id, page).await?;
+        let txn = ctx.transaction();
 
-        let previous = match relation_id {
-            Some(relation_id) => {
-                let model = get_page_attribution_by_id(ctx, relation_id).await?;
-                debug!(
-                    "Updating existing page attribution relation {} for page {}",
-                    relation_id, model.dest_id,
-                );
-                Some(model)
-            }
-            None => None,
+        // Delete existing active attributions for this page.
+        let delete_model = relation::ActiveModel {
+            deleted_by: Set(Some(updated_by)),
+            deleted_at: Set(Some(now())),
+            ..Default::default()
         };
 
-        if let Some(model) =
-            find_page_attribution(ctx, page_id, user_id, &metadata_json).await?
-        {
-            if let Some(previous) = previous.as_ref() {
-                if previous.relation_id != model.relation_id {
-                    overwrite_page_attribution(ctx, previous.relation_id, created_by)
-                        .await?;
-                }
+        Relation::update_many()
+            .set(delete_model)
+            .filter(page_attributions_condition(page.page_id))
+            .exec(txn)
+            .await?;
+
+        // Insert the new set.
+        let mut created = Vec::with_capacity(attributions.len());
+        let mut seen = BTreeSet::new();
+        for PageAttributionInput { user_id, metadata } in attributions {
+            if !seen.insert((user_id, metadata)) {
+                continue;
             }
 
-            debug!(
-                "Page attribution already exists for page {} user {} ({:?} @ {})",
-                page_id, user_id, metadata.attribution_type, metadata.attribution_date,
-            );
+            let attribution = Self::create_page_attribution(
+                ctx,
+                CreatePageAttribution {
+                    page_id: page.page_id,
+                    user_id,
+                    metadata,
+                    created_by: updated_by,
+                },
+            )
+            .await?;
 
-            return PageAttribution::try_from_model(model);
+            created.push(attribution);
         }
 
-        if let Some(previous) = previous {
-            overwrite_page_attribution(ctx, previous.relation_id, created_by).await?;
-        }
-
-        Self::create_page_attribution(
-            ctx,
-            CreatePageAttribution {
-                page_id,
-                user_id,
-                metadata,
-                created_by,
-            },
-        )
-        .await
+        sort_attributions(&mut created);
+        Ok(created)
     }
 
-    pub async fn remove_page_attribution(
+    pub async fn clear_page_attributions(
         ctx: &ServiceContext<'_>,
-        RemovePageAttribution {
-            relation_id,
+        ClearPageAttributions {
+            site_id,
+            page,
             removed_by,
-        }: RemovePageAttribution,
-    ) -> Result<PageAttribution> {
-        let existing = get_page_attribution_by_id(ctx, relation_id).await?;
-        debug!(
-            "Removing page attribution relation {} for page {}",
-            relation_id, existing.dest_id,
-        );
+        }: ClearPageAttributions<'_>,
+    ) -> Result<Vec<PageAttribution>> {
+        let page = PageService::get(ctx, site_id, page).await?;
+        let txn = ctx.transaction();
 
-        let model = relation::ActiveModel {
-            relation_id: Set(relation_id),
+        let delete_model = relation::ActiveModel {
             deleted_by: Set(Some(removed_by)),
             deleted_at: Set(Some(now())),
             ..Default::default()
         };
 
-        let model = model.update(ctx.transaction()).await?;
-        PageAttribution::try_from_model(model)
+        Relation::update_many()
+            .set(delete_model)
+            .filter(page_attributions_condition(page.page_id))
+            .exec(txn)
+            .await?;
+
+        Ok(Vec::new())
     }
 }
 
@@ -271,6 +268,18 @@ fn page_attribution_condition(
         .add(relation::Column::FromType.eq(RelationObjectType::User))
         .add(relation::Column::FromId.eq(user_id))
         .add(relation::Column::Metadata.eq(metadata_json.clone()))
+        .add(relation::Column::OverwrittenAt.is_null())
+        .add(relation::Column::DeletedAt.is_null())
+}
+
+fn page_attributions_condition(page_id: i64) -> Condition {
+    Condition::all()
+        .add(relation::Column::RelationType.eq(
+            RelationType::PageAttribution.value(),
+        ))
+        .add(relation::Column::DestType.eq(RelationObjectType::Page))
+        .add(relation::Column::FromType.eq(RelationObjectType::User))
+        .add(relation::Column::DestId.eq(page_id))
         .add(relation::Column::OverwrittenAt.is_null())
         .add(relation::Column::DeletedAt.is_null())
 }
@@ -296,8 +305,10 @@ fn convert_model(model: RelationModel) -> Result<PageAttribution> {
     })
 }
 
-impl PageAttribution {
-    fn try_from_model(model: RelationModel) -> Result<Self> {
+impl TryFrom<RelationModel> for PageAttribution {
+    type Error = Error;
+
+    fn try_from(model: RelationModel) -> Result<Self> {
         convert_model(model)
     }
 }
@@ -316,44 +327,16 @@ async fn find_page_attribution(
         .map_err(Into::into)
 }
 
-async fn get_page_attribution_by_id(
-    ctx: &ServiceContext<'_>,
-    relation_id: i64,
-) -> Result<RelationModel> {
-    let txn = ctx.transaction();
-    let model = Relation::find()
-        .filter(
-            Condition::all()
-                .add(relation::Column::RelationId.eq(relation_id))
-                .add(relation::Column::DestType.eq(RelationObjectType::Page))
-                .add(relation::Column::FromType.eq(RelationObjectType::User))
-                .add(relation::Column::RelationType.eq(
-                    RelationType::PageAttribution.value(),
-                ))
-                .add(relation::Column::OverwrittenAt.is_null())
-                .add(relation::Column::DeletedAt.is_null()),
-        )
-        .one(txn)
-        .await?;
-
-    match model {
-        Some(model) => Ok(model),
-        None => Err(Error::RelationNotFound),
-    }
-}
-
-async fn overwrite_page_attribution(
-    ctx: &ServiceContext<'_>,
-    relation_id: i64,
-    overwritten_by: i64,
-) -> Result<()> {
-    let model = relation::ActiveModel {
-        relation_id: Set(relation_id),
-        overwritten_by: Set(Some(overwritten_by)),
-        overwritten_at: Set(Some(now())),
-        ..Default::default()
-    };
-
-    model.update(ctx.transaction()).await?;
-    Ok(())
+fn sort_attributions(attributions: &mut [PageAttribution]) {
+    attributions.sort_by(|a, b| {
+        b.metadata
+            .attribution_date
+            .cmp(&a.metadata.attribution_date)
+            .then_with(|| {
+                a.metadata
+                    .attribution_type
+                    .cmp(&b.metadata.attribution_type)
+            })
+            .then_with(|| a.user_id.cmp(&b.user_id))
+    });
 }
