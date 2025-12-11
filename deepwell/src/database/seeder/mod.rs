@@ -32,9 +32,14 @@ use crate::services::file::{
 };
 use crate::services::filter::{CreateFilter, FilterService};
 use crate::services::page::{CreatePage, PageService};
+use crate::services::relation::{
+    PageAttributionEntry, PageAttributionKind, PageAttributionMetadata, RelationService,
+    SetPageAttributions,
+};
 use crate::services::site::{CreateSite, CreateSiteOutput, SiteService, UpdateSiteBody};
 use crate::services::user::{CreateUser, CreateUserOutput, UpdateUserBody, UserService};
 use crate::types::{Maybe, Reference};
+use crate::utils::now;
 use anyhow::Result;
 use sea_orm::{
     ConnectionTrait, DatabaseBackend, DatabaseTransaction, Statement, TransactionTrait,
@@ -224,6 +229,8 @@ pub async fn seed(state: &ServerState) -> Result<()> {
     for (site_slug, pages) in pages {
         info!("Creating pages in site {site_slug}");
         let site_id = site_ids[&site_slug];
+        let site_user_id =
+            RelationService::get_site_user_id_for_site(&ctx, site_id).await?;
 
         for page in pages {
             info!("Creating page '{}' (slug {})", page.title, page.slug);
@@ -245,8 +252,22 @@ pub async fn seed(state: &ServerState) -> Result<()> {
             )
             .await?;
 
-            // TODO add attribution with site_user as author
-            let _ = model;
+            RelationService::set_page_attributions(
+                &ctx,
+                SetPageAttributions {
+                    site_id,
+                    page: Reference::Id(model.page_id),
+                    updated_by: SYSTEM_USER_ID,
+                    attributions: vec![PageAttributionEntry {
+                        user_id: site_user_id,
+                        metadata: PageAttributionMetadata {
+                            attribution_type: PageAttributionKind::Author,
+                            attribution_date: now().date(),
+                        },
+                    }],
+                },
+            )
+            .await?;
 
             page_ids.insert((site_id, model.slug), model.page_id);
         }
