@@ -65,7 +65,7 @@ pub struct CreatePageAttribution {
 }
 
 #[derive(Deserialize, Debug, Clone)]
-pub struct PageAttributionInput {
+pub struct PageAttributionEntry {
     pub user_id: i64,
     pub metadata: PageAttributionMetadata,
 }
@@ -75,7 +75,7 @@ pub struct SetPageAttributions<'a> {
     pub site_id: i64,
     pub page: Reference<'a>,
     pub updated_by: i64,
-    pub attributions: Vec<PageAttributionInput>,
+    pub attributions: Vec<PageAttributionEntry>,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -204,7 +204,7 @@ impl RelationService {
         // Insert the new set.
         let mut created = Vec::with_capacity(attributions.len());
         let mut seen = BTreeSet::new();
-        for PageAttributionInput { user_id, metadata } in attributions {
+        for PageAttributionEntry { user_id, metadata } in attributions {
             if !seen.insert((user_id, metadata)) {
                 continue;
             }
@@ -234,7 +234,7 @@ impl RelationService {
             page,
             removed_by,
         }: ClearPageAttributions<'_>,
-    ) -> Result<Vec<PageAttribution>> {
+    ) -> Result<()> {
         let page = PageService::get(ctx, site_id, page).await?;
         let txn = ctx.transaction();
 
@@ -250,10 +250,11 @@ impl RelationService {
             .exec(txn)
             .await?;
 
-        Ok(Vec::new())
+        Ok(())
     }
 }
 
+/// Builds a condition for querying one specific page attribution entry.
 fn page_attribution_condition(
     page_id: i64,
     user_id: i64,
@@ -272,6 +273,7 @@ fn page_attribution_condition(
         .add(relation::Column::DeletedAt.is_null())
 }
 
+/// Builds a condition for querying all page attribution entries for a page.
 fn page_attributions_condition(page_id: i64) -> Condition {
     Condition::all()
         .add(relation::Column::RelationType.eq(

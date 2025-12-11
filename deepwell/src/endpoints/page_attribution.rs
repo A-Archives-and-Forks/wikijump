@@ -58,7 +58,7 @@ pub async fn page_attribution_update(
 pub async fn page_attribution_delete(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<Vec<PageAttribution>> {
+) -> Result<()> {
     let input: ClearPageAttributions<'_> = params.parse()?;
 
     info!(
