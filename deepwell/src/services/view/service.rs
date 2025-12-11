@@ -39,6 +39,9 @@ use crate::services::{
     DomainService, PageRevisionService, PageService, SessionService, SiteService,
     SpecialPageService, TextService, UserService,
 };
+use crate::services::relation::{
+    GetPageAttributions, PageAttribution, RelationService,
+};
 use crate::utils::{parse_locales, split_category};
 use ftml::prelude::*;
 use ftml::render::html::HtmlOutput;
@@ -256,6 +259,20 @@ impl ViewService {
             license_url,
             user_session,
         };
+        let attributions = match &status {
+            PageStatus::Found { page, .. } => Some(
+                RelationService::get_page_attributions(
+                    ctx,
+                    GetPageAttributions {
+                        site_id: page.site_id,
+                        page: Reference::Id(page.page_id),
+                    },
+                )
+                .await?,
+            ),
+            _ => None,
+        };
+
         let output = match status {
             PageStatus::Found {
                 page,
@@ -265,6 +282,7 @@ impl ViewService {
                 options,
                 page,
                 page_revision,
+                attributions: attributions.unwrap_or_default(),
                 redirect_page,
                 wikitext,
                 compiled_html,

@@ -64,6 +64,7 @@ pub enum GetPageViewOutput {
         options: PageOptions,
         page: PageModel,
         page_revision: PageRevisionModel,
+        attributions: Vec<crate::services::relation::PageAttribution>,
         redirect_page: Option<String>,
         wikitext: String,
         compiled_html: String,
