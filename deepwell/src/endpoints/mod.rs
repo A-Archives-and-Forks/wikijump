@@ -55,6 +55,7 @@ pub mod locale;
 pub mod message;
 pub mod misc;
 pub mod page;
+pub mod page_attribution;
 pub mod page_revision;
 pub mod parent;
 pub mod routing;
