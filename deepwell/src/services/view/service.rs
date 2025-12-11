@@ -124,6 +124,7 @@ impl ViewService {
             Found {
                 page: PageModel,
                 page_revision: PageRevisionModel,
+                attributions: Vec<PageAttribution>,
             },
             Missing,
             Private,
@@ -180,10 +181,20 @@ impl ViewService {
                         TextService::get(ctx, &page_revision.compiled_hash),
                     )?;
 
+                    let attributions = RelationService::get_page_attributions(
+                        ctx,
+                        GetPageAttributions {
+                            site_id: page.site_id,
+                            page: Reference::Id(page.page_id),
+                        },
+                    )
+                    .await?;
+
                     (
                         PageStatus::Found {
                             page,
                             page_revision,
+                            attributions,
                         },
                         wikitext,
                         compiled_html,
@@ -259,30 +270,17 @@ impl ViewService {
             license_url,
             user_session,
         };
-        let attributions = match &status {
-            PageStatus::Found { page, .. } => Some(
-                RelationService::get_page_attributions(
-                    ctx,
-                    GetPageAttributions {
-                        site_id: page.site_id,
-                        page: Reference::Id(page.page_id),
-                    },
-                )
-                .await?,
-            ),
-            _ => None,
-        };
-
         let output = match status {
             PageStatus::Found {
                 page,
                 page_revision,
+                attributions,
             } => GetPageViewOutput::Found {
                 viewer,
                 options,
                 page,
                 page_revision,
-                attributions: attributions.unwrap_or_default(),
+                attributions,
                 redirect_page,
                 wikitext,
                 compiled_html,
