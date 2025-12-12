@@ -460,13 +460,14 @@ pub async fn seed(state: &ServerState) -> Result<()> {
     restart_sequence_with(&txn, "page_page_id_seq", 3000000000).await?;
     restart_sequence_with(&txn, "page_revision_revision_id_seq", 3000000000).await?;
     restart_sequence_with(&txn, "page_category_category_id_seq", 100000000).await?;
-
-    /*
-     * TODO: tables which don't exist yet:
-     * restart_sequence_with(&txn, < forum category seq >, 9000000).await?;
-     * restart_sequence_with(&txn, < forum thread seq >, 30000000).await?;
-     * restart_sequence_with(&txn, < forum post seq >, 7000000).await?;
-     */
+    restart_sequence_with(&txn, "forum_group_forum_group_id_seq", 8000000).await?;
+    restart_sequence_with(&txn, "forum_category_forum_category_id_seq", 9000000).await?;
+    restart_sequence_with(&txn, "forum_thread_forum_thread_id_seq", 30000000).await?;
+    restart_sequence_with(&txn, "forum_post_forum_post_id_seq", 7000000).await?;
+    restart_sequence_with(&txn, "forum_post_revision_forum_post_revision_id_seq", 3000000000)
+        .await?;
+    restart_sequence_with(&txn, "forum_thread_lock_forum_thread_lock_id_seq", 20000000).await?;
+    restart_sequence_with(&txn, "forum_post_lock_forum_post_lock_id_seq", 20000000).await?;
 
     txn.commit().await?;
     info!("Finished running seeder.");

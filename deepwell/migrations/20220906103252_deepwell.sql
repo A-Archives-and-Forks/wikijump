@@ -733,6 +733,186 @@ CREATE TABLE filter (
 );
 
 --
+-- Forums
+--
+
+-- Groups contain categories, and are site-local.
+CREATE TABLE forum_group (
+    forum_group_id BIGSERIAL PRIMARY KEY,
+    site_id BIGINT NOT NULL REFERENCES site(site_id),
+    created_by BIGINT NOT NULL REFERENCES "user"(user_id),
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+    updated_by BIGINT REFERENCES "user"(user_id),
+    updated_at TIMESTAMP WITH TIME ZONE,
+    deleted_by BIGINT REFERENCES "user"(user_id),
+    deleted_at TIMESTAMP WITH TIME ZONE,
+    name TEXT NOT NULL,
+    description TEXT NOT NULL,
+    visible BOOLEAN NOT NULL DEFAULT true,
+    sort_index INTEGER NOT NULL CHECK (sort_index >= 0),
+    from_wikidot BOOLEAN NOT NULL DEFAULT false,
+
+    UNIQUE (site_id, sort_index),
+    UNIQUE (forum_group_id, site_id),
+    CHECK ((updated_by IS NULL) = (updated_at IS NULL)),
+    CHECK ((deleted_by IS NULL) = (deleted_at IS NULL))
+);
+
+-- Categories belong to a group, and are site-local.
+CREATE TABLE forum_category (
+    forum_category_id BIGSERIAL PRIMARY KEY,
+    forum_group_id BIGINT NOT NULL REFERENCES forum_group(forum_group_id),
+    site_id BIGINT NOT NULL REFERENCES site(site_id),
+    created_by BIGINT NOT NULL REFERENCES "user"(user_id),
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+    updated_by BIGINT REFERENCES "user"(user_id),
+    updated_at TIMESTAMP WITH TIME ZONE,
+    deleted_by BIGINT REFERENCES "user"(user_id),
+    deleted_at TIMESTAMP WITH TIME ZONE,
+    name TEXT NOT NULL,
+    description TEXT NOT NULL,
+    sort_index INTEGER NOT NULL CHECK (sort_index >= 0),
+    from_wikidot BOOLEAN NOT NULL DEFAULT false,
+
+    -- Category settings:
+    max_nest_level SMALLINT CHECK (0 <= max_nest_level AND max_nest_level <= 10),
+    per_page_discussion BOOLEAN DEFAULT false,
+    layout TEXT,
+
+    UNIQUE (forum_group_id, sort_index),
+    UNIQUE (forum_category_id, site_id),
+    CHECK ((updated_by IS NULL) = (updated_at IS NULL)),
+    CHECK ((deleted_by IS NULL) = (deleted_at IS NULL)),
+    FOREIGN KEY (forum_group_id, site_id) REFERENCES forum_group(forum_group_id, site_id)
+);
+
+-- Threads live under a category.
+CREATE TABLE forum_thread (
+    forum_thread_id BIGSERIAL PRIMARY KEY,
+    forum_category_id BIGINT NOT NULL REFERENCES forum_category(forum_category_id),
+    forum_group_id BIGINT NOT NULL REFERENCES forum_group(forum_group_id),
+    site_id BIGINT NOT NULL REFERENCES site(site_id),
+    page_id BIGINT REFERENCES page(page_id) UNIQUE,
+    created_by BIGINT NOT NULL REFERENCES "user"(user_id),
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+    updated_by BIGINT REFERENCES "user"(user_id),
+    updated_at TIMESTAMP WITH TIME ZONE,
+    deleted_by BIGINT REFERENCES "user"(user_id),
+    deleted_at TIMESTAMP WITH TIME ZONE,
+    title TEXT NOT NULL,
+    description TEXT NOT NULL,
+    from_wikidot BOOLEAN NOT NULL DEFAULT false,
+    sticky BOOLEAN NOT NULL DEFAULT false,
+
+    CHECK ((updated_by IS NULL) = (updated_at IS NULL)),
+    CHECK ((deleted_by IS NULL) = (deleted_at IS NULL)),
+    UNIQUE (forum_thread_id, site_id),
+    FOREIGN KEY (forum_category_id, site_id) REFERENCES forum_category(forum_category_id, site_id),
+    FOREIGN KEY (forum_group_id, site_id) REFERENCES forum_group(forum_group_id, site_id)
+);
+
+-- Locks on threads (one active lock per thread at a time).
+CREATE TABLE forum_thread_lock (
+    forum_thread_lock_id BIGSERIAL PRIMARY KEY,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+    updated_at TIMESTAMP WITH TIME ZONE,
+    deleted_at TIMESTAMP WITH TIME ZONE,
+    expires_at TIMESTAMP WITH TIME ZONE,
+    from_wikidot BOOLEAN NOT NULL DEFAULT false,
+    forum_thread_id BIGINT NOT NULL REFERENCES forum_thread(forum_thread_id),
+    user_id BIGINT NOT NULL REFERENCES "user"(user_id),
+    reason TEXT NOT NULL,
+    lock_type TEXT NOT NULL,
+    allow_new_posts BOOLEAN NOT NULL DEFAULT false,
+    allow_post_edits BOOLEAN NOT NULL DEFAULT false,
+    allow_post_deletions BOOLEAN NOT NULL DEFAULT false,
+
+    UNIQUE (forum_thread_id, deleted_at)
+);
+
+-- Posts within a thread, optionally nested.
+CREATE TABLE forum_post (
+    forum_post_id BIGSERIAL PRIMARY KEY,
+    parent_post_id BIGINT REFERENCES forum_post(forum_post_id),
+    forum_thread_id BIGINT NOT NULL REFERENCES forum_thread(forum_thread_id),
+    forum_category_id BIGINT NOT NULL REFERENCES forum_category(forum_category_id),
+    forum_group_id BIGINT NOT NULL REFERENCES forum_group(forum_group_id),
+    site_id BIGINT NOT NULL REFERENCES site(site_id),
+    user_id BIGINT NOT NULL REFERENCES "user"(user_id),
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+    updated_at TIMESTAMP WITH TIME ZONE,
+    deleted_by BIGINT REFERENCES "user"(user_id),
+    deleted_at TIMESTAMP WITH TIME ZONE,
+    from_wikidot BOOLEAN NOT NULL DEFAULT false,
+    latest_revision_id BIGINT,
+
+    CHECK ((deleted_by IS NULL) = (deleted_at IS NULL)),
+    UNIQUE (forum_post_id, site_id),
+    FOREIGN KEY (forum_thread_id, site_id) REFERENCES forum_thread(forum_thread_id, site_id),
+    FOREIGN KEY (forum_category_id, site_id) REFERENCES forum_category(forum_category_id, site_id),
+    FOREIGN KEY (forum_group_id, site_id) REFERENCES forum_group(forum_group_id, site_id)
+);
+
+-- Locks on posts (one active lock per thread at a time).
+CREATE TABLE forum_post_lock (
+    forum_post_lock_id BIGSERIAL PRIMARY KEY,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+    updated_at TIMESTAMP WITH TIME ZONE,
+    deleted_at TIMESTAMP WITH TIME ZONE,
+    expires_at TIMESTAMP WITH TIME ZONE,
+    forum_thread_id BIGINT NOT NULL REFERENCES forum_thread(forum_thread_id),
+    user_id BIGINT NOT NULL REFERENCES "user"(user_id),
+    reason TEXT NOT NULL,
+    lock_type TEXT NOT NULL,
+    cascading BOOLEAN NOT NULL,
+
+    UNIQUE (forum_thread_id, deleted_at)
+);
+
+-- Revisions of posts.
+CREATE TABLE forum_post_revision (
+    forum_post_revision_id BIGSERIAL PRIMARY KEY,
+    forum_post_id BIGINT NOT NULL REFERENCES forum_post(forum_post_id),
+    forum_thread_id BIGINT NOT NULL REFERENCES forum_thread(forum_thread_id),
+    forum_category_id BIGINT NOT NULL REFERENCES forum_category(forum_category_id),
+    forum_group_id BIGINT NOT NULL REFERENCES forum_group(forum_group_id),
+    site_id BIGINT NOT NULL REFERENCES site(site_id),
+    user_id BIGINT NOT NULL REFERENCES "user"(user_id),
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+    updated_at TIMESTAMP WITH TIME ZONE,
+    revision_number INT NOT NULL,
+    from_wikidot BOOLEAN NOT NULL DEFAULT false,
+    title TEXT NOT NULL,
+    wikitext_hash BYTEA NOT NULL REFERENCES text(hash),
+    compiled_html_hash BYTEA NOT NULL REFERENCES text(hash),
+    compiled_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    compiled_generator TEXT NOT NULL,
+    comments TEXT NOT NULL,
+
+    UNIQUE (forum_post_id, revision_number),
+    FOREIGN KEY (forum_thread_id, site_id) REFERENCES forum_thread(forum_thread_id, site_id),
+    FOREIGN KEY (forum_category_id, site_id) REFERENCES forum_category(forum_category_id, site_id),
+    FOREIGN KEY (forum_group_id, site_id) REFERENCES forum_group(forum_group_id, site_id),
+    FOREIGN KEY (forum_post_id, site_id) REFERENCES forum_post(forum_post_id, site_id)
+);
+
+-- Latest revision FK on posts, now that the revision table exists.
+ALTER TABLE forum_post
+    ADD CONSTRAINT forum_post_latest_revision_fk
+        FOREIGN KEY (latest_revision_id) REFERENCES forum_post_revision(forum_post_revision_id);
+
+-- Forum indexes
+CREATE INDEX forum_group_sort_idx ON forum_group (site_id, sort_index);
+CREATE INDEX forum_category_sort_idx ON forum_category (forum_group_id, sort_index);
+CREATE INDEX forum_category_site_sort_idx ON forum_category (site_id, sort_index);
+CREATE INDEX forum_thread_activity_idx ON forum_thread (forum_category_id, sticky DESC, COALESCE(updated_at, created_at) DESC);
+CREATE INDEX forum_thread_created_idx ON forum_thread (forum_category_id, created_at DESC);
+CREATE INDEX forum_post_thread_created_idx ON forum_post (forum_thread_id, created_at);
+CREATE INDEX forum_post_parent_idx ON forum_post (parent_post_id);
+CREATE INDEX forum_post_latest_revision_idx ON forum_post (latest_revision_id);
+CREATE INDEX forum_post_revision_lookup_idx ON forum_post_revision (forum_post_id, revision_number DESC);
+
+--
 -- Audit Log
 --
 
