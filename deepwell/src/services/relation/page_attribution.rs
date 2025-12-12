@@ -106,7 +106,7 @@ impl RelationService {
         }: CreatePageAttribution,
     ) -> Result<PageAttribution> {
         let txn = ctx.transaction();
-        let metadata_json = serde_json::to_value(&metadata)?;
+        let metadata_json = serde_json::to_value(metadata)?;
 
         if let Some(model) =
             find_page_attribution(ctx, page_id, user_id, &metadata_json).await?
