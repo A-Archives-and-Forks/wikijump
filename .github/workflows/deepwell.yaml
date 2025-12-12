@@ -76,7 +76,7 @@ jobs:
           key: ${{ runner.os }}-deepwell-coverage-${{ hashFiles('deepwell/**/Cargo.toml') }}
 
       - name: System Dependencies
-        run: sudo apt update && sudo apt install libmagic-dev
+        run: apt update && apt install libmagic-dev
 
       - name: Generate Coverage
         run: |
