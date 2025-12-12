@@ -80,7 +80,7 @@ jobs:
 
       - name: Generate Coverage
         run: |
-          cargo +nightly tarpaulin --verbose --all-features --workspace --timeout 120 --out xml
+          cd deepwell && cargo +nightly tarpaulin --verbose --all-features --workspace --timeout 120 --out xml
 
       - name: Export Coverage
         uses: codecov/codecov-action@v5
