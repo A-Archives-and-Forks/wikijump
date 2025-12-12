@@ -25,6 +25,7 @@ use crate::models::page_revision::Model as PageRevisionModel;
 use crate::models::session::Model as SessionModel;
 use crate::models::site::Model as SiteModel;
 use crate::models::user::Model as UserModel;
+use crate::services::relation::PageAttribution;
 
 // NOTE: Any changes to the output structures here, including the variant names,
 //       MUST be reflected in framerail!
@@ -64,6 +65,7 @@ pub enum GetPageViewOutput {
         options: PageOptions,
         page: PageModel,
         page_revision: PageRevisionModel,
+        attributions: Vec<PageAttribution>,
         redirect_page: Option<String>,
         wikitext: String,
         compiled_html: String,
