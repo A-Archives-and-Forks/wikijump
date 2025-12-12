@@ -39,6 +39,9 @@ use crate::services::{
     DomainService, PageRevisionService, PageService, SessionService, SiteService,
     SpecialPageService, TextService, UserService,
 };
+use crate::services::relation::{
+    GetPageAttributions, PageAttribution, RelationService,
+};
 use crate::utils::{parse_locales, split_category};
 use ftml::prelude::*;
 use ftml::render::html::HtmlOutput;
@@ -121,6 +124,7 @@ impl ViewService {
             Found {
                 page: PageModel,
                 page_revision: PageRevisionModel,
+                attributions: Vec<PageAttribution>,
             },
             Missing,
             Private,
@@ -177,10 +181,20 @@ impl ViewService {
                         TextService::get(ctx, &page_revision.compiled_hash),
                     )?;
 
+                    let attributions = RelationService::get_page_attributions(
+                        ctx,
+                        GetPageAttributions {
+                            site_id: page.site_id,
+                            page: Reference::Id(page.page_id),
+                        },
+                    )
+                    .await?;
+
                     (
                         PageStatus::Found {
                             page,
                             page_revision,
+                            attributions,
                         },
                         wikitext,
                         compiled_html,
@@ -260,11 +274,13 @@ impl ViewService {
             PageStatus::Found {
                 page,
                 page_revision,
+                attributions,
             } => GetPageViewOutput::Found {
                 viewer,
                 options,
                 page,
                 page_revision,
+                attributions,
                 redirect_page,
                 wikitext,
                 compiled_html,
