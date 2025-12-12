@@ -261,9 +261,7 @@ fn page_attribution_condition(
     metadata_json: &serde_json::Value,
 ) -> Condition {
     Condition::all()
-        .add(relation::Column::RelationType.eq(
-            RelationType::PageAttribution.value(),
-        ))
+        .add(relation::Column::RelationType.eq(RelationType::PageAttribution.value()))
         .add(relation::Column::DestType.eq(RelationObjectType::Page))
         .add(relation::Column::DestId.eq(page_id))
         .add(relation::Column::FromType.eq(RelationObjectType::User))
@@ -276,9 +274,7 @@ fn page_attribution_condition(
 /// Builds a condition for querying all page attribution entries for a page.
 fn page_attributions_condition(page_id: i64) -> Condition {
     Condition::all()
-        .add(relation::Column::RelationType.eq(
-            RelationType::PageAttribution.value(),
-        ))
+        .add(relation::Column::RelationType.eq(RelationType::PageAttribution.value()))
         .add(relation::Column::DestType.eq(RelationObjectType::Page))
         .add(relation::Column::FromType.eq(RelationObjectType::User))
         .add(relation::Column::DestId.eq(page_id))

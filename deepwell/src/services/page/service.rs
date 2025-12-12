@@ -597,7 +597,11 @@ impl PageService {
             comments,
             body: CreatePageRevisionBody {
                 wikitext,
-                title: if hide_title { Maybe::Unset } else { Maybe::Set(title) },
+                title: if hide_title {
+                    Maybe::Unset
+                } else {
+                    Maybe::Set(title)
+                },
                 alt_title: if hide_alt_title {
                     Maybe::Unset
                 } else {

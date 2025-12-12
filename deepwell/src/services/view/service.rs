@@ -33,14 +33,12 @@ use super::prelude::*;
 use crate::models::page::Model as PageModel;
 use crate::models::page_revision::Model as PageRevisionModel;
 use crate::models::site::Model as SiteModel;
+use crate::services::relation::{GetPageAttributions, PageAttribution, RelationService};
 use crate::services::render::RenderOutput;
 use crate::services::special_page::{GetSpecialPageOutput, SpecialPageType};
 use crate::services::{
     DomainService, PageRevisionService, PageService, SessionService, SiteService,
     SpecialPageService, TextService, UserService,
-};
-use crate::services::relation::{
-    GetPageAttributions, PageAttribution, RelationService,
 };
 use crate::utils::{parse_locales, split_category};
 use ftml::prelude::*;
