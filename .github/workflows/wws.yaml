@@ -58,8 +58,7 @@ jobs:
       - name: Machete
         uses: bnjbvr/cargo-machete@main
         with:
-          paths:
-            - wws
+          args: 'wws'
 
       - name: Rustfmt
         run: cd wws && cargo fmt --all -- --check

@@ -114,8 +114,7 @@ jobs:
       - name: Machete
         uses: bnjbvr/cargo-machete@main
         with:
-          paths:
-            - deepwell
+          args: 'deepwell'
 
       - name: Rustfmt
         run: cd deepwell && cargo fmt --all -- --check
