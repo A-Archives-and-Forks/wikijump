@@ -27,6 +27,7 @@ mod file_details;
 mod file_order;
 mod maybe;
 mod page_details;
+mod page_id;
 mod page_order;
 mod reference;
 
@@ -37,5 +38,6 @@ pub use self::file_details::FileDetails;
 pub use self::file_order::{FileOrder, FileOrderColumn};
 pub use self::maybe::Maybe;
 pub use self::page_details::PageDetails;
+pub use self::page_id::PageId;
 pub use self::page_order::{PageOrder, PageOrderColumn};
 pub use self::reference::Reference;

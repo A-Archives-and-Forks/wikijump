@@ -22,7 +22,7 @@ use super::prelude::*;
 use crate::models::sea_orm_active_enums::PageRevisionType;
 use crate::services::page_revision::CreatePageRevisionOutput;
 use crate::services::score::ScoreValue;
-use crate::types::PageDetails;
+use crate::types::{PageDetails, PageId};
 use ftml::layout::Layout;
 use ftml::parsing::ParseError;
 use std::net::IpAddr;
@@ -72,12 +72,6 @@ pub struct GetPageReferenceDetails<'a> {
 pub struct GetPageSlug {
     pub site_id: i64,
     pub slug: String,
-}
-
-#[derive(Deserialize, Debug, Clone)]
-pub struct GetPageDirect {
-    pub site_id: i64,
-    pub page_id: i64,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -223,8 +217,7 @@ pub struct DeletePageOutput {
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct RestorePage {
-    pub site_id: i64,
-    pub page_id: i64,
+    pub id: PageId,
     pub revision_comments: String,
     pub user_id: i64,
     pub slug: Option<String>,

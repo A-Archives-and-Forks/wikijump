@@ -20,7 +20,7 @@
 
 use super::prelude::*;
 use crate::models::sea_orm_active_enums::PageRevisionType;
-use crate::types::{FetchDirection, PageDetails};
+use crate::types::{FetchDirection, PageDetails, PageId};
 use ftml::layout::Layout;
 use ftml::parsing::ParseError;
 use std::num::NonZeroI32;
@@ -67,8 +67,7 @@ pub struct CreateTombstonePageRevision {
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct CreateResurrectionPageRevision {
-    pub site_id: i64,
-    pub page_id: i64,
+    pub id: PageId,
     pub user_id: i64,
     pub comments: String,
     pub new_slug: String,

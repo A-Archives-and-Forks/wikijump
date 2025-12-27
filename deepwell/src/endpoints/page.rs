@@ -24,12 +24,12 @@ use crate::models::page::Model as PageModel;
 use crate::services::file::{GetFileOutput, GetPageFiles};
 use crate::services::page::{
     CreatePage, CreatePageOutput, DeletePage, DeletePageOutput, EditPage, EditPageOutput,
-    GetDeletedPageOutput, GetPageAnyDetails, GetPageDirect, GetPageOutput,
-    GetPageReference, GetPageReferenceDetails, GetPageScoreOutput, GetPageSlug, MovePage,
-    MovePageOutput, RestorePage, RestorePageOutput, RollbackPage, SetPageLayout,
+    GetDeletedPageOutput, GetPageAnyDetails, GetPageOutput, GetPageReference,
+    GetPageReferenceDetails, GetPageScoreOutput, GetPageSlug, MovePage, MovePageOutput,
+    RestorePage, RestorePageOutput, RollbackPage, SetPageLayout,
 };
 use crate::services::{Result, TextService};
-use crate::types::{Bytes, FileOrder, PageDetails, Reference};
+use crate::types::{Bytes, FileOrder, PageDetails, PageId, Reference};
 use futures::future::try_join_all;
 
 pub async fn page_create(
@@ -180,9 +180,12 @@ pub async fn page_rerender(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
 ) -> Result<()> {
-    let GetPageDirect { site_id, page_id } = params.parse()?;
-    info!("Re-rendering page ID {page_id} in site ID {site_id}");
-    PageRevisionService::rerender(ctx, site_id, page_id, 0).await
+    let input: PageId = params.parse()?;
+    info!(
+        "Re-rendering page ID {} in site ID {}",
+        input.page_id, input.site_id,
+    );
+    PageRevisionService::rerender(ctx, input, 0).await
 }
 
 pub async fn page_restore(
@@ -192,7 +195,7 @@ pub async fn page_restore(
     let input: RestorePage = params.parse()?;
     info!(
         "Un-deleting page ID {} in site ID {}",
-        input.page_id, input.site_id,
+        input.id.site_id, input.id.page_id,
     );
     PageService::restore(ctx, input).await
 }

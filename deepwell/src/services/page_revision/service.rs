@@ -30,7 +30,7 @@ use crate::services::{
     LinkService, OutdateService, PageService, ParentService, RenderService, ScoreService,
     SettingsService, SiteService, TextService,
 };
-use crate::types::FetchDirection;
+use crate::types::{FetchDirection, PageId};
 use crate::utils::{split_category, split_category_name, trim_default};
 use ftml::data::PageInfo;
 use ftml::layout::Layout;
@@ -91,8 +91,7 @@ impl PageRevisionService {
     /// If the given previous revision is for a different page or site, this method will panic.
     pub async fn create(
         ctx: &ServiceContext<'_>,
-        site_id: i64,
-        page_id: i64,
+        id: PageId,
         CreatePageRevision {
             user_id,
             comments,
@@ -101,6 +100,12 @@ impl PageRevisionService {
         }: CreatePageRevision,
         previous: PageRevisionModel,
     ) -> Result<Option<CreatePageRevisionOutput>> {
+        let PageId {
+            site_id,
+            category_id,
+            page_id,
+        } = id;
+
         let txn = ctx.transaction();
         let revision_number = next_revision_number(&previous, site_id, page_id);
 
@@ -193,7 +198,7 @@ impl PageRevisionService {
         // If nothing has changed, then don't create a new revision
         if changes.is_empty() {
             debug!("No changes in edit, only rerendering the page");
-            Self::rerender(ctx, site_id, page_id, 0).await?;
+            Self::rerender(ctx, id, 0).await?;
             return Ok(None);
         }
 
@@ -225,14 +230,8 @@ impl PageRevisionService {
             // we don't do that right after here.
             //
             // TODO: use html_output
-            let render_output = Self::render_and_update_links(
-                ctx,
-                site_id,
-                page_id,
-                wikitext,
-                render_input,
-            )
-            .await?;
+            let render_output =
+                Self::render_and_update_links(ctx, id, wikitext, render_input).await?;
 
             // Update fields
             parser_errors = Some(render_output.errors);
@@ -349,8 +348,7 @@ impl PageRevisionService {
     /// (since there's no prior revision for it to be equal to).
     pub async fn create_first(
         ctx: &ServiceContext<'_>,
-        site_id: i64,
-        page_id: i64,
+        id: PageId,
         CreateFirstPageRevision {
             user_id,
             comments,
@@ -362,6 +360,11 @@ impl PageRevisionService {
         }: CreateFirstPageRevision,
     ) -> Result<CreateFirstPageRevisionOutput> {
         let txn = ctx.transaction();
+        let PageId {
+            site_id,
+            category_id,
+            page_id,
+        } = id;
 
         // If the page creation doesn't specify a preferred layout,
         // use the default for the site.
@@ -395,8 +398,7 @@ impl PageRevisionService {
             compiled_side_bar_html_hash,
             compiled_at,
             compiled_generator,
-        } = Self::render_and_update_links(ctx, site_id, page_id, wikitext, render_input)
-            .await?;
+        } = Self::render_and_update_links(ctx, id, wikitext, render_input).await?;
 
         // Run outdater
         OutdateService::process_page_displace(ctx, site_id, page_id, &slug, 0).await?;
@@ -520,8 +522,7 @@ impl PageRevisionService {
     pub async fn create_resurrection(
         ctx: &ServiceContext<'_>,
         CreateResurrectionPageRevision {
-            site_id,
-            page_id,
+            id,
             user_id,
             comments,
             new_slug,
@@ -529,6 +530,11 @@ impl PageRevisionService {
         previous: PageRevisionModel,
     ) -> Result<CreatePageRevisionOutput> {
         let txn = ctx.transaction();
+        let PageId {
+            site_id,
+            category_id,
+            page_id,
+        } = id;
         let revision_number = next_revision_number(&previous, site_id, page_id);
 
         let PageRevisionModel {
@@ -576,8 +582,17 @@ impl PageRevisionService {
             compiled_side_bar_html_hash: new_side_bar_html_hash,
             compiled_at,
             compiled_generator,
-        } = Self::render_and_update_links(ctx, site_id, page_id, wikitext, render_input)
-            .await?;
+        } = Self::render_and_update_links(
+            ctx,
+            PageId {
+                site_id,
+                category_id,
+                page_id,
+            },
+            wikitext,
+            render_input,
+        )
+        .await?;
 
         replace_hash(&mut compiled_body_html_hash, &new_body_html_hash);
         replace_hash_opt(&mut compiled_top_bar_html_hash, new_top_bar_html_hash);
@@ -625,8 +640,7 @@ impl PageRevisionService {
     /// backlinks.
     async fn render_and_update_links(
         ctx: &ServiceContext<'_>,
-        site_id: i64,
-        page_id: i64,
+        id: PageId,
         wikitext: String,
         RenderPageInfo {
             layout,
@@ -638,6 +652,11 @@ impl PageRevisionService {
         }: RenderPageInfo<'_>,
     ) -> Result<RenderPageOutput> {
         // Get site
+        let PageId {
+            site_id,
+            category_id: _,
+            page_id,
+        } = id;
         let site = SiteService::get(ctx, Reference::from(site_id)).await?;
 
         // Set up parse context
@@ -655,8 +674,7 @@ impl PageRevisionService {
 
         // Parse and render
         let output =
-            RenderService::render_page(ctx, wikitext, &page_info, layout, page_id)
-                .await?;
+            RenderService::render_page(ctx, wikitext, &page_info, layout, id).await?;
 
         // Update backlinks
         LinkService::update(ctx, site_id, page_id, &output.html_output.backlinks).await?;
@@ -673,11 +691,15 @@ impl PageRevisionService {
     /// should be 0.
     pub async fn rerender(
         ctx: &ServiceContext<'_>,
-        site_id: i64,
-        page_id: i64,
+        id: PageId,
         depth: u32,
     ) -> Result<()> {
         let txn = ctx.transaction();
+        let PageId {
+            site_id,
+            category_id: _,
+            page_id,
+        } = id;
         let revision = Self::get_latest(ctx, site_id, page_id).await?;
         info!(
             "Re-rendering revision: site ID {} page ID {} revision ID {} (depth {})",
@@ -736,8 +758,7 @@ impl PageRevisionService {
             compiled_side_bar_html_hash,
             compiled_generator,
             ..
-        } = Self::render_and_update_links(ctx, site_id, page_id, wikitext, render_input)
-            .await?;
+        } = Self::render_and_update_links(ctx, id, wikitext, render_input).await?;
 
         // Update descendents
         OutdateService::process_page_edit(ctx, site_id, page_id, &revision.slug, depth)

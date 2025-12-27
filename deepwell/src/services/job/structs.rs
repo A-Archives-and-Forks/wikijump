@@ -18,14 +18,12 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+use crate::types::PageId;
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "snake_case", tag = "job", content = "data")]
 pub enum Job {
-    RerenderPage {
-        site_id: i64,
-        page_id: i64,
-        depth: u32,
-    },
+    RerenderPage { id: PageId, depth: u32 },
     PruneSessions,
     PrunePendingUploads,
     PruneText,

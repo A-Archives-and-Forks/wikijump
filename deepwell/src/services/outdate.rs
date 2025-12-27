@@ -21,7 +21,7 @@
 use super::prelude::*;
 use crate::models::page::Model as PageModel;
 use crate::services::{JobService, LinkService, PageService};
-use crate::types::{ConnectionType, PageOrder};
+use crate::types::{ConnectionType, PageId, PageOrder};
 use crate::utils::split_category_name;
 
 #[derive(Debug)]
@@ -92,10 +92,9 @@ impl OutdateService {
         page_id: i64,
         depth: u32,
     ) -> Result<()> {
-        let PageModel { site_id, .. } =
-            PageService::get_direct(ctx, page_id, false).await?;
-
-        JobService::queue_rerender_page(ctx, site_id, page_id, depth + 1).await
+        let page = PageService::get_direct(ctx, page_id, false).await?;
+        let id = PageId::from_page_model(&page);
+        JobService::queue_rerender_page(ctx, id, depth + 1).await
     }
 
     pub async fn outdate_incoming_links(

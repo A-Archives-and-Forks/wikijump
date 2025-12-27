@@ -40,6 +40,7 @@ use crate::services::{
     DomainService, PageRevisionService, PageService, SessionService, SiteService,
     SpecialPageService, TextService, UserService,
 };
+use crate::types::PageId;
 use crate::utils::{parse_locales, split_category};
 use ftml::prelude::*;
 use ftml::render::html::HtmlOutput;
@@ -186,8 +187,12 @@ impl ViewService {
                             "Re-rendering revision: site ID {} page ID {} revision ID {} (depth {})",
                             page.site_id, page.page_id, page_revision.revision_id, 0,
                         );
-                        PageRevisionService::rerender(ctx, page.site_id, page.page_id, 0)
-                            .await?;
+                        PageRevisionService::rerender(
+                            ctx,
+                            PageId::from_page_model(&page),
+                            0,
+                        )
+                        .await?;
                     };
 
                     let (

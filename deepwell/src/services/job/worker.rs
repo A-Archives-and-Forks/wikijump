@@ -25,6 +25,7 @@ use crate::api::ServerState;
 use crate::services::{
     BlobService, PageRevisionService, SessionService, TextService, UserService,
 };
+use crate::types::PageId;
 use crate::utils::debug_pointer;
 use rsmq_async::{Rsmq, RsmqConnection, RsmqMessage};
 use sea_orm::TransactionTrait;
@@ -180,14 +181,27 @@ impl JobWorker {
         trace!("Beginning job processing");
         let next = match job {
             Job::RerenderPage {
-                site_id,
-                page_id,
+                id:
+                    PageId {
+                        site_id,
+                        category_id,
+                        page_id,
+                    },
                 depth,
             } => {
                 debug!(
-                    "Rerendering page ID {page_id} in site ID {site_id} (depth {depth})",
+                    "Rerendering page ID {page_id} in site ID {site_id} (category ID {category_id}, depth {depth})",
                 );
-                PageRevisionService::rerender(ctx, site_id, page_id, depth).await?;
+                PageRevisionService::rerender(
+                    ctx,
+                    PageId {
+                        site_id,
+                        category_id,
+                        page_id,
+                    },
+                    depth,
+                )
+                .await?;
                 NextJob::Done
             }
             Job::PruneSessions => {
