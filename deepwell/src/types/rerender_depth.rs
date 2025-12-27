@@ -1,8 +1,8 @@
 /*
- * types/mod.rs
+ * types/rerender_depth.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
- * Copyright (C) 2019-2026 Wikijump Team
+ * Copyright (C) 2019-2025 Wikijump Team
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -18,28 +18,30 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#![allow(unused_imports)]
+use std::fmt::{self, Display};
 
-mod bytes;
-mod connection_type;
-mod fetch_direction;
-mod file_details;
-mod file_order;
-mod maybe;
-mod page_details;
-mod page_id;
-mod page_order;
-mod reference;
-mod rerender_depth;
+#[derive(
+    Serialize, Deserialize, Debug, Copy, Clone, Hash, PartialEq, Eq, PartialOrd, Ord,
+)]
+pub struct RerenderDepth(pub u32);
 
-pub use self::bytes::Bytes;
-pub use self::connection_type::ConnectionType;
-pub use self::fetch_direction::FetchDirection;
-pub use self::file_details::FileDetails;
-pub use self::file_order::{FileOrder, FileOrderColumn};
-pub use self::maybe::Maybe;
-pub use self::page_details::PageDetails;
-pub use self::page_id::PageId;
-pub use self::page_order::{PageOrder, PageOrderColumn};
-pub use self::reference::Reference;
-pub use self::rerender_depth::RerenderDepth;
+impl RerenderDepth {
+    #[inline]
+    pub fn plus_one(self) -> RerenderDepth {
+        RerenderDepth(self.0 + 1)
+    }
+}
+
+impl Default for RerenderDepth {
+    #[inline]
+    fn default() -> Self {
+        RerenderDepth(0)
+    }
+}
+
+impl Display for RerenderDepth {
+    #[inline]
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}

@@ -40,7 +40,7 @@ use crate::services::{
     DomainService, PageRevisionService, PageService, SessionService, SiteService,
     SpecialPageService, TextService, UserService,
 };
-use crate::types::PageId;
+use crate::types::{PageId, RerenderDepth};
 use crate::utils::{parse_locales, split_category};
 use ftml::prelude::*;
 use ftml::render::html::HtmlOutput;
@@ -183,14 +183,15 @@ impl ViewService {
                     if options.rerender
                         && Self::can_edit_page(ctx, user_permissions).await?
                     {
+                        let depth = RerenderDepth::default();
                         info!(
                             "Re-rendering revision: site ID {} page ID {} revision ID {} (depth {})",
-                            page.site_id, page.page_id, page_revision.revision_id, 0,
+                            page.site_id, page.page_id, page_revision.revision_id, depth,
                         );
                         PageRevisionService::rerender(
                             ctx,
                             PageId::from_page_model(&page),
-                            0,
+                            depth,
                         )
                         .await?;
                     };

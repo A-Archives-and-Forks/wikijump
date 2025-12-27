@@ -21,7 +21,7 @@
 use super::prelude::*;
 use crate::models::page::Model as PageModel;
 use crate::services::{JobService, LinkService, PageService};
-use crate::types::{ConnectionType, PageId, PageOrder};
+use crate::types::{ConnectionType, PageId, PageOrder, RerenderDepth};
 use crate::utils::split_category_name;
 
 #[derive(Debug)]
@@ -33,7 +33,7 @@ impl OutdateService {
         site_id: i64,
         page_id: i64,
         slug: &str,
-        depth: u32,
+        depth: RerenderDepth,
     ) -> Result<()> {
         let (category_slug, page_slug) = split_category_name(slug);
 
@@ -57,7 +57,7 @@ impl OutdateService {
         site_id: i64,
         page_id: i64,
         slug: &str,
-        depth: u32,
+        depth: RerenderDepth,
     ) -> Result<()> {
         try_join!(
             Self::process_page_edit(ctx, site_id, page_id, slug, depth),
@@ -73,7 +73,7 @@ impl OutdateService {
         page_id: i64,
         old_slug: &str,
         new_slug: &str,
-        depth: u32,
+        depth: RerenderDepth,
     ) -> Result<()> {
         // In terms of outdating, a move is equivalent to
         // deleting at the old page location and
@@ -90,17 +90,17 @@ impl OutdateService {
     pub async fn outdate(
         ctx: &ServiceContext<'_>,
         page_id: i64,
-        depth: u32,
+        depth: RerenderDepth,
     ) -> Result<()> {
         let page = PageService::get_direct(ctx, page_id, false).await?;
         let id = PageId::from_page_model(&page);
-        JobService::queue_rerender_page(ctx, id, depth + 1).await
+        JobService::queue_rerender_page(ctx, id, depth.plus_one()).await
     }
 
     pub async fn outdate_incoming_links(
         ctx: &ServiceContext<'_>,
         page_id: i64,
-        depth: u32,
+        depth: RerenderDepth,
     ) -> Result<()> {
         const CONNECTION_TYPES: &[ConnectionType] = &[ConnectionType::Link];
 
@@ -119,7 +119,7 @@ impl OutdateService {
     pub async fn outdate_outgoing_includes(
         ctx: &ServiceContext<'_>,
         page_id: i64,
-        depth: u32,
+        depth: RerenderDepth,
     ) -> Result<()> {
         const CONNECTION_TYPES: &[ConnectionType] = &[
             ConnectionType::IncludeMessy,
@@ -144,7 +144,7 @@ impl OutdateService {
         site_id: i64,
         category_slug: &str,
         page_slug: &str,
-        depth: u32,
+        depth: RerenderDepth,
     ) -> Result<()> {
         // If a template page has been updated,
         // we need to recompile everything in that category.

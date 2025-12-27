@@ -19,7 +19,7 @@
  */
 
 use super::prelude::*;
-use crate::types::PageId;
+use crate::types::{PageId, RerenderDepth};
 use rsmq_async::{Rsmq, RsmqConnection};
 use std::time::Duration;
 
@@ -85,7 +85,7 @@ impl JobService {
     pub async fn queue_rerender_page(
         ctx: &ServiceContext<'_>,
         id: PageId,
-        depth: u32,
+        depth: RerenderDepth,
     ) -> Result<()> {
         debug!(
             "Queuing page rerender for page ID {} and site ID {}",

@@ -26,7 +26,7 @@ use crate::models::file_revision::{
 use crate::models::{file, page, site};
 use crate::services::blob::{EMPTY_BLOB_HASH, EMPTY_BLOB_MIME, FinalizeBlobUploadOutput};
 use crate::services::{BlobService, OutdateService, PageService};
-use crate::types::{Bytes, FetchDirection};
+use crate::types::{Bytes, FetchDirection, RerenderDepth};
 use sea_orm::{FromQueryResult, prelude::*};
 use std::num::NonZeroI32;
 use std::sync::LazyLock;
@@ -135,7 +135,14 @@ impl FileRevisionService {
 
         // Run outdater
         let page_slug = Self::get_page_slug(ctx, site_id, page_id).await?;
-        OutdateService::process_page_edit(ctx, site_id, page_id, &page_slug, 0).await?;
+        OutdateService::process_page_edit(
+            ctx,
+            site_id,
+            page_id,
+            &page_slug,
+            RerenderDepth::default(),
+        )
+        .await?;
 
         // Insert the new revision into the table
         let model = file_revision::ActiveModel {
@@ -185,8 +192,14 @@ impl FileRevisionService {
 
         // Run outdater
         let page_slug = Self::get_page_slug(ctx, site_id, page_id).await?;
-        OutdateService::process_page_displace(ctx, site_id, page_id, &page_slug, 0)
-            .await?;
+        OutdateService::process_page_displace(
+            ctx,
+            site_id,
+            page_id,
+            &page_slug,
+            RerenderDepth::default(),
+        )
+        .await?;
 
         // Insert the first revision into the table
         let model = file_revision::ActiveModel {
@@ -257,7 +270,14 @@ impl FileRevisionService {
 
         // Run outdater
         let page_slug = Self::get_page_slug(ctx, site_id, page_id).await?;
-        OutdateService::process_page_edit(ctx, site_id, page_id, &page_slug, 0).await?;
+        OutdateService::process_page_edit(
+            ctx,
+            site_id,
+            page_id,
+            &page_slug,
+            RerenderDepth::default(),
+        )
+        .await?;
 
         // Insert the tombstone revision into the table
         let model = file_revision::ActiveModel {
@@ -342,8 +362,14 @@ impl FileRevisionService {
 
         // Run outdater
         let new_page_slug = Self::get_page_slug(ctx, site_id, new_page_id).await?;
-        OutdateService::process_page_edit(ctx, site_id, new_page_id, &new_page_slug, 0)
-            .await?;
+        OutdateService::process_page_edit(
+            ctx,
+            site_id,
+            new_page_id,
+            &new_page_slug,
+            RerenderDepth::default(),
+        )
+        .await?;
 
         // Insert the resurrection revision into the table
         let model = file_revision::ActiveModel {

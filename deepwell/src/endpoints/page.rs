@@ -29,7 +29,7 @@ use crate::services::page::{
     RestorePage, RestorePageOutput, RollbackPage, SetPageLayout,
 };
 use crate::services::{Result, TextService};
-use crate::types::{Bytes, FileOrder, PageDetails, PageId, Reference};
+use crate::types::{Bytes, FileOrder, PageDetails, PageId, Reference, RerenderDepth};
 use futures::future::try_join_all;
 
 pub async fn page_create(
@@ -185,7 +185,7 @@ pub async fn page_rerender(
         "Re-rendering page ID {} in site ID {}",
         input.page_id, input.site_id,
     );
-    PageRevisionService::rerender(ctx, input, 0).await
+    PageRevisionService::rerender(ctx, input, RerenderDepth::default()).await
 }
 
 pub async fn page_restore(

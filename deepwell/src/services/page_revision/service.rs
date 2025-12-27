@@ -30,7 +30,7 @@ use crate::services::{
     LinkService, OutdateService, PageService, ParentService, RenderService, ScoreService,
     SettingsService, SiteService, TextService,
 };
-use crate::types::{FetchDirection, PageId};
+use crate::types::{FetchDirection, PageId, RerenderDepth};
 use crate::utils::{split_category, split_category_name, trim_default};
 use ftml::data::PageInfo;
 use ftml::layout::Layout;
@@ -198,7 +198,7 @@ impl PageRevisionService {
         // If nothing has changed, then don't create a new revision
         if changes.is_empty() {
             debug!("No changes in edit, only rerendering the page");
-            Self::rerender(ctx, id, 0).await?;
+            Self::rerender(ctx, id, RerenderDepth::default()).await?;
             return Ok(None);
         }
 
@@ -258,7 +258,12 @@ impl PageRevisionService {
                 // also run those again.
 
                 OutdateService::process_page_move(
-                    ctx, site_id, page_id, old_slug, &slug, 0,
+                    ctx,
+                    site_id,
+                    page_id,
+                    old_slug,
+                    &slug,
+                    RerenderDepth::default(),
                 )
                 .await?;
 
@@ -277,11 +282,19 @@ impl PageRevisionService {
                 try_join!(
                     conditional_future!(
                         tasks.rerender_incoming_links,
-                        OutdateService::outdate_incoming_links(ctx, page_id, 0),
+                        OutdateService::outdate_incoming_links(
+                            ctx,
+                            page_id,
+                            RerenderDepth::default()
+                        ),
                     ),
                     conditional_future!(
                         tasks.rerender_outgoing_includes,
-                        OutdateService::outdate_outgoing_includes(ctx, page_id, 0),
+                        OutdateService::outdate_outgoing_includes(
+                            ctx,
+                            page_id,
+                            RerenderDepth::default()
+                        ),
                     ),
                     conditional_future!(
                         tasks.rerender_templates,
@@ -290,7 +303,7 @@ impl PageRevisionService {
                             site_id,
                             category_slug,
                             page_slug,
-                            0,
+                            RerenderDepth::default(),
                         ),
                     ),
                 )?;
@@ -401,7 +414,14 @@ impl PageRevisionService {
         } = Self::render_and_update_links(ctx, id, wikitext, render_input).await?;
 
         // Run outdater
-        OutdateService::process_page_displace(ctx, site_id, page_id, &slug, 0).await?;
+        OutdateService::process_page_displace(
+            ctx,
+            site_id,
+            page_id,
+            &slug,
+            RerenderDepth::default(),
+        )
+        .await?;
 
         // Insert the first revision into the table
         let model = page_revision::ActiveModel {
@@ -468,7 +488,14 @@ impl PageRevisionService {
         } = previous;
 
         // Run outdater
-        OutdateService::process_page_displace(ctx, site_id, page_id, &slug, 0).await?;
+        OutdateService::process_page_displace(
+            ctx,
+            site_id,
+            page_id,
+            &slug,
+            RerenderDepth::default(),
+        )
+        .await?;
 
         // Delete parent-child relationships, if any
         ParentService::remove_all(ctx, page_id).await?;
@@ -599,8 +626,14 @@ impl PageRevisionService {
         replace_hash_opt(&mut compiled_side_bar_html_hash, new_side_bar_html_hash);
 
         // Run outdater
-        OutdateService::process_page_displace(ctx, site_id, page_id, &new_slug, 0)
-            .await?;
+        OutdateService::process_page_displace(
+            ctx,
+            site_id,
+            page_id,
+            &new_slug,
+            RerenderDepth::default(),
+        )
+        .await?;
 
         // Insert the resurrection revision into the table
         let model = page_revision::ActiveModel {
@@ -692,7 +725,7 @@ impl PageRevisionService {
     pub async fn rerender(
         ctx: &ServiceContext<'_>,
         id: PageId,
-        depth: u32,
+        depth: RerenderDepth,
     ) -> Result<()> {
         let txn = ctx.transaction();
         let PageId {
@@ -726,7 +759,7 @@ impl PageRevisionService {
             debug!(
                 "Checking rerender-skip rule: depth {check_depth}, updated offset {update_offset:?}"
             );
-            if depth >= check_depth && updated_recently!(update_offset) {
+            if depth.0 >= check_depth && updated_recently!(update_offset) {
                 warn!("Skipping rerender job, too deep and updated too recently");
                 return Ok(());
             }
