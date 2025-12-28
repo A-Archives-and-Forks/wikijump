@@ -62,6 +62,7 @@ pub fn setup_autorestart(config: &Config) -> Result<RecommendedWatcher> {
     };
 
     let mut watcher = RecommendedWatcher::new(
+        #[allow(unreachable_code)]
         move |result: WatcherResult<Event>| match result {
             Err(error) => {
                 error!("Unable to receive filesystem events: {error}");
