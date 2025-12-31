@@ -31,7 +31,8 @@ use axum::{
     http::header::HeaderMap,
     response::{IntoResponse, Response},
 };
-use axum_extra::extract::Host;
+use axum_extra::TypedHeader;
+use headers::Host;
 
 fn get_page_slug(headers: &HeaderMap) -> &str {
     get_header(
@@ -53,7 +54,7 @@ fn get_filename(headers: &HeaderMap) -> &str {
 
 pub async fn handle_special_error(
     State(state): State<ServerState>,
-    Host(host): Host,
+    TypedHeader(host_info): TypedHeader<Host>,
     Path(error_code): Path<String>,
     headers: HeaderMap,
 ) -> Response {
@@ -75,7 +76,9 @@ pub async fn handle_special_error(
             SpecialError::SiteSlug { site_slug }
         }
         // No required headers
-        "site-custom" => SpecialError::SiteCustom { host: &host },
+        "site-custom" => SpecialError::SiteCustom {
+            host: host_info.hostname(),
+        },
         // Required headers:
         // - x-wikijump-page-slug
         "page-slug" => {
