@@ -194,7 +194,7 @@ CREATE TABLE relation (
     dest_id BIGINT NOT NULL,
     from_type relation_object_type NOT NULL,
     from_id BIGINT NOT NULL,
-    metadata JSON NOT NULL DEFAULT '{}',
+    metadata JSONB NOT NULL DEFAULT '{}',
     created_by BIGINT NOT NULL REFERENCES "user"(user_id),
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
     overwritten_by BIGINT REFERENCES "user"(user_id),
@@ -677,7 +677,7 @@ CREATE TABLE message_draft (
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
     updated_at TIMESTAMP WITH TIME ZONE,
     user_id BIGINT NOT NULL REFERENCES "user"(user_id),
-    recipients JSON NOT NULL,
+    recipients JSONB NOT NULL,
 
     -- Text contents
     subject TEXT NOT NULL,
