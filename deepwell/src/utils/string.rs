@@ -206,3 +206,25 @@ fn test_trim_spaces_in_place() {
     test!("\r\t  cherry" => "cherry");
     test!(" 🥭  " => "🥭");
 }
+
+#[test]
+fn test_strip_fluent_control_chars() {
+    macro_rules! test {
+        ($input:expr => $output:expr $(,)?) => {{
+            let mut string = str!($input);
+            strip_fluent_control_chars(&mut string);
+            assert_eq!(string, $output, "Trimmed contents did not match expected");
+        }};
+
+        // Unmodified case, where no substition occurs
+        ($input:expr $(,)?) => {
+            test!($input => $input)
+        };
+    }
+
+    test!("");
+    test!("Hello, world!");
+    test!("Berry: 🍓");
+    test!("Good morning \u{2068}John\u{2069}" => "Good morning John");
+    test!("\u{2068}alpha\u{2069} beta \u{2068}\u{2069}gamma" => "alpha beta gamma");
+}
