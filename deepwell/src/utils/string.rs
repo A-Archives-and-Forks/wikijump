@@ -79,6 +79,26 @@ pub fn trim_spaces_in_place(string: &mut String) {
     regex_replace_in_place(string, &LEADING_TRAILING_SPACES, "");
 }
 
+/// This helper function removes U+2068 and U+2069 control characters from a string.
+///
+/// Fluent adds these U+2068 and U+2069 characters to assist text layout engines
+/// when dealing with LTR / RTL text. However, this causes parsing issues
+/// for us in wikitext or HTML, since these characters can gum up string
+/// concatenation cases like URL construction.
+///
+/// So as a special case here, we provide a helper function to strip out any of
+/// these characters. We don't remove these characters from all locale strings
+/// since they are a desired localization property of Fluent.
+///
+/// See https://fluent-compiler.readthedocs.io/en/latest/usage.html#:~:text=You%20will%20notice%20the%20extra%20characters%20\u2068%20and%20\u2069%20in%20the%20output.
+#[inline]
+pub fn strip_fluent_control_chars(string: &mut String) {
+    static CONTROL_CHAR_REGEX: LazyLock<Regex> =
+        LazyLock::new(|| Regex::new("[\u{2068}\u{2069}]").unwrap());
+
+    regex_replace_in_place(string, &CONTROL_CHAR_REGEX, "");
+}
+
 // Tests
 
 #[test]
