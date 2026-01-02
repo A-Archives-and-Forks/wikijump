@@ -15,6 +15,7 @@ pub struct Model {
     pub dest_id: i64,
     pub from_type: RelationObjectType,
     pub from_id: i64,
+    #[sea_orm(column_type = "JsonBinary")]
     pub metadata: Json,
     pub created_by: i64,
     #[serde(with = "time::serde::rfc3339")]

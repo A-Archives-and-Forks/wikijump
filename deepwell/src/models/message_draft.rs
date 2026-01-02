@@ -13,6 +13,7 @@ pub struct Model {
     #[serde(with = "time::serde::rfc3339::option")]
     pub updated_at: Option<TimeDateTimeWithTimeZone>,
     pub user_id: i64,
+    #[sea_orm(column_type = "JsonBinary")]
     pub recipients: Json,
     #[sea_orm(column_type = "Text")]
     pub subject: String,
