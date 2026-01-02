@@ -20,7 +20,7 @@
 
 use super::prelude::*;
 use crate::locales::MessageArguments;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use unic_langid::LanguageIdentifier;
 
 #[derive(Serialize, Debug, Clone)]
@@ -35,6 +35,19 @@ pub struct LocaleOutput {
 pub struct TranslateInput {
     locales: Vec<String>,
     messages: HashMap<String, MessageArguments<'static>>,
+
+    /// A list of message keys to run `strip_fluent_control_chars()` on.
+    ///
+    /// For each of the keys here, the translated message has its Fluent-added
+    /// control characters stripped before it is returned in the response.
+    ///
+    /// By default this is empty, meaning to leave all messages unmodified.
+    ///
+    /// # Errors
+    /// If there are any keys in this list which are not in `messages`, then
+    /// an error will be returned.
+    #[serde(default)]
+    strip_message_keys: HashSet<String>,
 }
 
 type TranslateOutput = HashMap<String, Option<String>>;
@@ -58,7 +71,11 @@ pub async fn translate_strings(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
 ) -> Result<TranslateOutput> {
-    let TranslateInput { locales, messages } = params.parse()?;
+    let TranslateInput {
+        locales,
+        messages,
+        strip_message_keys,
+    } = params.parse()?;
 
     if locales.is_empty() {
         error!("No locales specified in translate call");
