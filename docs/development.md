@@ -2,27 +2,23 @@
 
 This document will explain how to set up Wikijump on your machine for local development.
 
-## Deployment
+## Setup
 
 The `install` folder has everything you need to run a local Wikijump install either in a container or on metal or a VM.
 
-The recommended way to install Wikijump is via Docker. Docker is a way of containerizing, or in the case of Windows or Mac, also virtualizing Linux images. It lets you easily create and destroy different Wikijump builds, and it also acts like a sandbox to protect the rest of your system from dependency pollution. 
+The recommended way to install Wikijump is via Docker. Docker is a means of containerizing, or in the case of Windows or Mac, also virtualizing Linux images. It lets you easily create and destroy different Wikijump builds, and it also acts like a sandbox to protect the rest of your system from dependency pollution.
 
 > ### For Windows:
 >
-> For Windows, you will need WSL2, a way of running a Linux distribution simultaneously with Windows. You will need Windows 10 or 11 for this. The only alternative to WSL2 would be using a Linux virtual machine such as [VirtualBox](https://www.virtualbox.org/) — but using a VM isn't recommended, and is not covered by this document.
+> For Windows, you will need WSL2, a way of running a Linux distribution simultaneously with Windows. You will need Windows 10 or 11 for this. The only alternative to WSL2 would be using a Linux virtual machine such as [VirtualBox](https://www.virtualbox.org/), which is not covered by this document.
 >
 > It is recommended that you use Ubuntu for the WSL2 distribution. Ubuntu in particular has considerations made for WSL2 use and in general will be the most reliable way forward.
 >
 > [WSL2 download and installation page](https://learn.microsoft.com/en-us/windows/wsl/install)
 
-You will need [Docker](https://www.docker.com/) installed and running:
+You will need [Docker](https://www.docker.com/) and [Docker Compose](https://docs.docker.com/compose/) installed. See [Docker's documentation on installation](https://docs.docker.com/desktop/install/linux-install/).
 
-<pre>$ sudo apt install docker.io</pre>
-
-This example is for Ubuntu. Installation may be different depending on your Linux distro. See [here](https://docs.docker.com/desktop/install/linux-install/) for more information.
-
-After installing Docker, you can run it with the following commands:
+Once it's installed, ensure it is running:
 
 <table>
 <thead><tr><th>systemd Distros</th><th>WSL2</th></tr></thead>
@@ -32,73 +28,53 @@ After installing Docker, you can run it with the following commands:
 </tbody>
 </table>
 
-## Setup: Utilities and Programs
+## Building and Running
 
-You will need some utilities and programs to run Wikijump and do local development.
+**The helper script `install/local/deploy.py` is the primary way to manage a local Wikijump installation.**
 
-* [Docker](https://www.docker.com/get-started) (see above)
-* [Docker Compose](https://docs.docker.com/compose/)
-* [Rust (and Cargo), stable](https://www.rust-lang.org/tools/install) (if developing `deepwell` or `wws`)
-* [NodeJS (and NPM), v15 or greater](https://nodejs.org/en/) (if developing `framerail`)
-* [PNPM v6](https://pnpm.io/installation) (if developing `framerail`)
-
-You may encounter some cross-platform issues with Docker, but the rest of the items here are well-behaved between Windows and Linux.
-
-## Setup: Configuration
-
-There are a couple of configuration files that need to be initialized prior to running your instance of Wikijump. These will be the `config.toml` and `.env` files, both located in the `deepwell` subdirectory. For a typical local deploy, both of these files can be copied from their `.example` counterparts without changing them, though it is worth looking through them briefly to understand what can be configurated for your instance.
-
-There is also a Docker configuration file that configures the various containers that host Wikijump in the local environment. You can find this file in `install/local`, named `docker-compose.yaml`, alongside `docker-compose.dev.yaml` (which provides various helpful tools for developing locally).
-
-Notice that in `docker-compose.yaml`, there are configuration options for the domains to use. For development purposes, these are set to `wikijump.localhost`. This is the domain you will be connecting to, e.g. `https://www.wikijump.localhost`. The TLD `.localhost` is just like the usual `localhost` domain. Even when running locally, HTTPS is used. Because this certificate is self-signed, you will need to dismiss the certificate warning.
-
-## Setup: Dependencies
-
-You will need to install Wikijump's NPM dependencies. Navigate to the `web/` directory and run the following:
-
-```sh
-$ pnpm install
-```
-
-## Building
-
-You can now start up the Docker images. The basic command used to run Wikijump locally is:
+Under the hood, it is running the following:
 
 ```sh
 $ [sudo] docker-compose -p wikijump -f docker-compose.yaml [-f docker-compose.dev.yaml] <action>
 ```
 
+This uses the specifications in `install/local/docker-compose.yaml` (and by default, also `install/local/docker-compose.dev.yaml`) to start up a series of Docker containers containing each of the components for Wikijump.
+
+A few notes:
+
 * On some systems, `sudo` is required to run Docker, but on others it is not.
-* The `-f docker-compose.dev.yaml` configuration file provides container bindings for development. In other words, if you modify `deepwell/src/` files locally, then those changes will be reflected in the container.
+* The `-f docker-compose.dev.yaml` configuration file provides container bindings for development. For instance, if you modify `deepwell/src/` files locally, then those changes will be reflected in the container.
 
-The `install/local/deploy.py` script is meant as a convenience here. You can pass in `--sudo` or `--no-dev` to make either of the above modifications for you.
-
-The "action" corresponds to actions that `docker-compose` can do. Some common commands are:
-* `up` &mdash; Create and start containers for Wikijump.
-* `up --build` &mdash; Like the above but it first builds new images before creating containers.
+The "action" corresponds to actions that `docker-compose` can do. Some common actions include:
+* `build` &mdash; Build new Docker images for each of Wikijump's containers.
+* `up` &mdash; Create and start containers for Wikijump. If `build` has not been previously run, then is executed first.
+* `up --build` &mdash; Like `up`, but always rebuilds first.
 * `start` &mdash; Start any already-existing containers for Wikijump.
 * `stop` &mdash; Stop currently-running containers for Wikijump.
+* `down` &mdash; Stop **and delete** any containers for Wikijump.
 
-To start the project, you want to run a command that probably looks something like:
+Note that in `docker-compose.yaml`, there are configuration options for the domains to use. For development purposes, these are set to `wikijump.localhost`. This is the domain you will be connecting to, e.g. `https://www.wikijump.localhost`. The TLD `.localhost` is just like the usual `localhost` domain. Even when running locally, HTTPS is used. Because this certificate is self-signed, you will need to dismiss the certificate warning.
+
+**Thus, you can run the following to start a local instance:**
 
 ```
 $ install/local/deploy.py up
 ```
 
-_This might take some time_. Thankfully, Docker's build step is heavily cached. You will generally not need to rerun this build often.
+Because this first needs to build the images and sources, _this will take some time_. Docker's build cache will prevent future rebuilds from taking as long, though there are circumstances where a full rebuild will be necessary (such as updated dependencies).
 
 > ### For Windows:
 >
 > You may encounter various errors involving file permissions if using Windows-based tools alongside WSL2. It is recommend that you fix these issues by either granting the correct file permissions to any that Windows may have modified, or by re-cloning the repository purely within WSL2.
 
-Once everything has started, you can connect to `http://www.wikijump.localhost/`. Changes you make to the codebase should automatically be applied to the containers, as your machine's filesystem has been "bound" to the containers' filesystem (see `docker-compose.dev.yaml` below). This is one-way, so a container can't modify your filesystem. Adding new dependencies, however, will require a rebuild.
+**Once everything has started, you can connect to `http://www.wikijump.localhost/`.** Changes you make to the codebase should automatically be applied to the containers, as your machine's filesystem has been "bound" to the containers' filesystem (see `docker-compose.dev.yaml`). This is one-way, so a container can't modify your filesystem. Note that adding new dependencies will require a rebuild.
 
-You can just kill the terminal (`CTRL + C` usually) when you want to stop the server.
+You can kill the terminal (`CTRL + C` usually) when you want to stop the server.
 
 If you want to entirely _reset_ the containers, as their data is otherwise persistent even across restarts, you can run the following:
 
 ```sh
-$ docker-compose -p wikijump -f docker-compose.yaml -f docker-compose.dev.yaml down
+$ install/local/deploy.py down
 ```
 
 It's useful to keep track of existing Docker images and containers, and destroy them when you no longer need them, so you don't waste space rebuilding the same image over and over. If you are using Docker Desktop, you can manage containers and images from the GUI. Otherwise, using the command line:
@@ -112,7 +88,23 @@ $ docker rmi [ID]      # Remove the image with this ID
 
 You can also use `docker system prune`, which deletes *everything* unused, though this should be used sparingly.
 
-## Entering the container
+## Development Utilities
+
+If you're developing software, you will need utilities associated with the relevant project(s) you're working on:
+
+* [Rust (and Cargo), stable](https://www.rust-lang.org/tools/install) (if developing `deepwell` or `wws`)
+* [NodeJS (and NPM), v15 or greater](https://nodejs.org/en/) (if developing `framerail`)
+* [PNPM v6](https://pnpm.io/installation) (if developing `framerail`)
+
+These are what is used in the Docker images to build and run their respective services, and enables you to run the autoformatter, build on your machine if you have the right dependencies, etc.
+
+## Local Configuration
+
+While you can run services in Docker, it is possible to run services directly on your local machine. One requirement for doing so is initializing needed configuration files.
+
+For `deepwell`, this is your `config.toml` and `.env` files. You can glance through `config.example.toml` and `.env.example` to see what is expected.
+
+## Entering Containers
 
 If you want to enter a container to make temporary changes, you can do so by entering it with a CLI. From Docker Desktop, after running the containers, find the Wikijump app and within it the container you wish to enter, then click the 'CLI' button. Or from the command line:
 
