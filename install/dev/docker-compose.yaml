@@ -28,6 +28,8 @@ services:
       interval: 120s
       timeout: 2s
       retries: 3
+      start_period: 600s
+      start_interval: 30s
     depends_on:
       cache:
         condition: service_healthy
