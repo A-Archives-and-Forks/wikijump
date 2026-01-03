@@ -22,7 +22,7 @@ use super::prelude::*;
 use crate::models::site::Model as SiteModel;
 use crate::services::{PageRevisionService, PageService, RenderService, TextService};
 use crate::types::Reference;
-use crate::utils::{regex_replace_in_place, split_category};
+use crate::utils::{regex_replace_in_place, split_category, strip_fluent_control_chars};
 use fluent::{FluentArgs, FluentValue};
 use ftml::prelude::*;
 use ref_map::*;
@@ -171,20 +171,8 @@ impl SpecialPageService {
             .translate(locales, translate_key, &args)?
             .into_owned();
 
-        // Fluent adds U+2068 and U+2069 characters to assist text layout engines
-        // when dealing with LTR / RTL text. However, this causes parsing issues
-        // for us in wikitext, since these characters can gum up string concatenation
-        // cases like URL construction.
-        //
-        // So as a special case here, we strip out any of these characters.
-        // We don't remove these characters from other locale strings since they are
-        // a desired localization property of Fluent.
-        //
-        // See https://fluent-compiler.readthedocs.io/en/latest/usage.html#:~:text=You%20will%20notice%20the%20extra%20characters%20\u2068%20and%20\u2069%20in%20the%20output.
-        static CONTROL_CHAR_REGEX: LazyLock<Regex> =
-            LazyLock::new(|| Regex::new("[\u{2068}\u{2069}]").unwrap());
-
-        regex_replace_in_place(&mut wikitext, &CONTROL_CHAR_REGEX, "");
+        // Remove control chars because this string is intended to be wikitext
+        strip_fluent_control_chars(&mut wikitext);
 
         Ok(wikitext)
     }

@@ -20,7 +20,8 @@
 
 use super::prelude::*;
 use crate::locales::MessageArguments;
-use std::collections::HashMap;
+use crate::utils::strip_fluent_control_chars;
+use std::collections::{HashMap, HashSet};
 use unic_langid::LanguageIdentifier;
 
 #[derive(Serialize, Debug, Clone)]
@@ -35,6 +36,19 @@ pub struct LocaleOutput {
 pub struct TranslateInput {
     locales: Vec<String>,
     messages: HashMap<String, MessageArguments<'static>>,
+
+    /// A list of message keys to run `strip_fluent_control_chars()` on.
+    ///
+    /// For each of the keys here, the translated message has its Fluent-added
+    /// control characters stripped before it is returned in the response.
+    ///
+    /// By default this is empty, meaning to leave all messages unmodified.
+    ///
+    /// # Errors
+    /// If there are any keys in this list which are not in `messages`, then
+    /// an error will be returned.
+    #[serde(default)]
+    strip_message_keys: HashSet<String>,
 }
 
 type TranslateOutput = HashMap<String, Option<String>>;
@@ -58,11 +72,26 @@ pub async fn translate_strings(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
 ) -> Result<TranslateOutput> {
-    let TranslateInput { locales, messages } = params.parse()?;
+    let TranslateInput {
+        locales,
+        messages,
+        strip_message_keys,
+    } = params.parse()?;
 
+    // Check that locales are specified
     if locales.is_empty() {
         error!("No locales specified in translate call");
         return Err(ServiceError::NoLocalesSpecified);
+    }
+
+    // Check that all message keys to strip are being requested
+    for message_key in &strip_message_keys {
+        if !messages.contains_key(message_key.as_str()) {
+            error!(
+                "Input mentions stripping control characters from a message not requested to be translated: {message_key}"
+            );
+            return Err(ServiceError::BadRequest);
+        }
     }
 
     info!(
@@ -90,11 +119,20 @@ pub async fn translate_strings(
         );
 
         let arguments = arguments_raw.into_fluent_args();
-        let translation =
-            ctx.localization()
-                .translate_option(&locales, &message_key, &arguments)?;
+        let translation = ctx
+            .localization()
+            .translate_option(&locales, &message_key, &arguments)?
+            .map(|translation| {
+                let mut translation = translation.to_string();
 
-        output.insert(message_key, translation.map(|t| t.to_string()));
+                if strip_message_keys.contains(&message_key) {
+                    strip_fluent_control_chars(&mut translation);
+                }
+
+                translation
+            });
+
+        output.insert(message_key, translation);
     }
 
     Ok(output)
