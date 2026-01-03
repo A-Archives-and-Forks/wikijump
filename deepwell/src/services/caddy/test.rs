@@ -170,7 +170,7 @@ macro_rules! test_file_path {
     ($suffix:expr) => {
         concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/test/caddy/Caddyfile.",
+            "/tests/caddy/Caddyfile.",
             $suffix,
         )
     };
