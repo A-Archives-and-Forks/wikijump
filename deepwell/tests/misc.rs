@@ -68,5 +68,8 @@ async fn misc() {
         run_endpoint!(endpoints::misc::normalize_method, ctx, r#"["abc-xyz"]"#);
     assert_eq!(normalized, "abc-xyz");
 
+    // Invalid arguments
+    run_endpoint_err!(endpoints::misc::normalize_method, ctx, r#"{"foo": "bar"}"#);
+
     cleanup!(state, txn, ctx);
 }

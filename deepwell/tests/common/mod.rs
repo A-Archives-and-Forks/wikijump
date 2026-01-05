@@ -51,6 +51,7 @@ pub async fn setup() -> (ServerState, DatabaseTransaction) {
     (state, txn)
 }
 
+#[allow(unused_macros)]
 macro_rules! run_endpoint {
     ($endpoint:expr, $ctx:expr, $params_value:expr $(,)?) => {
         run_endpoint!($endpoint => $ctx, params!($params_value))
@@ -67,6 +68,7 @@ macro_rules! run_endpoint {
     };
 }
 
+#[allow(unused_macros)]
 macro_rules! run_endpoint_err {
     ($endpoint:expr, $ctx:expr, $params_value:expr $(,)?) => {
         run_endpoint_err!($endpoint => $ctx, params!($params_value))

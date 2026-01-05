@@ -26,10 +26,10 @@ use unic_langid::LanguageIdentifier;
 
 #[derive(Serialize, Debug, Clone)]
 pub struct LocaleOutput {
-    language: String,
-    script: Option<String>,
-    region: Option<String>,
-    variants: Vec<String>,
+    pub language: String,
+    pub script: Option<String>,
+    pub region: Option<String>,
+    pub variants: Vec<String>,
 }
 
 #[derive(Deserialize, Debug, Clone)]
