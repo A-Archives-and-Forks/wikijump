@@ -149,10 +149,7 @@ macro_rules! assert_str_eq {
             None => None,
         };
 
-        let right: Option<&str> = match $right {
-            Some(ref s) => Some(s.as_str()),
-            None => None,
-        };
+        let right: Option<&str> = $right;
 
         assert_eq!(left, right);
     }};

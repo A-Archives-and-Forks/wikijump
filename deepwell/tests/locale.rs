@@ -22,31 +22,26 @@
 mod common;
 
 use deepwell::endpoints;
-use deepwell::services::ServiceContext;
+use deepwell::services::{Error as ServiceError, ServiceContext};
 
 #[tokio::test]
-async fn locale() {
+async fn locale_info() {
     let (state, txn) = common::setup().await;
     let ctx = ServiceContext::new(&state, &txn);
 
-    // locale_info
     let info = run_endpoint!(endpoints::locale::locale_info, ctx, r#"["en-gb"]"#);
     assert_eq!(info.language, "en");
-    assert!(info.region.is_some());
-    assert_eq!(info.region.unwrap(), "GB");
-    assert!(info.script.is_none());
+    assert_str_eq!(info.region, Some("GB"));
+    assert_eq!(info.script, None);
     assert!(info.variants.is_empty());
 
     let info = run_endpoint!(endpoints::locale::locale_info, ctx, r#"["fr_Latn-FR-MACOS"]"#);
     assert_eq!(info.language, "fr");
-    assert!(info.region.is_some());
-    assert_eq!(info.region.unwrap(), "FR");
-    assert!(info.script.is_some());
-    assert_eq!(info.script.unwrap(), "Latn");
+    assert_str_eq!(info.region, Some("FR"));
+    assert_str_eq!(info.script, Some("Latn"));
     assert_eq!(info.variants.len(), 1);
     assert_eq!(info.variants[0], "macos");
 
-    // translate_strings
 
     cleanup!(state, txn, ctx);
 }
