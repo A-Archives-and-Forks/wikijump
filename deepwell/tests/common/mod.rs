@@ -19,47 +19,82 @@
  */
 
 use deepwell::api::{ServerState, build_server_state};
-use deepwell::config::SetupConfig;
-use deepwell::services::ServiceContext;
-use sea_orm::TransactionTrait;
-use std::future::Future;
-use std::num::NonZeroU16;
+use deepwell::config::{Config, Secrets};
+use sea_orm::{DatabaseTransaction, TransactionTrait};
 
-pub async fn setup() -> ServerState {
-    let (config, secrets) = {
-        let SetupConfig {
-            mut config,
-            secrets,
-        } = SetupConfig::load();
-        config.pid_file = None;
-        config.watch_files = false;
-        config.run_seeder = false;
-        config.job_workers = NonZeroU16::new(2).unwrap();
-        (config, secrets)
-    };
+macro_rules! params {
+    () => {{
+        use jsonrpsee::types::Params;
+        Params::new(None)
+    }};
 
-    build_server_state(config, secrets)
-        .await
-        .expect("Unable to set up server state")
+    ($value:expr) => {{
+        use jsonrpsee::types::Params;
+        Params::new(Some($value))
+    }};
 }
 
-pub async fn test<F, Fut>(state: &ServerState, f: F)
-where
-    F: FnOnce(&ServiceContext) -> Fut,
-    Fut: Future<Output = ()>,
-{
+pub async fn setup() -> (ServerState, DatabaseTransaction) {
+    let secrets = Secrets::load();
+    let config = Config::integration_testing();
+
+    let state = build_server_state(config, secrets)
+        .await
+        .expect("Unable to set up server state");
+
     let txn = state
         .database
         .begin()
         .await
         .expect("Unable to start database transaction");
 
-    let ctx = ServiceContext::new(state, &txn);
+    (state, txn)
+}
 
-    f(&ctx).await;
+macro_rules! run_endpoint {
+    ($endpoint:expr, $ctx:expr, $params_value:expr $(,)?) => {
+        run_endpoint!($endpoint => $ctx, params!($params_value))
+    };
 
-    // NOTE: We always rollback since we want the database state to be the same for each test
-    txn.rollback()
-        .await
-        .expect("Unable to roll back transaction");
+    ($endpoint:expr, $ctx:expr $(,)?) => {
+        run_endpoint!($endpoint => $ctx, params!())
+    };
+
+    ($endpoint:expr => $ctx:expr, $params:expr) => {
+        $endpoint(&$ctx, $params).await.expect(
+            concat!("Call to method '", stringify!($endpoint), "' failed")
+        )
+    };
+}
+
+macro_rules! run_endpoint_err {
+    ($endpoint:expr, $ctx:expr, $params_value:expr $(,)?) => {
+        run_endpoint_err!($endpoint => $ctx, params!($params_value))
+    };
+
+    ($endpoint:expr, $ctx:expr $(,)?) => {
+        run_endpoint_err!($endpoint => $ctx, params!())
+    };
+
+    ($endpoint:expr => $ctx:expr, $params:expr) => {
+        $endpoint(&$ctx, $params).await.expect_err(
+            concat!("Call to method '", stringify!($endpoint), "' succeeded when it should have failed")
+        )
+    };
+}
+
+macro_rules! cleanup {
+    ($state:expr, $txn:expr, $ctx:expr $(,)?) => {{
+        use std::mem;
+
+        // Explicitly drop all these bindings to prevent reuse later
+        mem::drop($ctx);
+
+        // We always rollback since we want the database state to be the same for each test
+        $txn.rollback()
+            .await
+            .expect("Unable to roll back transaction");
+
+        mem::drop($state);
+    }};
 }
