@@ -24,6 +24,7 @@ mod common;
 use deepwell::endpoints;
 use deepwell::services::{Error as ServiceError, ServiceContext};
 use serde_json::json;
+use time::OffsetDateTime;
 
 #[tokio::test]
 async fn misc() {
@@ -70,6 +71,23 @@ async fn misc() {
 
     // Invalid arguments
     run_endpoint_err!(endpoints::misc::normalize_method, ctx, r#"{"foo": "bar"}"#);
+
+    // info
+    let info = run_endpoint!(endpoints::info::server_info, ctx);
+    assert_eq!(info.package.name, deepwell::info::PKG_NAME);
+    assert_eq!(info.package.version, *deepwell::info::VERSION_INFO);
+    assert_eq!(info.package.description, deepwell::info::PKG_DESCRIPTION);
+    assert_eq!(info.package.license, deepwell::info::PKG_LICENSE);
+    assert_eq!(info.package.repository, deepwell::info::PKG_REPOSITORY);
+    assert_eq!(info.compile_info.built_at, *deepwell::info::BUILT_TIME_UTC);
+    assert_eq!(info.compile_info.rustc_version, deepwell::info::RUSTC_VERSION);
+    assert_eq!(info.compile_info.endian, deepwell::info::CFG_ENDIAN);
+    assert_eq!(info.compile_info.target, deepwell::info::TARGET);
+    assert_eq!(info.compile_info.threads, deepwell::info::NUM_JOBS);
+    assert_eq!(info.compile_info.git_commit, deepwell::info::GIT_COMMIT_HASH);
+    assert_eq!(info.config_path, state.config.raw_toml_path);
+    assert_eq!(info.hostname, *deepwell::info::HOSTNAME);
+    assert!(info.current_time > OffsetDateTime::UNIX_EPOCH);
 
     cleanup!(state, txn, ctx);
 }
