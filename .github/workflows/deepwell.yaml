@@ -50,6 +50,11 @@ jobs:
         env:
           DEEPWELL_RUNTIME_ACTION: validate-config
 
+      - name: Run Seeder
+        run: cd deepwell && cargo run -- config.example.toml
+        env:
+          DEEPWELL_RUNTIME_ACTION: run-seeder
+
       - name: Test
         run: cd deepwell && cargo test --all-features -- --nocapture --test-threads 1
 
