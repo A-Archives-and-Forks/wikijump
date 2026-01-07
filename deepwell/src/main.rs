@@ -76,7 +76,7 @@ use std::process;
 #[tokio::main]
 async fn main() -> Result<()> {
     // Load the configuration so we can set up
-    let SetupConfig { secrets, config } = SetupConfig::load();
+    let SetupConfig { secrets, config } = SetupConfig::load().await;
     let address = config.address;
     let run_seeder = config.run_seeder;
 
