@@ -1,5 +1,5 @@
 /*
- * config/special_action.rs
+ * config/runtime_action.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
  * Copyright (C) 2019-2025 Wikijump Team
@@ -18,7 +18,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-//! Perform a "special action" instead of normal server execution.
+//! Perform a "runtime action" instead of normal server execution.
 //!
 //! This is useful in contexts such as CI, where we want DEEPWELL to
 //! not run as a daemon, but instead perform a special action or check,
@@ -28,18 +28,18 @@ use super::Config;
 use std::path::PathBuf;
 use std::{env, process};
 
-pub fn run_special_action() {
+pub fn run_runtime_action() {
     // Get action name, if specified.
     // Otherwise return and perform normal execution.
-    let Ok(action_name) = env::var("DEEPWELL_SPECIAL_ACTION") else {
+    let Ok(action_name) = env::var("DEEPWELL_RUNTIME_ACTION") else {
         return;
     };
 
-    // Run appropriate special action.
+    // Run appropriate runtime action.
     let return_code = match action_name.as_str() {
         "config" | "validate-config" => validate_config(),
         _ => {
-            eprintln!("Unknown special action: {action_name}");
+            eprintln!("Unknown runtime action: {action_name}");
             process::exit(1);
         }
     };
@@ -49,7 +49,7 @@ pub fn run_special_action() {
 }
 
 fn validate_config() -> i32 {
-    println!("Running special action: Validate configuration");
+    println!("Running action: Validate configuration");
 
     let mut return_code = 0;
     for value in env::args_os().skip(1) {
