@@ -21,14 +21,14 @@
 mod args;
 mod file;
 mod object;
+mod runtime_action;
 mod secrets;
-mod special_action;
 
 pub use self::object::Config;
 pub use self::secrets::Secrets;
 
 use self::args::parse_args;
-use self::special_action::run_special_action;
+use self::runtime_action::run_runtime_action;
 
 #[derive(Debug, Clone)]
 pub struct SetupConfig {
@@ -38,7 +38,7 @@ pub struct SetupConfig {
 
 impl SetupConfig {
     pub fn load() -> Self {
-        run_special_action();
+        run_runtime_action();
         let secrets = Secrets::load();
         let config = parse_args();
         SetupConfig { secrets, config }
