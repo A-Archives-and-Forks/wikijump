@@ -18,19 +18,19 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+mod basic_error;
 mod file;
 mod misc;
 mod redirect;
 mod robots;
-mod special_error;
 mod text_block;
 mod well_known;
 
+pub use self::basic_error::*;
 pub use self::file::*;
 pub use self::misc::*;
 pub use self::redirect::*;
 pub use self::robots::*;
-pub use self::special_error::*;
 pub use self::text_block::*;
 pub use self::well_known::*;
 
@@ -42,8 +42,8 @@ pub const HEADER_PAGE_SLUG: HeaderName = HeaderName::from_static("x-wikijump-pag
 pub const HEADER_FILENAME: HeaderName = HeaderName::from_static("x-wikijump-filename");
 pub const HEADER_TARGET_SERVER: HeaderName =
     HeaderName::from_static("x-wikijump-target-server");
-pub const HEADER_SPECIAL_ERROR: HeaderName =
-    HeaderName::from_static("x-wikijump-special-error");
+pub const HEADER_BASIC_ERROR: HeaderName =
+    HeaderName::from_static("x-wikijump-basic-error");
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum TargetServer {

@@ -22,7 +22,7 @@ use super::get_site_id;
 use crate::{
     deepwell::{TextBlockIndex, TextBlockType},
     error::{
-        FallbackError, SpecialError, TextBlockErrorReason, build_special_error_response,
+        BasicError, FallbackError, TextBlockErrorReason, build_basic_error_response,
     },
     state::ServerState,
 };
@@ -103,10 +103,10 @@ async fn handle_text_block(
                     block_type = block_type.value(),
                     "Invalid text block index",
                 );
-                return build_special_error_response(
+                return build_basic_error_response(
                     state,
                     headers,
-                    SpecialError::TextBlock {
+                    BasicError::TextBlock {
                         site_id,
                         index: &value,
                         block_type,
@@ -131,10 +131,10 @@ async fn handle_text_block(
                         name = name,
                         "No text block found with given name",
                     );
-                    return build_special_error_response(
+                    return build_basic_error_response(
                         state,
                         headers,
-                        SpecialError::TextBlock {
+                        BasicError::TextBlock {
                             site_id,
                             index: &name,
                             block_type,
@@ -149,10 +149,10 @@ async fn handle_text_block(
                         block_type = block_type.value(),
                         "Unable to retrieve S3 filename for text block from DEEPWELL: {error}",
                     );
-                    return build_special_error_response(
+                    return build_basic_error_response(
                         state,
                         headers,
-                        SpecialError::TextBlock {
+                        BasicError::TextBlock {
                             site_id,
                             index: &name,
                             block_type,

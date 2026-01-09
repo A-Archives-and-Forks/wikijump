@@ -114,8 +114,8 @@ www.example.com {
 
 wjfiles.localhost {
 	import strip_headers
-	request_header X-Wikijump-Special-Error 1
-	rewrite * /-/special-error/file-root
+	request_header X-Wikijump-Basic-Error 1
+	rewrite * /-/basic-error/file-root
 	reverse_proxy wws:7000
 }
 
@@ -141,9 +141,9 @@ wjfiles.localhost {
 # Missing canonical domain
 *.wikijump.localhost {
 	import strip_headers
-	request_header X-Wikijump-Special-Error 1
+	request_header X-Wikijump-Basic-Error 1
 	request_header X-Wikijump-Site-Slug {labels.2}
-	rewrite * /-/special-error/site-slug
+	rewrite * /-/basic-error/site-slug
 	reverse_proxy wws:7000
 }
 
@@ -152,7 +152,7 @@ http://,
 https://,
 localhost {
 	import strip_headers
-	request_header X-Wikijump-Special-Error 1
-	rewrite * /-/special-error/site-custom
+	request_header X-Wikijump-Basic-Error 1
+	rewrite * /-/basic-error/site-custom
 	reverse_proxy wws:7000
 }

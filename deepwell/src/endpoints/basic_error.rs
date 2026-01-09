@@ -1,5 +1,5 @@
 /*
- * endpoints/special_error.rs
+ * endpoints/basic_error.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
  * Copyright (C) 2019-2025 Wikijump Team
@@ -19,13 +19,13 @@
  */
 
 use super::prelude::*;
-use crate::services::special_error::{SpecialErrorOutput, SpecialErrorService};
+use crate::services::basic_error::{BasicErrorOutput, BasicErrorService};
 use crate::utils::parse_locales;
 
-pub async fn special_error_missing_site_slug(
+pub async fn basic_error_missing_site_slug(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<SpecialErrorOutput> {
+) -> Result<BasicErrorOutput> {
     #[derive(Deserialize, Debug)]
     struct Input {
         locales: Vec<String>,
@@ -34,13 +34,13 @@ pub async fn special_error_missing_site_slug(
 
     let Input { locales, site_slug } = params.parse()?;
     let locales = parse_locales(&locales)?;
-    SpecialErrorService::missing_site_slug(ctx, &locales, &site_slug).await
+    BasicErrorService::missing_site_slug(ctx, &locales, &site_slug).await
 }
 
-pub async fn special_error_missing_custom_domain(
+pub async fn basic_error_missing_custom_domain(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<SpecialErrorOutput> {
+) -> Result<BasicErrorOutput> {
     #[derive(Deserialize, Debug)]
     struct Input {
         locales: Vec<String>,
@@ -49,13 +49,13 @@ pub async fn special_error_missing_custom_domain(
 
     let Input { locales, domain } = params.parse()?;
     let locales = parse_locales(&locales)?;
-    SpecialErrorService::missing_custom_domain(ctx, &locales, &domain).await
+    BasicErrorService::missing_custom_domain(ctx, &locales, &domain).await
 }
 
-pub async fn special_error_missing_page_slug(
+pub async fn basic_error_missing_page_slug(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<SpecialErrorOutput> {
+) -> Result<BasicErrorOutput> {
     #[derive(Deserialize, Debug)]
     struct Input {
         locales: Vec<String>,
@@ -70,13 +70,13 @@ pub async fn special_error_missing_page_slug(
     } = params.parse()?;
 
     let locales = parse_locales(&locales)?;
-    SpecialErrorService::missing_page_slug(ctx, &locales, site_id, &page_slug).await
+    BasicErrorService::missing_page_slug(ctx, &locales, site_id, &page_slug).await
 }
 
-pub async fn special_error_page_fetch(
+pub async fn basic_error_page_fetch(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<SpecialErrorOutput> {
+) -> Result<BasicErrorOutput> {
     #[derive(Deserialize, Debug)]
     struct Input {
         locales: Vec<String>,
@@ -91,13 +91,13 @@ pub async fn special_error_page_fetch(
     } = params.parse()?;
 
     let locales = parse_locales(&locales)?;
-    SpecialErrorService::page_fetch(ctx, &locales, site_id, &page_slug).await
+    BasicErrorService::page_fetch(ctx, &locales, site_id, &page_slug).await
 }
 
-pub async fn special_error_missing_file_name(
+pub async fn basic_error_missing_file_name(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<SpecialErrorOutput> {
+) -> Result<BasicErrorOutput> {
     #[derive(Deserialize, Debug)]
     struct Input {
         locales: Vec<String>,
@@ -114,14 +114,14 @@ pub async fn special_error_missing_file_name(
     } = params.parse()?;
 
     let locales = parse_locales(&locales)?;
-    SpecialErrorService::missing_file_name(ctx, &locales, site_id, &page_slug, &filename)
+    BasicErrorService::missing_file_name(ctx, &locales, site_id, &page_slug, &filename)
         .await
 }
 
-pub async fn special_error_file_fetch(
+pub async fn basic_error_file_fetch(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<SpecialErrorOutput> {
+) -> Result<BasicErrorOutput> {
     #[derive(Deserialize, Debug)]
     struct Input {
         locales: Vec<String>,
@@ -138,13 +138,13 @@ pub async fn special_error_file_fetch(
     } = params.parse()?;
 
     let locales = parse_locales(&locales)?;
-    SpecialErrorService::file_fetch(ctx, &locales, site_id, &page_slug, &filename).await
+    BasicErrorService::file_fetch(ctx, &locales, site_id, &page_slug, &filename).await
 }
 
-pub async fn special_error_text_block(
+pub async fn basic_error_text_block(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<SpecialErrorOutput> {
+) -> Result<BasicErrorOutput> {
     #[derive(Deserialize, Debug)]
     struct Input {
         locales: Vec<String>,
@@ -164,14 +164,14 @@ pub async fn special_error_text_block(
 
     let locales = parse_locales(&locales)?;
 
-    SpecialErrorService::text_block(ctx, &locales, site_id, &index, &block_type, &reason)
+    BasicErrorService::text_block(ctx, &locales, site_id, &index, &block_type, &reason)
         .await
 }
 
-pub async fn special_error_file_root(
+pub async fn basic_error_file_root(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<SpecialErrorOutput> {
+) -> Result<BasicErrorOutput> {
     #[derive(Deserialize, Debug)]
     struct Input {
         locales: Vec<String>,
@@ -179,5 +179,5 @@ pub async fn special_error_file_root(
 
     let Input { locales } = params.parse()?;
     let locales = parse_locales(&locales)?;
-    SpecialErrorService::file_root(ctx, &locales).await
+    BasicErrorService::file_root(ctx, &locales).await
 }

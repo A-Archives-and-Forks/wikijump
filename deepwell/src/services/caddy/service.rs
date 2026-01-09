@@ -300,8 +300,8 @@ www.{domain} {{
 
 {files_domain_no_dot} {{
 	import strip_headers
-	request_header X-Wikijump-Special-Error 1
-	rewrite * /-/special-error/file-root
+	request_header X-Wikijump-Basic-Error 1
+	rewrite * /-/basic-error/file-root
 	reverse_proxy {wws_host}
 }}
 
@@ -342,17 +342,17 @@ www.{domain} {{
 # Missing canonical domain
 *{main_domain} {{
 	import strip_headers
-	request_header X-Wikijump-Special-Error 1
+	request_header X-Wikijump-Basic-Error 1
 	request_header X-Wikijump-Site-Slug {{labels.{}}}
-	rewrite * /-/special-error/site-slug
+	rewrite * /-/basic-error/site-slug
 	reverse_proxy {wws_host}
 }}
 
 # Missing custom domain
 {} {{
 	import strip_headers
-	request_header X-Wikijump-Special-Error 1
-	rewrite * /-/special-error/site-custom
+	request_header X-Wikijump-Basic-Error 1
+	rewrite * /-/basic-error/site-custom
 	reverse_proxy {wws_host}
 }}",
             site_slug_split_index(main_domain),

@@ -1,5 +1,5 @@
 /*
- * handler/special_error.rs
+ * handler/basic_error.rs
  *
  * Wilson's Web Server - Serves a zoo of user-generated content
  * Copyright (C) 2019-2025 Wikijump Team
@@ -19,11 +19,11 @@
  */
 
 use super::{
-    HEADER_FILENAME, HEADER_PAGE_SLUG, HEADER_SPECIAL_ERROR, get_header, get_site_id,
+    HEADER_BASIC_ERROR, HEADER_FILENAME, HEADER_PAGE_SLUG, get_header, get_site_id,
     get_site_slug,
 };
 use crate::{
-    error::{FallbackError, SpecialError, build_special_error_response},
+    error::{BasicError, FallbackError, build_basic_error_response},
     state::ServerState,
 };
 use axum::{
@@ -52,31 +52,31 @@ fn get_filename(headers: &HeaderMap) -> &str {
     )
 }
 
-pub async fn handle_special_error(
+pub async fn handle_basic_error(
     State(state): State<ServerState>,
     TypedHeader(host_info): TypedHeader<Host>,
     Path(error_code): Path<String>,
     headers: HeaderMap,
 ) -> Response {
-    info!(error_code = error_code, "Returning special error response");
+    info!(error_code = error_code, "Returning basic error response");
 
     // This header can only be set internally, so let's check it before
     // returning any error information.
-    if headers.get(HEADER_SPECIAL_ERROR).is_none() {
+    if headers.get(HEADER_BASIC_ERROR).is_none() {
         // XF-1002
-        return FallbackError::SpecialErrorDirect.into_response();
+        return FallbackError::BasicErrorDirect.into_response();
     }
 
-    // Build the appropriate SpecialError enum case
+    // Build the appropriate BasicError enum case
     let input = match error_code.as_str() {
         // Required headers:
         // - x-wikijump-site-slug
         "site-slug" => {
             let site_slug = get_site_slug(&headers);
-            SpecialError::SiteSlug { site_slug }
+            BasicError::SiteSlug { site_slug }
         }
         // No required headers
-        "site-custom" => SpecialError::SiteCustom {
+        "site-custom" => BasicError::SiteCustom {
             host: host_info.hostname(),
         },
         // Required headers:
@@ -84,14 +84,14 @@ pub async fn handle_special_error(
         "page-slug" => {
             let site_id = get_site_id(&headers);
             let page_slug = get_page_slug(&headers);
-            SpecialError::PageSlug { site_id, page_slug }
+            BasicError::PageSlug { site_id, page_slug }
         }
         // Required headers:
         // - x-wikijump-page-slug
         "page-fetch" => {
             let site_id = get_site_id(&headers);
             let page_slug = get_page_slug(&headers);
-            SpecialError::PageFetch { site_id, page_slug }
+            BasicError::PageFetch { site_id, page_slug }
         }
         // Required headers:
         // - x-wikijump-page-slug
@@ -100,7 +100,7 @@ pub async fn handle_special_error(
             let site_id = get_site_id(&headers);
             let page_slug = get_page_slug(&headers);
             let filename = get_filename(&headers);
-            SpecialError::FileName {
+            BasicError::FileName {
                 site_id,
                 page_slug,
                 filename,
@@ -113,21 +113,21 @@ pub async fn handle_special_error(
             let site_id = get_site_id(&headers);
             let page_slug = get_page_slug(&headers);
             let filename = get_filename(&headers);
-            SpecialError::FileFetch {
+            BasicError::FileFetch {
                 site_id,
                 page_slug,
                 filename,
             }
         }
         // No required headers
-        "file-root" => SpecialError::FileRoot,
+        "file-root" => BasicError::FileRoot,
         // Invalid
         _ => {
             // XF-1000
-            error!("Invalid special error code: {error_code}");
-            return FallbackError::SpecialErrorCode.into_response();
+            error!("Invalid basic error code: {error_code}");
+            return FallbackError::BasicErrorCode.into_response();
         }
     };
 
-    build_special_error_response(&state, &headers, input).await
+    build_basic_error_response(&state, &headers, input).await
 }
