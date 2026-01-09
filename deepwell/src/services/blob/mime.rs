@@ -84,16 +84,16 @@ impl MimeAnalyzer {
     ///
     /// Runs in a dedicated thread due to borrow checker issues, taking in
     /// requests via a mpsc channel.
+    ///
+    /// When this loop ends, it means the channel has closed.
+    /// This should only happen when the application as a whole is shutting
+    /// down (whether from crash or normal exit).
     fn main_loop(magic: Magic, mut source: RequestReceiver) {
         while let Some((bytes, sender)) = source.blocking_recv() {
             debug!("Received MIME request ({} bytes)", bytes.len());
             let result = magic.buffer(&bytes);
             sender.send(result).expect("Response channel is closed");
         }
-
-        panic!(
-            "MIME magic channel closed (this usually happens when the main application crashes)"
-        );
     }
 
     /// Requests that libmagic analyze the buffer to determine its MIME type.
