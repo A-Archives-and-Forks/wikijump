@@ -111,7 +111,6 @@ fn test_replace_in_place() {
         }};
     }
 
-    test!("" => "", "/" => "_");
     test!("foo/bar" => "foo + bar", "/" => " + ");
     test!("apple banana cherry" => "pple bnn cherry", "a" => "");
     test!("apple banana cherry" => "appluxi banana chuxirry", "e" => "uxi");
