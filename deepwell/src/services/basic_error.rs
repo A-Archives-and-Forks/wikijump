@@ -1,5 +1,5 @@
 /*
- * services/special_error.rs
+ * services/basic_error.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
  * Copyright (C) 2019-2025 Wikijump Team
@@ -18,11 +18,19 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-//! The "special error" service.
+//! The "basic error" service.
 //!
-//! This produces localized HTML pages that correspond
-//! to different special error conditions, such as a
-//! missing site or unknown custom domain.
+//! This produces localized HTML output which corresponds
+//! to a particular "basic" error condition.
+//!
+//! A basic error is a low-level error state which occurs
+//! when something fundamental about a web request is wrong.
+//!
+//! Normally, error pages source their text from templates
+//! like `_404`, but if the site referenced does not even exist,
+//! or the request is to something unexpected like the root of
+//! `wjfiles.com`, or the site has no template for a missing pages,
+//! then a more "basic" error needs to be returned.
 
 use super::prelude::*;
 use crate::services::{DomainService, SiteService};
@@ -32,21 +40,21 @@ use serde::Deserialize;
 use unic_langid::LanguageIdentifier;
 
 #[derive(Serialize, Debug, Clone)]
-pub struct SpecialErrorOutput {
+pub struct BasicErrorOutput {
     pub title: String,
     pub body: String,
 }
 
 #[derive(Debug)]
-pub struct SpecialErrorService;
+pub struct BasicErrorService;
 
-impl SpecialErrorService {
+impl BasicErrorService {
     /// Error for when a canonical site does not exist.
     pub async fn missing_site_slug(
         ctx: &ServiceContext<'_>,
         locales: &[LanguageIdentifier],
         site_slug: &str,
-    ) -> Result<SpecialErrorOutput> {
+    ) -> Result<BasicErrorOutput> {
         assert!(!locales.is_empty(), "No languages specified");
         let config = ctx.config();
         let mut args = FluentArgs::new();
@@ -56,15 +64,15 @@ impl SpecialErrorService {
 
         let title = ctx.localization().translate(
             locales,
-            "special-error-site-slug.title",
+            "basic-error-site-slug.title",
             &args,
         )?;
 
         let body =
             ctx.localization()
-                .translate(locales, "special-error-site-slug", &args)?;
+                .translate(locales, "basic-error-site-slug", &args)?;
 
-        Ok(SpecialErrorOutput {
+        Ok(BasicErrorOutput {
             title: title.to_string(),
             body: body.to_string(),
         })
@@ -75,7 +83,7 @@ impl SpecialErrorService {
         ctx: &ServiceContext<'_>,
         locales: &[LanguageIdentifier],
         domain: &str,
-    ) -> Result<SpecialErrorOutput> {
+    ) -> Result<BasicErrorOutput> {
         assert!(!locales.is_empty(), "No languages specified");
         let config = ctx.config();
         let mut args = FluentArgs::new();
@@ -85,15 +93,15 @@ impl SpecialErrorService {
 
         let title = ctx.localization().translate(
             locales,
-            "special-error-site-custom.title",
+            "basic-error-site-custom.title",
             &args,
         )?;
 
         let body =
             ctx.localization()
-                .translate(locales, "special-error-site-custom", &args)?;
+                .translate(locales, "basic-error-site-custom", &args)?;
 
-        Ok(SpecialErrorOutput {
+        Ok(BasicErrorOutput {
             title: title.to_string(),
             body: body.to_string(),
         })
@@ -111,7 +119,7 @@ impl SpecialErrorService {
         locales: &[LanguageIdentifier],
         site_id: i64,
         page_slug: &str,
-    ) -> Result<SpecialErrorOutput> {
+    ) -> Result<BasicErrorOutput> {
         assert!(!locales.is_empty(), "No languages specified");
         let config = ctx.config();
         let mut args = FluentArgs::new();
@@ -122,15 +130,15 @@ impl SpecialErrorService {
 
         let title = ctx.localization().translate(
             locales,
-            "special-error-page-slug.title",
+            "basic-error-page-slug.title",
             &args,
         )?;
 
         let body =
             ctx.localization()
-                .translate(locales, "special-error-page-slug", &args)?;
+                .translate(locales, "basic-error-page-slug", &args)?;
 
-        Ok(SpecialErrorOutput {
+        Ok(BasicErrorOutput {
             title: title.to_string(),
             body: body.to_string(),
         })
@@ -144,7 +152,7 @@ impl SpecialErrorService {
         locales: &[LanguageIdentifier],
         site_id: i64,
         page_slug: &str,
-    ) -> Result<SpecialErrorOutput> {
+    ) -> Result<BasicErrorOutput> {
         assert!(!locales.is_empty(), "No languages specified");
         let config = ctx.config();
         let mut args = FluentArgs::new();
@@ -155,15 +163,15 @@ impl SpecialErrorService {
 
         let title = ctx.localization().translate(
             locales,
-            "special-error-page-fetch.title",
+            "basic-error-page-fetch.title",
             &args,
         )?;
 
         let body =
             ctx.localization()
-                .translate(locales, "special-error-page-fetch", &args)?;
+                .translate(locales, "basic-error-page-fetch", &args)?;
 
-        Ok(SpecialErrorOutput {
+        Ok(BasicErrorOutput {
             title: title.to_string(),
             body: body.to_string(),
         })
@@ -176,7 +184,7 @@ impl SpecialErrorService {
         site_id: i64,
         page_slug: &str,
         filename: &str,
-    ) -> Result<SpecialErrorOutput> {
+    ) -> Result<BasicErrorOutput> {
         assert!(!locales.is_empty(), "No languages specified");
         let config = ctx.config();
         let mut args = FluentArgs::new();
@@ -188,15 +196,15 @@ impl SpecialErrorService {
 
         let title = ctx.localization().translate(
             locales,
-            "special-error-file-name.title",
+            "basic-error-file-name.title",
             &args,
         )?;
 
         let body =
             ctx.localization()
-                .translate(locales, "special-error-file-name", &args)?;
+                .translate(locales, "basic-error-file-name", &args)?;
 
-        Ok(SpecialErrorOutput {
+        Ok(BasicErrorOutput {
             title: title.to_string(),
             body: body.to_string(),
         })
@@ -208,7 +216,7 @@ impl SpecialErrorService {
         site_id: i64,
         page_slug: &str,
         filename: &str,
-    ) -> Result<SpecialErrorOutput> {
+    ) -> Result<BasicErrorOutput> {
         assert!(!locales.is_empty(), "No languages specified");
         let config = ctx.config();
         let mut args = FluentArgs::new();
@@ -220,15 +228,15 @@ impl SpecialErrorService {
 
         let title = ctx.localization().translate(
             locales,
-            "special-error-file-fetch.title",
+            "basic-error-file-fetch.title",
             &args,
         )?;
 
         let body =
             ctx.localization()
-                .translate(locales, "special-error-file-fetch", &args)?;
+                .translate(locales, "basic-error-file-fetch", &args)?;
 
-        Ok(SpecialErrorOutput {
+        Ok(BasicErrorOutput {
             title: title.to_string(),
             body: body.to_string(),
         })
@@ -242,7 +250,7 @@ impl SpecialErrorService {
         index: &str,
         block_type: &str,
         reason: &str,
-    ) -> Result<SpecialErrorOutput> {
+    ) -> Result<BasicErrorOutput> {
         assert!(!locales.is_empty(), "No languages specified");
         let config = ctx.config();
         let mut args = FluentArgs::new();
@@ -255,15 +263,15 @@ impl SpecialErrorService {
 
         let title = ctx.localization().translate(
             locales,
-            "special-error-text-block.title",
+            "basic-error-text-block.title",
             &args,
         )?;
 
         let body =
             ctx.localization()
-                .translate(locales, "special-error-text-block", &args)?;
+                .translate(locales, "basic-error-text-block", &args)?;
 
-        Ok(SpecialErrorOutput {
+        Ok(BasicErrorOutput {
             title: title.to_string(),
             body: body.to_string(),
         })
@@ -273,7 +281,7 @@ impl SpecialErrorService {
     pub async fn file_root(
         ctx: &ServiceContext<'_>,
         locales: &[LanguageIdentifier],
-    ) -> Result<SpecialErrorOutput> {
+    ) -> Result<BasicErrorOutput> {
         assert!(!locales.is_empty(), "No languages specified");
         let config = ctx.config();
         let mut args = FluentArgs::new();
@@ -282,15 +290,15 @@ impl SpecialErrorService {
 
         let title = ctx.localization().translate(
             locales,
-            "special-error-file-root.title",
+            "basic-error-file-root.title",
             &args,
         )?;
 
         let body =
             ctx.localization()
-                .translate(locales, "special-error-file-root", &args)?;
+                .translate(locales, "basic-error-file-root", &args)?;
 
-        Ok(SpecialErrorOutput {
+        Ok(BasicErrorOutput {
             title: title.to_string(),
             body: body.to_string(),
         })

@@ -43,6 +43,7 @@ mod prelude {
 }
 
 pub mod auth;
+pub mod basic_error;
 pub mod blob;
 pub mod category;
 pub mod domain;
@@ -61,7 +62,6 @@ pub mod parent;
 pub mod routing;
 pub mod site;
 pub mod site_member;
-pub mod special_error;
 pub mod text;
 pub mod text_block;
 pub mod user;

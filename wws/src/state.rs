@@ -23,7 +23,7 @@ use crate::{
     config::Secrets,
     deepwell::{Deepwell, FileData, PageData},
     error::{
-        FallbackError, ResponseResult, Result, SpecialError, build_special_error_response,
+        BasicError, FallbackError, ResponseResult, Result, build_basic_error_response,
     },
 };
 use axum::{http::HeaderMap, response::IntoResponse};
@@ -153,10 +153,10 @@ impl ServerStateInner {
                     "Cannot complete request, no such page",
                 );
 
-                let response = build_special_error_response(
+                let response = build_basic_error_response(
                     self,
                     headers,
-                    SpecialError::PageSlug { site_id, page_slug },
+                    BasicError::PageSlug { site_id, page_slug },
                 )
                 .await;
 
@@ -169,10 +169,10 @@ impl ServerStateInner {
                     "Cannot get page info: {error}",
                 );
 
-                let response = build_special_error_response(
+                let response = build_basic_error_response(
                     self,
                     headers,
-                    SpecialError::PageFetch { site_id, page_slug },
+                    BasicError::PageFetch { site_id, page_slug },
                 )
                 .await;
 
@@ -220,10 +220,10 @@ impl ServerStateInner {
                     "Cannot complete request, none with filename",
                 );
 
-                let response = build_special_error_response(
+                let response = build_basic_error_response(
                     self,
                     headers,
-                    SpecialError::FileName {
+                    BasicError::FileName {
                         site_id,
                         page_slug,
                         filename,
@@ -241,10 +241,10 @@ impl ServerStateInner {
                     "Cannot get file info: {error}",
                 );
 
-                let response = build_special_error_response(
+                let response = build_basic_error_response(
                     self,
                     headers,
-                    SpecialError::FileFetch {
+                    BasicError::FileFetch {
                         site_id,
                         page_slug,
                         filename,

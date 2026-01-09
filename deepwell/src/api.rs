@@ -28,10 +28,10 @@
 
 use crate::config::{Config, Secrets};
 use crate::endpoints::{
-    auth::*, blob::*, category::*, domain::*, email::*, file::*, file_revision::*,
-    info::*, link::*, locale::*, message::*, misc::*, page::*, page_attribution::*,
-    page_revision::*, parent::*, routing::*, site::*, site_member::*, special_error::*,
-    text::*, text_block::*, user::*, user_bot::*, view::*, vote::*,
+    auth::*, basic_error::*, blob::*, category::*, domain::*, email::*, file::*,
+    file_revision::*, info::*, link::*, locale::*, message::*, misc::*, page::*,
+    page_attribution::*, page_revision::*, parent::*, routing::*, site::*,
+    site_member::*, text::*, text_block::*, user::*, user_bot::*, view::*, vote::*,
 };
 use crate::locales::Localizations;
 use crate::services::blob::MimeAnalyzer;
@@ -215,27 +215,27 @@ async fn build_module(app_state: ServerState) -> anyhow::Result<RpcModule<Server
     register!("user_view", user_view);
     register!("admin_view", admin_view);
 
-    // Special errors
+    // Basic errors
     register!(
-        "special_error_missing_site_slug",
-        special_error_missing_site_slug,
+        "basic_error_missing_site_slug",
+        basic_error_missing_site_slug,
     );
     register!(
-        "special_error_missing_custom_domain",
-        special_error_missing_custom_domain,
+        "basic_error_missing_custom_domain",
+        basic_error_missing_custom_domain,
     );
     register!(
-        "special_error_missing_page_slug",
-        special_error_missing_page_slug,
+        "basic_error_missing_page_slug",
+        basic_error_missing_page_slug,
     );
-    register!("special_error_page_fetch", special_error_page_fetch);
+    register!("basic_error_page_fetch", basic_error_page_fetch);
     register!(
-        "special_error_missing_file_name",
-        special_error_missing_file_name,
+        "basic_error_missing_file_name",
+        basic_error_missing_file_name,
     );
-    register!("special_error_file_fetch", special_error_file_fetch);
-    register!("special_error_text_block", special_error_text_block);
-    register!("special_error_file_root", special_error_file_root);
+    register!("basic_error_file_fetch", basic_error_file_fetch);
+    register!("basic_error_text_block", basic_error_text_block);
+    register!("basic_error_file_root", basic_error_file_root);
 
     // Authentication
     register!("login", auth_login);

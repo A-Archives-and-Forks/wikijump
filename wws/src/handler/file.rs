@@ -21,7 +21,7 @@
 use super::get_site_id;
 use crate::{
     deepwell::FileData,
-    error::{ResponseResult, SpecialError, build_special_error_response},
+    error::{BasicError, ResponseResult, build_basic_error_response},
     state::ServerState,
 };
 use axum::{
@@ -81,10 +81,10 @@ async fn fetch_file(
                 "Cannot get blob data: {error}",
             );
 
-            let response = build_special_error_response(
+            let response = build_basic_error_response(
                 state,
                 headers,
-                SpecialError::FileFetch {
+                BasicError::FileFetch {
                     site_id,
                     page_slug,
                     filename,

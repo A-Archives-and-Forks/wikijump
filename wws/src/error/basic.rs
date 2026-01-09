@@ -1,5 +1,5 @@
 /*
- * error/special.rs
+ * error/basic.rs
  *
  * Wilson's Web Server - Serves a zoo of user-generated content
  * Copyright (C) 2019-2025 Wikijump Team
@@ -18,6 +18,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+//! See the `BasicErrorService` in DEEPWELL for information.
+
 use crate::{
     deepwell::TextBlockType, error::FallbackError, language::parse_accept_language,
     state::ServerStateInner,
@@ -32,10 +34,10 @@ use axum::{
 };
 use paste::paste;
 
-pub use crate::deepwell::SpecialErrorHtml;
+pub use crate::deepwell::BasicErrorHtml;
 
 #[derive(Debug, Copy, Clone)]
-pub enum SpecialError<'a> {
+pub enum BasicError<'a> {
     SiteSlug {
         site_slug: &'a str,
     },
@@ -70,7 +72,7 @@ pub enum SpecialError<'a> {
 }
 
 #[derive(Debug)]
-pub struct SpecialErrorOutput {
+pub struct BasicErrorOutput {
     pub title: String,
     pub body: String,
     pub status: StatusCode,
@@ -100,12 +102,12 @@ impl TextBlockErrorReason {
     }
 }
 
-pub async fn build_special_error_response(
+pub async fn build_basic_error_response(
     // NOTE: We need to accept the inner struct specifically here, since there are
     //       some places in state.rs itself where we need to call this function.
     state: &ServerStateInner,
     headers: &HeaderMap,
-    special_error: SpecialError<'_>,
+    basic_error: BasicError<'_>,
 ) -> Response {
     // Get a list of preferred locales from the Accept-Language header.
     let locales = parse_accept_language(headers);
@@ -121,58 +123,58 @@ pub async fn build_special_error_response(
         };
         ($method:ident, $($arg:expr),* ; $status_code:expr $(,)?) => {{
             paste! {
-                let result = state.deepwell.[<special_error_ $method>](&locales, $($arg),*).await;
+                let result = state.deepwell.[<basic_error_ $method>](&locales, $($arg),*).await;
             }
 
             match result {
-                Ok(SpecialErrorHtml { title, body }) => {
-                    SpecialErrorOutput { title, body, status: $status_code }
+                Ok(BasicErrorHtml { title, body }) => {
+                    BasicErrorOutput { title, body, status: $status_code }
                 }
                 Err(error) => {
                     // XF-1001
                     error!(
-                        "Unable to get special error for {}: {}",
+                        "Unable to get basic error for {}: {}",
                         stringify!($method),
                         error,
                     );
-                    return FallbackError::SpecialErrorFetch.into_response();
+                    return FallbackError::BasicErrorFetch.into_response();
                 }
             }
         }};
     }
 
-    let SpecialErrorOutput {
+    let BasicErrorOutput {
         title,
         body,
         status,
-    } = match special_error {
-        SpecialError::SiteSlug { site_slug } => {
+    } = match basic_error {
+        BasicError::SiteSlug { site_slug } => {
             deepwell_fetch!(missing_site_slug, site_slug => NOT_FOUND)
         }
-        SpecialError::SiteCustom { host } => {
+        BasicError::SiteCustom { host } => {
             deepwell_fetch!(missing_custom_domain, host => NOT_FOUND)
         }
-        SpecialError::PageSlug { site_id, page_slug } => {
+        BasicError::PageSlug { site_id, page_slug } => {
             deepwell_fetch!(missing_page_slug, site_id, page_slug => NOT_FOUND)
         }
-        SpecialError::PageFetch { site_id, page_slug } => {
+        BasicError::PageFetch { site_id, page_slug } => {
             deepwell_fetch!(page_fetch, site_id, page_slug => INTERNAL_SERVER_ERROR)
         }
-        SpecialError::FileName {
+        BasicError::FileName {
             site_id,
             page_slug,
             filename,
         } => {
             deepwell_fetch!(missing_file_name, site_id, page_slug, filename => NOT_FOUND)
         }
-        SpecialError::FileFetch {
+        BasicError::FileFetch {
             site_id,
             page_slug,
             filename,
         } => {
             deepwell_fetch!(file_fetch, site_id, page_slug, filename => INTERNAL_SERVER_ERROR)
         }
-        SpecialError::TextBlock {
+        BasicError::TextBlock {
             site_id,
             index,
             block_type,
@@ -186,7 +188,7 @@ pub async fn build_special_error_response(
 
             deepwell_fetch!(text_block, site_id, index, block_type, reason; status_code)
         }
-        SpecialError::FileRoot => {
+        BasicError::FileRoot => {
             deepwell_fetch!(file_root => BAD_REQUEST)
         }
     };

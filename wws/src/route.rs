@@ -76,8 +76,8 @@ pub fn build_router(state: ServerState) -> Router {
         .route("/-/html/{page_slug}/{id}", any(handle_invalid_method))
         // System routes
         .route("/-/health-check", any(handle_health_check))
-        .route("/-/special-error/{error_code}", get(handle_special_error))
-        .route("/-/special-error/{error_code}", any(handle_invalid_method))
+        .route("/-/basic-error/{error_code}", get(handle_basic_error))
+        .route("/-/basic-error/{error_code}", any(handle_invalid_method))
         // General routes
         .route("/robots.txt", get(handle_robots_txt)) // TODO
         .route("/.well-known", any(handle_well_known)) // TODO
