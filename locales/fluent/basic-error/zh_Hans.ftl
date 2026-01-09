@@ -1,4 +1,4 @@
-### 根源错误 HTML 模板
+### 基本错误 HTML 模板
 
 basic-error-site-slug = <h1>该网址不存在 { -service-name } 站点。</h1>
     <p>
