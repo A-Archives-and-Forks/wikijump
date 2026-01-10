@@ -35,6 +35,7 @@ use crate::models::page_revision::Model as PageRevisionModel;
 use crate::models::site::Model as SiteModel;
 use crate::services::relation::{GetPageAttributions, PageAttribution, RelationService};
 use crate::services::render::RenderOutput;
+use crate::services::settings::{NavigationPageHtml, SettingsService};
 use crate::services::special_page::{GetSpecialPageOutput, SpecialPageType};
 use crate::services::{
     CategoryService, DomainService, PageRevisionService, PageService, SessionService,
@@ -267,6 +268,8 @@ impl ViewService {
 
                     let compiled_top_bar_html = todo!();
                     let compiled_side_bar_html = todo!();
+                    let category_id =
+                        Self::get_category_id(ctx, site_id, category_slug).await?;
 
                     PageReturn {
                         page_status,
@@ -303,6 +306,11 @@ impl ViewService {
 
                 let category_id =
                     Self::get_category_id(ctx, site_id, category_slug).await?;
+
+                let NavigationPageHtml {
+                    compiled_top_bar_html,
+                    compiled_side_bar_html,
+                } = SettingsService::get_nav_page_html(ctx, site_id, category_id).await?;
 
                 PageReturn {
                     page_status: PageStatus::Missing,
