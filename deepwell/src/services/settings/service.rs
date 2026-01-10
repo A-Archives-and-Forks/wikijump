@@ -112,7 +112,8 @@ impl SettingsService {
     /// Get the current page wikitexts for the current navigation pages.
     ///
     /// This is essentially a convenience method for `get_nav_page_slugs()`
-    /// to also fetch the page wikitext values as well.
+    /// to also fetch the page wikitext values as well. It is used in
+    /// `RenderService` to produce the compiled nav HTML columns for storage.
     pub async fn get_nav_page_wikitext(
         ctx: &ServiceContext<'_>,
         site_id: i64,
