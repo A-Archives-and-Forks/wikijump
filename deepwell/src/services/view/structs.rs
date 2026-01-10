@@ -55,10 +55,14 @@ pub struct PageRoute {
     pub extra: String,
 }
 
-// See also framerail src/lib/server/load/page.ts and src/routes/+error.svelte
-//
-// Note that compiled_xxx_bar_html is Option because None means that this page
-// does not have that nav bar / it is disabled in this context.
+/// Yield information for a page view, depending on the status of the page.
+/// For instance, if a page is missing, there is no revision data but we do
+/// still need to display the "this page doesn't exist" content.
+///
+/// See also framerail src/lib/server/load/page.ts and src/routes/+error.svelte
+///
+/// Note that compiled_xxx_bar_html is Option because None means that this page
+/// does not have that nav bar / it is disabled in this context.
 #[derive(Serialize, Debug, Clone)]
 #[serde(rename_all = "snake_case", tag = "type", content = "data")]
 pub enum GetPageViewOutput {
