@@ -56,6 +56,9 @@ pub struct PageRoute {
 }
 
 // See also framerail src/lib/server/load/page.ts and src/routes/+error.svelte
+//
+// Note that compiled_xxx_bar_html is Option because None means that this page
+// does not have that nav bar / it is disabled in this context.
 #[derive(Serialize, Debug, Clone)]
 #[serde(rename_all = "snake_case", tag = "type", content = "data")]
 pub enum GetPageViewOutput {
