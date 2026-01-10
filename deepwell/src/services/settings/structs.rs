@@ -55,3 +55,10 @@ pub struct NavigationPageWikitext {
     pub top_bar_page_wikitext: Option<String>,
     pub side_bar_page_wikitext: Option<String>,
 }
+
+/// Contains the page rendered HTML for the navigation pages for a category.
+#[derive(Debug)]
+pub struct NavigationPageHtml {
+    pub compiled_top_bar_html: Option<String>,
+    pub compiled_side_bar_html: Option<String>,
+}

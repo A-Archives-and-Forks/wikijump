@@ -153,4 +153,49 @@ impl SettingsService {
             side_bar_page_wikitext,
         })
     }
+
+    /// Get the compiled page HTML for the current navigation pages.
+    ///
+    /// This is use to get nav page contents *only for missing or invalid pages*.
+    /// Any pages which exist have their own cached `compiled_xxx_bar_html_hash`
+    /// columns which can be used instead.
+    pub async fn get_nav_page_html(
+        ctx: &ServiceContext<'_>,
+        site_id: i64,
+        category_id: Option<i64>,
+    ) -> Result<NavigationPageHtml> {
+        let NavigationPageSlugs {
+            top_bar_page,
+            side_bar_page,
+        } = Self::get_nav_page_slugs(ctx, site_id, category_id).await?;
+
+        // Helper function, like above
+        async fn get_html(
+            ctx: &ServiceContext<'_>,
+            site_id: i64,
+            page: &NavigationPage,
+        ) -> Result<Option<String>> {
+            let page_slug = match page {
+                NavigationPage::Enabled(page_slug) => page_slug,
+                NavigationPage::Disabled => return Ok(None),
+            };
+
+            PageRevisionService::get_compiled_html_optional(
+                ctx,
+                site_id,
+                Reference::Slug(cow!(page_slug)),
+            )
+            .await
+        }
+
+        let (compiled_top_bar_html, compiled_side_bar_html) = try_join!(
+            get_html(ctx, site_id, &top_bar_page),
+            get_html(ctx, site_id, &side_bar_page),
+        )?;
+
+        Ok(NavigationPageHtml {
+            compiled_top_bar_html,
+            compiled_side_bar_html,
+        })
+    }
 }

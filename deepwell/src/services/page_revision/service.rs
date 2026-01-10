@@ -894,16 +894,12 @@ impl PageRevisionService {
         Ok(revision)
     }
 
-    /// Gets the wikitext from the latest revision of a page or null if it doesn't exist.
-    /// This is a specific helper method since it requires a join.
-    ///
-    /// NOTE: This accepts page slugs with an explicit `_default:` category, but
-    ///       does *not* handle non-normalized page slugs. In such a case, it
-    ///       won't find the appropriate page!
-    pub async fn get_wikitext_optional(
+    /// Internal method for getting a text column for the latest revision of a page.
+    async fn get_latest_text_optional(
         ctx: &ServiceContext<'_>,
         site_id: i64,
         reference: Reference<'_>,
+        text_column: page_revision::Column,
     ) -> Result<Option<String>> {
         let page_condition = match reference {
             Reference::Id(page_id) => page_revision::Column::PageId.eq(page_id),
@@ -913,11 +909,11 @@ impl PageRevisionService {
         };
 
         let txn = ctx.transaction();
-        let wikitext = Text::find()
+        let text = Text::find()
             .filter(
                 text::Column::Hash.in_subquery(
                     Query::select()
-                        .column(page_revision::Column::WikitextHash)
+                        .column(text_column)
                         .from(page_revision::Entity)
                         .and_where(page_revision::Column::SiteId.eq(site_id))
                         .and_where(page_condition)
@@ -929,7 +925,27 @@ impl PageRevisionService {
             .one(txn)
             .await?;
 
-        Ok(wikitext)
+        Ok(text)
+    }
+
+    /// Gets the wikitext from the latest revision of a page or null if it doesn't exist.
+    /// This is a specific helper method since it requires a join.
+    ///
+    /// NOTE: This accepts page slugs with an explicit `_default:` category, but
+    ///       does *not* handle non-normalized page slugs. In such a case, it
+    ///       won't find the appropriate page!
+    pub async fn get_wikitext_optional(
+        ctx: &ServiceContext<'_>,
+        site_id: i64,
+        reference: Reference<'_>,
+    ) -> Result<Option<String>> {
+        Self::get_latest_text_optional(
+            ctx,
+            site_id,
+            reference,
+            page_revision::Column::WikitextHash,
+        )
+        .await
     }
 
     /// Gets the wikitext from the latest revision of a page.
@@ -942,6 +958,38 @@ impl PageRevisionService {
     ) -> Result<String> {
         find_or_error!(
             Self::get_wikitext_optional(ctx, site_id, reference),
+            PageRevision,
+        )
+    }
+
+    /// Gets the compiled body HTML from the latest revision of a page.
+    /// This is a specific helper method since it requires a join.
+    ///
+    /// NOTE: The same caveats apply to this method as `get_wikitext_optional()`.
+    pub async fn get_compiled_html_optional(
+        ctx: &ServiceContext<'_>,
+        site_id: i64,
+        reference: Reference<'_>,
+    ) -> Result<Option<String>> {
+        Self::get_latest_text_optional(
+            ctx,
+            site_id,
+            reference,
+            page_revision::Column::CompiledBodyHtmlHash,
+        )
+        .await
+    }
+
+    /// Gets the compiled HTML from the latest revision of a page.
+    ///
+    /// This is the non-optional version of `get_compiled_html_optional()`.
+    pub async fn get_compiled_html(
+        ctx: &ServiceContext<'_>,
+        site_id: i64,
+        reference: Reference<'_>,
+    ) -> Result<String> {
+        find_or_error!(
+            Self::get_compiled_html_optional(ctx, site_id, reference),
             PageRevision,
         )
     }
