@@ -37,8 +37,8 @@ use crate::services::relation::{GetPageAttributions, PageAttribution, RelationSe
 use crate::services::render::RenderOutput;
 use crate::services::special_page::{GetSpecialPageOutput, SpecialPageType};
 use crate::services::{
-    DomainService, PageRevisionService, PageService, SessionService, SiteService,
-    SpecialPageService, TextService, UserService,
+    CategoryService, DomainService, PageRevisionService, PageService, SessionService,
+    SiteService, SpecialPageService, TextService, UserService,
 };
 use crate::types::{PageId, RerenderDepth};
 use crate::utils::{parse_locales, split_category};
@@ -301,8 +301,8 @@ impl ViewService {
                     ..
                 } = render_output;
 
-                let compiled_top_bar_html = todo!();
-                let compiled_side_bar_html = todo!();
+                let category_id =
+                    Self::get_category_id(ctx, site_id, category_slug).await?;
 
                 PageReturn {
                     page_status: PageStatus::Missing,
@@ -622,5 +622,30 @@ impl ViewService {
 
         // Return
         if slug == target { None } else { Some(target) }
+    }
+
+    /// If this category is specified and exists, get its ID.
+    ///
+    /// * `category_slug` is `None` → `None`.
+    /// * `category_slug` is `Some` but exists → `Some`.
+    /// * `category_slug` is `Some` but doesn't exist → `None`.
+    async fn get_category_id(
+        ctx: &ServiceContext<'_>,
+        site_id: i64,
+        category_slug: Option<&str>,
+    ) -> Result<Option<i64>> {
+        match category_slug {
+            Some(category_slug) => {
+                let category = CategoryService::get_optional(
+                    ctx,
+                    site_id,
+                    Reference::Slug(cow!(category_slug)),
+                )
+                .await?;
+
+                Ok(category.map(|cat| cat.category_id))
+            }
+            None => Ok(None),
+        }
     }
 }
