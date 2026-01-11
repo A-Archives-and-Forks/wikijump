@@ -956,6 +956,7 @@ impl PageRevisionService {
     /// Gets the wikitext from the latest revision of a page.
     ///
     /// This is the non-optional version of `get_wikitext()`.
+    #[allow(dead_code)] // TODO
     pub async fn get_wikitext(
         ctx: &ServiceContext<'_>,
         site_id: i64,
@@ -988,6 +989,7 @@ impl PageRevisionService {
     /// Gets the compiled HTML from the latest revision of a page.
     ///
     /// This is the non-optional version of `get_compiled_html_optional()`.
+    #[allow(dead_code)] // TODO
     pub async fn get_compiled_html(
         ctx: &ServiceContext<'_>,
         site_id: i64,
