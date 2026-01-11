@@ -266,10 +266,19 @@ impl ViewService {
                         ..
                     } = render_output;
 
-                    let compiled_top_bar_html = todo!();
-                    let compiled_side_bar_html = todo!();
-                    let category_id =
-                        Self::get_category_id(ctx, site_id, category_slug).await?;
+                    // Even though the page isn't visible to this user,
+                    // we display its nav pages since they're already
+                    // set up for us.
+                    let (compiled_top_bar_html, compiled_side_bar_html) = try_join!(
+                        TextService::get_option(
+                            ctx,
+                            &page_revision.compiled_top_bar_html_hash,
+                        ),
+                        TextService::get_option(
+                            ctx,
+                            &page_revision.compiled_side_bar_html_hash,
+                        ),
+                    )?;
 
                     PageReturn {
                         page_status,
