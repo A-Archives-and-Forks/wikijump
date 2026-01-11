@@ -102,7 +102,7 @@ impl PageRevisionService {
     ) -> Result<Option<CreatePageRevisionOutput>> {
         let PageId {
             site_id,
-            category_id,
+            category_id: _,
             page_id,
         } = id;
 
@@ -375,7 +375,7 @@ impl PageRevisionService {
         let txn = ctx.transaction();
         let PageId {
             site_id,
-            category_id,
+            category_id: _,
             page_id,
         } = id;
 

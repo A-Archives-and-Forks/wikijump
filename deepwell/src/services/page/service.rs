@@ -465,7 +465,7 @@ impl PageService {
         let txn = ctx.transaction();
         let PageId {
             site_id,
-            category_id,
+            category_id: _,
             page_id,
         } = id;
         let page = Self::get_direct(ctx, page_id, true).await?;
