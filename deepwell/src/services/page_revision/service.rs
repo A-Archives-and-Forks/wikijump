@@ -228,19 +228,24 @@ impl PageRevisionService {
             //
             // Since outdating depends on scope (see PageRevisionTasks),
             // we don't do that right after here.
-            //
-            // TODO: use html_output
-            let render_output =
-                Self::render_and_update_links(ctx, id, wikitext, render_input).await?;
+            let RenderPageOutput {
+                // TODO: use html_output
+                html_output: _,
+                errors,
+                compiled_body_html_hash: new_body_html_hash,
+                compiled_top_bar_html_hash: new_top_bar_html_hash,
+                compiled_side_bar_html_hash: new_side_bar_html_hash,
+                compiled_at: new_compiled_at,
+                compiled_generator: new_compiled_generator,
+            } = Self::render_and_update_links(ctx, id, wikitext, render_input).await?;
 
             // Update fields
-            parser_errors = Some(render_output.errors);
-            replace_hash(
-                &mut compiled_body_html_hash,
-                &render_output.compiled_body_html_hash,
-            );
-            compiled_generator = render_output.compiled_generator;
-            compiled_at = now();
+            parser_errors = Some(errors);
+            replace_hash(&mut compiled_body_html_hash, &new_body_html_hash);
+            replace_hash_opt(&mut compiled_top_bar_html_hash, new_top_bar_html_hash);
+            replace_hash_opt(&mut compiled_side_bar_html_hash, new_side_bar_html_hash);
+            compiled_generator = new_compiled_generator;
+            compiled_at = new_compiled_at;
         }
 
         // Perform outdating based on changes made.
