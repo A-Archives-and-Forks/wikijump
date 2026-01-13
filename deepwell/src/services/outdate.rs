@@ -146,9 +146,11 @@ impl OutdateService {
         page_slug: &str,
         depth: RerenderDepth,
     ) -> Result<()> {
+        let config = ctx.config();
+
         // If a template page has been updated,
         // we need to recompile everything in that category.
-        if page_slug == "_template" {
+        if page_slug == config.special_page_template {
             let category_select = if category_slug == "_default" {
                 // If the category is _default, we need to recompile everything.
                 // All other categories may inherit from _default.
