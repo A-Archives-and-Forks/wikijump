@@ -915,6 +915,8 @@ impl PageRevisionService {
 
         let txn = ctx.transaction();
         let text = Text::find()
+            .select_only()
+            .column(text::Column::Contents)
             .filter(
                 text::Column::Hash.in_subquery(
                     Query::select()
