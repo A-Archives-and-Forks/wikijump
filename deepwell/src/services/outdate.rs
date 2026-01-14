@@ -43,13 +43,8 @@ impl OutdateService {
 
         try_join!(
             Self::outdate_outgoing_includes(ctx, page_id, depth),
-            Self::outdate_templates(
-                ctx,
-                site_id,
-                category_slug,
-                page_slug,
-                depth,
-            ),
+            Self::outdate_templates(ctx, site_id, category_slug, page_slug, depth),
+            Self::outdate_nav_pages(ctx, site_id, slug, depth),
         )?;
 
         Ok(())
@@ -179,6 +174,45 @@ impl OutdateService {
             for page in pages {
                 Self::outdate(ctx, page.page_id, depth).await?;
             }
+        }
+
+        Ok(())
+    }
+
+    /// Determines if the page being updated is used as an nav page anywhere.
+    /// If so, all pages using this as a nav page are outdated.
+    pub async fn outdate_nav_pages(
+        ctx: &ServiceContext<'_>,
+        site_id: i64,
+        slug: &str,
+        depth: RerenderDepth,
+    ) -> Result<()> {
+        // If this is the nav page for the site, then outdate everything
+        // Nothing else needs to be done.
+        let site = SiteService::get(ctx, Reference::Id(site_id)).await?;
+        if site.top_bar_page == slug || site.side_bar_page == slug {
+            Self::outdate_site(ctx, site_id, depth).await?;
+            return Ok(());
+        }
+
+        // If this is the nav page for a category, then outdate all
+        // the pages in that category. Note that multiple categories
+        // can use the same nav pages.
+        let txn = ctx.transaction();
+        let category_ids = PageCategory::find()
+            .select_only()
+            .column(page_category::Column::CategoryId)
+            .filter(
+                Condition::any()
+                    .add(page_category::Column::TopBarPage.eq(slug))
+                    .add(page_category::Column::SideBarPage.eq(slug)),
+            )
+            .into_tuple()
+            .all(txn)
+            .await?;
+
+        for category_id in category_ids {
+            Self::outdate_category(ctx, site_id, category_id, depth).await?;
         }
 
         Ok(())
