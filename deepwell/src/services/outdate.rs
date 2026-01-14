@@ -235,4 +235,43 @@ impl OutdateService {
 
         Ok(())
     }
+
+    /// Outdates all pages in the given page category.
+    pub async fn outdate_category(
+        ctx: &ServiceContext<'_>,
+        site_id: i64,
+        category_id: i64,
+        depth: RerenderDepth,
+    ) -> Result<()> {
+        let txn = ctx.transaction();
+        let mut rows = Page::find()
+            .select_only()
+            .column(page::Column::PageId)
+            .filter(
+                Condition::all()
+                    .add(page::Column::SiteId.eq(site_id))
+                    .add(page::Column::PageCategoryId.eq(category_id))
+                    .add(page::Column::DeletedAt.is_null()),
+            )
+            .into_tuple()
+            .stream(txn)
+            .await?;
+
+        while let Some(row) = rows.next().await {
+            let page_id = row?;
+
+            JobService::queue_rerender_page(
+                ctx,
+                PageId {
+                    site_id,
+                    category_id,
+                    page_id,
+                },
+                depth.plus_one(),
+            )
+            .await?;
+        }
+
+        Ok(())
+    }
 }
