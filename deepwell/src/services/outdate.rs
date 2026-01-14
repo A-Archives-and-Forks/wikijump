@@ -19,10 +19,14 @@
  */
 
 use super::prelude::*;
-use crate::models::page::Model as PageModel;
-use crate::services::{JobService, LinkService, PageService};
+use crate::futures::StreamExt;
+use crate::models::page::{self, Entity as Page, Model as PageModel};
+use crate::models::page_category::{self, Entity as PageCategory};
+use crate::services::{JobService, LinkService, PageService, SiteService};
 use crate::types::{ConnectionType, PageId, PageOrder, RerenderDepth};
 use crate::utils::split_category_name;
+use ref_map::*;
+use sea_orm::FromQueryResult;
 
 #[derive(Debug)]
 pub struct OutdateService;
@@ -175,6 +179,58 @@ impl OutdateService {
             for page in pages {
                 Self::outdate(ctx, page.page_id, depth).await?;
             }
+        }
+
+        Ok(())
+    }
+
+    /// Outdates all pages on the given site.
+    pub async fn outdate_site(
+        ctx: &ServiceContext<'_>,
+        site_id: i64,
+        depth: RerenderDepth,
+    ) -> Result<()> {
+        info!("Outdating all pages on site ID {site_id}");
+
+        #[derive(FromQueryResult)]
+        struct Row {
+            site_id: i64,
+            page_category_id: i64,
+            page_id: i64,
+        }
+
+        let txn = ctx.transaction();
+        let mut rows = Page::find()
+            .select_only()
+            .column(page::Column::SiteId)
+            .column(page::Column::PageCategoryId)
+            .column(page::Column::PageId)
+            .filter(
+                Condition::all()
+                    .add(page::Column::SiteId.eq(site_id))
+                    .add(page::Column::DeletedAt.is_null()),
+            )
+            .into_model::<Row>()
+            .stream(txn)
+            .await?;
+
+        while let Some(row) = rows.next().await {
+            let Row {
+                site_id,
+                page_category_id: category_id,
+                page_id,
+            } = row?;
+
+            JobService::queue_rerender_page(
+                ctx,
+                PageId {
+                    site_id,
+                    category_id,
+                    page_id,
+                },
+                depth.plus_one(),
+            )
+            .await?;
         }
 
         Ok(())
