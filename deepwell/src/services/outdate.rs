@@ -38,8 +38,8 @@ impl OutdateService {
         let (category_slug, page_slug) = split_category_name(slug);
 
         try_join!(
-            OutdateService::outdate_outgoing_includes(ctx, page_id, depth),
-            OutdateService::outdate_templates(
+            Self::outdate_outgoing_includes(ctx, page_id, depth),
+            Self::outdate_templates(
                 ctx,
                 site_id,
                 category_slug,
@@ -113,6 +113,7 @@ impl OutdateService {
         {
             Self::outdate(ctx, id, depth).await?;
         }
+
         Ok(())
     }
 
