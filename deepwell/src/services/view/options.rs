@@ -31,6 +31,7 @@ const PAGE_ARGUMENTS_SCHEMA: ArgumentSchema = ArgumentSchema {
         "tags",
         "noredirect",
         "norender",
+        "debug",
         "comments",
         "discuss",
         "history",
@@ -41,6 +42,7 @@ const PAGE_ARGUMENTS_SCHEMA: ArgumentSchema = ArgumentSchema {
         "edit",
         "noredirect",
         "norender",
+        "debug",
         "rerender",
         "comments",
         "discuss",
@@ -60,6 +62,7 @@ pub struct PageOptions {
     pub tags: Option<String>,
     pub no_redirect: bool,
     pub no_render: bool,
+    pub debug: bool,
     pub rerender: bool,
     pub comments: bool,
     pub history: bool,
@@ -120,6 +123,7 @@ impl PageOptions {
         set_str_opt!(tags);
         set_bool!(no_redirect, noredirect);
         set_bool!(no_render, norender);
+        set_bool!(debug);
         set_bool!(rerender);
         set_bool!(comments);
         set_bool!(comments, discuss);

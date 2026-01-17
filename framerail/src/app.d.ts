@@ -50,6 +50,7 @@ declare namespace App {
       tags: string | null
       no_redirect: boolean
       no_render: boolean
+      debug: boolean
       renderer: boolean
       comments: boolean
       history: boolean
