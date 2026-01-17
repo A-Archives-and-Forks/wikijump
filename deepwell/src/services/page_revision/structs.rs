@@ -185,3 +185,24 @@ pub struct PageRevisionModelFiltered {
     pub slug: Option<String>,
     pub tags: Option<Vec<String>>,
 }
+
+/// Encapsulates the kind of rerender job to be performed.
+///
+/// This affects both which fields are updated and how outdating is performed.
+#[derive(Serialize, Deserialize, Debug, Default, Copy, Clone, PartialEq, Eq)]
+pub enum RerenderType {
+    /// Rerender the page normally.
+    ///
+    /// This involves recompiling its main body source and navigation pages,
+    /// as well as updating links and queueing any subsequent rerenders.
+    #[serde(rename = "full")]
+    #[default]
+    Full,
+
+    /// Rerender the page's navigation pages only.
+    ///
+    /// This rerenders the top and side bar navigation page data, if
+    /// they are present for this page. Does not do any outdating.
+    #[serde(rename = "nav")]
+    NavigationOnly,
+}
