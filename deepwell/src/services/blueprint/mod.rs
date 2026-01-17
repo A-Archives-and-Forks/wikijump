@@ -1,5 +1,5 @@
 /*
- * services/special_page/mod.rs
+ * services/blueprint/mod.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
  * Copyright (C) 2019-2026 Wikijump Team
@@ -18,7 +18,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-//! The "special pages" service.
+//! The blueprint page service.
 //!
 //! This encompasses per-site configurable templates such as `_404`,
 //! which display custom "this page does not exist" content.
@@ -32,5 +32,5 @@ mod prelude {
 mod service;
 mod structs;
 
-pub use self::service::SpecialPageService;
+pub use self::service::BlueprintPageService;
 pub use self::structs::*;

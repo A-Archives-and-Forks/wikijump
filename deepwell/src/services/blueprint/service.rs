@@ -1,5 +1,5 @@
 /*
- * services/special_page/service.rs
+ * services/blueprint/service.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
  * Copyright (C) 2019-2026 Wikijump Team
@@ -31,25 +31,29 @@ use std::borrow::Cow;
 use std::sync::LazyLock;
 use unic_langid::LanguageIdentifier;
 
-#[derive(Debug)]
-pub struct SpecialPageService;
+// TODO: check config fields for blueprint pages starts with the page prefix
+// TODO: deny write ability for normal users for pages that start with the page prefix
+// TODO: don't set or update nav pages for pages that start with the page prefix
 
-impl SpecialPageService {
-    /// Gets the specified special page, or the fallback if it doesn't exist.
+#[derive(Debug)]
+pub struct BlueprintPageService;
+
+impl BlueprintPageService {
+    /// Gets the specified blueprint page, or the fallback if it doesn't exist.
     pub async fn get(
         ctx: &ServiceContext<'_>,
         site: &SiteModel,
-        sp_page_type: SpecialPageType,
+        blueprint_type: BlueprintPageType,
         locales: &[LanguageIdentifier],
         layout: Layout,
         page_info: PageInfo<'_>,
-    ) -> Result<GetSpecialPageOutput> {
+    ) -> Result<GetBlueprintPageOutput> {
         info!(
-            "Getting special page {:?} for site ID {}",
-            sp_page_type, site.site_id,
+            "Getting blueprint page {:?} for site ID {}",
+            blueprint_type, site.site_id,
         );
 
-        // Extract fields based on special page type.
+        // Extract fields based on blueprint page type.
         //
         // "key" refers to the translation key to read to get the default fallback.
         // If empty, then pull a constant string (not in the localization files).
@@ -57,28 +61,31 @@ impl SpecialPageService {
         // Produces a list of slugs to use as a page template, the first one that
         // exists is the one that's used.
         let config = ctx.config();
-        let (slugs, translate_key) = match sp_page_type {
+        let (slugs, translate_key) = match blueprint_type {
             // TODO: Figure out exact template ordering (e.g. _template vs cat:_template)
             //       See https://scuttle.atlassian.net/browse/WJ-1201
-            SpecialPageType::Template => (vec![cow!(config.special_page_template)], ""),
-            SpecialPageType::Missing => {
+            BlueprintPageType::Template => {
+                (vec![cow!(config.blueprint_page_template)], "")
+            }
+            BlueprintPageType::Missing => {
                 let slugs = Self::slugs_with_category(
-                    &config.special_page_missing,
+                    &config.blueprint_page_missing,
                     page_info.category.ref_map(|s| s.as_ref()),
                 );
 
                 (slugs, "wiki-page-missing")
             }
-            SpecialPageType::Private => {
-                (vec![cow!(config.special_page_private)], "wiki-page-private")
+            BlueprintPageType::Private => (
+                vec![cow!(config.blueprint_page_private)],
+                "wiki-page-private",
+            ),
+            BlueprintPageType::Banned => {
+                (vec![cow!(config.blueprint_page_banned)], "wiki-page-banned")
             }
-            SpecialPageType::Banned => {
-                (vec![cow!(config.special_page_banned)], "wiki-page-banned")
-            }
-            SpecialPageType::Unauthorized => (vec![], "admin-unauthorized"),
+            BlueprintPageType::Unauthorized => (vec![], "admin-unauthorized"),
         };
 
-        // Look through each option to get the special page wikitext.
+        // Look through each option to get the blueprint page wikitext.
         let wikitext = Self::get_wikitext(
             ctx,
             &slugs,
@@ -100,7 +107,7 @@ impl SpecialPageService {
         let render_output =
             RenderService::render(ctx, wikitext.clone(), &page_info, &settings).await?;
 
-        Ok(GetSpecialPageOutput {
+        Ok(GetBlueprintPageOutput {
             wikitext,
             render_output,
         })
@@ -137,7 +144,10 @@ impl SpecialPageService {
         locales: &[LanguageIdentifier],
         page_info: &PageInfo<'_>,
     ) -> Result<String> {
-        debug!("Getting wikitext for special page, {} slugs", slugs.len());
+        debug!(
+            "Getting wikitext for blueprint page ({} slugs)",
+            slugs.len(),
+        );
 
         // Try all the pages listed.
         for slug in slugs {
@@ -145,7 +155,7 @@ impl SpecialPageService {
                 PageService::get_optional(ctx, site_id, Reference::Slug(cow!(slug)))
                     .await?
             {
-                // Fetch special page wikitext, it exists.
+                // Fetch blueprint page wikitext, it must exist.
                 let revision =
                     PageRevisionService::get_latest(ctx, site_id, page.page_id).await?;
 

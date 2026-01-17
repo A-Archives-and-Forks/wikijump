@@ -169,7 +169,7 @@ impl RenderService {
 
         if let Some(page_id) = page_id {
             // It's possible to render a page without doing text blocks
-            // (e.g. special pages), but all cases where text blocks
+            // (e.g. blueprint pages), but all cases where text blocks
             // are done are pages.
             debug_assert_eq!(settings.mode, WikitextMode::Page);
 

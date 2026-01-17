@@ -150,7 +150,7 @@ impl OutdateService {
 
         // If a template page has been updated,
         // we need to recompile everything in that category.
-        if page_slug == config.special_page_template {
+        if page_slug == config.blueprint_page_template {
             let category_select = if category_slug == "_default" {
                 // If the category is _default, we need to recompile everything.
                 // All other categories may inherit from _default.

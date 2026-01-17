@@ -309,18 +309,18 @@ messages = "wikijump"
 # Layout used by default when there is not a layout set for a page or the site.
 default-page = "wikidot"
 
-[special-pages]
+[blueprint]
 
-# List of special pages, by slug.
+# List of blueprint pages, by slug.
 # These are used as templates in certain cases.
 
 # Any pages whose slug begin with this prefix are
-# treated as "special".
+# handled in a special way.
 #
 # This means that regular users cannot create these pages,
 # and that normal template processing does not apply
 # (to avoid infinite regress and other issues).
-special-prefix = "_"
+page-prefix = "_"
 
 # This is included in all pages within this category,
 # or for _default, all pages in all categories without
