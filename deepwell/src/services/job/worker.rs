@@ -22,6 +22,7 @@
 
 use super::prelude::*;
 use crate::api::ServerState;
+use crate::services::page_revision::RerenderType;
 use crate::services::{
     BlobService, PageRevisionService, SessionService, TextService, UserService,
 };
@@ -188,6 +189,7 @@ impl JobWorker {
                         page_id,
                     },
                 depth,
+                r#type: rerender_type,
             } => {
                 debug!(
                     "Rerendering page ID {page_id} in site ID {site_id} (category ID {category_id}, depth {depth})",

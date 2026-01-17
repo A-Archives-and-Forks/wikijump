@@ -19,6 +19,7 @@
  */
 
 use super::prelude::*;
+use crate::services::page_revision::RerenderType;
 use crate::types::{PageId, RerenderDepth};
 use rsmq_async::{Rsmq, RsmqConnection};
 use std::time::Duration;
@@ -91,6 +92,40 @@ impl JobService {
             "Queuing page rerender for page ID {} and site ID {}",
             id.page_id, id.site_id,
         );
-        Self::queue_job(ctx, &Job::RerenderPage { id, depth }, None).await
+        Self::queue_job(
+            ctx,
+            &Job::RerenderPage {
+                id,
+                depth,
+                r#type: RerenderType::Full,
+            },
+            None,
+        )
+        .await
+    }
+
+    /// Queues a page's navigation page data for rerendering soon.
+    ///
+    /// # Arguments
+    /// Same as `queue_rerender_page()`.
+    pub async fn queue_rerender_nav_page(
+        ctx: &ServiceContext<'_>,
+        id: PageId,
+        depth: RerenderDepth,
+    ) -> Result<()> {
+        debug!(
+            "Queuing page rerender for page ID {} and site ID {}",
+            id.page_id, id.site_id,
+        );
+        Self::queue_job(
+            ctx,
+            &Job::RerenderPage {
+                id,
+                depth,
+                r#type: RerenderType::NavigationOnly,
+            },
+            None,
+        )
+        .await
     }
 }
