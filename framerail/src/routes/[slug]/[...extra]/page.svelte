@@ -52,7 +52,9 @@
 </script>
 
 {#if $pageLayout === Layout.WIKIDOT}
-  {#if showRevision}
+  {#if $page.data.options?.debug}
+    <h2>UNTRANSLATED:Debug Response</h2>
+  {:else if showRevision}
     <div id="page-title">{revision.title}</div>
   {:else}
     <div id="page-title">{$page.data.page_revision.title}</div>
@@ -60,7 +62,6 @@
 
   <div id="page-content">
     {#if $page.data.options?.debug}
-      <h1>UNTRANSLATED:Debug Response</h1>
       <textarea class="debug">{JSON.stringify($page, null, 2)}</textarea>
     {:else if $page.data.options?.no_render}
       {$page.data.internationalization["wiki-page-no-render"]}
@@ -284,7 +285,9 @@
     </div>
   {/if}
 {:else}
-  {#if showRevision}
+  {#if $page.data.options?.debug}
+    <h2>UNTRANSLATED:Debug Response</h2>
+  {:else if showRevision}
     <h2>{revision.title}</h2>
   {:else}
     <h2>{$page.data.page_revision.title}</h2>
@@ -294,7 +297,6 @@
 
   <div class="page-content">
     {#if $page.data.options?.debug}
-      <h1>UNTRANSLATED:Debug Response</h1>
       <textarea class="debug">{JSON.stringify($page, null, 2)}</textarea>
     {:else if $page.data.options?.no_render}
       {$page.data.internationalization["wiki-page-no-render"]}
