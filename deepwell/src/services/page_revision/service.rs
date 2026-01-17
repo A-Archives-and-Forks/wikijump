@@ -198,7 +198,7 @@ impl PageRevisionService {
         // If nothing has changed, then don't create a new revision
         if changes.is_empty() {
             debug!("No changes in edit, only rerendering the page");
-            Self::rerender(ctx, id, RerenderDepth::default()).await?;
+            Self::rerender(ctx, id, RerenderDepth::default(), RerenderType::Full).await?;
             return Ok(None);
         }
 
@@ -731,6 +731,7 @@ impl PageRevisionService {
         ctx: &ServiceContext<'_>,
         id: PageId,
         depth: RerenderDepth,
+        rerender_type: RerenderType,
     ) -> Result<()> {
         let txn = ctx.transaction();
         let PageId {
@@ -798,18 +799,48 @@ impl PageRevisionService {
             ..
         } = Self::render_and_update_links(ctx, id, wikitext, render_input).await?;
 
-        // Update descendents
-        OutdateService::process_page_edit(ctx, site_id, page_id, &revision.slug, depth)
-            .await?;
+        let model = match rerender_type {
+            RerenderType::Full => {
+                // Outdate all descendent pages and update body and nav pages
 
-        let model = page_revision::ActiveModel {
-            updated_at: Set(Some(now())),
-            revision_id: Set(revision.revision_id),
-            compiled_body_html_hash: Set(compiled_body_html_hash.to_vec()),
-            compiled_top_bar_html_hash: Set(compiled_top_bar_html_hash.map(Vec::from)),
-            compiled_side_bar_html_hash: Set(compiled_side_bar_html_hash.map(Vec::from)),
-            compiled_generator: Set(compiled_generator),
-            ..Default::default()
+                OutdateService::process_page_edit(
+                    ctx,
+                    site_id,
+                    page_id,
+                    &revision.slug,
+                    depth,
+                )
+                .await?;
+
+                page_revision::ActiveModel {
+                    revision_id: Set(revision.revision_id),
+                    updated_at: Set(Some(now())),
+                    compiled_body_html_hash: Set(compiled_body_html_hash.to_vec()),
+                    compiled_top_bar_html_hash: Set(
+                        compiled_top_bar_html_hash.map(Vec::from)
+                    ),
+                    compiled_side_bar_html_hash: Set(
+                        compiled_side_bar_html_hash.map(Vec::from)
+                    ),
+                    compiled_generator: Set(compiled_generator),
+                    ..Default::default()
+                }
+            }
+            RerenderType::NavigationOnly => {
+                // Update nav pages only
+                page_revision::ActiveModel {
+                    revision_id: Set(revision.revision_id),
+                    updated_at: Set(Some(now())),
+                    compiled_top_bar_html_hash: Set(
+                        compiled_top_bar_html_hash.map(Vec::from)
+                    ),
+                    compiled_side_bar_html_hash: Set(
+                        compiled_side_bar_html_hash.map(Vec::from)
+                    ),
+                    compiled_generator: Set(compiled_generator),
+                    ..Default::default()
+                }
+            }
         };
 
         model.update(txn).await?;
