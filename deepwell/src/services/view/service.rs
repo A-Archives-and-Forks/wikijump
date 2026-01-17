@@ -33,6 +33,7 @@ use super::prelude::*;
 use crate::models::page::Model as PageModel;
 use crate::models::page_revision::Model as PageRevisionModel;
 use crate::models::site::Model as SiteModel;
+use crate::services::page_revision::RerenderType;
 use crate::services::relation::{GetPageAttributions, PageAttribution, RelationService};
 use crate::services::render::RenderOutput;
 use crate::services::settings::{NavigationPageHtml, SettingsService};
@@ -193,6 +194,7 @@ impl ViewService {
                             ctx,
                             PageId::from_page_model(&page),
                             depth,
+                            RerenderType::Full,
                         )
                         .await?;
                     };

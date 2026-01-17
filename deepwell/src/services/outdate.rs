@@ -180,7 +180,7 @@ impl OutdateService {
     }
 
     /// Determines if the page being updated is used as an nav page anywhere.
-    /// If so, all pages using this as a nav page are outdated.
+    /// If so, all pages using this as a nav page should have their nav pages rebuilt.
     pub async fn outdate_nav_pages(
         ctx: &ServiceContext<'_>,
         site_id: i64,
@@ -191,7 +191,7 @@ impl OutdateService {
         // Nothing else needs to be done.
         let site = SiteService::get(ctx, Reference::Id(site_id)).await?;
         if site.top_bar_page == slug || site.side_bar_page == slug {
-            Self::outdate_site(ctx, site_id, depth).await?;
+            Self::outdate_nav_site(ctx, site_id, depth).await?;
             return Ok(());
         }
 
@@ -212,14 +212,14 @@ impl OutdateService {
             .await?;
 
         for category_id in category_ids {
-            Self::outdate_category(ctx, site_id, category_id, depth).await?;
+            Self::outdate_nav_category(ctx, site_id, category_id, depth).await?;
         }
 
         Ok(())
     }
 
-    /// Outdates all pages on the given site.
-    pub async fn outdate_site(
+    /// Outdates the nav pages of every page on the site.
+    pub async fn outdate_nav_site(
         ctx: &ServiceContext<'_>,
         site_id: i64,
         depth: RerenderDepth,
@@ -255,7 +255,7 @@ impl OutdateService {
                 page_id,
             } = row?;
 
-            JobService::queue_rerender_page(
+            JobService::queue_rerender_nav_page(
                 ctx,
                 PageId {
                     site_id,
@@ -270,8 +270,8 @@ impl OutdateService {
         Ok(())
     }
 
-    /// Outdates all pages in the given page category.
-    pub async fn outdate_category(
+    /// Outdates the nav pages of all pages in the given category.
+    pub async fn outdate_nav_category(
         ctx: &ServiceContext<'_>,
         site_id: i64,
         category_id: i64,
@@ -294,7 +294,7 @@ impl OutdateService {
         while let Some(row) = rows.next().await {
             let page_id = row?;
 
-            JobService::queue_rerender_page(
+            JobService::queue_rerender_nav_page(
                 ctx,
                 PageId {
                     site_id,

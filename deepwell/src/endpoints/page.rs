@@ -28,6 +28,7 @@ use crate::services::page::{
     GetPageReferenceDetails, GetPageScoreOutput, GetPageSlug, MovePage, MovePageOutput,
     RestorePage, RestorePageOutput, RollbackPage, SetPageLayout,
 };
+use crate::services::page_revision::RerenderType;
 use crate::services::{Result, TextService};
 use crate::types::{Bytes, FileOrder, PageDetails, PageId, Reference, RerenderDepth};
 use futures::future::try_join_all;
@@ -185,7 +186,13 @@ pub async fn page_rerender(
         "Re-rendering page ID {} in site ID {}",
         input.page_id, input.site_id,
     );
-    PageRevisionService::rerender(ctx, input, RerenderDepth::default()).await
+    PageRevisionService::rerender(
+        ctx,
+        input,
+        RerenderDepth::default(),
+        RerenderType::Full,
+    )
+    .await
 }
 
 pub async fn page_restore(

@@ -191,9 +191,15 @@ impl JobWorker {
                 depth,
                 r#type: rerender_type,
             } => {
+                let extra = match rerender_type {
+                    RerenderType::Full => "normal",
+                    RerenderType::NavigationOnly => "nav only",
+                };
+
                 debug!(
-                    "Rerendering page ID {page_id} in site ID {site_id} (category ID {category_id}, depth {depth})",
+                    "Rerendering page ID {page_id} in site ID {site_id} (category ID {category_id}, depth {depth}) ({extra})",
                 );
+
                 PageRevisionService::rerender(
                     ctx,
                     PageId {
@@ -202,8 +208,10 @@ impl JobWorker {
                         page_id,
                     },
                     depth,
+                    rerender_type,
                 )
                 .await?;
+
                 NextJob::Done
             }
             Job::PruneSessions => {
