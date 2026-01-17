@@ -104,7 +104,7 @@ wiki-page-file-restore = 恢复
 ### 维基页面父页面
 
 wiki-page-parent = 父页面
-### 特殊页面
+### 蓝图页面
 
 wiki-page-missing = 你访问的页面 //{ $slug }// 并不存在。
 
