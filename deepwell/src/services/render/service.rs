@@ -66,12 +66,14 @@ impl RenderService {
             page_id,
         }: PageId,
     ) -> Result<RenderPageOutput> {
-        let settings = WikitextSettings::from_mode(WikitextMode::Page, layout);
+        let page_settings = WikitextSettings::from_mode(WikitextMode::Page, layout);
+        let nav_settings = WikitextSettings::from_mode(WikitextMode::PageNav, layout);
+
         let RenderInnerOutput {
             html_output,
             errors,
             compiled_hash: compiled_body_html_hash,
-        } = Self::render_inner(ctx, wikitext, page_info, &settings, Some(page_id))
+        } = Self::render_inner(ctx, wikitext, page_info, &page_settings, Some(page_id))
             .await?;
 
         let NavigationPageWikitext {
@@ -79,11 +81,6 @@ impl RenderService {
             side_bar_page_wikitext,
         } = SettingsService::get_nav_page_wikitext(ctx, site_id, Some(category_id))
             .await?;
-
-        let nav_settings = WikitextSettings {
-            use_true_ids: false,
-            ..settings.clone()
-        };
 
         let render_nav_page = |wikitext| async {
             match wikitext {
