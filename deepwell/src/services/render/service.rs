@@ -80,6 +80,11 @@ impl RenderService {
         } = SettingsService::get_nav_page_wikitext(ctx, site_id, Some(category_id))
             .await?;
 
+        let nav_settings = WikitextSettings {
+            use_true_ids: false,
+            ..settings.clone()
+        };
+
         let render_nav_page = |wikitext| async {
             match wikitext {
                 Some(wikitext) => {
@@ -91,7 +96,7 @@ impl RenderService {
                     // which depend on the current page (e.g. page slug, tags), which reflect
                     // the page being viewed.
                     let result =
-                        Self::render_inner(ctx, wikitext, page_info, &settings, None)
+                        Self::render_inner(ctx, wikitext, page_info, &nav_settings, None)
                             .await;
 
                     match result {
