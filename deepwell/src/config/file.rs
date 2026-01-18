@@ -51,7 +51,7 @@ pub struct ConfigFile {
     domain: Domain,
     job: Job,
     ftml: Ftml,
-    special_pages: SpecialPages,
+    blueprint: Blueprint,
     user: User,
     file: FileSection,
     message: Message,
@@ -167,8 +167,8 @@ struct RerenderSkip {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "kebab-case")]
-struct SpecialPages {
-    special_prefix: String,
+struct Blueprint {
+    page_prefix: String,
     template: String,
     missing: String,
     private: String,
@@ -304,13 +304,13 @@ impl ConfigFile {
                             default_page: default_page_layout,
                         },
                 },
-            special_pages:
-                SpecialPages {
-                    special_prefix: special_page_prefix,
-                    template: special_page_template,
-                    missing: special_page_missing,
-                    private: special_page_private,
-                    banned: special_page_banned,
+            blueprint:
+                Blueprint {
+                    page_prefix: blueprint_page_prefix,
+                    template: blueprint_page_template,
+                    missing: blueprint_page_missing,
+                    private: blueprint_page_private,
+                    banned: blueprint_page_banned,
                 },
             user:
                 User {
@@ -439,11 +439,11 @@ impl ConfigFile {
                 .collect(),
             message_layout,
             default_page_layout,
-            special_page_prefix,
-            special_page_template,
-            special_page_missing,
-            special_page_private,
-            special_page_banned,
+            blueprint_page_prefix,
+            blueprint_page_template,
+            blueprint_page_missing,
+            blueprint_page_private,
+            blueprint_page_banned,
             default_name_changes: i16::from(default_name_changes),
             maximum_name_changes: i16::from(maximum_name_changes),
             refill_name_change: if refill_name_change_days == 0 {

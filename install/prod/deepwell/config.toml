@@ -56,8 +56,8 @@ rerender-skip = [
 messages = "wikijump"
 default-page = "wikidot"
 
-[special-pages]
-special-prefix = "_"
+[blueprint]
+page-prefix = "_"
 template = "_template"
 missing = "_404"
 private = "_public"

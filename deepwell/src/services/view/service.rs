@@ -33,14 +33,14 @@ use super::prelude::*;
 use crate::models::page::Model as PageModel;
 use crate::models::page_revision::Model as PageRevisionModel;
 use crate::models::site::Model as SiteModel;
+use crate::services::blueprint::{BlueprintPageType, GetBlueprintPageOutput};
 use crate::services::page_revision::RerenderType;
 use crate::services::relation::{GetPageAttributions, PageAttribution, RelationService};
 use crate::services::render::RenderOutput;
 use crate::services::settings::{NavigationPageHtml, SettingsService};
-use crate::services::special_page::{GetSpecialPageOutput, SpecialPageType};
 use crate::services::{
-    CategoryService, DomainService, PageRevisionService, PageService, SessionService,
-    SiteService, SpecialPageService, TextService, UserService,
+    BlueprintPageService, CategoryService, DomainService, PageRevisionService,
+    PageService, SessionService, SiteService, TextService, UserService,
 };
 use crate::types::{PageId, RerenderDepth};
 use crate::utils::{parse_locales, split_category};
@@ -241,15 +241,15 @@ impl ViewService {
                     warn!("User doesn't have page access, returning permission page");
 
                     let (page_status, page_type) = if user_permissions.is_banned() {
-                        (PageStatus::Banned, SpecialPageType::Banned)
+                        (PageStatus::Banned, BlueprintPageType::Banned)
                     } else {
-                        (PageStatus::Private, SpecialPageType::Private)
+                        (PageStatus::Private, BlueprintPageType::Private)
                     };
 
-                    let GetSpecialPageOutput {
+                    let GetBlueprintPageOutput {
                         wikitext,
                         render_output,
-                    } = SpecialPageService::get(
+                    } = BlueprintPageService::get(
                         ctx,
                         &site,
                         page_type,
@@ -293,13 +293,13 @@ impl ViewService {
             }
             // The page is missing, fetch the "missing page" data (_404).
             None => {
-                let GetSpecialPageOutput {
+                let GetBlueprintPageOutput {
                     wikitext,
                     render_output,
-                } = SpecialPageService::get(
+                } = BlueprintPageService::get(
                     ctx,
                     &site,
-                    SpecialPageType::Missing,
+                    BlueprintPageType::Missing,
                     &locales,
                     config.default_page_layout,
                     page_info,
@@ -468,13 +468,13 @@ impl ViewService {
             },
         };
 
-        let GetSpecialPageOutput {
+        let GetBlueprintPageOutput {
             wikitext: _,
             render_output,
-        } = SpecialPageService::get(
+        } = BlueprintPageService::get(
             ctx,
             &viewer.site,
-            SpecialPageType::Unauthorized,
+            BlueprintPageType::Unauthorized,
             &locales,
             config.default_page_layout,
             page_info,

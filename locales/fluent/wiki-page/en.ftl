@@ -104,7 +104,7 @@ wiki-page-file-restore = Restore
 ### Wiki page parents
 
 wiki-page-parent = Page parents
-### Special Page fallback strings
+### Blueprint page fallback strings
 
 wiki-page-missing = The page //{ $slug }// you want to access does not exist.
 

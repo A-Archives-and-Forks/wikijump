@@ -17,7 +17,7 @@ RUN cargo install cargo-watch && \
     cargo install sqlx-cli --no-default-features --features rustls,postgres
 
 # Install files
-COPY ./install/local/deepwell/deepwell.toml /etc/deepwell.toml
+COPY ./install/local/deepwell/config.toml /etc/deepwell.toml
 COPY ./install/local/deepwell/deepwell-start /usr/local/bin/wikijump-deepwell-start
 COPY ./install/local/deepwell/health-check.sh /usr/local/bin/wikijump-health-check
 

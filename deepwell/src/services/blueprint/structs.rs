@@ -1,5 +1,5 @@
 /*
- * services/special_page/structs.rs
+ * services/blueprint/structs.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
  * Copyright (C) 2019-2026 Wikijump Team
@@ -22,7 +22,7 @@ use crate::services::render::RenderOutput;
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "kebab-case")]
-pub enum SpecialPageType {
+pub enum BlueprintPageType {
     Template,
     Missing,
     Private,
@@ -31,7 +31,7 @@ pub enum SpecialPageType {
 }
 
 #[derive(Serialize, Debug)]
-pub struct GetSpecialPageOutput {
+pub struct GetBlueprintPageOutput {
     pub wikitext: String,
     pub render_output: RenderOutput,
 }

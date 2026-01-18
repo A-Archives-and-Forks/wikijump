@@ -18,7 +18,7 @@
   let pageLayout = usePageLayoutState()
   function setLayout() {
     if ($page.route.id.startsWith("/[x+2d]/")) {
-      // this is a special page, use Wikijump layout
+      // this is an blueprint page, use Wikijump layout
       $pageLayout = Layout.WIKIJUMP
     } else {
       $pageLayout =
