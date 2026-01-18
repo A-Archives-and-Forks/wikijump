@@ -126,7 +126,9 @@ async fn filter_and_populate_revision(
         user_id,
         changes,
         wikitext_hash,
-        compiled_hash,
+        compiled_body_html_hash,
+        compiled_top_bar_html_hash,
+        compiled_side_bar_html_hash,
         compiled_at,
         compiled_generator,
         comments,
@@ -159,9 +161,23 @@ async fn filter_and_populate_revision(
     }
 
     // Get text data, if requested
-    let (wikitext, compiled_html) = try_join!(
-        TextService::get_maybe(ctx, details.wikitext, &wikitext_hash),
-        TextService::get_maybe(ctx, details.compiled_html, &compiled_hash),
+    let (wikitext, compiled_body_html, compiled_top_bar_html, compiled_side_bar_html) = try_join!(
+        TextService::get_conditional(ctx, details.wikitext, &wikitext_hash),
+        TextService::get_conditional(
+            ctx,
+            details.compiled_html,
+            &compiled_body_html_hash,
+        ),
+        TextService::get_conditional_option(
+            ctx,
+            details.compiled_html,
+            &compiled_top_bar_html_hash,
+        ),
+        TextService::get_conditional_option(
+            ctx,
+            details.compiled_html,
+            &compiled_side_bar_html_hash,
+        ),
     )?;
 
     Ok(PageRevisionModelFiltered {
@@ -176,7 +192,9 @@ async fn filter_and_populate_revision(
         user_id,
         changes,
         wikitext,
-        compiled_html,
+        compiled_body_html,
+        compiled_top_bar_html,
+        compiled_side_bar_html,
         compiled_at,
         compiled_generator,
         comments,

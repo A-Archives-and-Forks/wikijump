@@ -107,7 +107,12 @@ CREATE TABLE site (
     tagline TEXT NOT NULL,
     description TEXT NOT NULL,
     locale TEXT NOT NULL,
-    default_page TEXT NOT NULL DEFAULT 'start',
+    default_page TEXT NOT NULL DEFAULT 'start' CHECK (default_page != ''),
+    -- For nav pages, an empty string means that this navigation panel is disabled.
+    -- A value of NULL means that the nav page is inherited from site settings,
+    -- which is here. So this value must be non-null.
+    top_bar_page TEXT NOT NULL DEFAULT 'nav:top',
+    side_bar_page TEXT NOT NULL DEFAULT 'nav:side',
 
     -- Dependency cycle, add foreign key constraint after.
     --
@@ -252,7 +257,14 @@ CREATE TABLE page_category (
     updated_at TIMESTAMP WITH TIME ZONE,
     site_id BIGINT NOT NULL REFERENCES site(site_id),
     slug TEXT NOT NULL,
-    layout TEXT, -- category-specific override for DOM layout
+    -- Category-specific overrides
+    layout TEXT,
+    -- If NULL, then inherit nav settings from the site table.
+    -- Any other value is an override.
+    -- Like with the site table, empty strings mean that this
+    -- navigation panel is disabled.
+    top_bar_page TEXT,
+    side_bar_page TEXT,
 
     UNIQUE (site_id, slug)
 );
@@ -325,7 +337,9 @@ CREATE TABLE page_revision (
     from_wikidot BOOLEAN NOT NULL DEFAULT false,
     changes TEXT[] NOT NULL, -- List of changes in this revision
     wikitext_hash BYTEA NOT NULL REFERENCES text(hash),
-    compiled_hash BYTEA NOT NULL REFERENCES text(hash),
+    compiled_body_html_hash BYTEA NOT NULL REFERENCES text(hash),
+    compiled_top_bar_html_hash BYTEA REFERENCES text(hash),
+    compiled_side_bar_html_hash BYTEA REFERENCES text(hash),
     compiled_at TIMESTAMP WITH TIME ZONE NOT NULL,
     compiled_generator TEXT NOT NULL,
     comments TEXT NOT NULL,

@@ -17,6 +17,10 @@ pub struct Model {
     pub slug: String,
     #[sea_orm(column_type = "Text", nullable)]
     pub layout: Option<String>,
+    #[sea_orm(column_type = "Text", nullable)]
+    pub top_bar_page: Option<String>,
+    #[sea_orm(column_type = "Text", nullable)]
+    pub side_bar_page: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

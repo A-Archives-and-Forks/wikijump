@@ -188,6 +188,8 @@ impl SiteService {
             add_changed_field!(move license);
             add_changed_field!(locale);
             add_changed_field!(default_page);
+            add_changed_field!(top_bar_page);
+            add_changed_field!(side_bar_page);
             add_changed_field!(ref preferred_domain);
 
             if let Maybe::Set(layout) = input.layout {

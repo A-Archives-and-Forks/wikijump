@@ -19,9 +19,11 @@
  */
 
 use super::prelude::*;
+use crate::models::page;
 use crate::models::page_category::{
     self, Entity as PageCategory, Model as PageCategoryModel,
 };
+use sea_query::{Expr, ExprTrait, Func, Query};
 
 #[derive(Debug)]
 pub struct CategoryService;
@@ -99,10 +101,50 @@ impl CategoryService {
         site_id: i64,
     ) -> Result<Vec<PageCategoryModel>> {
         let txn = ctx.transaction();
-
         let categories = PageCategory::find()
             .filter(page_category::Column::SiteId.eq(site_id))
             .order_by_asc(page_category::Column::Slug)
+            .all(txn)
+            .await?;
+
+        Ok(categories)
+    }
+
+    /// Gets all page categories which have non-deleted pages in them.
+    pub async fn get_all_active(
+        ctx: &ServiceContext<'_>,
+        site_id: i64,
+    ) -> Result<Vec<PageCategoryModel>> {
+        // Raw SQL query
+        //
+        // SELECT * FROM page_category
+        // WHERE category_id IN (
+        //     SELECT page_category_id
+        //     FROM page
+        //     WHERE site_id = ?
+        //     GROUP BY page_category_id, deleted_at
+        //     HAVING coalesce(deleted_at) IS NULL
+        // );
+
+        let txn = ctx.transaction();
+        let categories = PageCategory::find()
+            .filter(
+                page_category::Column::CategoryId.in_subquery(
+                    Query::select()
+                        .column(page::Column::PageCategoryId)
+                        .from(page::Entity)
+                        .and_where(Expr::col(page::Column::SiteId).eq(site_id))
+                        .group_by_columns([
+                            page::Column::PageCategoryId,
+                            page::Column::DeletedAt,
+                        ])
+                        .and_having(
+                            Func::coalesce([Expr::col(page::Column::DeletedAt).into()])
+                                .is_null(),
+                        )
+                        .to_owned(),
+                ),
+            )
             .all(txn)
             .await?;
 

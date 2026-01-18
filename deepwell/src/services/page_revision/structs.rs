@@ -20,7 +20,7 @@
 
 use super::prelude::*;
 use crate::models::sea_orm_active_enums::PageRevisionType;
-use crate::types::{FetchDirection, PageDetails};
+use crate::types::{FetchDirection, PageDetails, PageId};
 use ftml::layout::Layout;
 use ftml::parsing::ParseError;
 use std::num::NonZeroI32;
@@ -67,8 +67,7 @@ pub struct CreateTombstonePageRevision {
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct CreateResurrectionPageRevision {
-    pub site_id: i64,
-    pub page_id: i64,
+    pub id: PageId,
     pub user_id: i64,
     pub comments: String,
     pub new_slug: String,
@@ -172,7 +171,9 @@ pub struct PageRevisionModelFiltered {
     pub user_id: i64,
     pub changes: Vec<String>,
     pub wikitext: Option<String>,
-    pub compiled_html: Option<String>,
+    pub compiled_body_html: Option<String>,
+    pub compiled_top_bar_html: Option<String>,
+    pub compiled_side_bar_html: Option<String>,
 
     #[serde(with = "time::serde::rfc3339")]
     pub compiled_at: OffsetDateTime,
@@ -183,4 +184,25 @@ pub struct PageRevisionModelFiltered {
     pub alt_title: Option<String>,
     pub slug: Option<String>,
     pub tags: Option<Vec<String>>,
+}
+
+/// Encapsulates the kind of rerender job to be performed.
+///
+/// This affects both which fields are updated and how outdating is performed.
+#[derive(Serialize, Deserialize, Debug, Default, Copy, Clone, PartialEq, Eq)]
+pub enum RerenderType {
+    /// Rerender the page normally.
+    ///
+    /// This involves recompiling its main body source and navigation pages,
+    /// as well as updating links and queueing any subsequent rerenders.
+    #[serde(rename = "full")]
+    #[default]
+    Full,
+
+    /// Rerender the page's navigation pages only.
+    ///
+    /// This rerenders the top and side bar navigation page data, if
+    /// they are present for this page. Does not do any outdating.
+    #[serde(rename = "nav")]
+    NavigationOnly,
 }

@@ -34,7 +34,7 @@ use crate::services::{
     CategoryService, FilterService, PageRevisionService, SiteService, TextBlockService,
     TextService,
 };
-use crate::types::PageOrder;
+use crate::types::{PageId, PageOrder};
 use crate::utils::{get_category_name, trim_default};
 use ftml::layout::Layout;
 use ref_map::*;
@@ -106,8 +106,16 @@ impl PageService {
         let CreateFirstPageRevisionOutput {
             revision_id,
             parser_errors,
-        } = PageRevisionService::create_first(ctx, site_id, page_id, revision_input)
-            .await?;
+        } = PageRevisionService::create_first(
+            ctx,
+            PageId {
+                site_id,
+                category_id,
+                page_id,
+            },
+            revision_input,
+        )
+        .await?;
 
         // Update latest revision
         let model = page::ActiveModel {
@@ -162,9 +170,15 @@ impl PageService {
         let txn = ctx.transaction();
         let PageModel {
             page_id,
+            page_category_id: category_id,
             latest_revision_id,
             ..
         } = Self::get(ctx, site_id, reference).await?;
+        let id = PageId {
+            site_id,
+            category_id,
+            page_id,
+        };
 
         // Perform filter validation
         Self::run_filter(
@@ -204,14 +218,8 @@ impl PageService {
             },
         };
 
-        let revision_output = PageRevisionService::create(
-            ctx,
-            site_id,
-            page_id,
-            revision_input,
-            last_revision,
-        )
-        .await?;
+        let revision_output =
+            PageRevisionService::create(ctx, id, revision_input, last_revision).await?;
 
         let revision_id = revision_output.ref_map(|output| output.revision_id);
 
@@ -264,10 +272,16 @@ impl PageService {
         let txn = ctx.transaction();
         let PageModel {
             page_id,
+            page_category_id: category_id,
             slug: old_slug,
             latest_revision_id,
             ..
         } = Self::get(ctx, site_id, reference).await?;
+        let id = PageId {
+            site_id,
+            category_id,
+            page_id,
+        };
 
         // Check last revision ID argument
         check_last_revision(None, latest_revision_id, last_revision_id)?;
@@ -302,14 +316,8 @@ impl PageService {
             },
         };
 
-        let revision_output = PageRevisionService::create(
-            ctx,
-            site_id,
-            page_id,
-            revision_input,
-            last_revision,
-        )
-        .await?;
+        let revision_output =
+            PageRevisionService::create(ctx, id, revision_input, last_revision).await?;
 
         let latest_revision_id = match revision_output {
             Some(ref output) => ActiveValue::Set(Some(output.revision_id)),
@@ -447,8 +455,7 @@ impl PageService {
     pub async fn restore(
         ctx: &ServiceContext<'_>,
         RestorePage {
-            site_id,
-            page_id,
+            id,
             user_id,
             slug,
             revision_comments: comments,
@@ -456,6 +463,11 @@ impl PageService {
         }: RestorePage,
     ) -> Result<RestorePageOutput> {
         let txn = ctx.transaction();
+        let PageId {
+            site_id,
+            category_id: _,
+            page_id,
+        } = id;
         let page = Self::get_direct(ctx, page_id, true).await?;
         let slug = slug.unwrap_or(page.slug);
 
@@ -490,8 +502,7 @@ impl PageService {
         let output = PageRevisionService::create_resurrection(
             ctx,
             CreateResurrectionPageRevision {
-                site_id,
-                page_id,
+                id,
                 user_id,
                 comments,
                 new_slug: slug.clone(),
@@ -551,9 +562,15 @@ impl PageService {
         let txn = ctx.transaction();
         let PageModel {
             page_id,
+            page_category_id: category_id,
             latest_revision_id,
             ..
         } = Self::get(ctx, site_id, reference).await?;
+        let id = PageId {
+            site_id,
+            category_id,
+            page_id,
+        };
 
         // Get target revision and latest revision
         let (target_revision, last_revision) = try_join!(
@@ -616,14 +633,8 @@ impl PageService {
             },
         };
 
-        let revision_output = PageRevisionService::create(
-            ctx,
-            site_id,
-            page_id,
-            revision_input,
-            last_revision,
-        )
-        .await?;
+        let revision_output =
+            PageRevisionService::create(ctx, id, revision_input, last_revision).await?;
 
         let latest_revision_id = match revision_output {
             Some(ref output) => ActiveValue::Set(Some(output.revision_id)),

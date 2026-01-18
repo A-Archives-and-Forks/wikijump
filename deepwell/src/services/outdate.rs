@@ -19,10 +19,14 @@
  */
 
 use super::prelude::*;
-use crate::models::page::Model as PageModel;
-use crate::services::{JobService, LinkService, PageService};
-use crate::types::{ConnectionType, PageOrder};
+use crate::futures::StreamExt;
+use crate::models::page::{self, Entity as Page, Model as PageModel};
+use crate::models::page_category::{self, Entity as PageCategory};
+use crate::services::{JobService, LinkService, PageService, SiteService};
+use crate::types::{ConnectionType, PageId, PageOrder, RerenderDepth};
 use crate::utils::split_category_name;
+use ref_map::*;
+use sea_orm::FromQueryResult;
 
 #[derive(Debug)]
 pub struct OutdateService;
@@ -33,19 +37,14 @@ impl OutdateService {
         site_id: i64,
         page_id: i64,
         slug: &str,
-        depth: u32,
+        depth: RerenderDepth,
     ) -> Result<()> {
         let (category_slug, page_slug) = split_category_name(slug);
 
         try_join!(
-            OutdateService::outdate_outgoing_includes(ctx, page_id, depth),
-            OutdateService::outdate_templates(
-                ctx,
-                site_id,
-                category_slug,
-                page_slug,
-                depth,
-            ),
+            Self::outdate_outgoing_includes(ctx, page_id, depth),
+            Self::outdate_templates(ctx, site_id, category_slug, page_slug, depth),
+            Self::outdate_nav_pages(ctx, site_id, slug, depth),
         )?;
 
         Ok(())
@@ -57,7 +56,7 @@ impl OutdateService {
         site_id: i64,
         page_id: i64,
         slug: &str,
-        depth: u32,
+        depth: RerenderDepth,
     ) -> Result<()> {
         try_join!(
             Self::process_page_edit(ctx, site_id, page_id, slug, depth),
@@ -73,7 +72,7 @@ impl OutdateService {
         page_id: i64,
         old_slug: &str,
         new_slug: &str,
-        depth: u32,
+        depth: RerenderDepth,
     ) -> Result<()> {
         // In terms of outdating, a move is equivalent to
         // deleting at the old page location and
@@ -90,18 +89,17 @@ impl OutdateService {
     pub async fn outdate(
         ctx: &ServiceContext<'_>,
         page_id: i64,
-        depth: u32,
+        depth: RerenderDepth,
     ) -> Result<()> {
-        let PageModel { site_id, .. } =
-            PageService::get_direct(ctx, page_id, false).await?;
-
-        JobService::queue_rerender_page(ctx, site_id, page_id, depth + 1).await
+        let page = PageService::get_direct(ctx, page_id, false).await?;
+        let id = PageId::from_page_model(&page);
+        JobService::queue_rerender_page(ctx, id, depth.plus_one()).await
     }
 
     pub async fn outdate_incoming_links(
         ctx: &ServiceContext<'_>,
         page_id: i64,
-        depth: u32,
+        depth: RerenderDepth,
     ) -> Result<()> {
         const CONNECTION_TYPES: &[ConnectionType] = &[ConnectionType::Link];
 
@@ -114,13 +112,14 @@ impl OutdateService {
         {
             Self::outdate(ctx, id, depth).await?;
         }
+
         Ok(())
     }
 
     pub async fn outdate_outgoing_includes(
         ctx: &ServiceContext<'_>,
         page_id: i64,
-        depth: u32,
+        depth: RerenderDepth,
     ) -> Result<()> {
         const CONNECTION_TYPES: &[ConnectionType] = &[
             ConnectionType::IncludeMessy,
@@ -145,11 +144,13 @@ impl OutdateService {
         site_id: i64,
         category_slug: &str,
         page_slug: &str,
-        depth: u32,
+        depth: RerenderDepth,
     ) -> Result<()> {
+        let config = ctx.config();
+
         // If a template page has been updated,
         // we need to recompile everything in that category.
-        if page_slug == "_template" {
+        if page_slug == config.special_page_template {
             let category_select = if category_slug == "_default" {
                 // If the category is _default, we need to recompile everything.
                 // All other categories may inherit from _default.
@@ -173,6 +174,136 @@ impl OutdateService {
             for page in pages {
                 Self::outdate(ctx, page.page_id, depth).await?;
             }
+        }
+
+        Ok(())
+    }
+
+    /// Determines if the page being updated is used as an nav page anywhere.
+    /// If so, all pages using this as a nav page should have their nav pages rebuilt.
+    pub async fn outdate_nav_pages(
+        ctx: &ServiceContext<'_>,
+        site_id: i64,
+        slug: &str,
+        depth: RerenderDepth,
+    ) -> Result<()> {
+        // If this is the nav page for the site, then outdate everything
+        // Nothing else needs to be done.
+        let site = SiteService::get(ctx, Reference::Id(site_id)).await?;
+        if site.top_bar_page == slug || site.side_bar_page == slug {
+            Self::outdate_nav_site(ctx, site_id, depth).await?;
+            return Ok(());
+        }
+
+        // If this is the nav page for a category, then outdate all
+        // the pages in that category. Note that multiple categories
+        // can use the same nav pages.
+        let txn = ctx.transaction();
+        let category_ids = PageCategory::find()
+            .select_only()
+            .column(page_category::Column::CategoryId)
+            .filter(
+                Condition::any()
+                    .add(page_category::Column::TopBarPage.eq(slug))
+                    .add(page_category::Column::SideBarPage.eq(slug)),
+            )
+            .into_tuple()
+            .all(txn)
+            .await?;
+
+        for category_id in category_ids {
+            Self::outdate_nav_category(ctx, site_id, category_id, depth).await?;
+        }
+
+        Ok(())
+    }
+
+    /// Outdates the nav pages of every page on the site.
+    pub async fn outdate_nav_site(
+        ctx: &ServiceContext<'_>,
+        site_id: i64,
+        depth: RerenderDepth,
+    ) -> Result<()> {
+        info!("Outdating all pages on site ID {site_id}");
+
+        #[derive(FromQueryResult)]
+        struct Row {
+            site_id: i64,
+            page_category_id: i64,
+            page_id: i64,
+        }
+
+        let txn = ctx.transaction();
+        let mut rows = Page::find()
+            .select_only()
+            .column(page::Column::SiteId)
+            .column(page::Column::PageCategoryId)
+            .column(page::Column::PageId)
+            .filter(
+                Condition::all()
+                    .add(page::Column::SiteId.eq(site_id))
+                    .add(page::Column::DeletedAt.is_null()),
+            )
+            .into_model::<Row>()
+            .stream(txn)
+            .await?;
+
+        while let Some(row) = rows.next().await {
+            let Row {
+                site_id,
+                page_category_id: category_id,
+                page_id,
+            } = row?;
+
+            JobService::queue_rerender_nav_page(
+                ctx,
+                PageId {
+                    site_id,
+                    category_id,
+                    page_id,
+                },
+                depth.plus_one(),
+            )
+            .await?;
+        }
+
+        Ok(())
+    }
+
+    /// Outdates the nav pages of all pages in the given category.
+    pub async fn outdate_nav_category(
+        ctx: &ServiceContext<'_>,
+        site_id: i64,
+        category_id: i64,
+        depth: RerenderDepth,
+    ) -> Result<()> {
+        let txn = ctx.transaction();
+        let mut rows = Page::find()
+            .select_only()
+            .column(page::Column::PageId)
+            .filter(
+                Condition::all()
+                    .add(page::Column::SiteId.eq(site_id))
+                    .add(page::Column::PageCategoryId.eq(category_id))
+                    .add(page::Column::DeletedAt.is_null()),
+            )
+            .into_tuple()
+            .stream(txn)
+            .await?;
+
+        while let Some(row) = rows.next().await {
+            let page_id = row?;
+
+            JobService::queue_rerender_nav_page(
+                ctx,
+                PageId {
+                    site_id,
+                    category_id,
+                    page_id,
+                },
+                depth.plus_one(),
+            )
+            .await?;
         }
 
         Ok(())

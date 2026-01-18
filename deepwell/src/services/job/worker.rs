@@ -22,9 +22,11 @@
 
 use super::prelude::*;
 use crate::api::ServerState;
+use crate::services::page_revision::RerenderType;
 use crate::services::{
     BlobService, PageRevisionService, SessionService, TextService, UserService,
 };
+use crate::types::PageId;
 use crate::utils::debug_pointer;
 use rsmq_async::{Rsmq, RsmqConnection, RsmqMessage};
 use sea_orm::TransactionTrait;
@@ -180,14 +182,36 @@ impl JobWorker {
         trace!("Beginning job processing");
         let next = match job {
             Job::RerenderPage {
-                site_id,
-                page_id,
+                id:
+                    PageId {
+                        site_id,
+                        category_id,
+                        page_id,
+                    },
                 depth,
+                r#type: rerender_type,
             } => {
+                let extra = match rerender_type {
+                    RerenderType::Full => "normal",
+                    RerenderType::NavigationOnly => "nav only",
+                };
+
                 debug!(
-                    "Rerendering page ID {page_id} in site ID {site_id} (depth {depth})",
+                    "Rerendering page ID {page_id} in site ID {site_id} (category ID {category_id}, depth {depth}) ({extra})",
                 );
-                PageRevisionService::rerender(ctx, site_id, page_id, depth).await?;
+
+                PageRevisionService::rerender(
+                    ctx,
+                    PageId {
+                        site_id,
+                        category_id,
+                        page_id,
+                    },
+                    depth,
+                    rerender_type,
+                )
+                .await?;
+
                 NextJob::Done
             }
             Job::PruneSessions => {

@@ -24,12 +24,13 @@ use crate::models::page::Model as PageModel;
 use crate::services::file::{GetFileOutput, GetPageFiles};
 use crate::services::page::{
     CreatePage, CreatePageOutput, DeletePage, DeletePageOutput, EditPage, EditPageOutput,
-    GetDeletedPageOutput, GetPageAnyDetails, GetPageDirect, GetPageOutput,
-    GetPageReference, GetPageReferenceDetails, GetPageScoreOutput, GetPageSlug, MovePage,
-    MovePageOutput, RestorePage, RestorePageOutput, RollbackPage, SetPageLayout,
+    GetDeletedPageOutput, GetPageAnyDetails, GetPageOutput, GetPageReference,
+    GetPageReferenceDetails, GetPageScoreOutput, GetPageSlug, MovePage, MovePageOutput,
+    RestorePage, RestorePageOutput, RollbackPage, SetPageLayout,
 };
+use crate::services::page_revision::RerenderType;
 use crate::services::{Result, TextService};
-use crate::types::{Bytes, FileOrder, PageDetails, Reference};
+use crate::types::{Bytes, FileOrder, PageDetails, PageId, Reference, RerenderDepth};
 use futures::future::try_join_all;
 
 pub async fn page_create(
@@ -180,9 +181,18 @@ pub async fn page_rerender(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
 ) -> Result<()> {
-    let GetPageDirect { site_id, page_id } = params.parse()?;
-    info!("Re-rendering page ID {page_id} in site ID {site_id}");
-    PageRevisionService::rerender(ctx, site_id, page_id, 0).await
+    let input: PageId = params.parse()?;
+    info!(
+        "Re-rendering page ID {} in site ID {}",
+        input.page_id, input.site_id,
+    );
+    PageRevisionService::rerender(
+        ctx,
+        input,
+        RerenderDepth::default(),
+        RerenderType::Full,
+    )
+    .await
 }
 
 pub async fn page_restore(
@@ -192,7 +202,7 @@ pub async fn page_restore(
     let input: RestorePage = params.parse()?;
     info!(
         "Un-deleting page ID {} in site ID {}",
-        input.page_id, input.site_id,
+        input.id.site_id, input.id.page_id,
     );
     PageService::restore(ctx, input).await
 }
@@ -246,9 +256,13 @@ async fn build_page_output(
             .await?;
 
     // Get text data, if requested
-    let (wikitext, compiled_html) = try_join!(
-        TextService::get_maybe(ctx, details.wikitext, &revision.wikitext_hash),
-        TextService::get_maybe(ctx, details.compiled_html, &revision.compiled_hash),
+    let (wikitext, compiled_body_html) = try_join!(
+        TextService::get_conditional(ctx, details.wikitext, &revision.wikitext_hash),
+        TextService::get_conditional(
+            ctx,
+            details.compiled_html,
+            &revision.compiled_body_html_hash,
+        ),
     )?;
 
     // Calculate score and determine layout
@@ -274,7 +288,7 @@ async fn build_page_output(
         revision_number: revision.revision_number,
         revision_user_id: revision.user_id,
         wikitext,
-        compiled_html,
+        compiled_body_html,
         compiled_at: revision.compiled_at,
         compiled_generator: revision.compiled_generator,
         revision_comments: revision.comments,

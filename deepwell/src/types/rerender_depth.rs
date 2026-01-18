@@ -1,8 +1,8 @@
 /*
- * services/job/structs.rs
+ * types/rerender_depth.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
- * Copyright (C) 2019-2026 Wikijump Team
+ * Copyright (C) 2019-2025 Wikijump Team
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -18,20 +18,30 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use crate::services::page_revision::RerenderType;
-use crate::types::{PageId, RerenderDepth};
+use std::fmt::{self, Display};
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(rename_all = "snake_case", tag = "job", content = "data")]
-pub enum Job {
-    RerenderPage {
-        id: PageId,
-        depth: RerenderDepth,
-        r#type: RerenderType,
-    },
-    PruneSessions,
-    PrunePendingUploads,
-    PruneText,
-    NameChangeRefill,
-    LiftExpiredPunishments,
+#[derive(
+    Serialize, Deserialize, Debug, Copy, Clone, Hash, PartialEq, Eq, PartialOrd, Ord,
+)]
+pub struct RerenderDepth(pub u32);
+
+impl RerenderDepth {
+    #[inline]
+    pub fn plus_one(self) -> RerenderDepth {
+        RerenderDepth(self.0 + 1)
+    }
+}
+
+impl Default for RerenderDepth {
+    #[inline]
+    fn default() -> Self {
+        RerenderDepth(0)
+    }
+}
+
+impl Display for RerenderDepth {
+    #[inline]
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
 }
