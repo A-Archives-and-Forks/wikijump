@@ -839,6 +839,7 @@ dependencies = [
  "cuid2",
  "data-encoding",
  "dotenvy",
+ "exn",
  "femme",
  "filemagic",
  "fluent",
@@ -1088,6 +1089,12 @@ dependencies = [
  "parking",
  "pin-project-lite",
 ]
+
+[[package]]
+name = "exn"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bad13781b9dd97d4489a74e38bb913254d2877840b0b8dece279193761f1d50f"
 
 [[package]]
 name = "fastrand"

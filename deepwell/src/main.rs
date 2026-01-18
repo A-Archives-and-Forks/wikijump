@@ -21,6 +21,9 @@
 //! A server to expose Wikijump operations via an internal JSON RPC API.
 
 #[macro_use]
+extern crate exn;
+
+#[macro_use]
 extern crate log;
 
 #[macro_use]
