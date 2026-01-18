@@ -26,6 +26,7 @@
     let options: string[] = []
     if ($page.data.options.no_render) options.push("norender")
     if ($page.data.options.no_redirect) options.push("noredirect")
+    if ($page.data.options.debug) options.push("debug")
     options = options.map((opt) => `/${opt}`)
     goto(`/${$page.data.page.slug}${options.join("")}/edit`, {
       noScroll: true
@@ -51,21 +52,18 @@
 </script>
 
 {#if $pageLayout === Layout.WIKIDOT}
-  <h1>UNTRANSLATED:Loaded page</h1>
-  <p>
-    UNTRANSLATED:Response <textarea class="debug"
-      >{JSON.stringify($page, null, 2)}</textarea
-    >
-  </p>
-
-  {#if showRevision}
+  {#if $page.data.options?.debug}
+    <h2>UNTRANSLATED:Debug Response</h2>
+  {:else if showRevision}
     <div id="page-title">{revision.title}</div>
   {:else}
     <div id="page-title">{$page.data.page_revision.title}</div>
   {/if}
 
   <div id="page-content">
-    {#if $page.data.options?.no_render}
+    {#if $page.data.options?.debug}
+      <textarea class="debug">{JSON.stringify($page, null, 2)}</textarea>
+    {:else if $page.data.options?.no_render}
       {$page.data.internationalization["wiki-page-no-render"]}
       <textarea class="page-source" readonly={true}>{$page.data.wikitext}</textarea>
     {:else if showRevision}
@@ -287,14 +285,9 @@
     </div>
   {/if}
 {:else}
-  <h1>UNTRANSLATED:Loaded page</h1>
-  <p>
-    UNTRANSLATED:Response <textarea class="debug"
-      >{JSON.stringify($page, null, 2)}</textarea
-    >
-  </p>
-
-  {#if showRevision}
+  {#if $page.data.options?.debug}
+    <h2>UNTRANSLATED:Debug Response</h2>
+  {:else if showRevision}
     <h2>{revision.title}</h2>
   {:else}
     <h2>{$page.data.page_revision.title}</h2>
@@ -303,7 +296,9 @@
   <hr />
 
   <div class="page-content">
-    {#if $page.data.options?.no_render}
+    {#if $page.data.options?.debug}
+      <textarea class="debug">{JSON.stringify($page, null, 2)}</textarea>
+    {:else if $page.data.options?.no_render}
       {$page.data.internationalization["wiki-page-no-render"]}
       <textarea class="page-source" readonly={true}>{$page.data.wikitext}</textarea>
     {:else if showRevision}
