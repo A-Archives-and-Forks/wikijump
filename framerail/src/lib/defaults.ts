@@ -13,6 +13,7 @@ const defaults = {
     "security": {},
     "footer-license-unless": {}
   },
+  translateStripKeys: ["footer-license-unless"],
   page: {
     history: {
       revisionNumber: -1,
