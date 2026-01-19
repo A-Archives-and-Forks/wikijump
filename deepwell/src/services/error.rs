@@ -19,6 +19,7 @@
  */
 
 use crate::hash::{BlobHash, blob_hash_to_hex};
+use exn::Exn;
 use filemagic::FileMagicError;
 use jsonrpsee::types::error::ErrorObjectOwned;
 use reqwest::Error as ReqwestError;
@@ -31,6 +32,7 @@ pub use std::error::Error as StdError;
 
 pub type StdResult<T, E> = std::result::Result<T, E>;
 pub type Result<T> = StdResult<T, Error>;
+pub type ExnResult<T> = StdResult<T, Exn<Error>>;
 
 /// Wrapper error for possible failure modes from service methods.
 #[derive(ThisError, Debug)]
