@@ -36,8 +36,8 @@
     },
     {
         "site": null,
-        "regex": "^mail$",
-        "description": "Reserved name (mail)",
+        "regex": "^e?mail$",
+        "description": "Reserved name (mail / email)",
         "case-sensitive": false,
         "user": true
     },
@@ -85,6 +85,13 @@
     },
     {
         "site": null,
+        "regex": "^(main|master)$",
+        "description": "Reserved name (main / master)",
+        "case-sensitive": false,
+        "user": true
+    },
+    {
+        "site": null,
         "regex": "^pro(fessional)?$",
         "description": "Reserved name (pro / professional)",
         "case-sensitive": false,
@@ -99,8 +106,22 @@
     },
     {
         "site": null,
+        "regex": "^webmaster$",
+        "description": "Reserved name (webmaster)",
+        "case-sensitive": false,
+        "user": true
+    },
+    {
+        "site": null,
         "regex": "^cdn$",
         "description": "Reserved name (cdn)",
+        "case-sensitive": false,
+        "user": true
+    },
+    {
+        "site": null,
+        "regex": "^iso$",
+        "description": "Reserved name (iso)",
         "case-sensitive": false,
         "user": true
     },
@@ -115,6 +136,13 @@
         "site": null,
         "regex": "^pay(ments?)?$",
         "description": "Reserved name (pay / payment / payments)",
+        "case-sensitive": false,
+        "user": true
+    },
+    {
+        "site": null,
+        "regex": "^special$",
+        "description": "Reserved name (special)",
         "case-sensitive": false,
         "user": true
     },
@@ -176,8 +204,8 @@
     },
     {
         "site": null,
-        "regex": "^mod$",
-        "description": "Reserved name (mod)",
+        "regex": "^mod(eration)?$",
+        "description": "Reserved name (mod / moderation)",
         "case-sensitive": false,
         "user": true
     },
@@ -260,7 +288,7 @@
     },
     {
         "site": null,
-        "regex": "^template-$",
+        "regex": "^template-",
         "description": "Reserved name (starts with template-)",
         "case-sensitive": false,
         "user": true
@@ -302,8 +330,15 @@
     },
     {
         "site": null,
-        "regex": "^(css|js|xml)$",
-        "description": "Reserved name (css / js / xml)",
+        "regex": "^(css|js)$",
+        "description": "Reserved name (css / js)",
+        "case-sensitive": false,
+        "user": true
+    },
+    {
+        "site": null,
+        "regex": "^(xml|json|yaml|toml)$",
+        "description": "Reserved name (xml / json / yaml / toml)",
         "case-sensitive": false,
         "user": true
     },
@@ -314,18 +349,24 @@
         "case-sensitive": false,
         "user": true
     },
-
     {
         "site": null,
-        "regex": "^warning$",
-        "description": "Reserved name (warning)",
+        "regex": "^info(rmation)?$",
+        "description": "Reserved name (info / information)",
         "case-sensitive": false,
         "user": true
     },
     {
         "site": null,
-        "regex": "^error$",
-        "description": "Reserved name (error)",
+        "regex": "^warn(ing)?$",
+        "description": "Reserved name (warn / warning)",
+        "case-sensitive": false,
+        "user": true
+    },
+    {
+        "site": null,
+        "regex": "^err(or)?$",
+        "description": "Reserved name (err / error)",
         "case-sensitive": false,
         "user": true
     },
