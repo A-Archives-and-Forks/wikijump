@@ -260,7 +260,7 @@
     },
     {
         "site": null,
-        "regex": "^template-$",
+        "regex": "^template-",
         "description": "Reserved name (starts with template-)",
         "case-sensitive": false,
         "user": true
