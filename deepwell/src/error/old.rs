@@ -23,8 +23,7 @@ use filemagic::FileMagicError;
 use jsonrpsee::types::error::ErrorObjectOwned;
 use reqwest::Error as ReqwestError;
 use s3::error::S3Error;
-use sea_orm::{TransactionError, error::DbErr};
-use std::error::Error as StdError;
+use sea_orm::error::DbErr;
 use thiserror::Error as ThisError;
 use unic_langid::LanguageIdentifierError;
 
@@ -406,33 +405,5 @@ impl From<DbErr> for OldError {
             DbErr::RecordNotFound(_) => OldError::GeneralNotFound,
             _ => OldError::Database(error),
         }
-    }
-}
-
-// End-conversion for methods
-//
-// This is used to convert our ServiceError type into the RPC error type.
-
-impl From<OldError> for ErrorObjectOwned {
-    fn from(error: OldError) -> ErrorObjectOwned {
-        // Return a raw error as-is
-        if let OldError::Raw(error) = error {
-            return error;
-        }
-
-        // Build error object
-        let error_code = error.code();
-        let message = str!(error);
-        let data = error.data();
-        ErrorObjectOwned::owned(error_code, message, Some(data))
-    }
-}
-
-// Helper function for unwrapping two layers of third party crate error wrapper types.
-
-pub fn into_rpc_error(error: TransactionError<ErrorObjectOwned>) -> ErrorObjectOwned {
-    match error {
-        TransactionError::Connection(error) => OldError::Database(error).into(),
-        TransactionError::Transaction(error) => error,
     }
 }

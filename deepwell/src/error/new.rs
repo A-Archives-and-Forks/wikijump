@@ -19,19 +19,40 @@
  */
 
 use crate::hash::BlobHash;
+use exn::Exn;
+use jsonrpsee::types::error::ErrorObjectOwned;
+use serde_json::Value as JsonValue;
 use std::error::Error as StdError;
 use std::fmt::{self, Display};
 
-#[derive(Debug)]
-pub struct NewError {
+#[derive(Debug, Clone)]
+pub struct Error {
     pub message: String,
-    pub r#type: NewErrorType,
+    pub error_type: ErrorType,
 }
 
-#[derive(Debug)]
-pub enum NewErrorType {
+#[derive(Debug, Clone, PartialEq)]
+pub enum ErrorType {
     /// Application failed to start.
     ApplicationStart,
+
+    /// A request returned an error.
+    Request,
+
+    /// A database transaction was aborted due to an error.
+    DatabaseTransaction,
+
+    /// Seeding the database failed.
+    DatabaseSeeder,
+
+    /// Failed to set up server internal state.
+    ServerSetup,
+
+    /// Failed to set up the database connection.
+    DatabaseSetup,
+
+    /// Failed to set up the Redis connection.
+    RedisSetup,
 
     /// An external API has ratelimited us.
     RateLimited,
@@ -278,85 +299,93 @@ pub enum NewErrorType {
     SiteBlockedUser,
 }
 
-impl StdError for NewError {}
+impl StdError for Error {}
 
-impl Display for NewError {
+impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "[{:04}] {}", self.code(), self.message)
     }
 }
 
-impl NewError {
+impl Error {
     #[inline]
-    pub fn new<S: Into<String>>(message: S, error_type: NewErrorType) -> Self {
-        NewError {
+    pub fn new<S: Into<String>>(message: S, error_type: ErrorType) -> Self {
+        Error {
             message: message.into(),
-            r#type: error_type,
+            error_type,
         }
     }
 
     pub fn code(&self) -> i32 {
-        match self.r#type {
+        match self.error_type {
             //
-            // 1000 -- Top-Level
+            // 1000 -- High-Level
             //
 
             // 1000 - General
-            NewErrorType::ApplicationStart => 1000,
+            ErrorType::ApplicationStart => 1000,
+            ErrorType::Request => 1001,
+            ErrorType::DatabaseTransaction => 1002,
+            ErrorType::DatabaseSeeder => 1003,
+
+            // 1100 - Intermediate Setup
+            ErrorType::ServerSetup => 1100,
+            ErrorType::DatabaseSetup => 1101,
+            ErrorType::RedisSetup => 1101,
 
             //
             // 2000 -- Data Consistency
             //
 
             // 2000 - Not Found
-            NewErrorType::GeneralNotFound => 2000,
-            NewErrorType::AliasNotFound => 2001,
-            NewErrorType::RelationNotFound => 2002,
-            NewErrorType::UserNotFound => 2003,
-            NewErrorType::SiteNotFound => 2004,
-            NewErrorType::PageNotFound => 2005,
-            NewErrorType::PageCategoryNotFound => 2006,
-            NewErrorType::PageParentNotFound => 2007,
-            NewErrorType::PageRevisionNotFound => 2008,
-            NewErrorType::FileNotFound => 2009,
-            NewErrorType::FileRevisionNotFound => 2010,
-            NewErrorType::VoteNotFound => 2011,
-            NewErrorType::FilterNotFound => 2012,
-            NewErrorType::CustomDomainNotFound => 2013,
-            NewErrorType::MessageNotFound => 2014,
-            NewErrorType::MessageDraftNotFound => 2015,
-            NewErrorType::BlobNotFound => 2016,
-            NewErrorType::TextNotFound => 2017,
+            ErrorType::GeneralNotFound => 2000,
+            ErrorType::AliasNotFound => 2001,
+            ErrorType::RelationNotFound => 2002,
+            ErrorType::UserNotFound => 2003,
+            ErrorType::SiteNotFound => 2004,
+            ErrorType::PageNotFound => 2005,
+            ErrorType::PageCategoryNotFound => 2006,
+            ErrorType::PageParentNotFound => 2007,
+            ErrorType::PageRevisionNotFound => 2008,
+            ErrorType::FileNotFound => 2009,
+            ErrorType::FileRevisionNotFound => 2010,
+            ErrorType::VoteNotFound => 2011,
+            ErrorType::FilterNotFound => 2012,
+            ErrorType::CustomDomainNotFound => 2013,
+            ErrorType::MessageNotFound => 2014,
+            ErrorType::MessageDraftNotFound => 2015,
+            ErrorType::BlobNotFound => 2016,
+            ErrorType::TextNotFound => 2017,
 
             // 2100 - Already Exists
-            NewErrorType::UserExists => 2100,
-            NewErrorType::UserMfaExists => 2101,
-            NewErrorType::SiteExists => 2102,
-            NewErrorType::PageExists => 2103,
-            NewErrorType::PageSlugExists => 2104,
-            NewErrorType::PageParentExists => 2105,
-            NewErrorType::FileExists => 2106,
-            NewErrorType::FilterExists => 2107,
-            NewErrorType::CustomDomainExists => 2108,
+            ErrorType::UserExists => 2100,
+            ErrorType::UserMfaExists => 2101,
+            ErrorType::SiteExists => 2102,
+            ErrorType::PageExists => 2103,
+            ErrorType::PageSlugExists => 2104,
+            ErrorType::PageParentExists => 2105,
+            ErrorType::FileExists => 2106,
+            ErrorType::FilterExists => 2107,
+            ErrorType::CustomDomainExists => 2108,
 
             //
             // 3000 -- Client / Protocol Errors
             //
 
             // 3000 - Authentication
-            NewErrorType::InvalidAuthentication => 3000,
-            NewErrorType::InvalidSessionToken => 3001,
-            NewErrorType::SessionUserId { .. } => 3002,
-            NewErrorType::EmptyPassword => 3003,
+            ErrorType::InvalidAuthentication => 3000,
+            ErrorType::InvalidSessionToken => 3001,
+            ErrorType::SessionUserId { .. } => 3002,
+            ErrorType::EmptyPassword => 3003,
 
             // 3100 - Permission
             // TODO
 
             // 3200 - Server-side
-            NewErrorType::AuthenticationBackend => 3200,
-            NewErrorType::RenderTimeout => 3201,
-            NewErrorType::RateLimited => 3202,
-            NewErrorType::EmailVerification => 3203,
+            ErrorType::AuthenticationBackend => 3200,
+            ErrorType::RenderTimeout => 3201,
+            ErrorType::RateLimited => 3202,
+            ErrorType::EmailVerification => 3203,
 
             //
             // 4000, 5000, 6000 -- Client / Request Errors
@@ -371,80 +400,131 @@ impl NewError {
             // Some of these requests are pretty general, unless it is a rare edge case,
             // consider adding a new error case when code to handle new fail states are
             // introduced.
-            NewErrorType::BadRequest => 4000,
-            NewErrorType::InvalidEnumValue => 4001,
+            ErrorType::BadRequest => 4000,
+            ErrorType::InvalidEnumValue => 4001,
 
             // 4100 - User
-            NewErrorType::UserNameTooShort => 4100,
-            NewErrorType::UserSlugEmpty => 4101,
-            NewErrorType::UserEmailEmpty => 4102,
-            NewErrorType::UserWrongType => 4103,
-            NewErrorType::InsufficientNameChanges => 4104,
-            NewErrorType::InvalidEmail => 4105,
-            NewErrorType::DisallowedEmail => 4106,
+            ErrorType::UserNameTooShort => 4100,
+            ErrorType::UserSlugEmpty => 4101,
+            ErrorType::UserEmailEmpty => 4102,
+            ErrorType::UserWrongType => 4103,
+            ErrorType::InsufficientNameChanges => 4104,
+            ErrorType::InvalidEmail => 4105,
+            ErrorType::DisallowedEmail => 4106,
 
             // 4200 - Site
-            NewErrorType::SiteSlugEmpty => 4200,
+            ErrorType::SiteSlugEmpty => 4200,
 
             // 4300 - Page
-            NewErrorType::PageSlugEmpty => 4300,
-            NewErrorType::PageNotDeleted => 4301,
-            NewErrorType::CannotHideLatestRevision => 4302,
-            NewErrorType::NotLatestRevisionId => 4303,
+            ErrorType::PageSlugEmpty => 4300,
+            ErrorType::PageNotDeleted => 4301,
+            ErrorType::CannotHideLatestRevision => 4302,
+            ErrorType::NotLatestRevisionId => 4303,
 
             // 4400 - File
-            NewErrorType::FileNameEmpty => 4400,
-            NewErrorType::FileNameTooLong { .. } => 4401,
-            NewErrorType::FileNameInvalidCharacters => 4402,
-            NewErrorType::FileMimeEmpty => 4403,
-            NewErrorType::FileNotDeleted => 4404,
+            ErrorType::FileNameEmpty => 4400,
+            ErrorType::FileNameTooLong { .. } => 4401,
+            ErrorType::FileNameInvalidCharacters => 4402,
+            ErrorType::FileMimeEmpty => 4403,
+            ErrorType::FileNotDeleted => 4404,
 
             //
             // 5000 -- Client / Request Errors - Ancillary Data Objects
             //
 
             // 5000 - Locale
-            NewErrorType::LocaleInvalid { .. } => 5000,
-            NewErrorType::LocaleMissing { .. } => 5001,
-            NewErrorType::LocaleMessageMissing { .. } => 5002,
-            NewErrorType::LocaleMessageValueMissing { .. } => 5003,
-            NewErrorType::LocaleMessageAttributeMissing { .. } => 5004,
-            NewErrorType::NoLocalesSpecified => 5005,
+            ErrorType::LocaleInvalid { .. } => 5000,
+            ErrorType::LocaleMissing { .. } => 5001,
+            ErrorType::LocaleMessageMissing { .. } => 5002,
+            ErrorType::LocaleMessageValueMissing { .. } => 5003,
+            ErrorType::LocaleMessageAttributeMissing { .. } => 5004,
+            ErrorType::NoLocalesSpecified => 5005,
 
             // 5100 - Filter
-            NewErrorType::FilterViolation => 5100,
-            NewErrorType::FilterNotDeleted => 5102,
+            ErrorType::FilterViolation => 5100,
+            ErrorType::FilterNotDeleted => 5102,
 
             // 5200 - Blob
-            NewErrorType::BlobNotUploaded => 5200,
-            NewErrorType::BlobWrongUser => 5201,
-            NewErrorType::BlobTooBig => 5202,
-            NewErrorType::BlobSizeMismatch { .. } => 5204,
-            NewErrorType::BlobBlacklisted(_) => 5205,
-            NewErrorType::BlobCannotBlacklistExisting => 5206,
+            ErrorType::BlobNotUploaded => 5200,
+            ErrorType::BlobWrongUser => 5201,
+            ErrorType::BlobTooBig => 5202,
+            ErrorType::BlobSizeMismatch { .. } => 5204,
+            ErrorType::BlobBlacklisted(_) => 5205,
+            ErrorType::BlobCannotBlacklistExisting => 5206,
 
             // 5300 - Message
-            NewErrorType::MessageSubjectEmpty => 5300,
-            NewErrorType::MessageSubjectTooLong => 5301,
-            NewErrorType::MessageBodyEmpty => 5302,
-            NewErrorType::MessageBodyTooLong => 5303,
-            NewErrorType::MessageNoRecipients => 5304,
-            NewErrorType::MessageTooManyRecipients => 5305,
+            ErrorType::MessageSubjectEmpty => 5300,
+            ErrorType::MessageSubjectTooLong => 5301,
+            ErrorType::MessageBodyEmpty => 5302,
+            ErrorType::MessageBodyTooLong => 5303,
+            ErrorType::MessageNoRecipients => 5304,
+            ErrorType::MessageTooManyRecipients => 5305,
 
             // 5400 - Domains
-            NewErrorType::CustomDomainWrongSite => 5400,
-            NewErrorType::CustomDomainSubdomain => 5401,
+            ErrorType::CustomDomainWrongSite => 5400,
+            ErrorType::CustomDomainSubdomain => 5401,
 
             //
             // 6000 -- Client / Request Errors - Composite Data
             //
 
             // 6000 - Relations
-            NewErrorType::SiteBlockedUser => 6000,
-            NewErrorType::UserBlockedUser => 6001,
+            ErrorType::SiteBlockedUser => 6000,
+            ErrorType::UserBlockedUser => 6001,
             //
             // 7000, 8000, 9000 -- (RESERVED)
             //
         }
     }
+
+    pub fn data(&self) -> JsonValue {
+        use crate::hash::blob_hash_to_hex;
+        use serde_json::json;
+
+        match &self.error_type {
+            ErrorType::SessionUserId {
+                active_user_id,
+                session_user_id,
+            } => json!({
+                "active_user_id": active_user_id,
+                "session_user_id": session_user_id,
+            }),
+            ErrorType::BlobSizeMismatch { expected, actual } => json!({
+                "expected": expected,
+                "actual": actual,
+            }),
+            ErrorType::FileNameTooLong { length, maximum } => json!({
+                "length": length,
+                "maximum": maximum,
+            }),
+            ErrorType::BlobBlacklisted(bytes) => json!(*blob_hash_to_hex(bytes)),
+            _ => json!(null),
+        }
+    }
+}
+
+// End-conversion for methods
+
+/// Converts an `Exn<deepwell::error::Error>` to a JSONRPC object type.
+///
+/// This is not a `From` implementation since, technically, `Exn<T>` is a
+/// foreign type. 🙁
+pub fn exn_error_to_rpc_error(exn_error: Exn<Error>) -> ErrorObjectOwned {
+    use exn::Frame;
+
+    // Traverse the tree until we hit the highest-level Error
+    fn walk(frame: &Frame) -> Option<&Error> {
+        match frame.as_any().downcast_ref::<Error>() {
+            Some(err) if err.error_type != ErrorType::Request => Some(err),
+            _ => frame.children().iter().find_map(walk),
+        }
+    }
+
+    let error: &Error = walk(exn_error.as_frame())
+        .expect("Missing outer wrapped error from JSONRPC request handler");
+
+    let message = str!(exn_error);
+    let error_code = error.code();
+    let data = error.data();
+    ErrorObjectOwned::owned(error_code, message, Some(data))
 }

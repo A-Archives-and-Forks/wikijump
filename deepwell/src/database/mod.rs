@@ -22,11 +22,14 @@ mod seeder;
 
 pub use self::seeder::seed;
 
-use anyhow::Result;
+use crate::error::prelude::*;
 use sea_orm::{ConnectOptions, Database, DatabaseConnection};
 use std::time::Duration;
 
 pub async fn connect<S: Into<String>>(database_uri: S) -> Result<DatabaseConnection> {
+    let make_error =
+        || Error::new("failed to connect to database", ErrorType::DatabaseSetup);
+
     let database_uri = database_uri.into();
     let mut options = ConnectOptions::new(database_uri);
     options
@@ -36,6 +39,6 @@ pub async fn connect<S: Into<String>>(database_uri: S) -> Result<DatabaseConnect
         .idle_timeout(Duration::from_secs(10))
         .sqlx_logging(true);
 
-    let sea_orm_db = Database::connect(options).await?;
+    let sea_orm_db = Database::connect(options).await.or_raise(make_error)?;
     Ok(sea_orm_db)
 }

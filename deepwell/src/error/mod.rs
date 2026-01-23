@@ -18,16 +18,24 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+pub mod prelude {
+    pub use super::{
+        ExnResult, NewError as Error, NewErrorType as ErrorType, NewResult as Result,
+        StdError, StdResult,
+    };
+    pub use exn::ResultExt;
+}
+
 mod new;
 mod old;
 
-pub use self::new::{NewError, NewErrorType};
-pub use self::old::{OldError as Error, into_rpc_error};
+pub use self::new::{
+    Error as NewError, ErrorType as NewErrorType, exn_error_to_rpc_error,
+};
+pub use self::old::OldError as Error;
+pub use exn::Result as ExnResult;
 pub use std::error::Error as StdError;
-
-use exn::Exn;
 
 pub type StdResult<T, E> = std::result::Result<T, E>;
 pub type Result<T> = StdResult<T, Error>;
-pub type ExnResult<T, E> = StdResult<T, Exn<E>>;
 pub type NewResult<T> = ExnResult<T, NewError>;
