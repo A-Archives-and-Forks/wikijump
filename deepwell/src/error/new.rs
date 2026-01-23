@@ -318,6 +318,24 @@ impl Error {
 
     /// Returns a unique integer code for this type of error.
     ///
+    /// See `ErrorType::code()` for details.
+    #[inline]
+    pub fn code(&self) -> i32 {
+        self.error_type.code()
+    }
+
+    /// Returns auxiliary data for this error.
+    ///
+    /// See `ErrorType::data()` for details.
+    #[inline]
+    pub fn data(&self) -> JsonValue {
+        self.error_type.data()
+    }
+}
+
+impl ErrorType {
+    /// Returns a unique integer code for this type of error.
+    ///
     /// Errors are divided into groups:
     /// * 1000 - High-level
     ///   * 1000 - General
@@ -344,7 +362,7 @@ impl Error {
     /// * 6000 - Client / Request Errors / Composite Data
     ///   * 6000 - Relations
     pub fn code(&self) -> i32 {
-        match self.error_type {
+        match self {
             //
             // 1000 -- High-Level
             //
@@ -501,11 +519,17 @@ impl Error {
         }
     }
 
+    /// Returns auxiliary data for this error.
+    ///
+    /// In effect, this serializes any contents of this error.
+    /// For instance, if it refers to a particular user ID
+    /// which caused an issue then this value would be
+    /// returned in the JSON output.
     pub fn data(&self) -> JsonValue {
         use crate::hash::blob_hash_to_hex;
         use serde_json::json;
 
-        match &self.error_type {
+        match self {
             ErrorType::SessionUserId {
                 active_user_id,
                 session_user_id,
