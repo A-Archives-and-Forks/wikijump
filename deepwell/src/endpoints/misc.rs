@@ -84,7 +84,7 @@ pub async fn yield_error(
 pub async fn config_dump(
     ctx: &ServiceContext<'_>,
     _params: Params<'static>,
-) -> OldResult<String> {
+) -> Result<String> {
     info!("Dumping raw DEEPWELL configuration for debugging");
     Ok(ctx.config().raw_toml.to_string())
 }
