@@ -18,7 +18,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use crate::hash::{BlobHash, blob_hash_to_hex};
+use crate::hash::BlobHash;
 use filemagic::FileMagicError;
 use jsonrpsee::types::error::ErrorObjectOwned;
 use reqwest::Error as ReqwestError;
@@ -307,78 +307,6 @@ pub enum OldError {
 
     #[error("Cannot perform this action because you are blocked by the site")]
     SiteBlockedUser,
-}
-
-impl OldError {
-    /// Returns the code associated with this error.
-    ///
-    /// The JSON-RPC spec has each unique error case return its own integer error code.
-    /// Some very negative codes are reserved for RPC internals, so we will only output
-    /// positive values.
-    ///
-    /// Sort of similar to HTTP status codes, we are also dividing them into groups based
-    /// generally on the kind of error it is.
-    ///
-    /// When an error case is removed, then its number should generally not be reused,
-    /// just use the next available value in line. Also be sure to update framerail
-    /// accordingly when error codes are added or removed.
-    pub fn code(&self) -> i32 {
-        todo!()
-    }
-
-    /// Emit partial structured error data.
-    ///
-    /// Meant to be better than nothing and simply `Debug` but also not
-    /// as much boilerplate as manually implementing `Serialize` on everything.
-    /// This unwraps common cases and makes things generally clearer.
-    fn data(&self) -> serde_json::Value {
-        use serde_json::json;
-
-        match self {
-            // Message already has all the data
-            OldError::Raw(_) => json!(null),
-
-            // Unwrap self-error
-            OldError::AuthenticationBackend(error) => error.data(),
-
-            // Emit as structure
-            OldError::SessionUserId {
-                active_user_id,
-                session_user_id,
-            } => json!({
-                "active_user_id": active_user_id,
-                "session_user_id": session_user_id,
-            }),
-            OldError::BlobSizeMismatch { expected, actual } => json!({
-                "expected": expected,
-                "actual": actual,
-            }),
-            OldError::FileNameTooLong { length, maximum } => json!({
-                "length": length,
-                "maximum": maximum,
-            }),
-
-            // Emit as-is
-            OldError::EmailVerification(value) => json!(value),
-
-            // Emit as a Debug string
-            OldError::Cryptography(value) => json!(format!("{value:?}")),
-            OldError::Database(value) => json!(format!("{value:?}")),
-            OldError::LocaleInvalid(value) => json!(format!("{value:?}")),
-            OldError::Magic(value) => json!(format!("{value:?}")),
-            OldError::Otp(value) => json!(format!("{value:?}")),
-            OldError::Serde(value) => json!(format!("{value:?}")),
-            OldError::S3Service(value) => json!(format!("{value:?}")),
-            OldError::WebRequest(value) => json!(format!("{value:?}")),
-            OldError::FilterRegexInvalid(value) => json!(format!("{value:?}")),
-
-            // Emit as hexadecimal bytes
-            OldError::BlobBlacklisted(bytes) => json!(*blob_hash_to_hex(bytes)),
-
-            // Other cases are null enums or the values are ignored
-            _ => json!(null),
-        }
-    }
 }
 
 // Error conversion implementations

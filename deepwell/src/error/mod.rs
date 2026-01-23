@@ -20,8 +20,7 @@
 
 pub mod prelude {
     pub use super::{
-        ExnResult, NewError as Error, NewErrorType as ErrorType, NewResult as Result,
-        StdError, StdResult,
+        NewError as Error, NewErrorType as ErrorType, NewResult as Result, StdError,
     };
     pub use exn::ResultExt;
 }
