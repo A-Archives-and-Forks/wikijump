@@ -1,5 +1,5 @@
 /*
- * services/error.rs
+ * services/error/forward.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
  * Copyright (C) 2019-2026 Wikijump Team
@@ -25,18 +25,13 @@ use jsonrpsee::types::error::ErrorObjectOwned;
 use reqwest::Error as ReqwestError;
 use s3::error::S3Error;
 use sea_orm::{TransactionError, error::DbErr};
+use std::error::Error as StdError;
 use thiserror::Error as ThisError;
 use unic_langid::LanguageIdentifierError;
 
-pub use std::error::Error as StdError;
-
-pub type StdResult<T, E> = std::result::Result<T, E>;
-pub type Result<T> = StdResult<T, Error>;
-pub type ExnResult<T> = StdResult<T, Exn<Error>>;
-
 /// Wrapper error for possible failure modes from service methods.
 #[derive(ThisError, Debug)]
-pub enum Error {
+pub enum OldError {
     // Error passed straight to ErrorObjectOwned without conversion
     #[error("{0}")]
     Raw(#[from] ErrorObjectOwned),
@@ -165,7 +160,7 @@ pub enum Error {
     InvalidAuthentication,
 
     #[error("Backend error while trying to authenticate")]
-    AuthenticationBackend(Box<Error>),
+    AuthenticationBackend(Box<OldError>),
 
     #[error("Invalid session token, cannot be used for authentication")]
     InvalidSessionToken,
@@ -316,7 +311,7 @@ pub enum Error {
     SiteBlockedUser,
 }
 
-impl Error {
+impl OldError {
     /// Returns the code associated with this error.
     ///
     /// The JSON-RPC spec has each unique error case return its own integer error code.
@@ -330,166 +325,7 @@ impl Error {
     /// just use the next available value in line. Also be sure to update framerail
     /// accordingly when error codes are added or removed.
     pub fn code(&self) -> i32 {
-        match self {
-            //
-            // 1000 -- General Process Handling
-            //
-
-            // 1000 - Miscellaneous / Technical
-            Error::Raw(_) => 1000,
-            Error::AuthenticationBackend(_) => 1001,
-
-            // 1100 - Rust Errors
-            Error::Serde(_) => 1100,
-            Error::Database(_) => 1101,
-            Error::Cryptography(_) => 1102,
-            Error::Magic(_) => 1103,
-            Error::Otp(_) => 1104,
-            Error::Redis(_) => 1105,
-            Error::Rsmq(_) => 1106,
-
-            // 1200 - Service Errors
-            Error::RateLimited => 1200,
-            Error::WebRequest(_) => 1201,
-            Error::RenderTimeout => 1202,
-            Error::EmailVerification(_) => 1203,
-            Error::S3Service(_) => 1204,
-            Error::S3Response => 1205,
-
-            //
-            // 2000 -- Data Consistency
-            //
-
-            // 2000 - Not Found
-            Error::GeneralNotFound => 2000,
-            Error::AliasNotFound => 2001,
-            Error::RelationNotFound => 2002,
-            Error::UserNotFound => 2003,
-            Error::SiteNotFound => 2004,
-            Error::PageNotFound => 2005,
-            Error::PageCategoryNotFound => 2006,
-            Error::PageParentNotFound => 2007,
-            Error::PageRevisionNotFound => 2008,
-            Error::FileNotFound => 2009,
-            Error::FileRevisionNotFound => 2010,
-            Error::VoteNotFound => 2011,
-            Error::FilterNotFound => 2012,
-            Error::CustomDomainNotFound => 2013,
-            Error::MessageNotFound => 2014,
-            Error::MessageDraftNotFound => 2015,
-            Error::BlobNotFound => 2016,
-            Error::TextNotFound => 2017,
-
-            // 2100 - Already Exists
-            Error::UserExists => 2100,
-            Error::UserMfaExists => 2101,
-            Error::SiteExists => 2102,
-            Error::PageExists => 2103,
-            Error::PageSlugExists => 2104,
-            Error::PageParentExists => 2105,
-            Error::FileExists => 2106,
-            Error::FilterExists => 2107,
-            Error::CustomDomainExists => 2108,
-
-            //
-            // 3000 -- Client / Protocol Errors
-            //
-
-            // 3000 - Authentication
-            Error::InvalidAuthentication => 3000,
-            Error::InvalidSessionToken => 3001,
-            Error::SessionUserId { .. } => 3002,
-            Error::EmptyPassword => 3003,
-
-            // 3100 - Permission
-            // TODO
-
-            //
-            // 4000, 5000, 6000 -- Client / Request Errors
-            //
-
-            //
-            // 4000 -- Client / Request Errors - Core Data Objects
-            //
-
-            // 4000 - General
-            //
-            // Some of these requests are pretty general, unless it is a rare edge case,
-            // consider adding a new error case when code to handle new fail states are
-            // introduced.
-            Error::BadRequest => 4000,
-            Error::InvalidEnumValue => 4001,
-
-            // 4100 - User
-            Error::UserNameTooShort => 4100,
-            Error::UserSlugEmpty => 4101,
-            Error::UserEmailEmpty => 4102,
-            Error::UserWrongType => 4103,
-            Error::InsufficientNameChanges => 4104,
-            Error::InvalidEmail => 4105,
-            Error::DisallowedEmail => 4106,
-
-            // 4200 - Site
-            Error::SiteSlugEmpty => 4200,
-
-            // 4300 - Page
-            Error::PageSlugEmpty => 4300,
-            Error::PageNotDeleted => 4301,
-            Error::CannotHideLatestRevision => 4302,
-            Error::NotLatestRevisionId => 4303,
-
-            // 4400 - File
-            Error::FileNameEmpty => 4400,
-            Error::FileNameTooLong { .. } => 4401,
-            Error::FileNameInvalidCharacters => 4402,
-            Error::FileMimeEmpty => 4403,
-            Error::FileNotDeleted => 4404,
-
-            //
-            // 5000 -- Client / Request Errors - Ancillary Data Objects
-            //
-
-            // 5000 - Locale
-            Error::LocaleInvalid(_) => 5000,
-            Error::LocaleMissing => 5001,
-            Error::LocaleMessageMissing => 5002,
-            Error::LocaleMessageValueMissing => 5003,
-            Error::LocaleMessageAttributeMissing => 5004,
-            Error::NoLocalesSpecified => 5005,
-
-            // 5100 - Filter
-            Error::FilterViolation => 5100,
-            Error::FilterRegexInvalid(_) => 5101,
-            Error::FilterNotDeleted => 5102,
-
-            // 5200 - Blob
-            Error::BlobNotUploaded => 5200,
-            Error::BlobWrongUser => 5201,
-            Error::BlobTooBig => 5202,
-            Error::BlobSizeMismatch { .. } => 5204,
-            Error::BlobBlacklisted(_) => 5205,
-            Error::BlobCannotBlacklistExisting => 5206,
-
-            // 5300 - Message
-            Error::MessageSubjectEmpty => 5300,
-            Error::MessageSubjectTooLong => 5301,
-            Error::MessageBodyEmpty => 5302,
-            Error::MessageBodyTooLong => 5303,
-            Error::MessageNoRecipients => 5304,
-            Error::MessageTooManyRecipients => 5305,
-
-            // 5400 - Domains
-            Error::CustomDomainWrongSite => 5400,
-            Error::CustomDomainSubdomain => 5401,
-
-            //
-            // 6000 -- Client / Request Errors - Composite Data
-            //
-
-            // 6000 - Relations
-            Error::SiteBlockedUser => 6000,
-            Error::UserBlockedUser => 6001,
-        }
+        todo!()
     }
 
     /// Emit partial structured error data.
@@ -502,44 +338,44 @@ impl Error {
 
         match self {
             // Message already has all the data
-            Error::Raw(_) => json!(null),
+            OldError::Raw(_) => json!(null),
 
             // Unwrap self-error
-            Error::AuthenticationBackend(error) => error.data(),
+            OldError::AuthenticationBackend(error) => error.data(),
 
             // Emit as structure
-            Error::SessionUserId {
+            OldError::SessionUserId {
                 active_user_id,
                 session_user_id,
             } => json!({
                 "active_user_id": active_user_id,
                 "session_user_id": session_user_id,
             }),
-            Error::BlobSizeMismatch { expected, actual } => json!({
+            OldError::BlobSizeMismatch { expected, actual } => json!({
                 "expected": expected,
                 "actual": actual,
             }),
-            Error::FileNameTooLong { length, maximum } => json!({
+            OldError::FileNameTooLong { length, maximum } => json!({
                 "length": length,
                 "maximum": maximum,
             }),
 
             // Emit as-is
-            Error::EmailVerification(value) => json!(value),
+            OldError::EmailVerification(value) => json!(value),
 
             // Emit as a Debug string
-            Error::Cryptography(value) => json!(format!("{value:?}")),
-            Error::Database(value) => json!(format!("{value:?}")),
-            Error::LocaleInvalid(value) => json!(format!("{value:?}")),
-            Error::Magic(value) => json!(format!("{value:?}")),
-            Error::Otp(value) => json!(format!("{value:?}")),
-            Error::Serde(value) => json!(format!("{value:?}")),
-            Error::S3Service(value) => json!(format!("{value:?}")),
-            Error::WebRequest(value) => json!(format!("{value:?}")),
-            Error::FilterRegexInvalid(value) => json!(format!("{value:?}")),
+            OldError::Cryptography(value) => json!(format!("{value:?}")),
+            OldError::Database(value) => json!(format!("{value:?}")),
+            OldError::LocaleInvalid(value) => json!(format!("{value:?}")),
+            OldError::Magic(value) => json!(format!("{value:?}")),
+            OldError::Otp(value) => json!(format!("{value:?}")),
+            OldError::Serde(value) => json!(format!("{value:?}")),
+            OldError::S3Service(value) => json!(format!("{value:?}")),
+            OldError::WebRequest(value) => json!(format!("{value:?}")),
+            OldError::FilterRegexInvalid(value) => json!(format!("{value:?}")),
 
             // Emit as hexadecimal bytes
-            Error::BlobBlacklisted(bytes) => json!(*blob_hash_to_hex(bytes)),
+            OldError::BlobBlacklisted(bytes) => json!(*blob_hash_to_hex(bytes)),
 
             // Other cases are null enums or the values are ignored
             _ => json!(null),
@@ -552,24 +388,24 @@ impl Error {
 // Required if the value doesn't implement StdError,
 // or we want custom conversions.
 
-impl From<argon2::password_hash::Error> for Error {
+impl From<argon2::password_hash::Error> for OldError {
     #[inline]
-    fn from(error: argon2::password_hash::Error) -> Error {
+    fn from(error: argon2::password_hash::Error) -> OldError {
         match error {
             // Password is invalid, expected error
-            argon2::password_hash::Error::Password => Error::InvalidAuthentication,
+            argon2::password_hash::Error::Password => OldError::InvalidAuthentication,
 
             // Problem with the password hashing process
-            _ => Error::Cryptography(error),
+            _ => OldError::Cryptography(error),
         }
     }
 }
 
-impl From<DbErr> for Error {
-    fn from(error: DbErr) -> Error {
+impl From<DbErr> for OldError {
+    fn from(error: DbErr) -> OldError {
         match error {
-            DbErr::RecordNotFound(_) => Error::GeneralNotFound,
-            _ => Error::Database(error),
+            DbErr::RecordNotFound(_) => OldError::GeneralNotFound,
+            _ => OldError::Database(error),
         }
     }
 }
@@ -578,10 +414,10 @@ impl From<DbErr> for Error {
 //
 // This is used to convert our ServiceError type into the RPC error type.
 
-impl From<Error> for ErrorObjectOwned {
-    fn from(error: Error) -> ErrorObjectOwned {
+impl From<OldError> for ErrorObjectOwned {
+    fn from(error: OldError) -> ErrorObjectOwned {
         // Return a raw error as-is
-        if let Error::Raw(error) = error {
+        if let OldError::Raw(error) = error {
             return error;
         }
 
@@ -597,7 +433,7 @@ impl From<Error> for ErrorObjectOwned {
 
 pub fn into_rpc_error(error: TransactionError<ErrorObjectOwned>) -> ErrorObjectOwned {
     match error {
-        TransactionError::Connection(error) => Error::Database(error).into(),
+        TransactionError::Connection(error) => OldError::Database(error).into(),
         TransactionError::Transaction(error) => error,
     }
 }
