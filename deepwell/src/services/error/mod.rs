@@ -21,7 +21,7 @@
 mod new;
 mod old;
 
-pub use self::new::NewError;
+pub use self::new::{NewError, NewErrorType};
 pub use self::old::{OldError as Error, into_rpc_error};
 pub use std::error::Error as StdError;
 
@@ -29,4 +29,5 @@ use exn::Exn;
 
 pub type StdResult<T, E> = std::result::Result<T, E>;
 pub type Result<T> = StdResult<T, Error>;
-pub type ExnResult<T> = StdResult<T, Exn<NewError>>;
+pub type ExnResult<T, E> = StdResult<T, Exn<E>>;
+pub type NewResult<T> = ExnResult<T, NewError>;

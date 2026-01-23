@@ -26,11 +26,14 @@ use std::fmt::{self, Display};
 #[derive(Debug)]
 pub struct NewError {
     pub message: String,
-    pub data: NewErrorData,
+    pub r#type: NewErrorType,
 }
 
 #[derive(Debug)]
-pub enum NewErrorData {
+pub enum NewErrorType {
+    /// Application failed to start.
+    ApplicationStart,
+
     /// An external API has ratelimited us.
     RateLimited,
 
@@ -286,69 +289,75 @@ impl Display for NewError {
 
 impl NewError {
     #[inline]
-    pub fn new(message: String, data: NewErrorData) -> Self {
-        NewError { message, data }
+    pub fn new<S: Into<String>>(message: S, error_type: NewErrorType) -> Self {
+        NewError {
+            message: message.into(),
+            r#type: error_type,
+        }
     }
 
     pub fn code(&self) -> i32 {
-        match self.data {
+        match self.r#type {
             //
-            // 1000 -- (RESERVED)
+            // 1000 -- Top-Level
             //
+
+            // 1000 - General
+            NewErrorType::ApplicationStart => 1000,
 
             //
             // 2000 -- Data Consistency
             //
 
             // 2000 - Not Found
-            NewErrorData::GeneralNotFound => 2000,
-            NewErrorData::AliasNotFound => 2001,
-            NewErrorData::RelationNotFound => 2002,
-            NewErrorData::UserNotFound => 2003,
-            NewErrorData::SiteNotFound => 2004,
-            NewErrorData::PageNotFound => 2005,
-            NewErrorData::PageCategoryNotFound => 2006,
-            NewErrorData::PageParentNotFound => 2007,
-            NewErrorData::PageRevisionNotFound => 2008,
-            NewErrorData::FileNotFound => 2009,
-            NewErrorData::FileRevisionNotFound => 2010,
-            NewErrorData::VoteNotFound => 2011,
-            NewErrorData::FilterNotFound => 2012,
-            NewErrorData::CustomDomainNotFound => 2013,
-            NewErrorData::MessageNotFound => 2014,
-            NewErrorData::MessageDraftNotFound => 2015,
-            NewErrorData::BlobNotFound => 2016,
-            NewErrorData::TextNotFound => 2017,
+            NewErrorType::GeneralNotFound => 2000,
+            NewErrorType::AliasNotFound => 2001,
+            NewErrorType::RelationNotFound => 2002,
+            NewErrorType::UserNotFound => 2003,
+            NewErrorType::SiteNotFound => 2004,
+            NewErrorType::PageNotFound => 2005,
+            NewErrorType::PageCategoryNotFound => 2006,
+            NewErrorType::PageParentNotFound => 2007,
+            NewErrorType::PageRevisionNotFound => 2008,
+            NewErrorType::FileNotFound => 2009,
+            NewErrorType::FileRevisionNotFound => 2010,
+            NewErrorType::VoteNotFound => 2011,
+            NewErrorType::FilterNotFound => 2012,
+            NewErrorType::CustomDomainNotFound => 2013,
+            NewErrorType::MessageNotFound => 2014,
+            NewErrorType::MessageDraftNotFound => 2015,
+            NewErrorType::BlobNotFound => 2016,
+            NewErrorType::TextNotFound => 2017,
 
             // 2100 - Already Exists
-            NewErrorData::UserExists => 2100,
-            NewErrorData::UserMfaExists => 2101,
-            NewErrorData::SiteExists => 2102,
-            NewErrorData::PageExists => 2103,
-            NewErrorData::PageSlugExists => 2104,
-            NewErrorData::PageParentExists => 2105,
-            NewErrorData::FileExists => 2106,
-            NewErrorData::FilterExists => 2107,
-            NewErrorData::CustomDomainExists => 2108,
+            NewErrorType::UserExists => 2100,
+            NewErrorType::UserMfaExists => 2101,
+            NewErrorType::SiteExists => 2102,
+            NewErrorType::PageExists => 2103,
+            NewErrorType::PageSlugExists => 2104,
+            NewErrorType::PageParentExists => 2105,
+            NewErrorType::FileExists => 2106,
+            NewErrorType::FilterExists => 2107,
+            NewErrorType::CustomDomainExists => 2108,
 
             //
             // 3000 -- Client / Protocol Errors
             //
 
             // 3000 - Authentication
-            NewErrorData::InvalidAuthentication => 3000,
-            NewErrorData::InvalidSessionToken => 3001,
-            NewErrorData::SessionUserId { .. } => 3002,
-            NewErrorData::EmptyPassword => 3003,
+            NewErrorType::InvalidAuthentication => 3000,
+            NewErrorType::InvalidSessionToken => 3001,
+            NewErrorType::SessionUserId { .. } => 3002,
+            NewErrorType::EmptyPassword => 3003,
 
             // 3100 - Permission
             // TODO
 
             // 3200 - Server-side
-            NewErrorData::AuthenticationBackend => 3200,
-            NewErrorData::RenderTimeout => 3201,
-            NewErrorData::RateLimited => 3202,
-            NewErrorData::EmailVerification => 3203,
+            NewErrorType::AuthenticationBackend => 3200,
+            NewErrorType::RenderTimeout => 3201,
+            NewErrorType::RateLimited => 3202,
+            NewErrorType::EmailVerification => 3203,
 
             //
             // 4000, 5000, 6000 -- Client / Request Errors
@@ -363,77 +372,77 @@ impl NewError {
             // Some of these requests are pretty general, unless it is a rare edge case,
             // consider adding a new error case when code to handle new fail states are
             // introduced.
-            NewErrorData::BadRequest => 4000,
-            NewErrorData::InvalidEnumValue => 4001,
+            NewErrorType::BadRequest => 4000,
+            NewErrorType::InvalidEnumValue => 4001,
 
             // 4100 - User
-            NewErrorData::UserNameTooShort => 4100,
-            NewErrorData::UserSlugEmpty => 4101,
-            NewErrorData::UserEmailEmpty => 4102,
-            NewErrorData::UserWrongType => 4103,
-            NewErrorData::InsufficientNameChanges => 4104,
-            NewErrorData::InvalidEmail => 4105,
-            NewErrorData::DisallowedEmail => 4106,
+            NewErrorType::UserNameTooShort => 4100,
+            NewErrorType::UserSlugEmpty => 4101,
+            NewErrorType::UserEmailEmpty => 4102,
+            NewErrorType::UserWrongType => 4103,
+            NewErrorType::InsufficientNameChanges => 4104,
+            NewErrorType::InvalidEmail => 4105,
+            NewErrorType::DisallowedEmail => 4106,
 
             // 4200 - Site
-            NewErrorData::SiteSlugEmpty => 4200,
+            NewErrorType::SiteSlugEmpty => 4200,
 
             // 4300 - Page
-            NewErrorData::PageSlugEmpty => 4300,
-            NewErrorData::PageNotDeleted => 4301,
-            NewErrorData::CannotHideLatestRevision => 4302,
-            NewErrorData::NotLatestRevisionId => 4303,
+            NewErrorType::PageSlugEmpty => 4300,
+            NewErrorType::PageNotDeleted => 4301,
+            NewErrorType::CannotHideLatestRevision => 4302,
+            NewErrorType::NotLatestRevisionId => 4303,
 
             // 4400 - File
-            NewErrorData::FileNameEmpty => 4400,
-            NewErrorData::FileNameTooLong { .. } => 4401,
-            NewErrorData::FileNameInvalidCharacters => 4402,
-            NewErrorData::FileMimeEmpty => 4403,
-            NewErrorData::FileNotDeleted => 4404,
+            NewErrorType::FileNameEmpty => 4400,
+            NewErrorType::FileNameTooLong { .. } => 4401,
+            NewErrorType::FileNameInvalidCharacters => 4402,
+            NewErrorType::FileMimeEmpty => 4403,
+            NewErrorType::FileNotDeleted => 4404,
 
             //
             // 5000 -- Client / Request Errors - Ancillary Data Objects
             //
 
             // 5000 - Locale
-            NewErrorData::LocaleInvalid { .. } => 5000,
-            NewErrorData::LocaleMissing { .. } => 5001,
-            NewErrorData::LocaleMessageMissing { .. } => 5002,
-            NewErrorData::LocaleMessageValueMissing { .. } => 5003,
-            NewErrorData::LocaleMessageAttributeMissing { .. } => 5004,
-            NewErrorData::NoLocalesSpecified => 5005,
+            NewErrorType::LocaleInvalid { .. } => 5000,
+            NewErrorType::LocaleMissing { .. } => 5001,
+            NewErrorType::LocaleMessageMissing { .. } => 5002,
+            NewErrorType::LocaleMessageValueMissing { .. } => 5003,
+            NewErrorType::LocaleMessageAttributeMissing { .. } => 5004,
+            NewErrorType::NoLocalesSpecified => 5005,
 
             // 5100 - Filter
-            NewErrorData::FilterViolation => 5100,
-            NewErrorData::FilterNotDeleted => 5102,
+            NewErrorType::FilterViolation => 5100,
+            NewErrorType::FilterNotDeleted => 5102,
 
             // 5200 - Blob
-            NewErrorData::BlobNotUploaded => 5200,
-            NewErrorData::BlobWrongUser => 5201,
-            NewErrorData::BlobTooBig => 5202,
-            NewErrorData::BlobSizeMismatch { .. } => 5204,
-            NewErrorData::BlobBlacklisted(_) => 5205,
-            NewErrorData::BlobCannotBlacklistExisting => 5206,
+            NewErrorType::BlobNotUploaded => 5200,
+            NewErrorType::BlobWrongUser => 5201,
+            NewErrorType::BlobTooBig => 5202,
+            NewErrorType::BlobSizeMismatch { .. } => 5204,
+            NewErrorType::BlobBlacklisted(_) => 5205,
+            NewErrorType::BlobCannotBlacklistExisting => 5206,
 
             // 5300 - Message
-            NewErrorData::MessageSubjectEmpty => 5300,
-            NewErrorData::MessageSubjectTooLong => 5301,
-            NewErrorData::MessageBodyEmpty => 5302,
-            NewErrorData::MessageBodyTooLong => 5303,
-            NewErrorData::MessageNoRecipients => 5304,
-            NewErrorData::MessageTooManyRecipients => 5305,
+            NewErrorType::MessageSubjectEmpty => 5300,
+            NewErrorType::MessageSubjectTooLong => 5301,
+            NewErrorType::MessageBodyEmpty => 5302,
+            NewErrorType::MessageBodyTooLong => 5303,
+            NewErrorType::MessageNoRecipients => 5304,
+            NewErrorType::MessageTooManyRecipients => 5305,
 
             // 5400 - Domains
-            NewErrorData::CustomDomainWrongSite => 5400,
-            NewErrorData::CustomDomainSubdomain => 5401,
+            NewErrorType::CustomDomainWrongSite => 5400,
+            NewErrorType::CustomDomainSubdomain => 5401,
 
             //
             // 6000 -- Client / Request Errors - Composite Data
             //
 
             // 6000 - Relations
-            NewErrorData::SiteBlockedUser => 6000,
-            NewErrorData::UserBlockedUser => 6001,
+            NewErrorType::SiteBlockedUser => 6000,
+            NewErrorType::UserBlockedUser => 6001,
             //
             // 7000, 8000, 9000 -- (RESERVED)
             //
