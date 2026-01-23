@@ -54,7 +54,7 @@ impl BasicErrorService {
         ctx: &ServiceContext<'_>,
         locales: &[LanguageIdentifier],
         site_slug: &str,
-    ) -> Result<BasicErrorOutput> {
+    ) -> OldResult<BasicErrorOutput> {
         assert!(!locales.is_empty(), "No languages specified");
         let config = ctx.config();
         let mut args = FluentArgs::new();
@@ -83,7 +83,7 @@ impl BasicErrorService {
         ctx: &ServiceContext<'_>,
         locales: &[LanguageIdentifier],
         domain: &str,
-    ) -> Result<BasicErrorOutput> {
+    ) -> OldResult<BasicErrorOutput> {
         assert!(!locales.is_empty(), "No languages specified");
         let config = ctx.config();
         let mut args = FluentArgs::new();
@@ -119,7 +119,7 @@ impl BasicErrorService {
         locales: &[LanguageIdentifier],
         site_id: i64,
         page_slug: &str,
-    ) -> Result<BasicErrorOutput> {
+    ) -> OldResult<BasicErrorOutput> {
         assert!(!locales.is_empty(), "No languages specified");
         let config = ctx.config();
         let mut args = FluentArgs::new();
@@ -152,7 +152,7 @@ impl BasicErrorService {
         locales: &[LanguageIdentifier],
         site_id: i64,
         page_slug: &str,
-    ) -> Result<BasicErrorOutput> {
+    ) -> OldResult<BasicErrorOutput> {
         assert!(!locales.is_empty(), "No languages specified");
         let config = ctx.config();
         let mut args = FluentArgs::new();
@@ -184,7 +184,7 @@ impl BasicErrorService {
         site_id: i64,
         page_slug: &str,
         filename: &str,
-    ) -> Result<BasicErrorOutput> {
+    ) -> OldResult<BasicErrorOutput> {
         assert!(!locales.is_empty(), "No languages specified");
         let config = ctx.config();
         let mut args = FluentArgs::new();
@@ -216,7 +216,7 @@ impl BasicErrorService {
         site_id: i64,
         page_slug: &str,
         filename: &str,
-    ) -> Result<BasicErrorOutput> {
+    ) -> OldResult<BasicErrorOutput> {
         assert!(!locales.is_empty(), "No languages specified");
         let config = ctx.config();
         let mut args = FluentArgs::new();
@@ -250,7 +250,7 @@ impl BasicErrorService {
         index: &str,
         block_type: &str,
         reason: &str,
-    ) -> Result<BasicErrorOutput> {
+    ) -> OldResult<BasicErrorOutput> {
         assert!(!locales.is_empty(), "No languages specified");
         let config = ctx.config();
         let mut args = FluentArgs::new();
@@ -281,7 +281,7 @@ impl BasicErrorService {
     pub async fn file_root(
         ctx: &ServiceContext<'_>,
         locales: &[LanguageIdentifier],
-    ) -> Result<BasicErrorOutput> {
+    ) -> OldResult<BasicErrorOutput> {
         assert!(!locales.is_empty(), "No languages specified");
         let config = ctx.config();
         let mut args = FluentArgs::new();

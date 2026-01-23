@@ -105,7 +105,7 @@ pub enum AuditEvent<'a> {
 }
 
 impl<'a> AuditEvent<'a> {
-    pub fn extract(&self, ip_address: IpAddr) -> Result<RawAuditEvent<'a>> {
+    pub fn extract(&self, ip_address: IpAddr) -> OldResult<RawAuditEvent<'a>> {
         let raw_event = match *self {
             AuditEvent::UserCreate { user_id } => RawAuditEvent {
                 event_type: "user.create",

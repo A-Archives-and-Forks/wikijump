@@ -53,7 +53,7 @@ impl SessionService {
             user_agent,
             restricted,
         }: CreateSession,
-    ) -> Result<String> {
+    ) -> OldResult<String> {
         info!("Creating new session for user ID {user_id} (restricted: {restricted})");
 
         let txn = ctx.transaction();
@@ -100,17 +100,17 @@ impl SessionService {
     pub async fn get(
         ctx: &ServiceContext<'_>,
         session_token: &str,
-    ) -> Result<SessionModel> {
+    ) -> OldResult<SessionModel> {
         info!("Looking up session with token {session_token}");
         Self::get_optional(ctx, session_token)
             .await?
-            .ok_or(Error::InvalidSessionToken)
+            .ok_or(OldError::InvalidSessionToken)
     }
 
     pub async fn get_optional(
         ctx: &ServiceContext<'_>,
         session_token: &str,
-    ) -> Result<Option<SessionModel>> {
+    ) -> OldResult<Option<SessionModel>> {
         let txn = ctx.transaction();
         let session = Session::find()
             .filter(
@@ -134,7 +134,7 @@ impl SessionService {
         ctx: &ServiceContext<'_>,
         session_token: &str,
         restricted: bool,
-    ) -> Result<UserModel> {
+    ) -> OldResult<UserModel> {
         info!("Looking up user for session token");
 
         let txn = ctx.transaction();
@@ -148,7 +148,7 @@ impl SessionService {
             )
             .one(txn)
             .await?
-            .ok_or(Error::UserNotFound)?;
+            .ok_or(OldError::UserNotFound)?;
 
         Ok(user)
     }
@@ -161,7 +161,7 @@ impl SessionService {
         session_token: &str,
         restricted: bool,
         user_id: i64,
-    ) -> Result<UserModel> {
+    ) -> OldResult<UserModel> {
         let user = Self::get_user(ctx, session_token, restricted).await?;
         if user.user_id != user_id {
             error!(
@@ -169,7 +169,7 @@ impl SessionService {
                 user_id, user.user_id,
             );
 
-            return Err(Error::SessionUserId {
+            return Err(OldError::SessionUserId {
                 active_user_id: user_id,
                 session_user_id: user.user_id,
             });
@@ -183,7 +183,7 @@ impl SessionService {
     pub async fn get_all(
         ctx: &ServiceContext<'_>,
         user_id: i64,
-    ) -> Result<Vec<SessionModel>> {
+    ) -> OldResult<Vec<SessionModel>> {
         info!("Getting all sessions for user ID {user_id}");
 
         let txn = ctx.transaction();
@@ -212,7 +212,7 @@ impl SessionService {
             ip_address,
             user_agent,
         }: RenewSession,
-    ) -> Result<String> {
+    ) -> OldResult<String> {
         info!("Renewing session ID {old_session_token}");
 
         // Get existing session to ensure the token matches the passed user ID.
@@ -223,7 +223,7 @@ impl SessionService {
                 old_session.user_id, user_id,
             );
 
-            return Err(Error::SessionUserId {
+            return Err(OldError::SessionUserId {
                 active_user_id: user_id,
                 session_user_id: old_session.user_id,
             });
@@ -250,7 +250,7 @@ impl SessionService {
     pub async fn invalidate(
         ctx: &ServiceContext<'_>,
         session_token: String,
-    ) -> Result<()> {
+    ) -> OldResult<()> {
         info!("Invalidating session ID {session_token}");
 
         let txn = ctx.transaction();
@@ -259,7 +259,7 @@ impl SessionService {
 
         if rows_affected != 1 {
             error!("This session was already deleted or does not exist");
-            return Err(Error::InvalidSessionToken);
+            return Err(OldError::InvalidSessionToken);
         }
 
         Ok(())
@@ -277,7 +277,7 @@ impl SessionService {
         ctx: &ServiceContext<'_>,
         session_token: &str,
         user_id: i64,
-    ) -> Result<u64> {
+    ) -> OldResult<u64> {
         info!("Invalidation all other session IDs for user ID {user_id}");
 
         let txn = ctx.transaction();
@@ -288,7 +288,7 @@ impl SessionService {
                 session.user_id, user_id,
             );
 
-            return Err(Error::SessionUserId {
+            return Err(OldError::SessionUserId {
                 active_user_id: user_id,
                 session_user_id: session.user_id,
             });
@@ -312,7 +312,7 @@ impl SessionService {
     ///
     /// # Returns
     /// The number of pruned sessions.
-    pub async fn prune(ctx: &ServiceContext<'_>) -> Result<u64> {
+    pub async fn prune(ctx: &ServiceContext<'_>) -> OldResult<u64> {
         info!("Pruning all expired sessions");
 
         let txn = ctx.transaction();

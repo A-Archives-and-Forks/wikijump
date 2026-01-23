@@ -39,7 +39,7 @@ impl Scorer for SumScorer {
         &self,
         txn: &DatabaseTransaction,
         condition: Condition,
-    ) -> Result<ScoreValue> {
+    ) -> OldResult<ScoreValue> {
         #[derive(FromQueryResult, Debug)]
         struct SumRow {
             sum: i64,

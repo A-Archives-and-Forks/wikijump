@@ -36,7 +36,7 @@ impl AliasService {
     pub async fn create(
         ctx: &ServiceContext<'_>,
         input: CreateAlias,
-    ) -> Result<CreateAliasOutput> {
+    ) -> OldResult<CreateAliasOutput> {
         Self::create2(ctx, input, true).await
     }
 
@@ -57,7 +57,7 @@ impl AliasService {
             bypass_filter,
         }: CreateAlias,
         verify: bool,
-    ) -> Result<CreateAliasOutput> {
+    ) -> OldResult<CreateAliasOutput> {
         let txn = ctx.transaction();
         let slug = get_regular_slug(slug);
 
@@ -85,7 +85,7 @@ impl AliasService {
                     error!(
                         "No target site with ID {target_id} exists, cannot create alias",
                     );
-                    return Err(Error::SiteNotFound);
+                    return Err(OldError::SiteNotFound);
                 }
 
                 if verify && SiteService::exists(ctx, Reference::Slug(cow!(slug))).await?
@@ -93,7 +93,7 @@ impl AliasService {
                     error!(
                         "Site with conflicting slug '{slug}' already exists, cannot create alias",
                     );
-                    return Err(Error::SiteExists);
+                    return Err(OldError::SiteExists);
                 }
             }
             AliasType::User => {
@@ -101,7 +101,7 @@ impl AliasService {
                     error!(
                         "No target user with ID {target_id} exists, cannot create alias",
                     );
-                    return Err(Error::UserNotFound);
+                    return Err(OldError::UserNotFound);
                 }
 
                 if verify && UserService::exists(ctx, Reference::Slug(cow!(slug))).await?
@@ -109,7 +109,7 @@ impl AliasService {
                     error!(
                         "User with conflicting slug '{slug}' already exists, cannot create alias",
                     );
-                    return Err(Error::UserExists);
+                    return Err(OldError::UserExists);
                 }
 
                 let config = ctx.config();
@@ -119,7 +119,7 @@ impl AliasService {
                         slug.len(),
                         ctx.config().minimum_name_bytes,
                     );
-                    return Err(Error::UserNameTooShort);
+                    return Err(OldError::UserNameTooShort);
                 }
 
                 if slug.chars().count() < config.minimum_name_chars {
@@ -128,7 +128,7 @@ impl AliasService {
                         slug.len(),
                         ctx.config().minimum_name_chars,
                     );
-                    return Err(Error::UserNameTooShort);
+                    return Err(OldError::UserNameTooShort);
                 }
             }
         }
@@ -157,7 +157,7 @@ impl AliasService {
         ctx: &ServiceContext<'_>,
         alias_type: AliasType,
         slug: &str,
-    ) -> Result<Option<AliasModel>> {
+    ) -> OldResult<Option<AliasModel>> {
         let txn = ctx.transaction();
 
         let alias = Alias::find()
@@ -178,7 +178,7 @@ impl AliasService {
         ctx: &ServiceContext<'_>,
         alias_type: AliasType,
         slug: &str,
-    ) -> Result<AliasModel> {
+    ) -> OldResult<AliasModel> {
         find_or_error!(Self::get_optional(ctx, alias_type, slug), Alias)
     }
 
@@ -187,7 +187,7 @@ impl AliasService {
         ctx: &ServiceContext<'_>,
         alias_type: AliasType,
         slug: &str,
-    ) -> Result<bool> {
+    ) -> OldResult<bool> {
         Self::get_optional(ctx, alias_type, slug)
             .await
             .map(|alias| alias.is_some())
@@ -197,7 +197,7 @@ impl AliasService {
         ctx: &ServiceContext<'_>,
         alias_type: AliasType,
         target_id: i64,
-    ) -> Result<Vec<AliasModel>> {
+    ) -> OldResult<Vec<AliasModel>> {
         info!("Finding all {alias_type:?} aliases for ID {target_id}");
 
         let txn = ctx.transaction();
@@ -226,7 +226,7 @@ impl AliasService {
         ctx: &ServiceContext<'_>,
         alias_id: i64,
         new_slug: &str,
-    ) -> Result<()> {
+    ) -> OldResult<()> {
         info!("Swapping user alias ID {alias_id} to use slug '{new_slug}'");
 
         let txn = ctx.transaction();
@@ -249,7 +249,7 @@ impl AliasService {
         ctx: &ServiceContext<'_>,
         alias_type: AliasType,
         target_id: i64,
-    ) -> Result<u64> {
+    ) -> OldResult<u64> {
         let txn = ctx.transaction();
 
         info!("Removing all {alias_type:?} aliases for target ID {target_id}");
@@ -278,7 +278,7 @@ impl AliasService {
         ctx: &ServiceContext<'_>,
         alias_type: AliasType,
         slug: &str,
-    ) -> Result<()> {
+    ) -> OldResult<()> {
         info!("Verifying target and alias table consistency for slug '{slug}'");
 
         let txn = ctx.transaction();
@@ -348,7 +348,7 @@ impl AliasService {
         ctx: &ServiceContext<'_>,
         alias_type: AliasType,
         slug: &str,
-    ) -> Result<()> {
+    ) -> OldResult<()> {
         info!("Checking user alias data against filters...");
 
         let filter_type = match alias_type {

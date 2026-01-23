@@ -24,7 +24,7 @@ use crate::services::email::{EmailService, EmailValidationOutput};
 pub async fn validate_email(
     _ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<EmailValidationOutput> {
+) -> OldResult<EmailValidationOutput> {
     let email: String = params.one()?;
     info!("Validating user email: {email}");
     let output = EmailService::validate(&email).await?;

@@ -61,7 +61,7 @@ impl FileService {
             user_id,
             bypass_filter,
         }: CreateFile,
-    ) -> Result<CreateFileOutput> {
+    ) -> OldResult<CreateFileOutput> {
         info!("Creating file with name '{name}'");
         let txn = ctx.transaction();
 
@@ -136,7 +136,7 @@ impl FileService {
             bypass_filter,
             body,
         }: EditFile,
-    ) -> Result<Option<EditFileOutput>> {
+    ) -> OldResult<Option<EditFileOutput>> {
         info!("Editing file with ID {file_id}");
 
         let txn = ctx.transaction();
@@ -245,7 +245,7 @@ impl FileService {
             last_revision_id,
             revision_comments,
         }: MoveFile<'_>,
-    ) -> Result<Option<MoveFileOutput>> {
+    ) -> OldResult<Option<MoveFileOutput>> {
         let txn = ctx.transaction();
         let last_revision =
             FileRevisionService::get_latest(ctx, site_id, current_page_id, file_id)
@@ -310,7 +310,7 @@ impl FileService {
     pub async fn delete(
         ctx: &ServiceContext<'_>,
         input: DeleteFile<'_>,
-    ) -> Result<DeleteFileOutput> {
+    ) -> OldResult<DeleteFileOutput> {
         Self::delete_inner(ctx, input, false).await
     }
 
@@ -321,7 +321,7 @@ impl FileService {
     pub async fn delete_with_erased_s3_hash(
         ctx: &ServiceContext<'_>,
         input: DeleteFile<'_>,
-    ) -> Result<DeleteFileOutput> {
+    ) -> OldResult<DeleteFileOutput> {
         Self::delete_inner(ctx, input, true).await
     }
 
@@ -340,7 +340,7 @@ impl FileService {
             user_id,
         }: DeleteFile<'_>,
         erase_s3_hash: bool,
-    ) -> Result<DeleteFileOutput> {
+    ) -> OldResult<DeleteFileOutput> {
         let txn = ctx.transaction();
 
         // Ensure file exists
@@ -404,7 +404,7 @@ impl FileService {
             user_id,
             revision_comments,
         }: RestoreFile<'_>,
-    ) -> Result<RestoreFileOutput> {
+    ) -> OldResult<RestoreFileOutput> {
         let txn = ctx.transaction();
         let file = Self::get_direct(ctx, file_id, true).await?;
         let new_page_id =
@@ -419,12 +419,12 @@ impl FileService {
 
         if file.page_id != page_id {
             warn!("File's page ID and passed page ID do not match");
-            return Err(Error::FileNotFound);
+            return Err(OldError::FileNotFound);
         }
 
         if file.deleted_at.is_none() {
             warn!("File requested to be restored is not currently deleted");
-            return Err(Error::FileNotDeleted);
+            return Err(OldError::FileNotDeleted);
         }
 
         Self::check_conflicts(ctx, page_id, &new_name, "restore").await?;
@@ -481,7 +481,7 @@ impl FileService {
             user_id,
             bypass_filter,
         }: RollbackFile<'_>,
-    ) -> Result<Option<EditFileOutput>> {
+    ) -> OldResult<Option<EditFileOutput>> {
         let txn = ctx.transaction();
 
         // Ensure file exists
@@ -597,7 +597,7 @@ impl FileService {
             page_id,
             file: reference,
         }: GetFile<'_>,
-    ) -> Result<Option<FileModel>> {
+    ) -> OldResult<Option<FileModel>> {
         let txn = ctx.transaction();
         let file = {
             let condition = match reference {
@@ -621,7 +621,10 @@ impl FileService {
     }
 
     #[inline]
-    pub async fn get(ctx: &ServiceContext<'_>, input: GetFile<'_>) -> Result<FileModel> {
+    pub async fn get(
+        ctx: &ServiceContext<'_>,
+        input: GetFile<'_>,
+    ) -> OldResult<FileModel> {
         find_or_error!(Self::get_optional(ctx, input), File)
     }
 
@@ -638,7 +641,7 @@ impl FileService {
         page_id: i64,
         deleted: Option<bool>,
         order: FileOrder,
-    ) -> Result<Vec<FileModel>> {
+    ) -> OldResult<Vec<FileModel>> {
         let txn = ctx.transaction();
         let deleted_condition = match deleted {
             Some(true) => Some(file::Column::DeletedAt.is_not_null()),
@@ -669,7 +672,7 @@ impl FileService {
         ctx: &ServiceContext<'_>,
         page_id: i64,
         reference: Reference<'_>,
-    ) -> Result<i64> {
+    ) -> OldResult<i64> {
         match reference {
             Reference::Id(id) => Ok(id),
             Reference::Slug(name) => {
@@ -689,7 +692,7 @@ impl FileService {
 
                 match result {
                     Some(tuple) => Ok(tuple.0),
-                    None => Err(Error::FileNotFound),
+                    None => Err(OldError::FileNotFound),
                 }
             }
         }
@@ -699,7 +702,7 @@ impl FileService {
         ctx: &ServiceContext<'_>,
         file_id: i64,
         allow_deleted: bool,
-    ) -> Result<Option<FileModel>> {
+    ) -> OldResult<Option<FileModel>> {
         let txn = ctx.transaction();
         let file = File::find()
             .filter(file::Column::FileId.eq(file_id))
@@ -722,19 +725,19 @@ impl FileService {
         ctx: &ServiceContext<'_>,
         file_id: i64,
         allow_deleted: bool,
-    ) -> Result<FileModel> {
+    ) -> OldResult<FileModel> {
         find_or_error!(Self::get_direct_optional(ctx, file_id, allow_deleted), File)
     }
 
     /// Checks to see if a file already exists at the name specified.
     ///
-    /// If so, this method fails with `Error::FileExists`. Otherwise it returns nothing.
+    /// If so, this method fails with `ErrorType::FileExists`. Otherwise it returns nothing.
     async fn check_conflicts(
         ctx: &ServiceContext<'_>,
         page_id: i64,
         name: &str,
         action: &str,
-    ) -> Result<()> {
+    ) -> OldResult<()> {
         let txn = ctx.transaction();
 
         let result = File::find()
@@ -755,7 +758,7 @@ impl FileService {
                     file.file_id, name, page_id, action,
                 );
 
-                Err(Error::FileExists)
+                Err(OldError::FileExists)
             }
         }
     }
@@ -768,7 +771,7 @@ impl FileService {
         ctx: &ServiceContext<'_>,
         site_id: i64,
         name: Option<&str>,
-    ) -> Result<()> {
+    ) -> OldResult<()> {
         info!("Checking file data against filters...");
 
         let filter_matcher = FilterService::get_matcher(
@@ -791,7 +794,7 @@ impl FileService {
 /// This helper function is generally read-only, but if
 /// it finds a name which has leading or trailing whitespace,
 /// then it trims that off in-place.
-fn check_file_name(name: &mut String) -> Result<()> {
+fn check_file_name(name: &mut String) -> OldResult<()> {
     // Removes leading or trailing whitespace
     trim_spaces_in_place(name);
     debug!("Trimmed file name: '{name}'");
@@ -799,7 +802,7 @@ fn check_file_name(name: &mut String) -> Result<()> {
     // Disallow empty filenames
     if name.is_empty() {
         error!("File name is empty");
-        return Err(Error::FileNameEmpty);
+        return Err(OldError::FileNameEmpty);
     }
 
     // Limit filename length
@@ -809,7 +812,7 @@ fn check_file_name(name: &mut String) -> Result<()> {
             name.len(),
             MAXIMUM_FILE_NAME_LENGTH,
         );
-        return Err(Error::FileNameTooLong {
+        return Err(OldError::FileNameTooLong {
             length: name.len(),
             maximum: MAXIMUM_FILE_NAME_LENGTH,
         });
@@ -824,7 +827,7 @@ fn check_file_name(name: &mut String) -> Result<()> {
         .any(|c| c.is_control() || c == '/' || c == '\\')
     {
         error!("File name contains control characters or slashes");
-        return Err(Error::FileNameInvalidCharacters);
+        return Err(OldError::FileNameInvalidCharacters);
     }
 
     // Looks good
@@ -837,14 +840,14 @@ fn check_file_name(name: &mut String) -> Result<()> {
 fn check_last_revision(
     last_revision_model: &FileRevisionModel,
     arg_last_revision_id: i64,
-) -> Result<()> {
+) -> OldResult<()> {
     if last_revision_model.revision_id != arg_last_revision_id {
         error!(
             "Latest revision ID in file table is {}, but user argument has ID {}",
             last_revision_model.revision_id, arg_last_revision_id,
         );
 
-        return Err(Error::NotLatestRevisionId);
+        return Err(OldError::NotLatestRevisionId);
     }
 
     Ok(())

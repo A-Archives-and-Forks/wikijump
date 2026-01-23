@@ -39,14 +39,14 @@ impl TextService {
     pub async fn get_optional(
         ctx: &ServiceContext<'_>,
         hash: &[u8],
-    ) -> Result<Option<String>> {
+    ) -> OldResult<Option<String>> {
         if hash.len() != TEXT_HASH_LENGTH {
             error!(
                 "Text hash length does not match, should be {}, is {}",
                 TEXT_HASH_LENGTH,
                 hash.len(),
             );
-            return Err(Error::BadRequest);
+            return Err(OldError::BadRequest);
         }
 
         let txn = ctx.transaction();
@@ -60,12 +60,12 @@ impl TextService {
     }
 
     #[inline]
-    pub async fn get(ctx: &ServiceContext<'_>, hash: &[u8]) -> Result<String> {
+    pub async fn get(ctx: &ServiceContext<'_>, hash: &[u8]) -> OldResult<String> {
         find_or_error!(Self::get_optional(ctx, hash), Text)
     }
 
     #[inline]
-    pub async fn exists(ctx: &ServiceContext<'_>, hash: &[u8]) -> Result<bool> {
+    pub async fn exists(ctx: &ServiceContext<'_>, hash: &[u8]) -> OldResult<bool> {
         Self::get_optional(ctx, hash)
             .await
             .map(|text| text.is_some())
@@ -81,7 +81,7 @@ impl TextService {
         ctx: &ServiceContext<'_>,
         should_fetch: bool,
         hash: &[u8],
-    ) -> Result<Option<String>> {
+    ) -> OldResult<Option<String>> {
         if should_fetch {
             let text = Self::get(ctx, hash).await?;
             Ok(Some(text))
@@ -96,7 +96,7 @@ impl TextService {
     /// but because it is `async` and returns `Result`, the actual equivalent code
     /// would be:
     /// ```rs
-    /// # fn get_option(ctx: &ServiceContext<'_>, hash: Option<&[u8]>) -> Result<Option<String>> {
+    /// # fn get_option(ctx: &ServiceContext<'_>, hash: Option<&[u8]>) -> OldResult<Option<String>> {
     /// match hash {
     ///     None => Ok(None),
     ///     Some(hash) => {
@@ -117,7 +117,7 @@ impl TextService {
     pub async fn get_option<B: AsRef<[u8]>>(
         ctx: &ServiceContext<'_>,
         hash: &Option<B>,
-    ) -> Result<Option<String>> {
+    ) -> OldResult<Option<String>> {
         match hash {
             None => Ok(None),
             Some(hash) => {
@@ -140,7 +140,7 @@ impl TextService {
         ctx: &ServiceContext<'_>,
         should_fetch: bool,
         hash: &Option<B>,
-    ) -> Result<Option<String>> {
+    ) -> OldResult<Option<String>> {
         if should_fetch {
             Self::get_option(ctx, hash).await
         } else {
@@ -149,7 +149,10 @@ impl TextService {
     }
 
     /// Creates a text entry with this data, if it does not already exist.
-    pub async fn create(ctx: &ServiceContext<'_>, contents: String) -> Result<TextHash> {
+    pub async fn create(
+        ctx: &ServiceContext<'_>,
+        contents: String,
+    ) -> OldResult<TextHash> {
         let txn = ctx.transaction();
         let hash = k12_hash(contents.as_bytes());
 
@@ -169,7 +172,7 @@ impl TextService {
     ///
     /// This is rare, but can happen when text is invalidated,
     /// such as rerendering pages.
-    pub async fn prune(ctx: &ServiceContext<'_>) -> Result<()> {
+    pub async fn prune(ctx: &ServiceContext<'_>) -> OldResult<()> {
         macro_rules! not_in_column {
             ($table:expr, $column:expr $(,)?) => {
                 text::Column::Hash.not_in_subquery(

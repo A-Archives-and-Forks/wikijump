@@ -31,7 +31,7 @@ impl AuditService {
         ctx: &ServiceContext<'_>,
         ip_address: IpAddr,
         event: AuditEvent<'_>,
-    ) -> Result<i64> {
+    ) -> OldResult<i64> {
         let RawAuditEvent {
             event_type,
             ip_address,

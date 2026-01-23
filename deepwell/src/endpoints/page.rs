@@ -19,7 +19,6 @@
  */
 
 use super::prelude::*;
-use crate::error::Result;
 use crate::models::file::Model as FileModel;
 use crate::models::page::Model as PageModel;
 use crate::services::TextService;
@@ -37,7 +36,7 @@ use futures::future::try_join_all;
 pub async fn page_create(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<CreatePageOutput> {
+) -> OldResult<CreatePageOutput> {
     let input: CreatePage = params.parse()?;
     info!("Creating new page in site ID {}", input.site_id);
     PageService::create(ctx, input).await
@@ -46,7 +45,7 @@ pub async fn page_create(
 pub async fn page_get(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<Option<GetPageOutput>> {
+) -> OldResult<Option<GetPageOutput>> {
     let GetPageReferenceDetails {
         site_id,
         page: reference,
@@ -63,7 +62,7 @@ pub async fn page_get(
 pub async fn page_get_direct(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<Option<GetPageOutput>> {
+) -> OldResult<Option<GetPageOutput>> {
     let GetPageAnyDetails {
         site_id,
         page_id,
@@ -81,7 +80,7 @@ pub async fn page_get_direct(
 pub async fn page_get_deleted(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<Vec<GetDeletedPageOutput>> {
+) -> OldResult<Vec<GetDeletedPageOutput>> {
     let GetPageSlug { site_id, slug } = params.parse()?;
 
     info!("Getting deleted page {slug} in site ID {site_id}");
@@ -102,7 +101,7 @@ pub async fn page_get_deleted(
 pub async fn page_get_score(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<GetPageScoreOutput> {
+) -> OldResult<GetPageScoreOutput> {
     let GetPageReference {
         site_id,
         page: reference,
@@ -117,7 +116,7 @@ pub async fn page_get_score(
 pub async fn page_get_files(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<Vec<GetFileOutput>> {
+) -> OldResult<Vec<GetFileOutput>> {
     let GetPageFiles {
         page_id,
         site_id,
@@ -148,7 +147,7 @@ pub async fn page_get_files(
 pub async fn page_edit(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<Option<EditPageOutput>> {
+) -> OldResult<Option<EditPageOutput>> {
     let input: EditPage = params.parse()?;
     info!("Editing page {:?} in site ID {}", input.page, input.site_id);
     PageService::edit(ctx, input).await
@@ -157,7 +156,7 @@ pub async fn page_edit(
 pub async fn page_delete(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<DeletePageOutput> {
+) -> OldResult<DeletePageOutput> {
     let input: DeletePage = params.parse()?;
     info!(
         "Deleting page {:?} in site ID {}",
@@ -169,7 +168,7 @@ pub async fn page_delete(
 pub async fn page_move(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<MovePageOutput> {
+) -> OldResult<MovePageOutput> {
     let input: MovePage = params.parse()?;
     info!(
         "Moving page {:?} in site ID {} to {}",
@@ -181,7 +180,7 @@ pub async fn page_move(
 pub async fn page_rerender(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<()> {
+) -> OldResult<()> {
     let input: PageId = params.parse()?;
     info!(
         "Re-rendering page ID {} in site ID {}",
@@ -199,7 +198,7 @@ pub async fn page_rerender(
 pub async fn page_restore(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<RestorePageOutput> {
+) -> OldResult<RestorePageOutput> {
     let input: RestorePage = params.parse()?;
     info!(
         "Un-deleting page ID {} in site ID {}",
@@ -211,7 +210,7 @@ pub async fn page_restore(
 pub async fn page_rollback(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<Option<EditPageOutput>> {
+) -> OldResult<Option<EditPageOutput>> {
     let input: RollbackPage = params.parse()?;
 
     info!(
@@ -225,7 +224,7 @@ pub async fn page_rollback(
 pub async fn page_set_layout(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<()> {
+) -> OldResult<()> {
     let input: SetPageLayout = params.parse()?;
 
     info!(
@@ -246,7 +245,7 @@ async fn build_page_output(
     ctx: &ServiceContext<'_>,
     page: PageModel,
     details: PageDetails,
-) -> Result<Option<GetPageOutput>> {
+) -> OldResult<Option<GetPageOutput>> {
     // Get page revision
     let revision =
         PageRevisionService::get_latest(ctx, page.site_id, page.page_id).await?;
@@ -306,7 +305,7 @@ async fn build_page_output(
 async fn build_page_deleted_output(
     ctx: &ServiceContext<'_>,
     page: PageModel,
-) -> Result<Option<GetDeletedPageOutput>> {
+) -> OldResult<Option<GetDeletedPageOutput>> {
     // Get page revision
     let revision =
         PageRevisionService::get_latest(ctx, page.site_id, page.page_id).await?;
@@ -335,7 +334,7 @@ async fn build_page_deleted_output(
 async fn build_page_file_output(
     ctx: &ServiceContext<'_>,
     file: FileModel,
-) -> Result<Option<GetFileOutput>> {
+) -> OldResult<Option<GetFileOutput>> {
     // Get file revision
     let revision =
         FileRevisionService::get_latest(ctx, file.site_id, file.page_id, file.file_id)

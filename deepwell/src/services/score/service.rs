@@ -25,7 +25,7 @@ use super::prelude::*;
 pub struct ScoreService;
 
 impl ScoreService {
-    pub async fn score(ctx: &ServiceContext<'_>, page_id: i64) -> Result<ScoreValue> {
+    pub async fn score(ctx: &ServiceContext<'_>, page_id: i64) -> OldResult<ScoreValue> {
         let txn = ctx.transaction();
         let condition = Self::build_condition(page_id);
         let scorer = Self::get_scorer(ctx, page_id).await?;
@@ -39,7 +39,7 @@ impl ScoreService {
     pub async fn get_scorer(
         _ctx: &ServiceContext<'_>,
         _page_id: i64,
-    ) -> Result<impl Scorer> {
+    ) -> OldResult<impl Scorer> {
         // TODO
         Ok(TestScorer)
     }
@@ -51,7 +51,7 @@ impl ScoreService {
     pub(crate) async fn collect_votes(
         txn: &DatabaseTransaction,
         condition: Condition,
-    ) -> Result<VoteMap> {
+    ) -> OldResult<VoteMap> {
         // Query for votes aggregated by value.
         //
         // As raw SQL:

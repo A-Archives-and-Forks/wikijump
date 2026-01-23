@@ -19,7 +19,6 @@
  */
 
 use super::prelude::*;
-use crate::error::Error;
 use crate::models::session::Model as SessionModel;
 use crate::services::authentication::{
     AuthenticateUserOutput, AuthenticationService, LoginUser, LoginUserMfa,
@@ -36,7 +35,7 @@ use crate::services::session::{
 pub async fn auth_login(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<LoginUserOutput> {
+) -> OldResult<LoginUserOutput> {
     let LoginUser {
         authenticate,
         ip_address,
@@ -50,7 +49,7 @@ pub async fn auth_login(
     // *not* want to be logging.
     if authenticate.password.is_empty() {
         error!("User submitted empty password in auth request");
-        return Err(Error::EmptyPassword);
+        return Err(OldError::EmptyPassword);
     }
 
     // All authentication issue should return the same error.
@@ -67,9 +66,9 @@ pub async fn auth_login(
     let AuthenticateUserOutput { needs_mfa, user_id } = match result {
         Ok(output) => output,
         Err(mut error) => {
-            if !matches!(error, Error::InvalidAuthentication) {
+            if !matches!(error, OldError::InvalidAuthentication) {
                 error!("Unexpected error during user authentication: {error}");
-                error = Error::AuthenticationBackend(Box::new(error));
+                error = OldError::AuthenticationBackend(Box::new(error));
             }
 
             return Err(error);
@@ -101,7 +100,7 @@ pub async fn auth_login(
 pub async fn auth_logout(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<()> {
+) -> OldResult<()> {
     let session_token: String = params.one()?;
     SessionService::invalidate(ctx, session_token).await
 }
@@ -113,7 +112,7 @@ pub async fn auth_logout(
 pub async fn auth_session_get(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<Option<SessionModel>> {
+) -> OldResult<Option<SessionModel>> {
     let session_token: String = params.one()?;
     SessionService::get_optional(ctx, &session_token).await
 }
@@ -121,7 +120,7 @@ pub async fn auth_session_get(
 pub async fn auth_session_renew(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<String> {
+) -> OldResult<String> {
     let input: RenewSession = params.parse()?;
     SessionService::renew(ctx, input).await
 }
@@ -129,7 +128,7 @@ pub async fn auth_session_renew(
 pub async fn auth_session_get_others(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<GetOtherSessionsOutput> {
+) -> OldResult<GetOtherSessionsOutput> {
     let GetOtherSessions {
         user_id,
         session_token,
@@ -147,7 +146,7 @@ pub async fn auth_session_get_others(
             error!(
                 "Cannot find own session token in list of all sessions, must be invalid",
             );
-            return Err(Error::InvalidSessionToken);
+            return Err(OldError::InvalidSessionToken);
         }
     };
 
@@ -160,7 +159,7 @@ pub async fn auth_session_get_others(
 pub async fn auth_session_invalidate_others(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<u64> {
+) -> OldResult<u64> {
     let InvalidateOtherSessions {
         session_token,
         user_id,
@@ -172,7 +171,7 @@ pub async fn auth_session_invalidate_others(
 pub async fn auth_mfa_verify(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<String> {
+) -> OldResult<String> {
     let LoginUserMfa {
         session_token,
         totp_or_code,
@@ -206,7 +205,7 @@ pub async fn auth_mfa_verify(
 pub async fn auth_mfa_setup(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<MultiFactorSetupOutput> {
+) -> OldResult<MultiFactorSetupOutput> {
     let MultiFactorConfigure {
         user_id,
         session_token,
@@ -222,7 +221,7 @@ pub async fn auth_mfa_setup(
 pub async fn auth_mfa_disable(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<()> {
+) -> OldResult<()> {
     let MultiFactorConfigure {
         user_id,
         session_token,
@@ -238,7 +237,7 @@ pub async fn auth_mfa_disable(
 pub async fn auth_mfa_reset_recovery(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<MultiFactorResetOutput> {
+) -> OldResult<MultiFactorResetOutput> {
     let MultiFactorConfigure {
         user_id,
         session_token,

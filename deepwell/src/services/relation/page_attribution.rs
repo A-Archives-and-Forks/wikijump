@@ -104,7 +104,7 @@ impl RelationService {
             metadata,
             created_by,
         }: CreatePageAttribution,
-    ) -> Result<PageAttribution> {
+    ) -> OldResult<PageAttribution> {
         let txn = ctx.transaction();
         let metadata_json = serde_json::to_value(metadata)?;
 
@@ -149,7 +149,7 @@ impl RelationService {
         page_id: i64,
         user_id: i64,
         metadata: &PageAttributionMetadata,
-    ) -> Result<bool> {
+    ) -> OldResult<bool> {
         let metadata_json = serde_json::to_value(metadata)?;
         find_page_attribution(ctx, page_id, user_id, &metadata_json)
             .await
@@ -159,7 +159,7 @@ impl RelationService {
     pub async fn get_page_attributions(
         ctx: &ServiceContext<'_>,
         GetPageAttributions { site_id, page }: GetPageAttributions<'_>,
-    ) -> Result<Vec<PageAttribution>> {
+    ) -> OldResult<Vec<PageAttribution>> {
         let page = PageService::get(ctx, site_id, page).await?;
         let txn = ctx.transaction();
         let models = Relation::find()
@@ -170,7 +170,7 @@ impl RelationService {
         let mut attributions = models
             .into_iter()
             .map(PageAttribution::try_from)
-            .collect::<Result<Vec<_>>>()?;
+            .collect::<OldResult<Vec<_>>>()?;
 
         sort_attributions(&mut attributions);
         Ok(attributions)
@@ -184,7 +184,7 @@ impl RelationService {
             updated_by,
             attributions,
         }: SetPageAttributions<'_>,
-    ) -> Result<Vec<PageAttribution>> {
+    ) -> OldResult<Vec<PageAttribution>> {
         let page = PageService::get(ctx, site_id, page).await?;
         let txn = ctx.transaction();
 
@@ -234,7 +234,7 @@ impl RelationService {
             page,
             removed_by,
         }: ClearPageAttributions<'_>,
-    ) -> Result<()> {
+    ) -> OldResult<()> {
         let page = PageService::get(ctx, site_id, page).await?;
         let txn = ctx.transaction();
 
@@ -282,7 +282,7 @@ fn page_attributions_condition(page_id: i64) -> Condition {
         .add(relation::Column::DeletedAt.is_null())
 }
 
-fn convert_model(model: RelationModel) -> Result<PageAttribution> {
+fn convert_model(model: RelationModel) -> OldResult<PageAttribution> {
     assert_eq!(model.relation_type, RelationType::PageAttribution.value());
     assert_eq!(model.dest_type, RelationObjectType::Page);
     assert_eq!(model.from_type, RelationObjectType::User);
@@ -304,9 +304,9 @@ fn convert_model(model: RelationModel) -> Result<PageAttribution> {
 }
 
 impl TryFrom<RelationModel> for PageAttribution {
-    type Error = Error;
+    type Error = OldError;
 
-    fn try_from(model: RelationModel) -> Result<Self> {
+    fn try_from(model: RelationModel) -> OldResult<Self> {
         convert_model(model)
     }
 }
@@ -316,7 +316,7 @@ async fn find_page_attribution(
     page_id: i64,
     user_id: i64,
     metadata_json: &serde_json::Value,
-) -> Result<Option<RelationModel>> {
+) -> OldResult<Option<RelationModel>> {
     let txn = ctx.transaction();
     Relation::find()
         .filter(page_attribution_condition(page_id, user_id, metadata_json))

@@ -59,7 +59,7 @@ impl ImportService {
             biography,
             user_page,
         }: ImportUser,
-    ) -> Result<()> {
+    ) -> OldResult<()> {
         info!("Importing user (name '{name}', slug '{slug}')");
 
         let txn = ctx.transaction();
@@ -111,7 +111,7 @@ impl ImportService {
             slug,
             locale,
         }: ImportSite,
-    ) -> Result<()> {
+    ) -> OldResult<()> {
         info!("Importing site (name '{name}', slug '{slug}', locale '{locale}')");
 
         let txn = ctx.transaction();
@@ -139,7 +139,7 @@ impl ImportService {
             locked,
             discussion_thread_id,
         }: ImportPage,
-    ) -> Result<()> {
+    ) -> OldResult<()> {
         info!("Creating page '{slug}' in site ID {site_id}");
 
         let txn = ctx.transaction();

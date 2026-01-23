@@ -38,7 +38,7 @@ impl OutdateService {
         page_id: i64,
         slug: &str,
         depth: RerenderDepth,
-    ) -> Result<()> {
+    ) -> OldResult<()> {
         let (category_slug, page_slug) = split_category_name(slug);
 
         try_join!(
@@ -57,7 +57,7 @@ impl OutdateService {
         page_id: i64,
         slug: &str,
         depth: RerenderDepth,
-    ) -> Result<()> {
+    ) -> OldResult<()> {
         try_join!(
             Self::process_page_edit(ctx, site_id, page_id, slug, depth),
             Self::outdate_incoming_links(ctx, page_id, depth),
@@ -73,7 +73,7 @@ impl OutdateService {
         old_slug: &str,
         new_slug: &str,
         depth: RerenderDepth,
-    ) -> Result<()> {
+    ) -> OldResult<()> {
         // In terms of outdating, a move is equivalent to
         // deleting at the old page location and
         // creating at the new page location.
@@ -90,7 +90,7 @@ impl OutdateService {
         ctx: &ServiceContext<'_>,
         page_id: i64,
         depth: RerenderDepth,
-    ) -> Result<()> {
+    ) -> OldResult<()> {
         let page = PageService::get_direct(ctx, page_id, false).await?;
         let id = PageId::from_page_model(&page);
         JobService::queue_rerender_page(ctx, id, depth.plus_one()).await
@@ -100,7 +100,7 @@ impl OutdateService {
         ctx: &ServiceContext<'_>,
         page_id: i64,
         depth: RerenderDepth,
-    ) -> Result<()> {
+    ) -> OldResult<()> {
         const CONNECTION_TYPES: &[ConnectionType] = &[ConnectionType::Link];
 
         for id in LinkService::get_to(ctx, page_id, Some(CONNECTION_TYPES))
@@ -120,7 +120,7 @@ impl OutdateService {
         ctx: &ServiceContext<'_>,
         page_id: i64,
         depth: RerenderDepth,
-    ) -> Result<()> {
+    ) -> OldResult<()> {
         const CONNECTION_TYPES: &[ConnectionType] = &[
             ConnectionType::IncludeMessy,
             ConnectionType::IncludeElements,
@@ -145,7 +145,7 @@ impl OutdateService {
         category_slug: &str,
         page_slug: &str,
         depth: RerenderDepth,
-    ) -> Result<()> {
+    ) -> OldResult<()> {
         let config = ctx.config();
 
         // If a template page has been updated,
@@ -186,7 +186,7 @@ impl OutdateService {
         site_id: i64,
         slug: &str,
         depth: RerenderDepth,
-    ) -> Result<()> {
+    ) -> OldResult<()> {
         // If this is the nav page for the site, then outdate everything
         // Nothing else needs to be done.
         let site = SiteService::get(ctx, Reference::Id(site_id)).await?;
@@ -223,7 +223,7 @@ impl OutdateService {
         ctx: &ServiceContext<'_>,
         site_id: i64,
         depth: RerenderDepth,
-    ) -> Result<()> {
+    ) -> OldResult<()> {
         info!("Outdating all pages on site ID {site_id}");
 
         #[derive(FromQueryResult)]
@@ -276,7 +276,7 @@ impl OutdateService {
         site_id: i64,
         category_id: i64,
         depth: RerenderDepth,
-    ) -> Result<()> {
+    ) -> OldResult<()> {
         let txn = ctx.transaction();
         let mut rows = Page::find()
             .select_only()

@@ -37,7 +37,11 @@ impl Scorer for TestScorer {
     }
 
     #[inline]
-    async fn score(&self, _: &DatabaseTransaction, _: Condition) -> Result<ScoreValue> {
+    async fn score(
+        &self,
+        _: &DatabaseTransaction,
+        _: Condition,
+    ) -> OldResult<ScoreValue> {
         let mut rng = thread_rng();
         let value = rng.gen_range(-100..100);
         Ok(ScoreValue::Integer(value))

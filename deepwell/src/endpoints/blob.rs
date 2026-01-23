@@ -19,7 +19,6 @@
  */
 
 use super::prelude::*;
-use crate::error::Result;
 use crate::hash::slice_to_blob_hash;
 use crate::services::blob::{
     BlobMetadata, CancelBlobUpload, GetBlobOutput, HardDelete, HardDeleteOutput,
@@ -33,7 +32,7 @@ use crate::types::Bytes;
 pub async fn blob_get(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<GetBlobOutput> {
+) -> OldResult<GetBlobOutput> {
     info!("Getting blob for S3 hash");
     let hash: Bytes = params.parse()?;
     let data = BlobService::get(ctx, hash.as_ref()).await?;
@@ -56,7 +55,7 @@ pub async fn blob_get(
 pub async fn blob_cancel(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<()> {
+) -> OldResult<()> {
     info!("Cancelling a pending blob upload");
 
     let CancelBlobUpload {
@@ -71,7 +70,7 @@ pub async fn blob_cancel(
 pub async fn blob_upload(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<StartBlobUploadOutput> {
+) -> OldResult<StartBlobUploadOutput> {
     info!("Creating new pending blob upload");
     let input: StartBlobUpload = params.parse()?;
     BlobService::start_upload(ctx, input).await
@@ -80,7 +79,7 @@ pub async fn blob_upload(
 pub async fn blob_blacklist_add(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<()> {
+) -> OldResult<()> {
     #[derive(Deserialize, Debug)]
     struct AddBlacklist {
         s3_hash: Bytes<'static>,
@@ -98,7 +97,7 @@ pub async fn blob_blacklist_add(
 pub async fn blob_blacklist_remove(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<()> {
+) -> OldResult<()> {
     #[derive(Deserialize, Debug)]
     struct RemoveBlacklist {
         s3_hash: Bytes<'static>,
@@ -112,7 +111,7 @@ pub async fn blob_blacklist_remove(
 pub async fn blob_blacklist_check(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<bool> {
+) -> OldResult<bool> {
     #[derive(Deserialize, Debug)]
     struct HasBlacklist {
         s3_hash: Bytes<'static>,
@@ -126,7 +125,7 @@ pub async fn blob_blacklist_check(
 pub async fn blob_hard_delete_preview(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<HardDeleteOutput> {
+) -> OldResult<HardDeleteOutput> {
     #[derive(Deserialize, Debug)]
     struct HardDeletePreview {
         s3_hash: Bytes<'static>,
@@ -140,7 +139,7 @@ pub async fn blob_hard_delete_preview(
 pub async fn blob_hard_delete_confirm(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<HardDeleteOutput> {
+) -> OldResult<HardDeleteOutput> {
     let input: HardDelete = params.parse()?;
     BlobService::hard_delete_all(ctx, input).await
 }

@@ -31,7 +31,7 @@ use futures::future::try_join_all;
 pub async fn parent_relationships_get(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<Vec<PageParentModel>> {
+) -> OldResult<Vec<PageParentModel>> {
     let GetParentRelationships {
         site_id,
         page: reference,
@@ -51,7 +51,7 @@ pub async fn parent_relationships_get(
 pub async fn parent_get(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<Option<PageParentModel>> {
+) -> OldResult<Option<PageParentModel>> {
     let input: ParentDescription = params.parse()?;
 
     info!(
@@ -65,7 +65,7 @@ pub async fn parent_get(
 pub async fn parent_set(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<Option<PageParentModel>> {
+) -> OldResult<Option<PageParentModel>> {
     let input: ParentDescription = params.parse()?;
 
     info!(
@@ -79,7 +79,7 @@ pub async fn parent_set(
 pub async fn parent_remove(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<RemoveParentOutput> {
+) -> OldResult<RemoveParentOutput> {
     let input: ParentDescription = params.parse()?;
 
     info!(
@@ -93,7 +93,7 @@ pub async fn parent_remove(
 pub async fn parent_get_all(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<Vec<String>> {
+) -> OldResult<Vec<String>> {
     let GetPageReference { site_id, page } = params.parse()?;
 
     info!("Getting parents for child {page:?} in site ID {site_id}");
@@ -116,7 +116,7 @@ pub async fn parent_get_all(
 pub async fn parent_update(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<UpdateParentsOutput> {
+) -> OldResult<UpdateParentsOutput> {
     let input: UpdateParents = params.parse()?;
 
     info!(

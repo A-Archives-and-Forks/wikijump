@@ -197,7 +197,7 @@ async fn build_module(app_state: ServerState) -> Result<RpcModule<ServerState>> 
                     .transaction(move |txn| {
                         Box::pin(async move {
                             // Run the endpoint's implementation, and convert from
-                            // ServiceError to an RPC error.
+                            // the crate's error type to an RPC error.
                             let ctx = ServiceContext::new(&state, &txn);
                             $method(&ctx, params)
                                 .await

@@ -26,7 +26,7 @@ use crate::services::site::GetSite;
 pub async fn category_get(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<Option<PageCategoryModel>> {
+) -> OldResult<Option<PageCategoryModel>> {
     let GetCategory { site, category } = params.parse()?;
     let site_id = SiteService::get_id(ctx, site).await?;
     info!("Getting page category {category:?} in site ID {site_id}");
@@ -36,7 +36,7 @@ pub async fn category_get(
 pub async fn category_get_all(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<Vec<PageCategoryModel>> {
+) -> OldResult<Vec<PageCategoryModel>> {
     let GetSite { site } = params.parse()?;
     let site_id = SiteService::get_id(ctx, site).await?;
     info!("Getting all page categories in site ID {site_id}");
@@ -46,7 +46,7 @@ pub async fn category_get_all(
 pub async fn category_get_all_active(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<Vec<PageCategoryModel>> {
+) -> OldResult<Vec<PageCategoryModel>> {
     let GetSite { site } = params.parse()?;
     let site_id = SiteService::get_id(ctx, site).await?;
     info!("Getting all active page categories in site ID {site_id}");

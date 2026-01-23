@@ -41,9 +41,9 @@ impl SettingsService {
         ctx: &ServiceContext<'_>,
         site_id: i64,
         page_id: Option<i64>,
-    ) -> Result<Layout> {
-        fn parse_layout(value: &str) -> Result<Layout> {
-            value.parse().map_err(|_| Error::InvalidEnumValue)
+    ) -> OldResult<Layout> {
+        fn parse_layout(value: &str) -> OldResult<Layout> {
+            value.parse().map_err(|_| OldError::InvalidEnumValue)
         }
 
         if let Some(page_id) = page_id {
@@ -91,7 +91,7 @@ impl SettingsService {
         ctx: &ServiceContext<'_>,
         site_id: i64,
         category_id: Option<i64>,
-    ) -> Result<NavigationPageSlugs> {
+    ) -> OldResult<NavigationPageSlugs> {
         let site = SiteService::get(ctx, Reference::Id(site_id)).await?;
         let (override_top_bar, override_side_bar) = match category_id {
             None => (None, None),
@@ -118,7 +118,7 @@ impl SettingsService {
         ctx: &ServiceContext<'_>,
         site_id: i64,
         category_id: Option<i64>,
-    ) -> Result<NavigationPageWikitext> {
+    ) -> OldResult<NavigationPageWikitext> {
         let NavigationPageSlugs {
             top_bar_page,
             side_bar_page,
@@ -129,7 +129,7 @@ impl SettingsService {
             ctx: &ServiceContext<'_>,
             site_id: i64,
             page: &NavigationPage,
-        ) -> Result<Option<String>> {
+        ) -> OldResult<Option<String>> {
             let page_slug = match page {
                 NavigationPage::Enabled(page_slug) => page_slug,
                 NavigationPage::Disabled => return Ok(None),
@@ -163,7 +163,7 @@ impl SettingsService {
         ctx: &ServiceContext<'_>,
         site_id: i64,
         category_id: Option<i64>,
-    ) -> Result<NavigationPageHtml> {
+    ) -> OldResult<NavigationPageHtml> {
         let NavigationPageSlugs {
             top_bar_page,
             side_bar_page,
@@ -174,7 +174,7 @@ impl SettingsService {
             ctx: &ServiceContext<'_>,
             site_id: i64,
             page: &NavigationPage,
-        ) -> Result<Option<String>> {
+        ) -> OldResult<Option<String>> {
             let page_slug = match page {
                 NavigationPage::Enabled(page_slug) => page_slug,
                 NavigationPage::Disabled => return Ok(None),

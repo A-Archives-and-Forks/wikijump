@@ -60,7 +60,7 @@ pub struct CompileInfo {
 pub async fn server_info(
     ctx: &ServiceContext<'_>,
     _params: Params<'static>,
-) -> Result<Info> {
+) -> OldResult<Info> {
     let config = ctx.config();
 
     info!("Building server information response");

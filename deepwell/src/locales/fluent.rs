@@ -20,7 +20,7 @@
 
 use super::error::{LocalizationLoadError, fluent_load_err};
 use super::fallback::iterate_locale_fallbacks;
-use crate::error::Error as ServiceError;
+use crate::error::prelude::*;
 use fluent::{FluentArgs, FluentMessage, FluentResource, bundle};
 use fluent_syntax::ast::Pattern;
 use intl_memoizer::concurrent::IntlLangMemoizer;
@@ -40,7 +40,7 @@ pub struct Localizations {
 impl Localizations {
     pub async fn open<P: Into<PathBuf>>(
         directory: P,
-    ) -> Result<Self, LocalizationLoadError> {
+    ) -> StdResult<Self, LocalizationLoadError> {
         debug!("Reading Fluent localization directory...");
 
         let directory = {
@@ -63,7 +63,7 @@ impl Localizations {
     async fn load_component(
         bundles: &mut HashMap<LanguageIdentifier, FluentBundle>,
         directory: &Path,
-    ) -> Result<(), LocalizationLoadError> {
+    ) -> StdResult<(), LocalizationLoadError> {
         debug!("Reading component at {}", directory.display());
         let mut entries = fs::read_dir(directory).await?;
 
@@ -116,12 +116,12 @@ impl Localizations {
         &self,
         locale: &LanguageIdentifier,
         path: &str,
-    ) -> Result<(&'_ FluentBundle, FluentMessage<'_>), ServiceError> {
+    ) -> OldResult<(&'_ FluentBundle, FluentMessage<'_>)> {
         match self.bundles.get(locale) {
-            None => Err(ServiceError::LocaleMissing),
+            None => Err(OldError::LocaleMissing),
             Some(bundle) => match bundle.get_message(path) {
                 Some(message) => Ok((bundle, message)),
-                None => Err(ServiceError::LocaleMessageMissing),
+                None => Err(OldError::LocaleMessageMissing),
             },
         }
     }
@@ -132,7 +132,7 @@ impl Localizations {
         locale: &LanguageIdentifier,
         path: &str,
         attribute: Option<&str>,
-    ) -> Result<(&FluentBundle, &Pattern<&str>), ServiceError> {
+    ) -> OldResult<(&FluentBundle, &Pattern<&str>)> {
         debug!("Checking for translation patterns in locale {locale}");
 
         // Get appropriate message and bundle, if found
@@ -142,11 +142,11 @@ impl Localizations {
         let pattern = match attribute {
             Some(attribute) => match message.get_attribute(attribute) {
                 Some(attrib) => attrib.value(),
-                None => return Err(ServiceError::LocaleMessageAttributeMissing),
+                None => return Err(OldError::LocaleMessageAttributeMissing),
             },
             None => match message.value() {
                 Some(pattern) => pattern,
-                None => return Err(ServiceError::LocaleMessageValueMissing),
+                None => return Err(OldError::LocaleMessageValueMissing),
             },
         };
 
@@ -159,12 +159,12 @@ impl Localizations {
         locales: I,
         path: &str,
         attribute: Option<&str>,
-    ) -> Result<(LanguageIdentifier, &'a FluentBundle, &'a Pattern<&'a str>), ServiceError>
+    ) -> OldResult<(LanguageIdentifier, &'a FluentBundle, &'a Pattern<&'a str>)>
     where
         L: AsRef<LanguageIdentifier> + 'a,
         I: IntoIterator<Item = L>,
     {
-        let mut last_error = ServiceError::NoLocalesSpecified; // Occurs if locales is empty
+        let mut last_error = OldError::NoLocalesSpecified; // Occurs if locales is empty
 
         // Iterate through each locale to try
         for locale_ref in locales {
@@ -205,7 +205,7 @@ impl Localizations {
         locales: I,
         key: &str,
         args: &'a FluentArgs<'a>,
-    ) -> Result<Cow<'a, str>, ServiceError>
+    ) -> OldResult<Cow<'a, str>>
     where
         L: AsRef<LanguageIdentifier> + Display + 'a,
         I: IntoIterator<Item = L>,
@@ -256,7 +256,7 @@ impl Localizations {
         locales: I,
         key: &str,
         args: &'a FluentArgs<'a>,
-    ) -> Result<Option<Cow<'a, str>>, ServiceError>
+    ) -> OldResult<Option<Cow<'a, str>>>
     where
         L: AsRef<LanguageIdentifier> + Display + 'a,
         I: IntoIterator<Item = L>,
@@ -264,10 +264,10 @@ impl Localizations {
         match self.translate(locales, key, args) {
             Ok(translation) => Ok(Some(translation)),
             Err(
-                ServiceError::LocaleMissing
-                | ServiceError::LocaleMessageMissing
-                | ServiceError::LocaleMessageValueMissing
-                | ServiceError::LocaleMessageAttributeMissing,
+                OldError::LocaleMissing
+                | OldError::LocaleMessageMissing
+                | OldError::LocaleMessageValueMissing
+                | OldError::LocaleMessageAttributeMissing,
             ) => Ok(None),
             Err(error) => Err(error),
         }

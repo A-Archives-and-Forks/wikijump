@@ -48,7 +48,7 @@ impl RelationService {
             created_by,
             metadata,
         }: CreateSiteBan,
-    ) -> Result<()> {
+    ) -> OldResult<()> {
         Self::remove_site_member(
             ctx,
             RemoveSiteMember {
@@ -71,14 +71,14 @@ impl RelationService {
         ctx: &ServiceContext<'_>,
         body: GetSiteBan,
         action: &str,
-    ) -> Result<()> {
+    ) -> OldResult<()> {
         if Self::site_ban_exists(ctx, body).await? {
             error!(
                 "User ID {} cannot {} site ID {} because they are banned",
                 body.user_id, action, body.site_id,
             );
 
-            return Err(Error::SiteBlockedUser);
+            return Err(OldError::SiteBlockedUser);
         }
 
         Ok(())

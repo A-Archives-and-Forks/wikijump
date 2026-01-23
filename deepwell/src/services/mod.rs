@@ -39,7 +39,7 @@
 mod prelude {
     pub use super::context::ServiceContext;
     pub use crate::config::Config;
-    pub use crate::error::*;
+    pub use crate::error::prelude::*;
     pub use crate::types::{Maybe, Reference};
     pub use crate::utils::now;
     pub use paste::paste;

@@ -19,7 +19,6 @@
  */
 
 use super::prelude::*;
-use crate::error::Result;
 use crate::models::file::Model as FileModel;
 use crate::models::file_revision::Model as FileRevisionModel;
 use crate::services::file::{
@@ -33,7 +32,7 @@ use crate::types::{Bytes, FileDetails};
 pub async fn file_get(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<Option<GetFileOutput>> {
+) -> OldResult<Option<GetFileOutput>> {
     let GetFileDetails { input, details } = params.parse()?;
 
     info!(
@@ -62,7 +61,7 @@ pub async fn file_get(
 pub async fn file_create(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<CreateFileOutput> {
+) -> OldResult<CreateFileOutput> {
     let input: CreateFile = params.parse()?;
 
     info!(
@@ -76,7 +75,7 @@ pub async fn file_create(
 pub async fn file_edit(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<Option<EditFileOutput>> {
+) -> OldResult<Option<EditFileOutput>> {
     let input: EditFile = params.parse()?;
 
     info!(
@@ -90,7 +89,7 @@ pub async fn file_edit(
 pub async fn file_delete(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<DeleteFileOutput> {
+) -> OldResult<DeleteFileOutput> {
     let input: DeleteFile = params.parse()?;
 
     info!(
@@ -104,7 +103,7 @@ pub async fn file_delete(
 pub async fn file_move(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<Option<MoveFileOutput>> {
+) -> OldResult<Option<MoveFileOutput>> {
     let input: MoveFile = params.parse()?;
 
     info!(
@@ -118,7 +117,7 @@ pub async fn file_move(
 pub async fn file_restore(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<RestoreFileOutput> {
+) -> OldResult<RestoreFileOutput> {
     let input: RestoreFile = params.parse()?;
 
     info!(
@@ -132,7 +131,7 @@ pub async fn file_restore(
 pub async fn file_rollback(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<Option<EditFileOutput>> {
+) -> OldResult<Option<EditFileOutput>> {
     let input: RollbackFile = params.parse()?;
 
     info!(
@@ -148,7 +147,7 @@ async fn build_file_response(
     file: FileModel,
     revision: FileRevisionModel,
     details: FileDetails,
-) -> Result<GetFileOutput> {
+) -> OldResult<GetFileOutput> {
     let data = BlobService::get_maybe(ctx, details.data, &revision.s3_hash).await?;
     Ok(GetFileOutput {
         file_id: file.file_id,

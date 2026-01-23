@@ -41,7 +41,7 @@ macro_rules! impl_relation {
                         $dest_name,
                         $from_name,
                     }: [<Get $relation_type>],
-                ) -> Result<RelationModel> {
+                ) -> OldResult<RelationModel> {
                     Self::get(
                         ctx,
                         RelationReference::Relationship {
@@ -60,7 +60,7 @@ macro_rules! impl_relation {
                         $dest_name,
                         $from_name,
                     }: [<Get $relation_type>],
-                ) -> Result<Option<RelationModel>> {
+                ) -> OldResult<Option<RelationModel>> {
                     Self::get_optional(
                         ctx,
                         RelationReference::Relationship {
@@ -79,7 +79,7 @@ macro_rules! impl_relation {
                         $dest_name,
                         $from_name,
                     }: [<Get $relation_type>],
-                ) -> Result<bool> {
+                ) -> OldResult<bool> {
                     Self::exists(
                         ctx,
                         RelationReference::Relationship {
@@ -99,7 +99,7 @@ macro_rules! impl_relation {
                         $from_name,
                         removed_by,
                     }: [<Remove $relation_type>],
-                ) -> Result<RelationModel> {
+                ) -> OldResult<RelationModel> {
                     Self::remove(
                         ctx,
                         RelationReference::Relationship {
@@ -119,7 +119,7 @@ macro_rules! impl_relation {
                         $dest_name,
                         $from_name,
                     }: [<Get $relation_type>],
-                ) -> Result<Vec<RelationModel>> {
+                ) -> OldResult<Vec<RelationModel>> {
                     Self::get_history(
                         ctx,
                         RelationType::$relation_type,
@@ -135,7 +135,7 @@ macro_rules! impl_relation {
                     ctx: &ServiceContext<'_>,
                     object: RelationObject,
                     direction: RelationDirection,
-                ) -> Result<Vec<RelationModel>> {
+                ) -> OldResult<Vec<RelationModel>> {
                     Self::get_entries(
                         ctx,
                         RelationType::$relation_type,
@@ -229,7 +229,7 @@ macro_rules! impl_relation {
                         created_by,
                         metadata,
                     }: [<Create $relation_type>],
-                ) -> Result<()> {
+                ) -> OldResult<()> {
                     create_operation!(
                         ctx,
                         $relation_type,

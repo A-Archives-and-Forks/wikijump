@@ -36,7 +36,11 @@ impl Scorer for NullScorer {
     }
 
     #[inline]
-    async fn score(&self, _: &DatabaseTransaction, _: Condition) -> Result<ScoreValue> {
+    async fn score(
+        &self,
+        _: &DatabaseTransaction,
+        _: Condition,
+    ) -> OldResult<ScoreValue> {
         Ok(ScoreValue::Integer(0))
     }
 }

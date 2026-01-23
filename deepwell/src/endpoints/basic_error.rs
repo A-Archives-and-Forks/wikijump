@@ -25,7 +25,7 @@ use crate::utils::parse_locales;
 pub async fn basic_error_missing_site_slug(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<BasicErrorOutput> {
+) -> OldResult<BasicErrorOutput> {
     #[derive(Deserialize, Debug)]
     struct Input {
         locales: Vec<String>,
@@ -40,7 +40,7 @@ pub async fn basic_error_missing_site_slug(
 pub async fn basic_error_missing_custom_domain(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<BasicErrorOutput> {
+) -> OldResult<BasicErrorOutput> {
     #[derive(Deserialize, Debug)]
     struct Input {
         locales: Vec<String>,
@@ -55,7 +55,7 @@ pub async fn basic_error_missing_custom_domain(
 pub async fn basic_error_missing_page_slug(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<BasicErrorOutput> {
+) -> OldResult<BasicErrorOutput> {
     #[derive(Deserialize, Debug)]
     struct Input {
         locales: Vec<String>,
@@ -76,7 +76,7 @@ pub async fn basic_error_missing_page_slug(
 pub async fn basic_error_page_fetch(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<BasicErrorOutput> {
+) -> OldResult<BasicErrorOutput> {
     #[derive(Deserialize, Debug)]
     struct Input {
         locales: Vec<String>,
@@ -97,7 +97,7 @@ pub async fn basic_error_page_fetch(
 pub async fn basic_error_missing_file_name(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<BasicErrorOutput> {
+) -> OldResult<BasicErrorOutput> {
     #[derive(Deserialize, Debug)]
     struct Input {
         locales: Vec<String>,
@@ -121,7 +121,7 @@ pub async fn basic_error_missing_file_name(
 pub async fn basic_error_file_fetch(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<BasicErrorOutput> {
+) -> OldResult<BasicErrorOutput> {
     #[derive(Deserialize, Debug)]
     struct Input {
         locales: Vec<String>,
@@ -144,7 +144,7 @@ pub async fn basic_error_file_fetch(
 pub async fn basic_error_text_block(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<BasicErrorOutput> {
+) -> OldResult<BasicErrorOutput> {
     #[derive(Deserialize, Debug)]
     struct Input {
         locales: Vec<String>,
@@ -171,7 +171,7 @@ pub async fn basic_error_text_block(
 pub async fn basic_error_file_root(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<BasicErrorOutput> {
+) -> OldResult<BasicErrorOutput> {
     #[derive(Deserialize, Debug)]
     struct Input {
         locales: Vec<String>,

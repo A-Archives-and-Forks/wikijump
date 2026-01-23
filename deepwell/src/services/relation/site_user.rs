@@ -42,7 +42,7 @@ impl RelationService {
             metadata: (),
             created_by,
         }: CreateSiteUser,
-    ) -> Result<()> {
+    ) -> OldResult<()> {
         // User to be added must of type 'site'
         let user = UserService::get(ctx, Reference::Id(user_id)).await?;
         if user.user_type != UserType::Site {
@@ -50,7 +50,7 @@ impl RelationService {
                 "Can only create site user relations if the user is of type 'site', not {:?}",
                 user.user_type,
             );
-            return Err(Error::BadRequest);
+            return Err(OldError::BadRequest);
         }
 
         // Site <--> User must be 1:1
@@ -70,7 +70,7 @@ impl RelationService {
             error!(
                 "Found a different relation with this site, cannot create relation: {sites:?}"
             );
-            return Err(Error::BadRequest);
+            return Err(OldError::BadRequest);
         }
 
         let users = RelationService::get_entries(
@@ -85,7 +85,7 @@ impl RelationService {
             error!(
                 "Found a different relation with this user, cannot create relation: {users:?}"
             );
-            return Err(Error::BadRequest);
+            return Err(OldError::BadRequest);
         }
 
         // Checks done, create
@@ -95,7 +95,7 @@ impl RelationService {
     pub async fn get_site_user_id_for_site(
         ctx: &ServiceContext<'_>,
         site_id: i64,
-    ) -> Result<i64> {
+    ) -> OldResult<i64> {
         info!("Getting site user for site ID {site_id}");
 
         let model = get_relation(
@@ -112,7 +112,7 @@ impl RelationService {
     pub async fn get_site_id_for_site_user(
         ctx: &ServiceContext<'_>,
         user_id: i64,
-    ) -> Result<i64> {
+    ) -> OldResult<i64> {
         let model = get_relation(
             ctx,
             Condition::all()
@@ -128,7 +128,7 @@ impl RelationService {
 async fn get_relation(
     ctx: &ServiceContext<'_>,
     condition: Condition,
-) -> Result<RelationModel> {
+) -> OldResult<RelationModel> {
     // We implement our own query since it's 1:1 and we
     // don't have to worry about multiple results like
     // for get_entries().
@@ -148,6 +148,6 @@ async fn get_relation(
 
     match model {
         Some(model) => Ok(model),
-        None => Err(Error::RelationNotFound),
+        None => Err(OldError::RelationNotFound),
     }
 }

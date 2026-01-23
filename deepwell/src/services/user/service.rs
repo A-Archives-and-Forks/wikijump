@@ -59,7 +59,7 @@ impl UserService {
             bypass_email_verification,
             ip_address,
         }: CreateUser,
-    ) -> Result<CreateUserOutput> {
+    ) -> OldResult<CreateUserOutput> {
         let txn = ctx.transaction();
         let slug = get_user_slug(&name, user_type);
 
@@ -71,7 +71,7 @@ impl UserService {
         // Empty slug check
         if slug.is_empty() {
             error!("Cannot create user with empty slug");
-            return Err(Error::UserSlugEmpty);
+            return Err(OldError::UserSlugEmpty);
         }
 
         // Check if username contains the minimum amount of required bytes and chars.
@@ -82,7 +82,7 @@ impl UserService {
                 slug.len(),
                 ctx.config().minimum_name_bytes,
             );
-            return Err(Error::UserNameTooShort);
+            return Err(OldError::UserNameTooShort);
         }
 
         if name.chars().count() < config.minimum_name_chars {
@@ -91,7 +91,7 @@ impl UserService {
                 slug.len(),
                 ctx.config().minimum_name_chars,
             );
-            return Err(Error::UserNameTooShort);
+            return Err(OldError::UserNameTooShort);
         }
 
         // Perform filter validation
@@ -122,13 +122,13 @@ impl UserService {
         if result.is_some() {
             error!("User with conflicting name or slug already exists, cannot create");
             error!("Checked name '{name}', slug '{slug}', found {result:#?}");
-            return Err(Error::UserExists);
+            return Err(OldError::UserExists);
         }
 
         // Email must be specified for humans and bots
         if matches!(user_type, UserType::Regular | UserType::Bot) && email.is_empty() {
             error!("Attempting to create user with empty email");
-            return Err(Error::UserEmailEmpty);
+            return Err(OldError::UserEmailEmpty);
         }
 
         // Check for email conflicts, if a regular user
@@ -146,7 +146,7 @@ impl UserService {
             if result.is_some() {
                 error!("User with conflicting email already exists, cannot create");
                 error!("Checked email '{email}' found {result:#?}");
-                return Err(Error::UserExists);
+                return Err(OldError::UserExists);
             }
         }
 
@@ -154,7 +154,7 @@ impl UserService {
         if AliasService::exists(ctx, AliasType::User, &slug).await? {
             error!("User alias with conflicting slug already exists, cannot create");
             error!("Checked slug '{slug}'");
-            return Err(Error::UserExists);
+            return Err(OldError::UserExists);
         }
 
         // Set up password field depending on type
@@ -168,7 +168,7 @@ impl UserService {
 
                 if !password.is_empty() {
                     warn!("Password was specified for site or system user");
-                    return Err(Error::BadRequest);
+                    return Err(OldError::BadRequest);
                 }
 
                 // Disabled password
@@ -210,14 +210,14 @@ impl UserService {
                     error!(
                         "User {slug}'s email is disposable and did not pass verification",
                     );
-                    return Err(Error::DisallowedEmail);
+                    return Err(OldError::DisallowedEmail);
                 }
 
                 EmailClassification::Invalid => {
                     error!(
                         "User {slug}'s email is invalid and did not pass verification",
                     );
-                    return Err(Error::InvalidEmail);
+                    return Err(OldError::InvalidEmail);
                 }
             }
         } else {
@@ -269,7 +269,7 @@ impl UserService {
     pub async fn exists(
         ctx: &ServiceContext<'_>,
         reference: Reference<'_>,
-    ) -> Result<bool> {
+    ) -> OldResult<bool> {
         Self::get_optional(ctx, reference)
             .await
             .map(|user| user.is_some())
@@ -278,7 +278,7 @@ impl UserService {
     pub async fn get_optional(
         ctx: &ServiceContext<'_>,
         mut reference: Reference<'_>,
-    ) -> Result<Option<UserModel>> {
+    ) -> OldResult<Option<UserModel>> {
         let txn = ctx.transaction();
 
         // If slug, determine if this is a user alias.
@@ -321,7 +321,7 @@ impl UserService {
     pub async fn get(
         ctx: &ServiceContext<'_>,
         reference: Reference<'_>,
-    ) -> Result<UserModel> {
+    ) -> OldResult<UserModel> {
         find_or_error!(Self::get_optional(ctx, reference), User)
     }
 
@@ -330,7 +330,7 @@ impl UserService {
         reference: Reference<'_>,
         ip_address: IpAddr,
         input: UpdateUserBody,
-    ) -> Result<UserModel> {
+    ) -> OldResult<UserModel> {
         use crate::services::audit::UserFields;
 
         let txn = ctx.transaction();
@@ -428,8 +428,8 @@ impl UserService {
             let is_alias = match email_validation_output.classification {
                 EmailClassification::Normal => false,
                 EmailClassification::Alias => true,
-                EmailClassification::Disposable => return Err(Error::DisallowedEmail),
-                EmailClassification::Invalid => return Err(Error::InvalidEmail),
+                EmailClassification::Disposable => return Err(OldError::DisallowedEmail),
+                EmailClassification::Invalid => return Err(OldError::InvalidEmail),
             };
 
             model.email = Set(email);
@@ -490,7 +490,7 @@ impl UserService {
                             "Uploaded avatar size is too big {} > {}",
                             size, config.maximum_avatar_size,
                         );
-                        return Err(Error::BlobTooBig);
+                        return Err(OldError::BlobTooBig);
                     }
 
                     Some(s3_hash.to_vec())
@@ -529,7 +529,7 @@ impl UserService {
         user: &UserModel,
         model: &mut user::ActiveModel,
         bypass_filter: bool,
-    ) -> Result<()> {
+    ) -> OldResult<()> {
         // Regardless of the number of name change tokens,
         // the user can always change their name if the slug is
         // unaltered, or if the slug is a prior name of theirs
@@ -541,7 +541,7 @@ impl UserService {
         // Empty slug check
         if new_slug.is_empty() {
             error!("Cannot create user with empty slug");
-            return Err(Error::UserSlugEmpty);
+            return Err(OldError::UserSlugEmpty);
         }
 
         // Perform filter validation
@@ -579,7 +579,7 @@ impl UserService {
 
         if user.name_changes_left == 0 {
             error!("User ID {} has no remaining name changes", user.user_id);
-            return Err(Error::InsufficientNameChanges);
+            return Err(OldError::InsufficientNameChanges);
         }
 
         // Check if the new name has the minimum required amount of bytes.
@@ -591,7 +591,7 @@ impl UserService {
                 ctx.config().minimum_name_bytes,
             );
 
-            return Err(Error::UserNameTooShort);
+            return Err(OldError::UserNameTooShort);
         }
 
         // Deduct name change token and add user alias for old slug.
@@ -627,7 +627,7 @@ impl UserService {
         Ok(())
     }
 
-    pub async fn refresh_name_change_tokens(ctx: &ServiceContext<'_>) -> Result<()> {
+    pub async fn refresh_name_change_tokens(ctx: &ServiceContext<'_>) -> OldResult<()> {
         info!("Refreshing name change tokens for all users who need one");
 
         let needs_token_time = match ctx.config().refill_name_change {
@@ -660,7 +660,7 @@ impl UserService {
     pub async fn add_name_change_token(
         ctx: &ServiceContext<'_>,
         user: &UserModel,
-    ) -> Result<i16> {
+    ) -> OldResult<i16> {
         let txn = ctx.transaction();
         let max_name_changes = ctx.config().maximum_name_changes;
         let name_changes = cmp::min(user.name_changes_left + 1, max_name_changes);
@@ -686,7 +686,7 @@ impl UserService {
         user_id: i64,
         multi_factor_secret: ActiveValue<Option<String>>,
         multi_factor_recovery_codes: ActiveValue<Option<Vec<String>>>,
-    ) -> Result<()> {
+    ) -> OldResult<()> {
         info!("Setting MFA secret fields for user ID {user_id}");
         // NOTE: Audit log events are set in MfaService, not here
 
@@ -708,7 +708,7 @@ impl UserService {
         ctx: &ServiceContext<'_>,
         user: &UserModel,
         recovery_code: &str,
-    ) -> Result<()> {
+    ) -> OldResult<()> {
         let txn = ctx.transaction();
         info!("Removing recovery code from user ID {}", user.user_id);
 
@@ -737,7 +737,7 @@ impl UserService {
     pub async fn delete(
         ctx: &ServiceContext<'_>,
         reference: Reference<'_>,
-    ) -> Result<UserModel> {
+    ) -> OldResult<UserModel> {
         let txn = ctx.transaction();
         let user = Self::get(ctx, reference).await?;
         info!("Deleting user with ID {}", user.user_id);
@@ -761,7 +761,7 @@ impl UserService {
         ctx: &ServiceContext<'_>,
         name: &str,
         slug: &str,
-    ) -> Result<()> {
+    ) -> OldResult<()> {
         info!("Checking user name data against filters...");
 
         let filter_matcher =
@@ -776,7 +776,7 @@ impl UserService {
         Ok(())
     }
 
-    async fn run_email_filter(ctx: &ServiceContext<'_>, email: &str) -> Result<()> {
+    async fn run_email_filter(ctx: &ServiceContext<'_>, email: &str) -> OldResult<()> {
         info!("Checking user email data against filters...");
 
         let filter_matcher =
@@ -787,7 +787,10 @@ impl UserService {
         Ok(())
     }
 
-    fn validate_locales<S: AsRef<str>>(user_type: UserType, locales: &[S]) -> Result<()> {
+    fn validate_locales<S: AsRef<str>>(
+        user_type: UserType,
+        locales: &[S],
+    ) -> OldResult<()> {
         use crate::utils::validate_locale;
 
         debug!(
@@ -816,7 +819,7 @@ impl UserService {
         if valid {
             Ok(())
         } else {
-            Err(Error::BadRequest)
+            Err(OldError::BadRequest)
         }
     }
 }

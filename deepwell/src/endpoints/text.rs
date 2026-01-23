@@ -24,7 +24,7 @@ use crate::types::Bytes;
 pub async fn text_create(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<Bytes<'static>> {
+) -> OldResult<Bytes<'static>> {
     let contents: String = params.one()?;
     info!("Inserting new stored text (bytes {})", contents.len());
     let hash = TextService::create(ctx, contents).await?;
@@ -34,7 +34,7 @@ pub async fn text_create(
 pub async fn text_get(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<String> {
+) -> OldResult<String> {
     info!("Getting stored text");
     let hash: Bytes = params.one()?;
     TextService::get(ctx, hash.as_ref()).await

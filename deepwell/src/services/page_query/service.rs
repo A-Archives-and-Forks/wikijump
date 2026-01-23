@@ -68,7 +68,7 @@ impl PageQueryService {
             pagination,
             variables,
         }: PageQuery<'_>,
-    ) -> Result<Infallible> {
+    ) -> OldResult<Infallible> {
         info!("Building ListPages query from specification");
 
         let txn = ctx.transaction();

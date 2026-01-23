@@ -39,7 +39,7 @@ impl RenderService {
         wikitext: String,
         page_info: &PageInfo<'_>,
         settings: &WikitextSettings,
-    ) -> Result<RenderOutput> {
+    ) -> OldResult<RenderOutput> {
         let RenderInnerOutput {
             html_output,
             errors,
@@ -65,7 +65,7 @@ impl RenderService {
             category_id,
             page_id,
         }: PageId,
-    ) -> Result<RenderPageOutput> {
+    ) -> OldResult<RenderPageOutput> {
         let page_settings = WikitextSettings::from_mode(WikitextMode::Page, layout);
         let nav_settings = WikitextSettings::from_mode(WikitextMode::PageNav, layout);
 
@@ -131,7 +131,7 @@ impl RenderService {
         page_info: &PageInfo<'_>,
         settings: &WikitextSettings,
         page_id: Option<i64>,
-    ) -> Result<RenderInnerOutput> {
+    ) -> OldResult<RenderInnerOutput> {
         let config = ctx.config();
 
         // We isolate the actual tasks for rendering,
@@ -149,7 +149,7 @@ impl RenderService {
         .await
         // Not using Error::from() because timeouts could occur in other places,
         // and this error variant is not specific to all timeouts.
-        .map_err(|_| Error::RenderTimeout)?;
+        .map_err(|_| OldError::RenderTimeout)?;
 
         let (tree, html_output, errors) = timeout(config.render_timeout, async {
             let result = ftml::parse(&tokens, page_info, settings);
@@ -159,7 +159,7 @@ impl RenderService {
         })
         .await
         // As above, just doing the timeout error conversion here.
-        .map_err(|_| Error::RenderTimeout)?;
+        .map_err(|_| OldError::RenderTimeout)?;
 
         // Insert compiled HTML into text table
         let compiled_hash = TextService::create(ctx, html_output.body.clone()).await?;

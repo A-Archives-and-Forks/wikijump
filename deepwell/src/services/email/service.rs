@@ -25,7 +25,7 @@ pub struct EmailService;
 
 impl EmailService {
     /// Validates an email through the MailCheck API.
-    pub async fn validate(email: &str) -> Result<EmailValidationOutput> {
+    pub async fn validate(email: &str) -> OldResult<EmailValidationOutput> {
         // Sends a GET request to the MailCheck API and deserializes the response.
         let mailcheck = reqwest::get(format!("https://api.mailcheck.ai/email/{email}"))
             .await?
@@ -46,13 +46,13 @@ impl EmailService {
                     "MailCheck API request failed with bad response: {:?}",
                     mailcheck.error,
                 );
-                return Err(Error::EmailVerification(mailcheck.error));
+                return Err(OldError::EmailVerification(mailcheck.error));
             }
 
             // Exceeded rate limit.
             429 => {
                 error!("MailCheck API hit ratelimit: {:?}", mailcheck.error);
-                return Err(Error::RateLimited);
+                return Err(OldError::RateLimited);
             }
 
             // Other statuses.

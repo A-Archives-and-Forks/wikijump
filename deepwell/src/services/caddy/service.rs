@@ -48,7 +48,7 @@ impl CaddyService {
     pub async fn generate(
         ctx: &ServiceContext<'_>,
         options: &CaddyfileOptions<'_>,
-    ) -> Result<String> {
+    ) -> OldResult<String> {
         let config = ctx.config();
         let txn = ctx.transaction();
 

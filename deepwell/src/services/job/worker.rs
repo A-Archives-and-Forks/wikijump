@@ -154,7 +154,7 @@ impl JobWorker {
         }
     }
 
-    async fn process_job(&mut self) -> Result<JobProcessStatus> {
+    async fn process_job(&mut self) -> OldResult<JobProcessStatus> {
         let data: RsmqMessage<Vec<u8>> =
             match self.rsmq.receive_message(JOB_QUEUE_NAME, None).await? {
                 None => return Ok(JobProcessStatus::NoJob),

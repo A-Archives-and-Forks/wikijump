@@ -20,7 +20,7 @@
 
 use crate::api::ServerState;
 use crate::config::Config;
-use crate::error::Result;
+use crate::error::prelude::*;
 use crate::locales::Localizations;
 use crate::services::blob::MimeAnalyzer;
 use redis::aio::MultiplexedConnection as RedisMultiplexedConnection;

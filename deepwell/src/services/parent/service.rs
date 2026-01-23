@@ -42,7 +42,7 @@ impl ParentService {
             parent: parent_reference,
             child: child_reference,
         }: ParentDescription<'_>,
-    ) -> Result<Option<PageParentModel>> {
+    ) -> OldResult<Option<PageParentModel>> {
         let txn = ctx.transaction();
 
         let (parent_page, child_page) = try_join!(
@@ -56,7 +56,7 @@ impl ParentService {
                 "Cannot parent a page to itself (ID {})",
                 parent_page.page_id,
             );
-            return Err(Error::PageParentExists);
+            return Err(OldError::PageParentExists);
         }
 
         // Check if this relationship already exists
@@ -95,7 +95,7 @@ impl ParentService {
             parent: parent_reference,
             child: child_reference,
         }: ParentDescription<'_>,
-    ) -> Result<RemoveParentOutput> {
+    ) -> OldResult<RemoveParentOutput> {
         let txn = ctx.transaction();
 
         let (parent_page, child_page) = try_join!(
@@ -124,7 +124,7 @@ impl ParentService {
             parent: parent_reference,
             child: child_reference,
         }: ParentDescription<'_>,
-    ) -> Result<Option<PageParentModel>> {
+    ) -> OldResult<Option<PageParentModel>> {
         let txn = ctx.transaction();
 
         let (parent_page, child_page) = try_join!(
@@ -144,7 +144,7 @@ impl ParentService {
     pub async fn get(
         ctx: &ServiceContext<'_>,
         description: ParentDescription<'_>,
-    ) -> Result<PageParentModel> {
+    ) -> OldResult<PageParentModel> {
         find_or_error!(Self::get_optional(ctx, description), PageParent)
     }
 
@@ -154,7 +154,7 @@ impl ParentService {
         site_id: i64,
         reference: Reference<'_>,
         relationship_type: ParentalRelationshipType,
-    ) -> Result<Vec<PageParentModel>> {
+    ) -> OldResult<Vec<PageParentModel>> {
         let txn = ctx.transaction();
         let page_id = PageService::get_id(ctx, site_id, reference).await?;
         let column = match relationship_type {
@@ -176,7 +176,7 @@ impl ParentService {
         ctx: &ServiceContext<'_>,
         site_id: i64,
         reference: Reference<'_>,
-    ) -> Result<Vec<PageParentModel>> {
+    ) -> OldResult<Vec<PageParentModel>> {
         Self::get_relationships(ctx, site_id, reference, ParentalRelationshipType::Child)
             .await
     }
@@ -186,7 +186,7 @@ impl ParentService {
         ctx: &ServiceContext<'_>,
         site_id: i64,
         reference: Reference<'_>,
-    ) -> Result<Vec<PageParentModel>> {
+    ) -> OldResult<Vec<PageParentModel>> {
         Self::get_relationships(ctx, site_id, reference, ParentalRelationshipType::Parent)
             .await
     }
@@ -198,7 +198,7 @@ impl ParentService {
     ///
     /// # Returns
     /// Returns the number of relationships deleted.
-    pub async fn remove_all(ctx: &ServiceContext<'_>, page_id: i64) -> Result<u64> {
+    pub async fn remove_all(ctx: &ServiceContext<'_>, page_id: i64) -> OldResult<u64> {
         let txn = ctx.transaction();
 
         let rows_deleted = PageParent::delete_many()

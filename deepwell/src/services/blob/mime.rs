@@ -70,7 +70,7 @@ impl MimeAnalyzer {
     }
 
     /// Loads the libmagic database from file, failing if it was invalid or missing.
-    fn load_magic() -> Result<Magic> {
+    fn load_magic() -> OldResult<Magic> {
         const MAGIC_FLAGS: MagicFlags = MagicFlags::MIME;
         const MAGIC_PATHS: &[&str] = &[]; // Empty indicates using the default magic database
 
@@ -101,7 +101,7 @@ impl MimeAnalyzer {
     /// Because all requests involve sending an item over the channel,
     /// and then waiting for the response, we need to send both the input
     /// and a oneshot channel to get the response.
-    pub async fn get_mime_type(&self, buffer: Vec<u8>) -> Result<String> {
+    pub async fn get_mime_type(&self, buffer: Vec<u8>) -> OldResult<String> {
         info!("Sending MIME request ({} bytes)", buffer.len());
 
         // Channel for getting the result

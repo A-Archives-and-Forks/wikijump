@@ -60,7 +60,7 @@ impl FileRevisionService {
             body,
         }: CreateFileRevision,
         previous: FileRevisionModel,
-    ) -> Result<Option<CreateFileRevisionOutput>> {
+    ) -> OldResult<Option<CreateFileRevisionOutput>> {
         let txn = ctx.transaction();
         let revision_number = next_revision_number(&previous, page_id, file_id);
 
@@ -130,7 +130,7 @@ impl FileRevisionService {
 
         if mime.is_empty() {
             error!("MIME type is empty");
-            return Err(Error::FileMimeEmpty);
+            return Err(OldError::FileMimeEmpty);
         }
 
         // Run outdater
@@ -187,7 +187,7 @@ impl FileRevisionService {
             blob_created,
             revision_comments,
         }: CreateFirstFileRevision,
-    ) -> Result<CreateFirstFileRevisionOutput> {
+    ) -> OldResult<CreateFirstFileRevisionOutput> {
         let txn = ctx.transaction();
 
         // Run outdater
@@ -247,7 +247,7 @@ impl FileRevisionService {
             erase_s3_hash,
         }: CreateTombstoneFileRevision,
         previous: FileRevisionModel,
-    ) -> Result<CreateFileRevisionOutput> {
+    ) -> OldResult<CreateFileRevisionOutput> {
         let txn = ctx.transaction();
         let revision_number = next_revision_number(&previous, page_id, file_id);
 
@@ -334,7 +334,7 @@ impl FileRevisionService {
             revision_comments,
         }: CreateResurrectionFileRevision,
         previous: FileRevisionModel,
-    ) -> Result<CreateFileRevisionOutput> {
+    ) -> OldResult<CreateFileRevisionOutput> {
         let txn = ctx.transaction();
         let revision_number = next_revision_number(&previous, old_page_id, file_id);
 
@@ -412,7 +412,7 @@ impl FileRevisionService {
             user_id,
             hidden,
         }: UpdateFileRevision,
-    ) -> Result<FileRevisionModel> {
+    ) -> OldResult<FileRevisionModel> {
         // The latest file revision cannot be hidden, because
         // the file, its name, contents, etc are exposed.
         // It should be reverted first, and then it can be hidden.
@@ -421,7 +421,7 @@ impl FileRevisionService {
         let latest = Self::get_latest(ctx, site_id, page_id, file_id).await?;
         if revision_id == latest.revision_id {
             warn!("Attempting to edit latest revision, denying request");
-            return Err(Error::CannotHideLatestRevision);
+            return Err(OldError::CannotHideLatestRevision);
         }
 
         // TODO: record revision edit in audit log
@@ -448,7 +448,7 @@ impl FileRevisionService {
         site_id: i64,
         page_id: i64,
         file_id: i64,
-    ) -> Result<FileRevisionModel> {
+    ) -> OldResult<FileRevisionModel> {
         // NOTE: There is no optional variant of this method,
         //       since all extant files must have at least one revision.
 
@@ -463,7 +463,7 @@ impl FileRevisionService {
             .order_by_desc(file_revision::Column::RevisionNumber)
             .one(txn)
             .await?
-            .ok_or(Error::FileRevisionNotFound)?;
+            .ok_or(OldError::FileRevisionNotFound)?;
 
         Ok(revision)
     }
@@ -479,7 +479,7 @@ impl FileRevisionService {
             file_id,
             revision_number,
         }: GetFileRevision,
-    ) -> Result<Option<FileRevisionModel>> {
+    ) -> OldResult<Option<FileRevisionModel>> {
         let txn = ctx.transaction();
         let revision = FileRevision::find()
             .filter(
@@ -503,7 +503,7 @@ impl FileRevisionService {
     pub async fn get(
         ctx: &ServiceContext<'_>,
         input: GetFileRevision,
-    ) -> Result<FileRevisionModel> {
+    ) -> OldResult<FileRevisionModel> {
         find_or_error!(Self::get_optional(ctx, input), FileRevision)
     }
 
@@ -514,7 +514,7 @@ impl FileRevisionService {
         ctx: &ServiceContext<'_>,
         page_id: i64,
         file_id: i64,
-    ) -> Result<NonZeroI32> {
+    ) -> OldResult<NonZeroI32> {
         let txn = ctx.transaction();
         let row_count = FileRevision::find()
             .filter(
@@ -535,7 +535,7 @@ impl FileRevisionService {
         // that means this page does not exist, and we should return an error.
         match NonZeroI32::new(row_count) {
             Some(count) => Ok(count),
-            None => Err(Error::FileNotFound),
+            None => Err(OldError::FileNotFound),
         }
     }
 
@@ -550,7 +550,7 @@ impl FileRevisionService {
             revision_direction,
             limit,
         }: GetFileRevisionRange,
-    ) -> Result<Vec<FileRevisionModel>> {
+    ) -> OldResult<Vec<FileRevisionModel>> {
         let revision_condition = {
             use file_revision::Column::RevisionNumber;
 
@@ -588,7 +588,7 @@ impl FileRevisionService {
         ctx: &ServiceContext<'_>,
         site_id: i64,
         page_id: i64,
-    ) -> Result<String> {
+    ) -> OldResult<String> {
         let page = PageService::get(ctx, site_id, Reference::Id(page_id)).await?;
         Ok(page.slug)
     }

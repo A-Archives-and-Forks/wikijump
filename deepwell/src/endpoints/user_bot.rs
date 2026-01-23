@@ -69,7 +69,7 @@ pub struct CreateBotUserOwners {
 pub async fn bot_user_create(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<CreateUserOutput> {
+) -> OldResult<CreateUserOutput> {
     let CreateBotUser {
         name,
         email,
@@ -156,7 +156,7 @@ pub async fn bot_user_create(
 pub async fn bot_user_get_owners(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<Option<Vec<UserBotOwner>>> {
+) -> OldResult<Option<Vec<UserBotOwner>>> {
     let GetUser { user: reference } = params.parse()?;
     info!("Getting bot user {reference:?}");
     match UserService::get_optional(ctx, reference).await? {
@@ -167,7 +167,7 @@ pub async fn bot_user_get_owners(
                     "Tried to get owners for non-bot user: '{}' (type {:?})",
                     bot_user.name, bot_user.user_type,
                 );
-                return Err(ServiceError::UserWrongType);
+                return Err(OldError::UserWrongType);
             }
 
             let owners =
@@ -181,7 +181,7 @@ pub async fn bot_user_get_owners(
 pub async fn bot_user_get_bots(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<Vec<UserBotOwner>> {
+) -> OldResult<Vec<UserBotOwner>> {
     let GetUser { user: reference } = params.parse()?;
     info!("Getting bot users owned by user {reference:?}");
 
@@ -191,7 +191,7 @@ pub async fn bot_user_get_bots(
             "Tried to get bots for non-regular user: '{}' (type {:?})",
             owner_user.name, owner_user.user_type,
         );
-        return Err(ServiceError::UserWrongType);
+        return Err(OldError::UserWrongType);
     }
 
     let owners = RelationService::get_bots_owned_by_user(ctx, owner_user.user_id).await?;
@@ -201,7 +201,7 @@ pub async fn bot_user_get_bots(
 pub async fn bot_user_owner_set(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<()> {
+) -> OldResult<()> {
     let input: CreateBotUserOwners = params.parse()?;
     info!(
         "Adding or updating bot owners for {} ({} new owners)",
@@ -230,7 +230,7 @@ pub async fn bot_user_owner_set(
 pub async fn bot_user_owner_remove(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<()> {
+) -> OldResult<()> {
     let input: RemoveUserBotOwner = params.parse()?;
     info!(
         "Remove bot owner ({} <- {})",

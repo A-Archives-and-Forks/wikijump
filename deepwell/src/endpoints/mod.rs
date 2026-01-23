@@ -30,7 +30,7 @@
 #[allow(unused_imports)]
 mod prelude {
     pub use crate::api::ServerState;
-    pub use crate::error::{Error as ServiceError, Result, StdResult};
+    pub use crate::error::prelude::*;
     pub use crate::services::{
         AliasService, BlobService, CaddyService, CategoryService, DomainService,
         FileRevisionService, FileService, LinkService, MessageReportService,

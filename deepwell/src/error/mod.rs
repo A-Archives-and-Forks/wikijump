@@ -19,22 +19,18 @@
  */
 
 pub mod prelude {
-    pub use super::{
-        NewError as Error, NewErrorType as ErrorType, NewResult as Result, StdError,
-    };
+    pub use super::{Error, ErrorType, OldError, OldResult, Result, StdError, StdResult};
     pub use exn::ResultExt;
 }
 
 mod new;
 mod old;
 
-pub use self::new::{
-    Error as NewError, ErrorType as NewErrorType, exn_error_to_rpc_error,
-};
-pub use self::old::OldError as Error;
+pub use self::new::{Error, ErrorType, exn_error_to_rpc_error};
+pub use self::old::OldError;
 pub use exn::Result as ExnResult;
 pub use std::error::Error as StdError;
 
 pub type StdResult<T, E> = std::result::Result<T, E>;
-pub type Result<T> = StdResult<T, Error>;
-pub type NewResult<T> = ExnResult<T, NewError>;
+pub type OldResult<T> = StdResult<T, OldError>;
+pub type Result<T> = ExnResult<T, Error>;

@@ -18,7 +18,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use crate::error::Error as ServiceError;
+use crate::error::prelude::*;
 use std::str::FromStr;
 use strum_macros::EnumIter;
 
@@ -55,13 +55,13 @@ impl FetchDirection {
 }
 
 impl FromStr for FetchDirection {
-    type Err = ServiceError;
+    type Err = OldError;
 
-    fn from_str(value: &str) -> Result<FetchDirection, ServiceError> {
+    fn from_str(value: &str) -> OldResult<FetchDirection> {
         match value {
             "before" => Ok(FetchDirection::Before),
             "after" => Ok(FetchDirection::After),
-            _ => Err(ServiceError::InvalidEnumValue),
+            _ => Err(OldError::InvalidEnumValue),
         }
     }
 }

@@ -28,7 +28,7 @@ use crate::services::view::{
 pub async fn page_view(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<GetPageViewOutput> {
+) -> OldResult<GetPageViewOutput> {
     let input: GetPageView = params.parse()?;
     ViewService::page(ctx, input).await
 }
@@ -37,7 +37,7 @@ pub async fn page_view(
 pub async fn user_view(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<GetUserViewOutput> {
+) -> OldResult<GetUserViewOutput> {
     let input: GetUserView = params.parse()?;
     ViewService::user(ctx, input).await
 }
@@ -46,7 +46,7 @@ pub async fn user_view(
 pub async fn admin_view(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<GetAdminViewOutput> {
+) -> OldResult<GetAdminViewOutput> {
     let input: GetAdminView = params.parse()?;
     ViewService::admin(ctx, input).await
 }

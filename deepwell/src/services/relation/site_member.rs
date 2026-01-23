@@ -54,7 +54,7 @@ impl RelationService {
             metadata,
             created_by,
         }: CreateSiteMember,
-    ) -> Result<()> {
+    ) -> OldResult<()> {
         // Cannot join if banned
         Self::check_site_ban(ctx, GetSiteBan { site_id, user_id }, "join").await?;
 

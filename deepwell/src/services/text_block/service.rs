@@ -85,7 +85,7 @@ impl TextBlockService {
         page_id: i64,
         block_type: TextBlockType,
         blocks: &[TextBlock<'_>],
-    ) -> Result<()> {
+    ) -> OldResult<()> {
         use std::ops::Add;
 
         info!(
@@ -222,7 +222,7 @@ impl TextBlockService {
         page_id: i64,
         block_type: TextBlockType,
         name: &str,
-    ) -> Result<Option<TextBlockIndex>> {
+    ) -> OldResult<Option<TextBlockIndex>> {
         info!(
             "Looking for a {} text block on page ID {} with name '{}'",
             block_type_name(block_type),
@@ -259,7 +259,7 @@ impl TextBlockService {
         ctx: &ServiceContext<'_>,
         page_id: i64,
         block_type: TextBlockType,
-    ) -> Result<i16> {
+    ) -> OldResult<i16> {
         let txn = ctx.transaction();
         let count = TextBlockTable::find()
             .select_only()
@@ -284,7 +284,7 @@ impl TextBlockService {
     /// This is run when a page is deleted, since the page
     /// becomes inaccessible and storing this redundant information
     /// becomes unnecessary.
-    pub async fn delete_blocks(ctx: &ServiceContext<'_>, page_id: i64) -> Result<()> {
+    pub async fn delete_blocks(ctx: &ServiceContext<'_>, page_id: i64) -> OldResult<()> {
         let txn = ctx.transaction();
         let bucket = ctx.s3_tblocks_bucket();
         let mut buffer = String::new();

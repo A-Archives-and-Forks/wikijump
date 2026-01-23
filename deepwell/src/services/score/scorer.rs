@@ -51,5 +51,5 @@ pub trait Scorer {
         &self,
         txn: &DatabaseTransaction,
         condition: Condition,
-    ) -> Result<ScoreValue>;
+    ) -> OldResult<ScoreValue>;
 }

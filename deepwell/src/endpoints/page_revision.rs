@@ -19,7 +19,6 @@
  */
 
 use super::prelude::*;
-use crate::error::Result;
 use crate::models::page_revision::Model as PageRevisionModel;
 use crate::services::TextService;
 use crate::services::page::GetPageReference;
@@ -32,7 +31,7 @@ use crate::types::PageDetails;
 pub async fn page_revision_count(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<PageRevisionCountOutput> {
+) -> OldResult<PageRevisionCountOutput> {
     let GetPageReference {
         site_id,
         page: reference,
@@ -52,7 +51,7 @@ pub async fn page_revision_count(
 pub async fn page_revision_get(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<Option<PageRevisionModelFiltered>> {
+) -> OldResult<Option<PageRevisionModelFiltered>> {
     let GetPageRevisionDetails {
         input:
             GetPageRevision {
@@ -82,7 +81,7 @@ pub async fn page_revision_get(
 pub async fn page_revision_edit(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<PageRevisionModelFiltered> {
+) -> OldResult<PageRevisionModelFiltered> {
     let UpdatePageRevisionDetails { input, details } = params.parse()?;
 
     info!(
@@ -102,7 +101,7 @@ pub async fn page_revision_edit(
 pub async fn page_revision_range(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<Vec<PageRevisionModelFiltered>> {
+) -> OldResult<Vec<PageRevisionModelFiltered>> {
     let GetPageRevisionRangeDetails { input, details } = params.parse()?;
     let revisions = PageRevisionService::get_range(ctx, input).await?;
     filter_and_populate_revisions(ctx, revisions, details).await
@@ -114,7 +113,7 @@ async fn filter_and_populate_revision(
     ctx: &ServiceContext<'_>,
     model: PageRevisionModel,
     mut details: PageDetails,
-) -> Result<PageRevisionModelFiltered> {
+) -> OldResult<PageRevisionModelFiltered> {
     let PageRevisionModel {
         revision_id,
         revision_type,
@@ -211,7 +210,7 @@ async fn filter_and_populate_revisions(
     ctx: &ServiceContext<'_>,
     revisions: Vec<PageRevisionModel>,
     details: PageDetails,
-) -> Result<Vec<PageRevisionModelFiltered>> {
+) -> OldResult<Vec<PageRevisionModelFiltered>> {
     let mut f_revisions = Vec::new();
 
     for revision in revisions {

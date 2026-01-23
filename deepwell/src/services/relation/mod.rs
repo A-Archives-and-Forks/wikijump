@@ -87,7 +87,7 @@ impl RelationService {
         from: RelationObject,
         created_by: i64,
         metadata: &M,
-    ) -> Result<RelationModel> {
+    ) -> OldResult<RelationModel> {
         debug!("Create relation for {dest:?} ← {relation_type:?} ← {from:?}");
 
         // Relations are not permitted to point to themselves
@@ -147,7 +147,7 @@ impl RelationService {
         ctx: &ServiceContext<'_>,
         reference: RelationReference,
         deleted_by: i64,
-    ) -> Result<RelationModel> {
+    ) -> OldResult<RelationModel> {
         debug!("Removing relation for {reference:?}");
 
         let txn = ctx.transaction();
@@ -166,7 +166,7 @@ impl RelationService {
     pub async fn get_optional(
         ctx: &ServiceContext<'_>,
         reference: RelationReference,
-    ) -> Result<Option<RelationModel>> {
+    ) -> OldResult<Option<RelationModel>> {
         debug!("Getting relation for {reference:?}");
 
         let txn = ctx.transaction();
@@ -187,7 +187,7 @@ impl RelationService {
     pub async fn get_id(
         ctx: &ServiceContext<'_>,
         reference: RelationReference,
-    ) -> Result<i64> {
+    ) -> OldResult<i64> {
         match reference {
             RelationReference::Id(relation_id) => Ok(relation_id),
             RelationReference::Relationship { .. } => {
@@ -201,14 +201,14 @@ impl RelationService {
     pub async fn get(
         ctx: &ServiceContext<'_>,
         reference: RelationReference,
-    ) -> Result<RelationModel> {
+    ) -> OldResult<RelationModel> {
         find_or_error!(Self::get_optional(ctx, reference), Relation)
     }
 
     pub async fn exists(
         ctx: &ServiceContext<'_>,
         reference: RelationReference,
-    ) -> Result<bool> {
+    ) -> OldResult<bool> {
         Self::get_optional(ctx, reference)
             .await
             .map(|relation| relation.is_some())
@@ -224,7 +224,7 @@ impl RelationService {
         relation_type: RelationType,
         dest: RelationObject,
         from: RelationObject,
-    ) -> Result<Vec<RelationModel>> {
+    ) -> OldResult<Vec<RelationModel>> {
         info!("Getting history of relations for {dest:?} / {relation_type:?} / {from:?}");
 
         let txn = ctx.transaction();
@@ -247,7 +247,7 @@ impl RelationService {
         relation_type: RelationType,
         object: RelationObject,
         direction: RelationDirection,
-    ) -> Result<Vec<RelationModel>> {
+    ) -> OldResult<Vec<RelationModel>> {
         info!("Getting {direction:?} relations for {object:?} / {relation_type:?}");
 
         let (object_type, object_id) = object.into();

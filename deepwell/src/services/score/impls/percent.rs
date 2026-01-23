@@ -42,7 +42,7 @@ impl Scorer for PercentScorer {
         &self,
         txn: &DatabaseTransaction,
         condition: Condition,
-    ) -> Result<ScoreValue> {
+    ) -> OldResult<ScoreValue> {
         // We need to do a GROUP BY either way here,
         // may as well use the helper method.
         let votes = ScoreService::collect_votes(txn, condition).await?;

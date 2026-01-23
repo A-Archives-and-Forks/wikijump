@@ -53,7 +53,7 @@ impl LinkService {
     pub async fn get_from(
         ctx: &ServiceContext<'_>,
         page_id: i64,
-    ) -> Result<GetLinksFromOutput> {
+    ) -> OldResult<GetLinksFromOutput> {
         let txn = ctx.transaction();
 
         let (present, absent, external) = try_join!(
@@ -81,7 +81,7 @@ impl LinkService {
         ctx: &ServiceContext<'_>,
         page_id: i64,
         connection_types: Option<&[ConnectionType]>,
-    ) -> Result<GetConnectionsFromOutput> {
+    ) -> OldResult<GetConnectionsFromOutput> {
         let txn = ctx.transaction();
 
         let (present, absent) = try_join!(
@@ -114,7 +114,7 @@ impl LinkService {
         ctx: &ServiceContext<'_>,
         page_id: i64,
         connection_types: Option<&[ConnectionType]>,
-    ) -> Result<GetLinksToOutput> {
+    ) -> OldResult<GetLinksToOutput> {
         let txn = ctx.transaction();
 
         let connections = PageConnection::find()
@@ -137,7 +137,7 @@ impl LinkService {
         site_id: i64,
         page_slug: &str,
         connection_types: Option<&[ConnectionType]>,
-    ) -> Result<GetLinksToMissingOutput> {
+    ) -> OldResult<GetLinksToMissingOutput> {
         let txn = ctx.transaction();
 
         // Ensure the page doesn't actually exist
@@ -149,7 +149,7 @@ impl LinkService {
                 site_id, page.page_id,
             );
 
-            return Err(Error::PageExists);
+            return Err(OldError::PageExists);
         }
 
         // Retrieve connections for this slot
@@ -172,7 +172,7 @@ impl LinkService {
     pub async fn get_external_from(
         ctx: &ServiceContext<'_>,
         page_id: i64,
-    ) -> Result<GetLinksExternalFromOutput> {
+    ) -> OldResult<GetLinksExternalFromOutput> {
         let txn = ctx.transaction();
 
         let links = PageLink::find()
@@ -187,7 +187,7 @@ impl LinkService {
         ctx: &ServiceContext<'_>,
         site_id: i64,
         url: &str,
-    ) -> Result<GetLinksExternalToOutput> {
+    ) -> OldResult<GetLinksExternalToOutput> {
         let txn = ctx.transaction();
 
         // Perform join so we don't leak data from other sites.
@@ -227,7 +227,7 @@ impl LinkService {
         site_id: i64,
         page_id: i64,
         backlinks: &Backlinks<'_>,
-    ) -> Result<()> {
+    ) -> OldResult<()> {
         let mut connections = HashMap::new();
         let mut connections_missing = HashMap::new();
         let mut external_links = HashMap::new();
@@ -282,7 +282,7 @@ async fn update_connections(
     ctx: &ServiceContext<'_>,
     from_page_id: i64,
     counts: &mut HashMap<(i64, ConnectionType), i32>,
-) -> Result<()> {
+) -> OldResult<()> {
     let txn = ctx.transaction();
 
     // Get existing connections
@@ -344,7 +344,7 @@ async fn update_connections_missing(
     ctx: &ServiceContext<'_>,
     from_page_id: i64,
     counts: &mut HashMap<(i64, String, ConnectionType), i32>,
-) -> Result<()> {
+) -> OldResult<()> {
     let txn = ctx.transaction();
 
     // Get existing connections
@@ -413,7 +413,7 @@ async fn update_external_links(
     ctx: &ServiceContext<'_>,
     from_page_id: i64,
     counts: &mut HashMap<String, i32>,
-) -> Result<()> {
+) -> OldResult<()> {
     let txn = ctx.transaction();
 
     // Get existing links
@@ -476,7 +476,7 @@ async fn count_connections(
     connection_type: ConnectionType,
     connections: &mut HashMap<(i64, ConnectionType), i32>,
     connections_missing: &mut HashMap<(i64, String, ConnectionType), i32>,
-) -> Result<()> {
+) -> OldResult<()> {
     let to_site_id = match site_slug {
         None => site_id,
         Some(slug) => {

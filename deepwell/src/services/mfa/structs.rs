@@ -46,7 +46,7 @@ pub struct RecoveryCodes {
 }
 
 impl RecoveryCodes {
-    pub fn generate(config: &Config) -> Result<Self> {
+    pub fn generate(config: &Config) -> OldResult<Self> {
         let mut rng = thread_rng();
         assert_is_csprng(&rng);
 

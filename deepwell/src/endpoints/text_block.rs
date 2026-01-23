@@ -32,7 +32,7 @@ struct GetIndexInput {
 pub async fn text_block_get_index(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<Option<TextBlockIndex>> {
+) -> OldResult<Option<TextBlockIndex>> {
     let GetIndexInput {
         page_id,
         block_type,

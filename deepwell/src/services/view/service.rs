@@ -64,7 +64,7 @@ impl ViewService {
             route,
             session_token,
         }: GetPageView,
-    ) -> Result<GetPageViewOutput> {
+    ) -> OldResult<GetPageViewOutput> {
         info!(
             "Getting page view data for site ID {site_id}, route '{route:?}', locales '{locales_str:?}'"
         );
@@ -399,7 +399,7 @@ impl ViewService {
             user: user_ref,
             session_token,
         }: GetUserView<'_>,
-    ) -> Result<GetUserViewOutput> {
+    ) -> OldResult<GetUserViewOutput> {
         info!(
             "Getting user view data for site ID {site_id}, user '{user_ref:?}', locales '{locales_str:?}'"
         );
@@ -440,7 +440,7 @@ impl ViewService {
             locales: locales_str,
             session_token,
         }: GetAdminView,
-    ) -> Result<GetAdminViewOutput> {
+    ) -> OldResult<GetAdminViewOutput> {
         info!("Getting site view data for site ID {site_id}, locales '{locales_str:?}'");
 
         let mut locales = parse_locales(&locales_str)?;
@@ -536,7 +536,7 @@ impl ViewService {
         locales: &mut Vec<LanguageIdentifier>,
         site_id: i64,
         session_token: Option<&str>,
-    ) -> Result<Viewer> {
+    ) -> OldResult<Viewer> {
         info!("Getting viewer data site ID {site_id} and session token");
 
         let config = ctx.config();
@@ -581,7 +581,7 @@ impl ViewService {
         // Ensure at least one locale was requested
         if locales.is_empty() {
             error!("No locales specified in user settings or Accept-Language header");
-            return Err(Error::NoLocalesSpecified);
+            return Err(OldError::NoLocalesSpecified);
         }
 
         // Get site information
@@ -603,7 +603,7 @@ impl ViewService {
     async fn can_access_page(
         _ctx: &ServiceContext<'_>,
         permissions: UserPermissions,
-    ) -> Result<bool> {
+    ) -> OldResult<bool> {
         info!("Checking page access: {permissions:?}");
         debug!("TODO: stub");
         // TODO perform permission checks
@@ -613,7 +613,7 @@ impl ViewService {
     async fn can_edit_page(
         _ctx: &ServiceContext<'_>,
         permissions: UserPermissions,
-    ) -> Result<bool> {
+    ) -> OldResult<bool> {
         info!("Checking page access: {permissions:?}");
         debug!("TODO: stub");
         // TODO perform permission checks
@@ -623,7 +623,7 @@ impl ViewService {
     async fn can_access_admin(
         _ctx: &ServiceContext<'_>,
         permissions: UserPermissions,
-    ) -> Result<bool> {
+    ) -> OldResult<bool> {
         info!("Checking admin access: {permissions:?}");
         debug!("TODO: stub");
         // TODO perform permission checks
@@ -652,7 +652,7 @@ impl ViewService {
         ctx: &ServiceContext<'_>,
         site_id: i64,
         category_slug: Option<&str>,
-    ) -> Result<Option<i64>> {
+    ) -> OldResult<Option<i64>> {
         match category_slug {
             Some(category_slug) => {
                 let category = CategoryService::get_optional(

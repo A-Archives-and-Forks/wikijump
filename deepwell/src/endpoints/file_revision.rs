@@ -28,7 +28,7 @@ use crate::services::file_revision::{
 pub async fn file_revision_count(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<FileRevisionCountOutput> {
+) -> OldResult<FileRevisionCountOutput> {
     let GetFile {
         site_id,
         page_id,
@@ -50,7 +50,7 @@ pub async fn file_revision_count(
 pub async fn file_revision_get(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<Option<FileRevisionModel>> {
+) -> OldResult<Option<FileRevisionModel>> {
     let input: GetFileRevision = params.parse()?;
 
     info!(
@@ -64,7 +64,7 @@ pub async fn file_revision_get(
 pub async fn file_revision_range(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<Vec<FileRevisionModel>> {
+) -> OldResult<Vec<FileRevisionModel>> {
     let input: GetFileRevisionRange = params.parse()?;
     FileRevisionService::get_range(ctx, input).await
 }
@@ -72,7 +72,7 @@ pub async fn file_revision_range(
 pub async fn file_revision_edit(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<FileRevisionModel> {
+) -> OldResult<FileRevisionModel> {
     let input: UpdateFileRevision = params.parse()?;
 
     info!(

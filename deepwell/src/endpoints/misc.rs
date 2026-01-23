@@ -23,7 +23,7 @@ use sea_orm::{ConnectionTrait, DatabaseBackend, Statement};
 use serde_json::Value as JsonValue;
 use wikidot_normalize::normalize;
 
-async fn postgres_check(ctx: &ServiceContext<'_>) -> Result<()> {
+async fn postgres_check(ctx: &ServiceContext<'_>) -> OldResult<()> {
     ctx.transaction()
         .execute(Statement::from_string(
             DatabaseBackend::Postgres,
@@ -35,7 +35,7 @@ async fn postgres_check(ctx: &ServiceContext<'_>) -> Result<()> {
     Ok(())
 }
 
-async fn redis_check(ctx: &ServiceContext<'_>) -> Result<()> {
+async fn redis_check(ctx: &ServiceContext<'_>) -> OldResult<()> {
     let mut redis = ctx.redis();
 
     redis
@@ -49,7 +49,7 @@ async fn redis_check(ctx: &ServiceContext<'_>) -> Result<()> {
 pub async fn ping(
     ctx: &ServiceContext<'_>,
     _params: Params<'static>,
-) -> Result<&'static str> {
+) -> OldResult<&'static str> {
     // Ensure the database and cache are connected, and only then return.
     info!("Ping request");
     try_join!(postgres_check(ctx), redis_check(ctx))?;
@@ -59,7 +59,7 @@ pub async fn ping(
 pub async fn echo(
     _ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<JsonValue> {
+) -> OldResult<JsonValue> {
     // Just write out whatever JSON value they put in
     let data: JsonValue = params.parse()?;
     info!("Got echo request, sending back to caller");
@@ -71,15 +71,15 @@ pub async fn echo(
 pub async fn yield_error(
     _ctx: &ServiceContext<'_>,
     _params: Params<'static>,
-) -> Result<()> {
+) -> OldResult<()> {
     info!("Returning DEEPWELL error for testing");
-    Err(ServiceError::BadRequest)
+    Err(OldError::BadRequest)
 }
 
 pub async fn config_dump(
     ctx: &ServiceContext<'_>,
     _params: Params<'static>,
-) -> Result<String> {
+) -> OldResult<String> {
     info!("Dumping raw DEEPWELL configuration for debugging");
     Ok(ctx.config().raw_toml.to_string())
 }
@@ -87,7 +87,7 @@ pub async fn config_dump(
 pub async fn normalize_method(
     _ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<String> {
+) -> OldResult<String> {
     let mut value: String = params.one()?;
     info!("Running normalize on string: {value:?}");
     normalize(&mut value);

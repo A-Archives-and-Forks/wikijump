@@ -38,13 +38,13 @@ impl MfaService {
         ctx: &ServiceContext<'_>,
         user: &UserModel,
         ip_address: IpAddr,
-    ) -> Result<MultiFactorSetupOutput> {
+    ) -> OldResult<MultiFactorSetupOutput> {
         info!("Setting up MFA for user ID {}", user.user_id);
 
         // Only regular accounts can have MFA
         if user.user_type != UserType::Regular {
             error!("Only regular users may have MFA");
-            return Err(Error::BadRequest);
+            return Err(OldError::BadRequest);
         }
 
         // Ensure MFA is not yet set up
@@ -52,7 +52,7 @@ impl MfaService {
             || user.multi_factor_recovery_codes.is_some()
         {
             error!("User already has MFA set up");
-            return Err(Error::UserMfaExists);
+            return Err(OldError::UserMfaExists);
         }
 
         // Securely generate and store secrets
@@ -94,7 +94,7 @@ impl MfaService {
         ctx: &ServiceContext<'_>,
         user: &UserModel,
         ip_address: IpAddr,
-    ) -> Result<MultiFactorResetOutput> {
+    ) -> OldResult<MultiFactorResetOutput> {
         info!("Resetting MFA recovery codes for user ID {}", user.user_id);
 
         // Ensure MFA is set up
@@ -102,7 +102,7 @@ impl MfaService {
             || user.multi_factor_recovery_codes.is_none()
         {
             error!("User does not have MFA set up");
-            return Err(Error::UserMfaExists);
+            return Err(OldError::UserMfaExists);
         }
 
         // Securely generate and store secrets
@@ -143,7 +143,7 @@ impl MfaService {
         ctx: &ServiceContext<'_>,
         user_id: i64,
         ip_address: IpAddr,
-    ) -> Result<()> {
+    ) -> OldResult<()> {
         info!("Tearing down MFA for user ID {user_id}");
 
         UserService::set_mfa_secrets(
@@ -176,14 +176,14 @@ impl MfaService {
         ctx: &ServiceContext<'_>,
         user: &UserModel,
         entered_totp: u32,
-    ) -> Result<()> {
+    ) -> OldResult<()> {
         info!("Verifying TOTP code for user ID {}", user.user_id);
 
         let secret = match &user.multi_factor_secret {
             Some(secret) => secret,
             None => {
                 warn!("User has no MFA secret, cannot verify TOTP");
-                return Err(Error::InvalidAuthentication);
+                return Err(OldError::InvalidAuthentication);
             }
         };
 
@@ -197,7 +197,7 @@ impl MfaService {
         if actual_totp.ct_eq(&entered_totp).into() {
             Ok(())
         } else {
-            Err(Error::InvalidAuthentication)
+            Err(OldError::InvalidAuthentication)
         }
     }
 
@@ -212,7 +212,7 @@ impl MfaService {
         ctx: &ServiceContext<'_>,
         user: &UserModel,
         recovery_code: &str,
-    ) -> Result<()> {
+    ) -> OldResult<()> {
         info!("Verifying recovery code for user ID {}", user.user_id);
 
         let recovery_code_hashes = match &user.multi_factor_recovery_codes {
@@ -220,7 +220,7 @@ impl MfaService {
             None => {
                 warn!("User has no MFA recovery codes, but wants to verify recovery");
 
-                return Err(Error::InvalidAuthentication);
+                return Err(OldError::InvalidAuthentication);
             }
         };
 
@@ -253,7 +253,7 @@ impl MfaService {
             // the recovery code was correct or not.
             None => {
                 PasswordService::failure_sleep(ctx.config()).await;
-                Err(Error::InvalidAuthentication)
+                Err(OldError::InvalidAuthentication)
             }
         }
     }

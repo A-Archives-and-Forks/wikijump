@@ -34,13 +34,13 @@ impl AuthenticationService {
             name_or_email,
             password,
         }: AuthenticateUser,
-    ) -> Result<AuthenticateUserOutput> {
+    ) -> OldResult<AuthenticateUserOutput> {
         let auth = Self::get_user_auth(ctx, &name_or_email).await?;
         PasswordService::verify(ctx, &password, &auth.password_hash).await?;
 
         // User not found, return authentication failure
         if !auth.valid {
-            return Err(Error::InvalidAuthentication);
+            return Err(OldError::InvalidAuthentication);
         }
 
         Ok(AuthenticateUserOutput {
@@ -59,7 +59,7 @@ impl AuthenticationService {
             session_token,
             totp_or_code,
         }: MultiFactorAuthenticateUser<'_>,
-    ) -> Result<UserModel> {
+    ) -> OldResult<UserModel> {
         // Get associated user model from the session
         //
         // Requires the session is restricted, meaning they are
@@ -95,7 +95,7 @@ impl AuthenticationService {
     async fn get_user_auth(
         ctx: &ServiceContext<'_>,
         name_or_email: &str,
-    ) -> Result<UserAuthInfo> {
+    ) -> OldResult<UserAuthInfo> {
         info!("Looking for user matching name or email '{name_or_email}'");
 
         let txn = ctx.transaction();

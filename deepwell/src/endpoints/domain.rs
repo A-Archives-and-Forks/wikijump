@@ -26,7 +26,7 @@ use crate::types::Reference;
 pub async fn site_get_domain(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<String> {
+) -> OldResult<String> {
     let config = ctx.config();
     let site_id: i64 = params.one()?;
     let site = SiteService::get(ctx, Reference::Id(site_id)).await?;
@@ -37,7 +37,7 @@ pub async fn site_get_domain(
 pub async fn site_custom_domain_create(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<()> {
+) -> OldResult<()> {
     let input: CreateCustomDomain = params.parse()?;
     DomainService::create_custom(ctx, input).await
 }
@@ -46,7 +46,7 @@ pub async fn site_custom_domain_create(
 pub async fn site_custom_domain_remove(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<()> {
+) -> OldResult<()> {
     let domain: String = params.one()?;
     DomainService::remove_custom(ctx, domain).await
 }
@@ -54,7 +54,7 @@ pub async fn site_custom_domain_remove(
 pub async fn site_custom_domain_list(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<Vec<SiteDomainModel>> {
+) -> OldResult<Vec<SiteDomainModel>> {
     #[derive(Deserialize, Debug)]
     struct Input {
         site_id: i64,

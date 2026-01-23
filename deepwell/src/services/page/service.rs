@@ -59,7 +59,7 @@ impl PageService {
             bypass_filter,
             ip_address,
         }: CreatePage,
-    ) -> Result<CreatePageOutput> {
+    ) -> OldResult<CreatePageOutput> {
         let txn = ctx.transaction();
 
         // Ensure row consistency
@@ -166,7 +166,7 @@ impl PageService {
                 },
             ip_address,
         }: EditPage<'_>,
-    ) -> Result<Option<EditPageOutput>> {
+    ) -> OldResult<Option<EditPageOutput>> {
         let txn = ctx.transaction();
         let PageModel {
             page_id,
@@ -268,7 +268,7 @@ impl PageService {
             user_id,
             ip_address,
         }: MovePage<'_>,
-    ) -> Result<MovePageOutput> {
+    ) -> OldResult<MovePageOutput> {
         let txn = ctx.transaction();
         let PageModel {
             page_id,
@@ -291,7 +291,7 @@ impl PageService {
         normalize(&mut new_slug);
         if old_slug == new_slug {
             error!("Source and destination slugs are the same: {old_slug}");
-            return Err(Error::PageSlugExists);
+            return Err(OldError::PageSlugExists);
         }
 
         Self::check_conflicts(ctx, site_id, &new_slug, "move").await?;
@@ -373,7 +373,7 @@ impl PageService {
             }
             None => {
                 error!("Page move did not create new revision");
-                Err(Error::BadRequest)
+                Err(OldError::BadRequest)
             }
         }
     }
@@ -388,7 +388,7 @@ impl PageService {
             revision_comments: comments,
             ip_address,
         }: DeletePage<'_>,
-    ) -> Result<DeletePageOutput> {
+    ) -> OldResult<DeletePageOutput> {
         let txn = ctx.transaction();
         let PageModel {
             page_id,
@@ -461,7 +461,7 @@ impl PageService {
             revision_comments: comments,
             ip_address,
         }: RestorePage,
-    ) -> Result<RestorePageOutput> {
+    ) -> OldResult<RestorePageOutput> {
         let txn = ctx.transaction();
         let PageId {
             site_id,
@@ -478,12 +478,12 @@ impl PageService {
 
         if page.site_id != site_id {
             warn!("Page's site ID and passed site ID do not match");
-            return Err(Error::PageNotFound);
+            return Err(OldError::PageNotFound);
         }
 
         if page.deleted_at.is_none() {
             warn!("Page requested to be restored is not currently deleted");
-            return Err(Error::PageNotDeleted);
+            return Err(OldError::PageNotDeleted);
         }
 
         Self::check_conflicts(ctx, site_id, &slug, "restore").await?;
@@ -558,7 +558,7 @@ impl PageService {
             user_id,
             ip_address,
         }: RollbackPage<'_>,
-    ) -> Result<Option<EditPageOutput>> {
+    ) -> OldResult<Option<EditPageOutput>> {
         let txn = ctx.transaction();
         let PageModel {
             page_id,
@@ -685,7 +685,7 @@ impl PageService {
         _site_id: i64,
         _page_id: i64,
         _revision_number: i32,
-    ) -> Result<EditPageOutput> {
+    ) -> OldResult<EditPageOutput> {
         // TODO update audit-log.md
         todo!()
     }
@@ -700,7 +700,7 @@ impl PageService {
             user_id,
             ip_address,
         }: SetPageLayout,
-    ) -> Result<()> {
+    ) -> OldResult<()> {
         debug!("Setting page layout for site ID {site_id} page ID {page_id}");
 
         // Update in database
@@ -733,7 +733,7 @@ impl PageService {
         ctx: &ServiceContext<'_>,
         site_id: i64,
         reference: Reference<'_>,
-    ) -> Result<PageModel> {
+    ) -> OldResult<PageModel> {
         find_or_error!(Self::get_optional(ctx, site_id, reference), Page)
     }
 
@@ -741,7 +741,7 @@ impl PageService {
         ctx: &ServiceContext<'_>,
         site_id: i64,
         reference: Reference<'_>,
-    ) -> Result<Option<PageModel>> {
+    ) -> OldResult<Option<PageModel>> {
         let txn = ctx.transaction();
         let page = {
             let condition = match reference {
@@ -771,7 +771,7 @@ impl PageService {
         ctx: &ServiceContext<'_>,
         site_id: i64,
         slug: &str,
-    ) -> Result<Vec<PageModel>> {
+    ) -> OldResult<Vec<PageModel>> {
         let txn = ctx.transaction();
         let pages = {
             Page::find()
@@ -798,7 +798,7 @@ impl PageService {
         ctx: &ServiceContext<'_>,
         site_id: i64,
         reference: Reference<'_>,
-    ) -> Result<i64> {
+    ) -> OldResult<i64> {
         match reference {
             Reference::Id(page_id) => Ok(page_id),
             Reference::Slug(slug) => {
@@ -816,7 +816,7 @@ impl PageService {
         ctx: &ServiceContext<'_>,
         page_id: i64,
         allow_deleted: bool,
-    ) -> Result<PageModel> {
+    ) -> OldResult<PageModel> {
         find_or_error!(Self::get_direct_optional(ctx, page_id, allow_deleted), Page)
     }
 
@@ -824,7 +824,7 @@ impl PageService {
         ctx: &ServiceContext<'_>,
         page_id: i64,
         allow_deleted: bool,
-    ) -> Result<Option<PageModel>> {
+    ) -> OldResult<Option<PageModel>> {
         let txn = ctx.transaction();
         let page = Page::find_by_id(page_id).one(txn).await?;
         if let Some(ref page) = page
@@ -847,7 +847,7 @@ impl PageService {
         ctx: &ServiceContext<'_>,
         site_id: i64,
         references: &[Reference<'_>],
-    ) -> Result<Vec<PageModel>> {
+    ) -> OldResult<Vec<PageModel>> {
         info!(
             "Getting {} pages from references in site ID {}",
             references.len(),
@@ -902,7 +902,7 @@ impl PageService {
         category: Option<Reference<'_>>,
         deleted: Option<bool>,
         order: PageOrder,
-    ) -> Result<Vec<PageModel>> {
+    ) -> OldResult<Vec<PageModel>> {
         let txn = ctx.transaction();
 
         let category_condition = match category {
@@ -937,18 +937,18 @@ impl PageService {
 
     /// Checks to see if a page already exists at the slug specified.
     ///
-    /// If so, this method fails with `Error::PageExists`. Otherwise it returns nothing.
+    /// If so, this method fails with `ErrorType::PageExists`. Otherwise it returns nothing.
     async fn check_conflicts(
         ctx: &ServiceContext<'_>,
         site_id: i64,
         slug: &str,
         action: &str,
-    ) -> Result<()> {
+    ) -> OldResult<()> {
         let txn = ctx.transaction();
 
         if slug.is_empty() {
             error!("Cannot create page with empty slug");
-            return Err(Error::PageSlugEmpty);
+            return Err(OldError::PageSlugEmpty);
         }
 
         let result = Page::find()
@@ -969,7 +969,7 @@ impl PageService {
                     page.page_id, slug, site_id, action,
                 );
 
-                Err(Error::PageExists)
+                Err(OldError::PageExists)
             }
         }
     }
@@ -980,7 +980,7 @@ impl PageService {
         wikitext: Option<S>,
         title: Option<S>,
         alt_title: Option<S>,
-    ) -> Result<()> {
+    ) -> OldResult<()> {
         info!("Checking page data against filters...");
 
         let filter_matcher = FilterService::get_matcher(
@@ -1023,7 +1023,7 @@ fn check_last_revision(
     last_revision_model: Option<&PageRevisionModel>,
     page_latest_revision_id: Option<i64>,
     arg_last_revision_id: i64,
-) -> Result<()> {
+) -> OldResult<()> {
     // Only check if we have this model fetched anyways
     if let Some(model) = last_revision_model {
         assert_eq!(
@@ -1041,7 +1041,7 @@ fn check_last_revision(
             arg_last_revision_id,
         );
 
-        return Err(Error::NotLatestRevisionId);
+        return Err(OldError::NotLatestRevisionId);
     }
 
     Ok(())

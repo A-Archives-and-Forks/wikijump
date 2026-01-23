@@ -21,7 +21,7 @@
 macro_rules! find_or_error {
     ($future:expr, $error:ident $(,)?) => {
         paste! {
-            $future.await?.ok_or(Error::[<$error NotFound>])
+            $future.await?.ok_or(OldError::[<$error NotFound>])
         }
     };
 }

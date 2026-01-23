@@ -45,7 +45,7 @@ impl RelationService {
             created_by,
             metadata,
         }: CreateUserBlock,
-    ) -> Result<()> {
+    ) -> OldResult<()> {
         // Never reject a block, even if already blocked the other way.
 
         // Unfollow, remove contacts, etc., both ways
@@ -88,7 +88,7 @@ impl RelationService {
         user_id_1: i64,
         user_id_2: i64,
         action: &str,
-    ) -> Result<()> {
+    ) -> OldResult<()> {
         macro_rules! obj {
             ($first:expr, $second:expr $(,)?) => {
                 GetUserBlock {
@@ -104,7 +104,7 @@ impl RelationService {
             error!(
                 "User ID {user_id_1} cannot {action} user ID {user_id_2} because there is a block"
             );
-            return Err(Error::UserBlockedUser);
+            return Err(OldError::UserBlockedUser);
         }
 
         Ok(())

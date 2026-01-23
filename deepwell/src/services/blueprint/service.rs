@@ -47,7 +47,7 @@ impl BlueprintPageService {
         locales: &[LanguageIdentifier],
         layout: Layout,
         page_info: PageInfo<'_>,
-    ) -> Result<GetBlueprintPageOutput> {
+    ) -> OldResult<GetBlueprintPageOutput> {
         info!(
             "Getting blueprint page {:?} for site ID {}",
             blueprint_type, site.site_id,
@@ -143,7 +143,7 @@ impl BlueprintPageService {
         site_id: i64,
         locales: &[LanguageIdentifier],
         page_info: &PageInfo<'_>,
-    ) -> Result<String> {
+    ) -> OldResult<String> {
         debug!(
             "Getting wikitext for blueprint page ({} slugs)",
             slugs.len(),

@@ -34,7 +34,7 @@ impl PasswordService {
     ///
     /// Generates a salt securely and performs Argon-2 hashing
     /// and yields a string in PHC format.
-    pub fn new_hash(password: &str) -> Result<String> {
+    pub fn new_hash(password: &str) -> OldResult<String> {
         // Create and verify CSPRNG
         let mut rng = thread_rng();
         assert_is_csprng(&rng);
@@ -60,7 +60,7 @@ impl PasswordService {
         ctx: &ServiceContext<'_>,
         password: &str,
         hash: &str,
-    ) -> Result<()> {
+    ) -> OldResult<()> {
         Self::verify_sleep(ctx, password, hash, true).await
     }
 
@@ -73,7 +73,7 @@ impl PasswordService {
         password: &str,
         hash: &str,
         sleep: bool,
-    ) -> Result<()> {
+    ) -> OldResult<()> {
         info!("Attempting to verify password");
         let result = Self::verify_internal(password, hash);
         match result {
@@ -82,7 +82,7 @@ impl PasswordService {
                 match error {
                     // Simply the wrong password
                     // This is converted in services/error.rs
-                    Error::InvalidAuthentication => {
+                    OldError::InvalidAuthentication => {
                         warn!("Invalid password entered, verification failed");
                     }
 
@@ -99,12 +99,12 @@ impl PasswordService {
 
                 // Always return the same error for authentication methods,
                 // to not expose internal state to an adversary.
-                Err(Error::InvalidAuthentication)
+                Err(OldError::InvalidAuthentication)
             }
         }
     }
 
-    fn verify_internal(password: &str, hash: &str) -> Result<()> {
+    fn verify_internal(password: &str, hash: &str) -> OldResult<()> {
         // Parse PHC string
         let hash = PasswordHash::new(hash)?;
 

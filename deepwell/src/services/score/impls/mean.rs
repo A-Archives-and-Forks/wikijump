@@ -40,7 +40,7 @@ impl Scorer for MeanScorer {
         &self,
         txn: &DatabaseTransaction,
         condition: Condition,
-    ) -> Result<ScoreValue> {
+    ) -> OldResult<ScoreValue> {
         #[derive(FromQueryResult, Debug)]
         struct MeanRow {
             sum: u64,

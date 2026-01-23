@@ -38,7 +38,7 @@ impl CategoryService {
         ctx: &ServiceContext<'_>,
         site_id: i64,
         slug: &str,
-    ) -> Result<PageCategoryModel> {
+    ) -> OldResult<PageCategoryModel> {
         let txn = ctx.transaction();
         let model = page_category::ActiveModel {
             site_id: Set(site_id),
@@ -54,7 +54,7 @@ impl CategoryService {
         ctx: &ServiceContext<'_>,
         site_id: i64,
         reference: Reference<'_>,
-    ) -> Result<Option<PageCategoryModel>> {
+    ) -> OldResult<Option<PageCategoryModel>> {
         let txn = ctx.transaction();
         let condition = match reference {
             Reference::Id(id) => page_category::Column::CategoryId.eq(id),
@@ -78,7 +78,7 @@ impl CategoryService {
         ctx: &ServiceContext<'_>,
         site_id: i64,
         reference: Reference<'_>,
-    ) -> Result<PageCategoryModel> {
+    ) -> OldResult<PageCategoryModel> {
         find_or_error!(Self::get_optional(ctx, site_id, reference), PageCategory)
     }
 
@@ -86,7 +86,7 @@ impl CategoryService {
         ctx: &ServiceContext<'_>,
         site_id: i64,
         slug: &str,
-    ) -> Result<PageCategoryModel> {
+    ) -> OldResult<PageCategoryModel> {
         let category =
             match Self::get_optional(ctx, site_id, Reference::from(slug)).await? {
                 Some(category) => category,
@@ -99,7 +99,7 @@ impl CategoryService {
     pub async fn get_all(
         ctx: &ServiceContext<'_>,
         site_id: i64,
-    ) -> Result<Vec<PageCategoryModel>> {
+    ) -> OldResult<Vec<PageCategoryModel>> {
         let txn = ctx.transaction();
         let categories = PageCategory::find()
             .filter(page_category::Column::SiteId.eq(site_id))
@@ -114,7 +114,7 @@ impl CategoryService {
     pub async fn get_all_active(
         ctx: &ServiceContext<'_>,
         site_id: i64,
-    ) -> Result<Vec<PageCategoryModel>> {
+    ) -> OldResult<Vec<PageCategoryModel>> {
         // Raw SQL query
         //
         // SELECT * FROM page_category

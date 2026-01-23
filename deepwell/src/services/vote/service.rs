@@ -39,7 +39,7 @@ impl VoteService {
             user_id,
             value,
         }: CreateVote,
-    ) -> Result<Option<PageVoteModel>> {
+    ) -> OldResult<Option<PageVoteModel>> {
         let txn = ctx.transaction();
         info!(
             "Casting new vote by user ID {user_id} on page ID {page_id} (value {value})"
@@ -72,7 +72,7 @@ impl VoteService {
     }
 
     #[inline]
-    pub async fn get(ctx: &ServiceContext<'_>, key: GetVote) -> Result<PageVoteModel> {
+    pub async fn get(ctx: &ServiceContext<'_>, key: GetVote) -> OldResult<PageVoteModel> {
         find_or_error!(Self::get_optional(ctx, key), Vote)
     }
 
@@ -80,7 +80,7 @@ impl VoteService {
     pub async fn get_optional(
         ctx: &ServiceContext<'_>,
         GetVote { page_id, user_id }: GetVote,
-    ) -> Result<Option<PageVoteModel>> {
+    ) -> OldResult<Option<PageVoteModel>> {
         let txn = ctx.transaction();
         let vote = PageVote::find()
             .filter(
@@ -100,7 +100,7 @@ impl VoteService {
         key: GetVote,
         enable: bool,
         acting_user_id: i64,
-    ) -> Result<PageVoteModel> {
+    ) -> OldResult<PageVoteModel> {
         info!(
             "{} vote on {:?} (being done by {})",
             if enable { "Enabling" } else { "Disabling" },
@@ -126,7 +126,10 @@ impl VoteService {
     }
 
     /// Removes the vote specified.
-    pub async fn remove(ctx: &ServiceContext<'_>, key: GetVote) -> Result<PageVoteModel> {
+    pub async fn remove(
+        ctx: &ServiceContext<'_>,
+        key: GetVote,
+    ) -> OldResult<PageVoteModel> {
         info!("Removing vote {key:?}");
 
         let txn = ctx.transaction();
@@ -155,7 +158,7 @@ impl VoteService {
             disabled,
             limit,
         }: GetVoteHistory,
-    ) -> Result<Vec<PageVoteModel>> {
+    ) -> OldResult<Vec<PageVoteModel>> {
         let txn = ctx.transaction();
         let condition = Self::build_history_condition(kind, start_id, deleted, disabled);
 
@@ -180,7 +183,7 @@ impl VoteService {
             deleted,
             disabled,
         }: CountVoteHistory,
-    ) -> Result<u64> {
+    ) -> OldResult<u64> {
         let txn = ctx.transaction();
         let condition = Self::build_history_condition(kind, start_id, deleted, disabled);
 

@@ -56,7 +56,7 @@ type TranslateOutput = HashMap<String, Option<String>>;
 pub async fn locale_info(
     _ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<LocaleOutput> {
+) -> OldResult<LocaleOutput> {
     let locale_str: String = params.one()?;
     info!("Getting locale information for {locale_str}");
     let locale = LanguageIdentifier::from_bytes(locale_str.as_bytes())?;
@@ -71,7 +71,7 @@ pub async fn locale_info(
 pub async fn translate_strings(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<TranslateOutput> {
+) -> OldResult<TranslateOutput> {
     let TranslateInput {
         locales,
         messages,
@@ -81,7 +81,7 @@ pub async fn translate_strings(
     // Check that locales are specified
     if locales.is_empty() {
         error!("No locales specified in translate call");
-        return Err(ServiceError::NoLocalesSpecified);
+        return Err(OldError::NoLocalesSpecified);
     }
 
     // Check that all message keys to strip are being requested
@@ -90,7 +90,7 @@ pub async fn translate_strings(
             error!(
                 "Input mentions stripping control characters from a message not requested to be translated: {message_key}"
             );
-            return Err(ServiceError::BadRequest);
+            return Err(OldError::BadRequest);
         }
     }
 

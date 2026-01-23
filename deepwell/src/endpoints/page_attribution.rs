@@ -27,7 +27,7 @@ use crate::services::relation::{
 pub async fn page_attribution_get_page(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<Vec<PageAttribution>> {
+) -> OldResult<Vec<PageAttribution>> {
     let input: GetPageAttributions<'_> = params.parse()?;
 
     info!(
@@ -41,7 +41,7 @@ pub async fn page_attribution_get_page(
 pub async fn page_attribution_update(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<Vec<PageAttribution>> {
+) -> OldResult<Vec<PageAttribution>> {
     let input: SetPageAttributions<'_> = params.parse()?;
 
     info!(
@@ -58,7 +58,7 @@ pub async fn page_attribution_update(
 pub async fn page_attribution_delete(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<()> {
+) -> OldResult<()> {
     let input: ClearPageAttributions<'_> = params.parse()?;
 
     info!(

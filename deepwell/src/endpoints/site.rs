@@ -28,7 +28,7 @@ use crate::services::site::{
 pub async fn site_create(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<CreateSiteOutput> {
+) -> OldResult<CreateSiteOutput> {
     let input: CreateSite = params.parse()?;
     SiteService::create(ctx, input).await
 }
@@ -36,7 +36,7 @@ pub async fn site_create(
 pub async fn site_get(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<Option<GetSiteOutput>> {
+) -> OldResult<Option<GetSiteOutput>> {
     let GetSite { site } = params.parse()?;
     info!("Getting site {site:?}");
 
@@ -60,7 +60,7 @@ pub async fn site_get(
 pub async fn site_update(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<SiteModel> {
+) -> OldResult<SiteModel> {
     let UpdateSite {
         site,
         body,

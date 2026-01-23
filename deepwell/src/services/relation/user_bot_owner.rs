@@ -89,7 +89,7 @@ impl RelationService {
             created_by,
             metadata,
         }: CreateSingleUserBotOwner<'_>,
-    ) -> Result<()> {
+    ) -> OldResult<()> {
         let bot_user_id = bot_user.user_id;
         let owner_user_id = owner_user.user_id;
 
@@ -102,7 +102,7 @@ impl RelationService {
                 "Bot user must have user type Bot, not {:?}",
                 bot_user.user_type,
             );
-            return Err(Error::UserWrongType);
+            return Err(OldError::UserWrongType);
         }
 
         // Should we allow 'site' users to own a bot?
@@ -112,7 +112,7 @@ impl RelationService {
                 "Owner account of a bot must have user type Regular, not {:?}",
                 owner_user.user_type,
             );
-            return Err(Error::UserWrongType);
+            return Err(OldError::UserWrongType);
         }
 
         create_operation!(
@@ -131,7 +131,7 @@ impl RelationService {
     pub async fn get_bots_owned_by_user(
         ctx: &ServiceContext<'_>,
         owner_user_id: i64,
-    ) -> Result<Vec<UserBotOwner>> {
+    ) -> OldResult<Vec<UserBotOwner>> {
         let models = RelationService::get_user_bot_owner_entries(
             ctx,
             RelationObject::User(owner_user_id),
@@ -146,7 +146,7 @@ impl RelationService {
     pub async fn get_owners_for_bot(
         ctx: &ServiceContext<'_>,
         bot_user_id: i64,
-    ) -> Result<Vec<UserBotOwner>> {
+    ) -> OldResult<Vec<UserBotOwner>> {
         let models = RelationService::get_user_bot_owner_entries(
             ctx,
             RelationObject::User(bot_user_id),
@@ -158,7 +158,7 @@ impl RelationService {
     }
 }
 
-fn models_to_owners(models: Vec<RelationModel>) -> Result<Vec<UserBotOwner>> {
+fn models_to_owners(models: Vec<RelationModel>) -> OldResult<Vec<UserBotOwner>> {
     let mut owners = Vec::with_capacity(models.len());
 
     for model in models {

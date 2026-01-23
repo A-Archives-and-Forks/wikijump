@@ -20,7 +20,7 @@
 
 use super::prelude::*;
 use crate::constants::SYSTEM_USER_ID;
-use crate::error::Error;
+use crate::error::prelude::*;
 use crate::models::sea_orm_active_enums::{AliasType, UserType};
 use crate::models::site::{self, Entity as Site, Model as SiteModel};
 use crate::services::alias::CreateAlias;
@@ -55,7 +55,7 @@ impl SiteService {
             locale,
             ip_address,
         }: CreateSite,
-    ) -> Result<CreateSiteOutput> {
+    ) -> OldResult<CreateSiteOutput> {
         let txn = ctx.transaction();
 
         // Normalize slug.
@@ -148,7 +148,7 @@ impl SiteService {
         input: UpdateSiteBody,
         updating_user_id: i64,
         ip_address: IpAddr,
-    ) -> Result<SiteModel> {
+    ) -> OldResult<SiteModel> {
         let txn = ctx.transaction();
         let site = Self::get(ctx, reference).await?;
         let mut model = site::ActiveModel {
@@ -253,7 +253,7 @@ impl SiteService {
             // Disallow preferred domains for the default site (www)
             if site.slug == DEFAULT_SITE_SLUG && preferred_domain.is_some() {
                 error!("Cannot set a preferred domain for the default site");
-                return Err(Error::BadRequest);
+                return Err(OldError::BadRequest);
             }
 
             // TODO expire redis cache on change to domains
@@ -272,13 +272,13 @@ impl SiteService {
                             found_site.site_id,
                             found_site.slug,
                         );
-                        return Err(Error::CustomDomainWrongSite);
+                        return Err(OldError::CustomDomainWrongSite);
                     }
                     None => {
                         error!(
                             "Attempting to set preferred domain to '{domain}', but this is not a known custom domain!"
                         );
-                        return Err(Error::CustomDomainNotFound);
+                        return Err(OldError::CustomDomainNotFound);
                     }
                 }
             }
@@ -324,7 +324,7 @@ impl SiteService {
         site: &SiteModel,
         new_slug: &str,
         user_id: i64,
-    ) -> Result<()> {
+    ) -> OldResult<()> {
         info!("Updating slug for site {}, adding alias", site.site_id);
 
         let old_slug = &site.slug;
@@ -368,7 +368,7 @@ impl SiteService {
     pub async fn exists(
         ctx: &ServiceContext<'_>,
         reference: Reference<'_>,
-    ) -> Result<bool> {
+    ) -> OldResult<bool> {
         Self::get_optional(ctx, reference)
             .await
             .map(|site| site.is_some())
@@ -377,7 +377,7 @@ impl SiteService {
     pub async fn get_optional(
         ctx: &ServiceContext<'_>,
         mut reference: Reference<'_>,
-    ) -> Result<Option<SiteModel>> {
+    ) -> OldResult<Option<SiteModel>> {
         let txn = ctx.transaction();
 
         // If slug, determine if this is a site alias.
@@ -415,7 +415,7 @@ impl SiteService {
     pub async fn get(
         ctx: &ServiceContext<'_>,
         reference: Reference<'_>,
-    ) -> Result<SiteModel> {
+    ) -> OldResult<SiteModel> {
         find_or_error!(Self::get_optional(ctx, reference), Site)
     }
 
@@ -427,7 +427,7 @@ impl SiteService {
     pub async fn get_id(
         ctx: &ServiceContext<'_>,
         reference: Reference<'_>,
-    ) -> Result<i64> {
+    ) -> OldResult<i64> {
         match reference {
             Reference::Id(id) => Ok(id),
             Reference::Slug(slug) => {
@@ -442,17 +442,17 @@ impl SiteService {
 
     /// Checks to see if a site already exists at the slug specified.
     ///
-    /// If so, this method fails with `Error::SiteExists`. Otherwise it returns nothing.
+    /// If so, this method fails with `ErrorType::SiteExists`. Otherwise it returns nothing.
     async fn check_conflicts(
         ctx: &ServiceContext<'_>,
         slug: &str,
         action: &str,
-    ) -> Result<()> {
+    ) -> OldResult<()> {
         let txn = ctx.transaction();
 
         if slug.is_empty() {
             error!("Cannot create site with empty slug");
-            return Err(Error::SiteSlugEmpty);
+            return Err(OldError::SiteSlugEmpty);
         }
 
         let result = Site::find()
@@ -468,7 +468,7 @@ impl SiteService {
             None => Ok(()),
             Some(_) => {
                 error!("Site with slug '{slug}' already exists, cannot {action}");
-                Err(Error::SiteExists)
+                Err(OldError::SiteExists)
             }
         }
     }

@@ -40,7 +40,7 @@ impl FilterService {
             mut regex,
             description,
         }: CreateFilter,
-    ) -> Result<FilterModel> {
+    ) -> OldResult<FilterModel> {
         let txn = ctx.transaction();
 
         info!("Creating filter with regex '{regex}' because '{description}'");
@@ -48,7 +48,7 @@ impl FilterService {
         // Ensure the regular expression is valid
         if let Err(error) = Regex::new(&regex) {
             error!("Passed regular expression '{regex}' pattern is invalid: {error}");
-            return Err(Error::FilterRegexInvalid(error));
+            return Err(OldError::FilterRegexInvalid(error));
         }
 
         // Ensure there aren't conflicts
@@ -89,7 +89,7 @@ impl FilterService {
             mut regex,
             description,
         }: UpdateFilter,
-    ) -> Result<FilterModel> {
+    ) -> OldResult<FilterModel> {
         let txn = ctx.transaction();
 
         info!("Updating filter with ID {filter_id}");
@@ -161,7 +161,7 @@ impl FilterService {
     }
 
     #[allow(dead_code)] // TEMP
-    pub async fn delete(ctx: &ServiceContext<'_>, filter_id: i64) -> Result<()> {
+    pub async fn delete(ctx: &ServiceContext<'_>, filter_id: i64) -> OldResult<()> {
         info!("Deleting filter with ID {filter_id}");
         let txn = ctx.transaction();
 
@@ -169,7 +169,7 @@ impl FilterService {
         let filter = Self::get(ctx, filter_id).await?;
         if filter.deleted_at.is_some() {
             error!("Attempting to remove already-deleted filter");
-            return Err(Error::FilterNotFound);
+            return Err(OldError::FilterNotFound);
         }
 
         // Delete the filter
@@ -187,7 +187,7 @@ impl FilterService {
     pub async fn restore(
         ctx: &ServiceContext<'_>,
         filter_id: i64,
-    ) -> Result<FilterModel> {
+    ) -> OldResult<FilterModel> {
         let txn = ctx.transaction();
 
         info!("Undeleting filter with ID {filter_id}");
@@ -195,7 +195,7 @@ impl FilterService {
         let filter = Self::get(ctx, filter_id).await?;
         if filter.deleted_at.is_none() {
             error!("Attempting to un-delete extant filter");
-            return Err(Error::FilterNotDeleted);
+            return Err(OldError::FilterNotDeleted);
         }
 
         // Ensure it doesn't conflict with a since-added filter
@@ -212,14 +212,14 @@ impl FilterService {
     }
 
     #[inline]
-    pub async fn get(ctx: &ServiceContext<'_>, filter_id: i64) -> Result<FilterModel> {
+    pub async fn get(ctx: &ServiceContext<'_>, filter_id: i64) -> OldResult<FilterModel> {
         find_or_error!(Self::get_optional(ctx, filter_id), Filter)
     }
 
     pub async fn get_optional(
         ctx: &ServiceContext<'_>,
         filter_id: i64,
-    ) -> Result<Option<FilterModel>> {
+    ) -> OldResult<Option<FilterModel>> {
         info!("Getting filter with ID {filter_id}");
 
         let txn = ctx.transaction();
@@ -244,7 +244,7 @@ impl FilterService {
         filter_class: FilterClass,
         filter_type: Option<FilterType>,
         deleted: Option<bool>,
-    ) -> Result<Vec<FilterModel>> {
+    ) -> OldResult<Vec<FilterModel>> {
         let txn = ctx.transaction();
 
         info!("Getting all {} filters", filter_class.name());
@@ -281,7 +281,7 @@ impl FilterService {
         ctx: &ServiceContext<'_>,
         filter_class: FilterClass,
         filter_type: FilterType,
-    ) -> Result<FilterMatcher> {
+    ) -> OldResult<FilterMatcher> {
         info!(
             "Compiling regex set for {} filters for {filter_type:?}",
             filter_class.name(),
@@ -309,7 +309,7 @@ impl FilterService {
 
         let regex_set = RegexSet::new(regexes).map_err(|error| {
             error!("Invalid regular expression found in the database: {error}");
-            Error::FilterRegexInvalid(error)
+            OldError::FilterRegexInvalid(error)
         })?;
 
         Ok(FilterMatcher::new(regex_set, filter_data))
@@ -321,7 +321,7 @@ impl FilterService {
         site_id: Option<i64>,
         regex: &str,
         action: &str,
-    ) -> Result<()> {
+    ) -> OldResult<()> {
         let txn = ctx.transaction();
 
         let result = Filter::find()
@@ -345,7 +345,7 @@ impl FilterService {
                 error!(
                     " filter '{regex}' for {site_id:?} already exists, cannot {action}"
                 );
-                Err(Error::FilterExists)
+                Err(OldError::FilterExists)
             }
         }
     }

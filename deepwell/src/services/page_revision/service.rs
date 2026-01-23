@@ -99,7 +99,7 @@ impl PageRevisionService {
             body,
         }: CreatePageRevision,
         previous: PageRevisionModel,
-    ) -> Result<Option<CreatePageRevisionOutput>> {
+    ) -> OldResult<Option<CreatePageRevisionOutput>> {
         let PageId {
             site_id,
             category_id: _,
@@ -376,7 +376,7 @@ impl PageRevisionService {
             slug,
             layout,
         }: CreateFirstPageRevision,
-    ) -> Result<CreateFirstPageRevisionOutput> {
+    ) -> OldResult<CreateFirstPageRevisionOutput> {
         let txn = ctx.transaction();
         let PageId {
             site_id,
@@ -474,7 +474,7 @@ impl PageRevisionService {
             comments,
         }: CreateTombstonePageRevision,
         previous: PageRevisionModel,
-    ) -> Result<CreatePageRevisionOutput> {
+    ) -> OldResult<CreatePageRevisionOutput> {
         let txn = ctx.transaction();
         let revision_number = next_revision_number(&previous, site_id, page_id);
 
@@ -560,7 +560,7 @@ impl PageRevisionService {
             new_slug,
         }: CreateResurrectionPageRevision,
         previous: PageRevisionModel,
-    ) -> Result<CreatePageRevisionOutput> {
+    ) -> OldResult<CreatePageRevisionOutput> {
         let txn = ctx.transaction();
         let PageId {
             site_id,
@@ -688,7 +688,7 @@ impl PageRevisionService {
             score,
             tags,
         }: RenderPageInfo<'_>,
-    ) -> Result<RenderPageOutput> {
+    ) -> OldResult<RenderPageOutput> {
         // Get site
         let PageId {
             site_id,
@@ -732,7 +732,7 @@ impl PageRevisionService {
         id: PageId,
         depth: RerenderDepth,
         rerender_type: RerenderType,
-    ) -> Result<()> {
+    ) -> OldResult<()> {
         let txn = ctx.transaction();
         let PageId {
             site_id,
@@ -863,7 +863,7 @@ impl PageRevisionService {
             user_id,
             hidden,
         }: UpdatePageRevision,
-    ) -> Result<()> {
+    ) -> OldResult<()> {
         let txn = ctx.transaction();
 
         // Unfortunately, we cannot do .contains() on Vec<String> because
@@ -886,7 +886,7 @@ impl PageRevisionService {
 
         let latest = Self::get_latest(ctx, site_id, page_id).await?;
         if revision_id == latest.revision_id && contains(&hidden, "wikitext") {
-            return Err(Error::CannotHideLatestRevision);
+            return Err(OldError::CannotHideLatestRevision);
         }
 
         // TODO: record revision edit in audit log
@@ -911,7 +911,7 @@ impl PageRevisionService {
         ctx: &ServiceContext<'_>,
         site_id: i64,
         page_id: i64,
-    ) -> Result<PageRevisionModel> {
+    ) -> OldResult<PageRevisionModel> {
         // NOTE: There is no optional variant of this method,
         //       since all extant pages must have at least one revision.
 
@@ -925,7 +925,7 @@ impl PageRevisionService {
             .order_by_desc(page_revision::Column::RevisionNumber)
             .one(txn)
             .await?
-            .ok_or(Error::PageRevisionNotFound)?;
+            .ok_or(OldError::PageRevisionNotFound)?;
 
         Ok(revision)
     }
@@ -936,7 +936,7 @@ impl PageRevisionService {
         site_id: i64,
         reference: Reference<'_>,
         text_column: page_revision::Column,
-    ) -> Result<Option<String>> {
+    ) -> OldResult<Option<String>> {
         let page_condition = match reference {
             Reference::Id(page_id) => page_revision::Column::PageId.eq(page_id),
             Reference::Slug(page_slug) => {
@@ -976,7 +976,7 @@ impl PageRevisionService {
         ctx: &ServiceContext<'_>,
         site_id: i64,
         reference: Reference<'_>,
-    ) -> Result<Option<String>> {
+    ) -> OldResult<Option<String>> {
         Self::get_latest_text_optional(
             ctx,
             site_id,
@@ -994,7 +994,7 @@ impl PageRevisionService {
         ctx: &ServiceContext<'_>,
         site_id: i64,
         reference: Reference<'_>,
-    ) -> Result<String> {
+    ) -> OldResult<String> {
         find_or_error!(
             Self::get_wikitext_optional(ctx, site_id, reference),
             PageRevision,
@@ -1009,7 +1009,7 @@ impl PageRevisionService {
         ctx: &ServiceContext<'_>,
         site_id: i64,
         reference: Reference<'_>,
-    ) -> Result<Option<String>> {
+    ) -> OldResult<Option<String>> {
         Self::get_latest_text_optional(
             ctx,
             site_id,
@@ -1027,7 +1027,7 @@ impl PageRevisionService {
         ctx: &ServiceContext<'_>,
         site_id: i64,
         reference: Reference<'_>,
-    ) -> Result<String> {
+    ) -> OldResult<String> {
         find_or_error!(
             Self::get_compiled_html_optional(ctx, site_id, reference),
             PageRevision,
@@ -1039,7 +1039,7 @@ impl PageRevisionService {
         site_id: i64,
         page_id: i64,
         revision_number: i32,
-    ) -> Result<Option<PageRevisionModel>> {
+    ) -> OldResult<Option<PageRevisionModel>> {
         let txn = ctx.transaction();
         let revision = PageRevision::find()
             .filter(
@@ -1060,7 +1060,7 @@ impl PageRevisionService {
         site_id: i64,
         page_id: i64,
         revision_number: i32,
-    ) -> Result<PageRevisionModel> {
+    ) -> OldResult<PageRevisionModel> {
         find_or_error!(
             Self::get_optional(ctx, site_id, page_id, revision_number),
             PageRevision,
@@ -1070,14 +1070,14 @@ impl PageRevisionService {
     pub async fn get_direct(
         ctx: &ServiceContext<'_>,
         revision_id: i64,
-    ) -> Result<PageRevisionModel> {
+    ) -> OldResult<PageRevisionModel> {
         find_or_error!(Self::get_direct_optional(ctx, revision_id), PageRevision)
     }
 
     pub async fn get_direct_optional(
         ctx: &ServiceContext<'_>,
         revision_id: i64,
-    ) -> Result<Option<PageRevisionModel>> {
+    ) -> OldResult<Option<PageRevisionModel>> {
         let txn = ctx.transaction();
         let revision = PageRevision::find_by_id(revision_id).one(txn).await?;
         Ok(revision)
@@ -1087,7 +1087,7 @@ impl PageRevisionService {
         ctx: &ServiceContext<'_>,
         site_id: i64,
         page_id: i64,
-    ) -> Result<NonZeroI32> {
+    ) -> OldResult<NonZeroI32> {
         let txn = ctx.transaction();
         let row_count = PageRevision::find()
             .filter(
@@ -1108,7 +1108,7 @@ impl PageRevisionService {
         // that means this page does not exist, and we should return an error.
         match NonZeroI32::new(row_count) {
             Some(count) => Ok(count),
-            None => Err(Error::PageNotFound),
+            None => Err(OldError::PageNotFound),
         }
     }
 
@@ -1121,7 +1121,7 @@ impl PageRevisionService {
             revision_direction,
             limit,
         }: GetPageRevisionRange,
-    ) -> Result<Vec<PageRevisionModel>> {
+    ) -> OldResult<Vec<PageRevisionModel>> {
         let revision_condition = {
             use page_revision::Column::RevisionNumber;
 

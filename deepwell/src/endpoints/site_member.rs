@@ -25,7 +25,7 @@ use crate::services::relation::{CreateSiteMember, GetSiteMember, RemoveSiteMembe
 pub async fn membership_get(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<Option<RelationModel>> {
+) -> OldResult<Option<RelationModel>> {
     let input: GetSiteMember = params.parse()?;
     RelationService::get_optional_site_member(ctx, input).await
 }
@@ -33,7 +33,7 @@ pub async fn membership_get(
 pub async fn membership_set(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<()> {
+) -> OldResult<()> {
     let input: CreateSiteMember = params.parse()?;
     RelationService::create_site_member(ctx, input).await
 }
@@ -41,7 +41,7 @@ pub async fn membership_set(
 pub async fn membership_remove(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<RelationModel> {
+) -> OldResult<RelationModel> {
     let input: RemoveSiteMember = params.parse()?;
     RelationService::remove_site_member(ctx, input).await
 }

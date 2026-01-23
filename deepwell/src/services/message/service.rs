@@ -56,7 +56,7 @@ impl MessageService {
             reply_to,
             forwarded_from,
         }: CreateMessageDraft,
-    ) -> Result<MessageDraftModel> {
+    ) -> OldResult<MessageDraftModel> {
         info!("Creating message draft for user ID {user_id}");
 
         // Check locale
@@ -107,7 +107,7 @@ impl MessageService {
             subject,
             wikitext,
         }: UpdateMessageDraft,
-    ) -> Result<MessageDraftModel> {
+    ) -> OldResult<MessageDraftModel> {
         info!("Updating message draft {draft_id}");
 
         // Validate parameters
@@ -157,7 +157,7 @@ impl MessageService {
             reply_to,
             forwarded_from,
         }: DraftProcess,
-    ) -> Result<message_draft::ActiveModel> {
+    ) -> OldResult<message_draft::ActiveModel> {
         // Check constraints
         let recipients = DraftRecipients {
             regular: recipients,
@@ -168,7 +168,7 @@ impl MessageService {
         for recipient_id in recipients.iter() {
             if !UserService::exists(ctx, Reference::Id(recipient_id)).await? {
                 error!("Recipient user ID {recipient_id} does not exist");
-                return Err(Error::UserNotFound);
+                return Err(OldError::UserNotFound);
             }
         }
 
@@ -203,7 +203,10 @@ impl MessageService {
         })
     }
 
-    pub async fn delete_draft(ctx: &ServiceContext<'_>, draft_id: String) -> Result<()> {
+    pub async fn delete_draft(
+        ctx: &ServiceContext<'_>,
+        draft_id: String,
+    ) -> OldResult<()> {
         let txn = ctx.transaction();
         MessageDraft::delete_by_id(draft_id).exec(txn).await?;
         Ok(())
@@ -214,7 +217,7 @@ impl MessageService {
     pub async fn send(
         ctx: &ServiceContext<'_>,
         draft_id: &str,
-    ) -> Result<MessageRecordModel> {
+    ) -> OldResult<MessageRecordModel> {
         info!("Sending draft ID {draft_id} as message");
 
         // Gather resources
@@ -226,7 +229,7 @@ impl MessageService {
         // Message validation checks
         if draft.subject.is_empty() {
             error!("Subject line cannot be empty");
-            return Err(Error::MessageSubjectEmpty);
+            return Err(OldError::MessageSubjectEmpty);
         }
 
         if draft.subject.len() > config.maximum_message_subject_bytes {
@@ -235,12 +238,12 @@ impl MessageService {
                 draft.subject.len(),
                 config.maximum_message_subject_bytes,
             );
-            return Err(Error::MessageSubjectTooLong);
+            return Err(OldError::MessageSubjectTooLong);
         }
 
         if wikitext.is_empty() {
             error!("Wikitext body cannot be empty");
-            return Err(Error::MessageBodyEmpty);
+            return Err(OldError::MessageBodyEmpty);
         }
 
         if wikitext.len() > config.maximum_message_body_bytes {
@@ -249,12 +252,12 @@ impl MessageService {
                 wikitext.len(),
                 config.maximum_message_body_bytes,
             );
-            return Err(Error::MessageBodyTooLong);
+            return Err(OldError::MessageBodyTooLong);
         }
 
         if recipients.is_empty() {
             error!("Must have at least one message recipient");
-            return Err(Error::MessageNoRecipients);
+            return Err(OldError::MessageNoRecipients);
         }
 
         if recipients.len() > config.maximum_message_recipients {
@@ -263,7 +266,7 @@ impl MessageService {
                 recipients.len(),
                 config.maximum_message_recipients,
             );
-            return Err(Error::MessageTooManyRecipients);
+            return Err(OldError::MessageTooManyRecipients);
         }
 
         let mut recipients_to_add = Vec::new();
@@ -407,7 +410,7 @@ impl MessageService {
         record_id: &str,
         user_id: i64,
         value: bool,
-    ) -> Result<()> {
+    ) -> OldResult<()> {
         info!("Setting message read status for {record_id} / {user_id}: {value}");
 
         let txn = ctx.transaction();
@@ -428,7 +431,7 @@ impl MessageService {
         ctx: &ServiceContext<'_>,
         record_id: &str,
         user_id: i64,
-    ) -> Result<Option<MessageModel>> {
+    ) -> OldResult<Option<MessageModel>> {
         let txn = ctx.transaction();
         let message = Message::find()
             .filter(
@@ -446,14 +449,14 @@ impl MessageService {
         ctx: &ServiceContext<'_>,
         record_id: &str,
         user_id: i64,
-    ) -> Result<MessageModel> {
+    ) -> OldResult<MessageModel> {
         find_or_error!(Self::get_message_optional(ctx, record_id, user_id), Message)
     }
 
     pub async fn get_record_optional(
         ctx: &ServiceContext<'_>,
         record_id: &str,
-    ) -> Result<Option<MessageRecordModel>> {
+    ) -> OldResult<Option<MessageRecordModel>> {
         let txn = ctx.transaction();
         let record = MessageRecord::find()
             .filter(message_record::Column::ExternalId.eq(record_id))
@@ -466,7 +469,7 @@ impl MessageService {
     pub async fn get_draft_optional(
         ctx: &ServiceContext<'_>,
         draft_id: &str,
-    ) -> Result<Option<MessageDraftModel>> {
+    ) -> OldResult<Option<MessageDraftModel>> {
         let txn = ctx.transaction();
         let draft = MessageDraft::find()
             .filter(message_draft::Column::ExternalId.eq(draft_id))
@@ -479,7 +482,7 @@ impl MessageService {
     pub async fn get_draft(
         ctx: &ServiceContext<'_>,
         draft_id: &str,
-    ) -> Result<MessageDraftModel> {
+    ) -> OldResult<MessageDraftModel> {
         find_or_error!(Self::get_draft_optional(ctx, draft_id), MessageDraft)
     }
 
@@ -491,7 +494,7 @@ impl MessageService {
         record_id: &str,
         user_ids: &[i64],
         recipient_type: MessageRecipientType,
-    ) -> Result<()> {
+    ) -> OldResult<()> {
         let mut added_user_ids = Vec::new();
         for user_id in user_ids.iter().copied() {
             // NOTE: Because recipient lists are generally short, well under 100,
@@ -529,14 +532,14 @@ impl MessageService {
         record_id: &str,
         user_id: i64,
         purpose: &'static str,
-    ) -> Result<()> {
+    ) -> OldResult<()> {
         // Ensure the message record exists
         let record = match Self::get_record_optional(ctx, record_id).await? {
             Some(record) => record,
             None => {
                 error!("The {purpose} message record does not exist: {record_id}");
 
-                return Err(Error::MessageNotFound);
+                return Err(OldError::MessageNotFound);
             }
         };
 
@@ -549,7 +552,7 @@ impl MessageService {
 
             // To protect privacy, if the user doesn't have access to a message with a
             // given ID, we pretend it does not exist for the purposes of returning errors.
-            return Err(Error::MessageNotFound);
+            return Err(OldError::MessageNotFound);
         }
 
         Ok(())
@@ -560,7 +563,7 @@ impl MessageService {
         ctx: &ServiceContext<'_>,
         record_id: &str,
         user_id: i64,
-    ) -> Result<bool> {
+    ) -> OldResult<bool> {
         info!("Checking if user ID {user_id} is a recipient of record ID {record_id}");
 
         let txn = ctx.transaction();
@@ -582,7 +585,7 @@ impl MessageService {
         wikitext: String,
         locale: &str,
         layout: Layout,
-    ) -> Result<RenderOutput> {
+    ) -> OldResult<RenderOutput> {
         info!("Rendering message wikitext ({} bytes)", wikitext.len());
 
         let settings = WikitextSettings::from_mode(WikitextMode::DirectMessage, layout);

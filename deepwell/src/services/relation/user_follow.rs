@@ -40,7 +40,7 @@ impl RelationService {
             created_by,
             metadata: (),
         }: CreateUserFollow,
-    ) -> Result<()> {
+    ) -> OldResult<()> {
         // Cannot follow if blocked
         Self::check_user_block(ctx, followed_user, following_user, "follow").await?;
 

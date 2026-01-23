@@ -18,7 +18,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use crate::error::Error;
+use crate::error::prelude::*;
 use crate::types::Reference;
 use std::str::FromStr;
 
@@ -56,13 +56,13 @@ impl ParentalRelationshipType {
 }
 
 impl FromStr for ParentalRelationshipType {
-    type Err = Error;
+    type Err = OldError;
 
-    fn from_str(value: &str) -> Result<ParentalRelationshipType, Error> {
+    fn from_str(value: &str) -> OldResult<ParentalRelationshipType> {
         match value {
             "parents" => Ok(ParentalRelationshipType::Parent),
             "children" => Ok(ParentalRelationshipType::Child),
-            _ => Err(Error::InvalidEnumValue),
+            _ => Err(OldError::InvalidEnumValue),
         }
     }
 }

@@ -28,7 +28,7 @@ use crate::services::message::{
 pub async fn message_draft_create(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<MessageDraftModel> {
+) -> OldResult<MessageDraftModel> {
     let input: CreateMessageDraft = params.parse()?;
     info!("Creating new message draft for user ID {}", input.user_id);
     MessageService::create_draft(ctx, input).await
@@ -37,7 +37,7 @@ pub async fn message_draft_create(
 pub async fn message_draft_edit(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<MessageDraftModel> {
+) -> OldResult<MessageDraftModel> {
     let input: UpdateMessageDraft = params.parse()?;
     info!(
         "Updating message draft for draft ID {}",
@@ -49,7 +49,7 @@ pub async fn message_draft_edit(
 pub async fn message_draft_delete(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<()> {
+) -> OldResult<()> {
     let DeleteMessageDraft { message_draft_id } = params.parse()?;
     info!("Deleting message draft with ID {message_draft_id}");
     MessageService::delete_draft(ctx, message_draft_id).await
@@ -58,7 +58,7 @@ pub async fn message_draft_delete(
 pub async fn message_draft_send(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<MessageRecordModel> {
+) -> OldResult<MessageRecordModel> {
     let SendMessageDraft { message_draft_id } = params.parse()?;
     info!("Sending message draft with ID {message_draft_id}");
     MessageService::send(ctx, &message_draft_id).await
