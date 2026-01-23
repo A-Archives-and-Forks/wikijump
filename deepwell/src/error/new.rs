@@ -37,13 +37,18 @@ pub enum ErrorType {
     ApplicationStart,
     Request,
     Authentication,
-    DatabaseTransaction,
     DatabaseSeeder,
+    HealthCheck,
 
     // 1100
     ServerSetup,
     DatabaseSetup,
     RedisSetup,
+
+    // 1200
+    DatabaseTransaction,
+    DatabaseQuery,
+    RedisQuery,
     RenderTimeout,
     RateLimited,
     EmailVerification,
@@ -220,6 +225,7 @@ impl ErrorType {
     /// * 1000 - High-level
     ///   * 1000 - General
     ///   * 1100 - Intermediate Setup
+    ///   * 1200 - Intermediate Operations
     /// * 2000 - Data-consistency
     ///   * 2000 - Not Found
     ///   * 2100 - Already Exists
@@ -250,16 +256,21 @@ impl ErrorType {
             ErrorType::ApplicationStart => 1000,
             ErrorType::Request => 1001,
             ErrorType::Authentication => 1002,
-            ErrorType::DatabaseTransaction => 1003,
             ErrorType::DatabaseSeeder => 1004,
+            ErrorType::HealthCheck => 1005,
 
             // 1100 - Intermediate Setup
             ErrorType::ServerSetup => 1100,
             ErrorType::DatabaseSetup => 1101,
             ErrorType::RedisSetup => 1102,
-            ErrorType::RenderTimeout => 1103,
-            ErrorType::RateLimited => 1104,
-            ErrorType::EmailVerification => 1105,
+
+            // 1200 - Intermediate Operations
+            ErrorType::DatabaseTransaction => 1200,
+            ErrorType::DatabaseQuery => 1201,
+            ErrorType::RedisQuery => 1202,
+            ErrorType::RenderTimeout => 1203,
+            ErrorType::RateLimited => 1204,
+            ErrorType::EmailVerification => 1205,
 
             //
             // 2000 -- Data Consistency
@@ -408,15 +419,20 @@ impl ErrorType {
             ErrorType::Authentication => {
                 "A server error occurred while attempting to authenticate"
             }
-            ErrorType::DatabaseTransaction => {
-                "Database transaction was aborted due to error"
-            }
             ErrorType::DatabaseSeeder => "Database seeding failed",
+            ErrorType::HealthCheck => "Health check failed",
 
             // 1100
             ErrorType::ServerSetup => "Failed to set up server internal state",
             ErrorType::DatabaseSetup => "Failed to set up the database connection",
             ErrorType::RedisSetup => "Failed to set up the Redis connection",
+
+            // 1200
+            ErrorType::DatabaseTransaction => {
+                "Database transaction was aborted due to error"
+            }
+            ErrorType::DatabaseQuery => "Database query failed",
+            ErrorType::RedisQuery => "Redis query failed",
             ErrorType::RateLimited => "An external API has ratelimited us",
             ErrorType::RenderTimeout => "Wikitext parsing and rendering has timed out",
             ErrorType::EmailVerification => "Email verification failed",
