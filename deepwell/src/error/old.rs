@@ -1,5 +1,5 @@
 /*
- * services/error/forward.rs
+ * error/old.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
  * Copyright (C) 2019-2026 Wikijump Team
@@ -19,7 +19,6 @@
  */
 
 use crate::hash::{BlobHash, blob_hash_to_hex};
-use exn::Exn;
 use filemagic::FileMagicError;
 use jsonrpsee::types::error::ErrorObjectOwned;
 use reqwest::Error as ReqwestError;

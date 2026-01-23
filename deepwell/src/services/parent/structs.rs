@@ -18,7 +18,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use crate::services::Error;
+use crate::error::Error;
 use crate::types::Reference;
 use std::str::FromStr;
 

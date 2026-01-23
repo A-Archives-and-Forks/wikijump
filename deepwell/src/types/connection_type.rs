@@ -18,7 +18,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use crate::services::Error as ServiceError;
+use crate::error::Error as ServiceError;
 use std::str::FromStr;
 use strum_macros::EnumIter;
 

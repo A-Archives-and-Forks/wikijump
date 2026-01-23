@@ -18,7 +18,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use crate::services::{Error, Result};
+use crate::error::{Error, Result};
 use unic_langid::LanguageIdentifier;
 
 /// Ensure the given locale string is valid, returning the parsed locale.

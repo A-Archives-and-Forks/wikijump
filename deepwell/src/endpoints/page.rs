@@ -19,8 +19,10 @@
  */
 
 use super::prelude::*;
+use crate::error::Result;
 use crate::models::file::Model as FileModel;
 use crate::models::page::Model as PageModel;
+use crate::services::TextService;
 use crate::services::file::{GetFileOutput, GetPageFiles};
 use crate::services::page::{
     CreatePage, CreatePageOutput, DeletePage, DeletePageOutput, EditPage, EditPageOutput,
@@ -29,7 +31,6 @@ use crate::services::page::{
     RestorePage, RestorePageOutput, RollbackPage, SetPageLayout,
 };
 use crate::services::page_revision::RerenderType;
-use crate::services::{Result, TextService};
 use crate::types::{Bytes, FileOrder, PageDetails, PageId, Reference, RerenderDepth};
 use futures::future::try_join_all;
 

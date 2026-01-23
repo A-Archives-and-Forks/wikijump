@@ -50,6 +50,7 @@ mod config;
 mod constants;
 mod database;
 mod endpoints;
+mod error;
 mod hash;
 mod info;
 mod license;

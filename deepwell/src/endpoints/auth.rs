@@ -19,8 +19,8 @@
  */
 
 use super::prelude::*;
+use crate::error::Error;
 use crate::models::session::Model as SessionModel;
-use crate::services::Error;
 use crate::services::authentication::{
     AuthenticateUserOutput, AuthenticationService, LoginUser, LoginUserMfa,
     LoginUserOutput, MultiFactorAuthenticateUser,

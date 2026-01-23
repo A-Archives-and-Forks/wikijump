@@ -20,9 +20,9 @@
 
 use crate::api::ServerState;
 use crate::config::Config;
+use crate::error::Result;
 use crate::locales::Localizations;
 use crate::services::blob::MimeAnalyzer;
-use crate::services::error::Result;
 use redis::aio::MultiplexedConnection as RedisMultiplexedConnection;
 use rsmq_async::Rsmq;
 use s3::bucket::Bucket;

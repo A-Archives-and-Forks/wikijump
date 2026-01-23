@@ -19,13 +19,14 @@
  */
 
 use super::prelude::*;
+use crate::error::Result;
 use crate::models::page_revision::Model as PageRevisionModel;
+use crate::services::TextService;
 use crate::services::page::GetPageReference;
 use crate::services::page_revision::{
     GetPageRevision, GetPageRevisionDetails, GetPageRevisionRangeDetails,
     PageRevisionCountOutput, PageRevisionModelFiltered, UpdatePageRevisionDetails,
 };
-use crate::services::{Result, TextService};
 use crate::types::PageDetails;
 
 pub async fn page_revision_count(

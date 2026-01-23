@@ -19,8 +19,8 @@
  */
 
 use super::prelude::*;
+use crate::error::Result;
 use crate::hash::slice_to_blob_hash;
-use crate::services::Result;
 use crate::services::blob::{
     BlobMetadata, CancelBlobUpload, GetBlobOutput, HardDelete, HardDeleteOutput,
     StartBlobUpload, StartBlobUploadOutput,

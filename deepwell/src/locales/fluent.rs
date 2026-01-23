@@ -20,7 +20,7 @@
 
 use super::error::{LocalizationLoadError, fluent_load_err};
 use super::fallback::iterate_locale_fallbacks;
-use crate::services::Error as ServiceError;
+use crate::error::Error as ServiceError;
 use fluent::{FluentArgs, FluentMessage, FluentResource, bundle};
 use fluent_syntax::ast::Pattern;
 use intl_memoizer::concurrent::IntlLangMemoizer;

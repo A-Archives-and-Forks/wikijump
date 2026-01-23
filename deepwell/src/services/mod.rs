@@ -38,8 +38,8 @@
 
 mod prelude {
     pub use super::context::ServiceContext;
-    pub use super::error::*;
     pub use crate::config::Config;
+    pub use crate::error::*;
     pub use crate::types::{Maybe, Reference};
     pub use crate::utils::now;
     pub use paste::paste;
@@ -54,7 +54,6 @@ mod prelude {
 mod macros;
 
 mod context;
-mod error;
 
 pub mod alias;
 pub mod audit;
@@ -102,7 +101,6 @@ pub use self::caddy::CaddyService;
 pub use self::category::CategoryService;
 pub use self::context::ServiceContext;
 pub use self::domain::DomainService;
-pub use self::error::*;
 pub use self::file::FileService;
 pub use self::file_revision::FileRevisionService;
 pub use self::filter::FilterService;

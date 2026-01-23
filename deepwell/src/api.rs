@@ -33,10 +33,11 @@ use crate::endpoints::{
     page_attribution::*, page_revision::*, parent::*, routing::*, site::*,
     site_member::*, text::*, text_block::*, user::*, user_bot::*, view::*, vote::*,
 };
+use crate::error::into_rpc_error;
 use crate::locales::Localizations;
+use crate::services::ServiceContext;
 use crate::services::blob::MimeAnalyzer;
 use crate::services::job::JobWorker;
-use crate::services::{ServiceContext, into_rpc_error};
 use crate::utils::debug_pointer;
 use crate::{database, redis as redis_db};
 use jsonrpsee::server::{RpcModule, Server, ServerHandle};
