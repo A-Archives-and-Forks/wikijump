@@ -64,9 +64,9 @@ pub async fn ping(
 pub async fn echo(
     _ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> OldResult<JsonValue> {
+) -> Result<JsonValue> {
     // Just write out whatever JSON value they put in
-    let data: JsonValue = params.parse()?;
+    let data: JsonValue = parse!(params, Request);
     info!("Got echo request, sending back to caller");
     Ok(data)
 }
@@ -95,8 +95,8 @@ pub async fn config_dump(
 pub async fn normalize_method(
     _ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> OldResult<String> {
-    let mut value: String = params.one()?;
+) -> Result<String> {
+    let mut value: String = parse_one!(params, Request);
     info!("Running normalize on string: {value:?}");
     normalize(&mut value);
     Ok(value)
