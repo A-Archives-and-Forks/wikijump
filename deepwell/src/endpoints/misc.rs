@@ -76,9 +76,9 @@ pub async fn echo(
 pub async fn yield_error(
     _ctx: &ServiceContext<'_>,
     _params: Params<'static>,
-) -> OldResult<()> {
+) -> Result<()> {
     info!("Returning DEEPWELL error for testing");
-    Err(OldError::BadRequest)
+    bail!(Error::new("this method type always fails", ErrorType::BadRequest));
 }
 
 pub async fn config_dump(
