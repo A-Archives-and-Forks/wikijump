@@ -316,6 +316,33 @@ impl Error {
         }
     }
 
+    /// Returns a unique integer code for this type of error.
+    ///
+    /// Errors are divided into groups:
+    /// * 1000 - High-level
+    ///   * 1000 - General
+    ///   * 1100 - Intermediate Setup
+    /// * 2000 - Data-consistency
+    ///   * 2000 - Not Found
+    ///   * 2100 - Already Exists
+    /// * 3000 - Client / Protocol Errors
+    ///   * 3000 - Authentication
+    ///   * 3100 - Permissions
+    ///   * 3200 - Server-side
+    /// * 4000 - Client / Request Errors / Core Data Objects
+    ///   * 4000 - General
+    ///   * 4100 - User
+    ///   * 4200 - Site
+    ///   * 4300 - Page
+    ///   * 4400 - File
+    /// * 5000 - Client / Request Errors / Ancillary Data Objects
+    ///   * 5000 - Locale
+    ///   * 5100 - Filter
+    ///   * 5200 - Blob
+    ///   * 5300 - Message
+    ///   * 5400 - Domains
+    /// * 6000 - Client / Request Errors / Composite Data
+    ///   * 6000 - Relations
     pub fn code(&self) -> i32 {
         match self.error_type {
             //
@@ -378,7 +405,7 @@ impl Error {
             ErrorType::SessionUserId { .. } => 3002,
             ErrorType::EmptyPassword => 3003,
 
-            // 3100 - Permission
+            // 3100 - Permissions
             // TODO
 
             // 3200 - Server-side
@@ -471,9 +498,6 @@ impl Error {
             // 6000 - Relations
             ErrorType::SiteBlockedUser => 6000,
             ErrorType::UserBlockedUser => 6001,
-            //
-            // 7000, 8000, 9000 -- (RESERVED)
-            //
         }
     }
 
