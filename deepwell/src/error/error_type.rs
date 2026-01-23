@@ -1,5 +1,5 @@
 /*
- * error/new.rs
+ * error/error_type.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
  * Copyright (C) 2019-2026 Wikijump Team
@@ -19,17 +19,7 @@
  */
 
 use crate::hash::BlobHash;
-use exn::Exn;
-use jsonrpsee::types::error::ErrorObjectOwned;
 use serde_json::Value as JsonValue;
-use std::error::Error as StdError;
-use std::fmt::{self, Display};
-
-#[derive(Debug, Clone)]
-pub struct Error {
-    pub message: String,
-    pub error_type: ErrorType,
-}
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ErrorType {
@@ -175,48 +165,6 @@ pub enum ErrorType {
     // 6000
     UserBlockedUser,
     SiteBlockedUser,
-}
-
-impl StdError for Error {}
-
-impl Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "[{:04}] {}", self.code(), self.message)
-    }
-}
-
-impl Error {
-    #[inline]
-    pub fn new<S: Into<String>>(message: S, error_type: ErrorType) -> Self {
-        Error {
-            message: message.into(),
-            error_type,
-        }
-    }
-
-    /// Returns a unique integer code for this type of error.
-    ///
-    /// See `ErrorType::code()` for details.
-    #[inline]
-    pub fn code(&self) -> i32 {
-        self.error_type.code()
-    }
-
-    /// Returns a basic summary of what this error is meant to represent.
-    ///
-    /// See `ErrorType::summary()` for details.
-    #[inline]
-    pub fn summary(&self) -> &'static str {
-        self.error_type.summary()
-    }
-
-    /// Returns auxiliary data for this error.
-    ///
-    /// See `ErrorType::data()` for details.
-    #[inline]
-    pub fn data(&self) -> JsonValue {
-        self.error_type.data()
-    }
 }
 
 impl ErrorType {
@@ -612,36 +560,4 @@ impl ErrorType {
             _ => json!(null),
         }
     }
-}
-
-// End-conversion for methods
-
-/// Converts an `Exn<deepwell::error::Error>` to a JSONRPC object type.
-///
-/// This is not a `From` implementation since, technically, `Exn<T>` is a
-/// foreign type. 🙁
-pub fn exn_error_to_rpc_error(exn_error: Exn<Error>) -> ErrorObjectOwned {
-    use exn::Frame;
-    use serde_json::json;
-
-    // Traverse the tree until we hit the highest-level Error
-    // that is not a 'request' type. As a wrapper, it's not going
-    // to be the most useful high-level Error.
-    fn walk(frame: &Frame) -> Option<&Error> {
-        match frame.as_any().downcast_ref::<Error>() {
-            Some(err) if err.error_type != ErrorType::Request => Some(err),
-            _ => frame.children().iter().find_map(walk),
-        }
-    }
-
-    let error: &Error = walk(exn_error.as_frame())
-        .expect("Missing outer wrapped error from JSONRPC request handler");
-
-    let error_code = error.code();
-    let message = error.summary();
-    let data = json!({
-        "call_trace": str!(exn_error),
-        "data": error.data(),
-    });
-    ErrorObjectOwned::owned(error_code, message, Some(data))
 }

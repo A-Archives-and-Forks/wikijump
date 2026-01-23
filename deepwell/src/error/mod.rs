@@ -23,11 +23,15 @@ pub mod prelude {
     pub use exn::ResultExt;
 }
 
-mod new;
-mod old;
+mod convert;
+mod error_type;
+mod legacy;
+mod object;
 
-pub use self::new::{Error, ErrorType, exn_error_to_rpc_error};
-pub use self::old::OldError;
+pub use self::convert::exn_error_to_rpc_error;
+pub use self::error_type::ErrorType;
+pub use self::legacy::OldError;
+pub use self::object::Error;
 pub use exn::Result as ExnResult;
 pub use std::error::Error as StdError;
 
