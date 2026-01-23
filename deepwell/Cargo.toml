@@ -16,7 +16,6 @@ edition = "2024"
 watch = ["notify"]
 
 [dependencies]
-anyhow = "1"
 argon2 = "0.5"
 arraystring = "0.3"
 async-trait = "0.1"  # remove when trait async fn enhancements land
