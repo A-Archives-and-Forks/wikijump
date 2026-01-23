@@ -66,7 +66,7 @@ pub async fn echo(
     params: Params<'static>,
 ) -> Result<JsonValue> {
     // Just write out whatever JSON value they put in
-    let data: JsonValue = parse!(params, Request);
+    let data: JsonValue = parse!(params);
     info!("Got echo request, sending back to caller");
     Ok(data)
 }
@@ -96,7 +96,7 @@ pub async fn normalize_method(
     _ctx: &ServiceContext<'_>,
     params: Params<'static>,
 ) -> Result<String> {
-    let mut value: String = parse_one!(params, Request);
+    let mut value: String = parse_one!(params);
     info!("Running normalize on string: {value:?}");
     normalize(&mut value);
     Ok(value)

@@ -29,10 +29,18 @@ macro_rules! parse {
     ($params:expr, $error_type:ident $(,)?) => {
         parse!(parse; $params, $error_type)
     };
+
+    ($params:expr $(,)?) => {
+        parse!($params, Request)
+    };
 }
 
 macro_rules! parse_one {
     ($params:expr, $error_type:ident $(,)?) => {
         parse!(one; $params, $error_type)
+    };
+
+    ($params:expr $(,)?) => {
+        parse_one!($params, Request)
     };
 }
