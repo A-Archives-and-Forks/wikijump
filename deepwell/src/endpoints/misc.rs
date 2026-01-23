@@ -78,7 +78,10 @@ pub async fn yield_error(
     _params: Params<'static>,
 ) -> Result<()> {
     info!("Returning DEEPWELL error for testing");
-    bail!(Error::new("this method type always fails", ErrorType::BadRequest));
+    bail!(Error::new(
+        "this method type always fails",
+        ErrorType::BadRequest
+    ));
 }
 
 pub async fn config_dump(

@@ -44,6 +44,7 @@ pub enum ErrorType {
     ServerSetup,
     DatabaseSetup,
     RedisSetup,
+    ConfigSetup,
 
     // 1200
     DatabaseTransaction,
@@ -263,6 +264,7 @@ impl ErrorType {
             ErrorType::ServerSetup => 1100,
             ErrorType::DatabaseSetup => 1101,
             ErrorType::RedisSetup => 1102,
+            ErrorType::ConfigSetup => 1103,
 
             // 1200 - Intermediate Operations
             ErrorType::DatabaseTransaction => 1200,
@@ -426,6 +428,7 @@ impl ErrorType {
             ErrorType::ServerSetup => "Failed to set up server internal state",
             ErrorType::DatabaseSetup => "Failed to set up the database connection",
             ErrorType::RedisSetup => "Failed to set up the Redis connection",
+            ErrorType::ConfigSetup => "Failed to load application configuration",
 
             // 1200
             ErrorType::DatabaseTransaction => {
