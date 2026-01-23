@@ -33,269 +33,141 @@ pub struct Error {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ErrorType {
-    /// Application failed to start.
+    // 1000
     ApplicationStart,
-
-    /// A request returned an error.
     Request,
-
-    /// A database transaction was aborted due to an error.
+    Authentication,
     DatabaseTransaction,
-
-    /// Seeding the database failed.
     DatabaseSeeder,
 
-    /// Failed to set up server internal state.
+    // 1100
     ServerSetup,
-
-    /// Failed to set up the database connection.
     DatabaseSetup,
-
-    /// Failed to set up the Redis connection.
     RedisSetup,
-
-    /// An external API has ratelimited us.
-    RateLimited,
-
-    /// Attempting to perform a wikitext parse and render has timed out.
     RenderTimeout,
-
-    /// Unable to perform email verification.
+    RateLimited,
     EmailVerification,
 
-    /// Unspecified entity not found.
+    // 2000
     GeneralNotFound,
-
-    /// Alias does not exist.
     AliasNotFound,
-
-    /// Relation value does not exist.
     RelationNotFound,
-
-    /// User does not exist.
     UserNotFound,
-
-    /// Site does not exist.
     SiteNotFound,
-
-    /// Page does not exist.
     PageNotFound,
-
-    /// Page category does not exist.
     PageCategoryNotFound,
-
-    /// Page parent does not exist.
     PageParentNotFound,
-
-    /// Page revision does not exist.
     PageRevisionNotFound,
-
-    /// File does not exist.
     FileNotFound,
-
-    /// File revision does not exist.
     FileRevisionNotFound,
-
-    /// Vote does not exist.
     VoteNotFound,
-
-    /// Filter does not exist.
     FilterNotFound,
-
-    /// Custom domain does not exist.
     CustomDomainNotFound,
-
-    /// Message does not exist.
     MessageNotFound,
-
-    /// Message draft does not exist.
     MessageDraftNotFound,
-
-    /// Blob item does not exist.
     BlobNotFound,
-
-    /// Text item does not exist.
     TextNotFound,
 
-    /// Cannot perform, user already exists.
+    // 2100
     UserExists,
-
-    /// Cannot set up user MFA, already set up.
     UserMfaExists,
-
-    /// Cannot perform, site already exists.
     SiteExists,
-
-    /// Cannot perform, page already exists.
     PageExists,
-
-    /// Cannot perform, page slug already exists.
     PageSlugExists,
-
-    /// Cannot perform, page parent already exists.
     PageParentExists,
-
-    /// Cannot perform, file already exists.
     FileExists,
-
-    /// Cannot perform, filter already exists.
     FilterExists,
-
-    /// Cannot perform, custom domain already exists.
     CustomDomainExists,
 
-    /// Invalid username, password, or TOTP code.
+    // 3000
     InvalidAuthentication,
-
-    /// A server error occurred while attempting to authenticate.
-    ///
-    /// High-level wrapper error for any other server error occurring
-    /// while attempting to perform authentication, to avoid leaking
-    /// server state.
-    AuthenticationBackend,
-
-    /// Invalid session token, cannot be used for authentication.
     InvalidSessionToken,
-
-    /// User associated with the session does not match the active user.
     SessionUserId {
         active_user_id: i64,
         session_user_id: i64,
     },
-
-    /// A password is required, but was not provided.
     EmptyPassword,
 
-    /// The request is in some way malformed or incorrect.
+    // 4000
     BadRequest,
-
-    /// Invalid enum serialization value.
     InvalidEnumValue,
 
-    /// User name is too short.
+    // 4100
     UserNameTooShort,
-
-    /// User slug cannot be empty.
     UserSlugEmpty,
-
-    /// User email cannot be empty.
     UserEmailEmpty,
-
-    /// Wrong user type for this operation.
     UserWrongType,
-
-    /// The user cannot rename as they do not have enough name change tokens.
     InsufficientNameChanges,
-
-    /// The user's email is disallowed.
     DisallowedEmail,
-
-    /// The user's email is invalid.
     InvalidEmail,
 
-    /// Site slug cannot be empty.
+    // 4200
     SiteSlugEmpty,
 
-    /// Page slug cannot be empty.
+    // 4300
     PageSlugEmpty,
-
-    /// Cannot restore a non-deleted page.
     PageNotDeleted,
-
-    /// Cannot hide the wikitext for the latest page revision.
     CannotHideLatestRevision,
-
-    /// Revision ID passed for this operation is not the latest.
     NotLatestRevisionId,
 
-    /// File name cannot be empty.
+    // 4400
     FileNameEmpty,
-
-    /// File name too long.
-    FileNameTooLong { length: usize, maximum: usize },
-
-    /// File name contains invalid characters (control chars or slashes).
+    FileNameTooLong {
+        length: usize,
+        maximum: usize,
+    },
     FileNameInvalidCharacters,
-
-    /// File MIME type cannot be empty.
     FileMimeEmpty,
-
-    /// Cannot restore a non-deleted file.
     FileNotDeleted,
 
-    /// Invalid locale name.
-    LocaleInvalid { locale: String },
-
-    /// No messages are available for this locale.
-    LocaleMissing { locale: String },
-
-    /// Message key not found for this locale.
-    LocaleMessageMissing { message_key: String },
-
-    /// Message key was found, but has no value.
-    LocaleMessageValueMissing { message_key: String },
-
-    /// Message key was found, but does not have this attribute.
+    // 5000
+    LocaleInvalid {
+        locale: String,
+    },
+    LocaleMissing {
+        locale: String,
+    },
+    LocaleMessageMissing {
+        message_key: String,
+    },
+    LocaleMessageValueMissing {
+        message_key: String,
+    },
     LocaleMessageAttributeMissing {
         message_key: String,
         attribute: String,
     },
-
-    /// No locales were specified in the request.
     NoLocalesSpecified,
 
-    /// The request violates a configured content filter.
+    // 5100
     FilterViolation,
-
-    /// Cannot restore a non-deleted filter.
     FilterNotDeleted,
 
-    /// Blob not uploaded.
+    // 5200
     BlobNotUploaded,
-
-    /// Cannot use blob uploaded by different user.
     BlobWrongUser,
-
-    /// Uploaded blob is too big for this operation.
     BlobTooBig,
-
-    /// Uploaded blob does not match expected length.
-    BlobSizeMismatch { expected: usize, actual: usize },
-
-    /// Uploaded blob content is blacklisted.
+    BlobSizeMismatch {
+        expected: usize,
+        actual: usize,
+    },
     BlobBlacklisted(BlobHash),
-
-    /// "Cannot blacklist a blob which is already in use, you must do a hard deletion".
     BlobCannotBlacklistExisting,
 
-    /// Message subject cannot be empty.
+    // 5300
     MessageSubjectEmpty,
-
-    /// Message subject too long.
     MessageSubjectTooLong,
-
-    /// Message body cannot be empty.
     MessageBodyEmpty,
-
-    /// Message body too long.
     MessageBodyTooLong,
-
-    /// Message cannot have no recipients.
     MessageNoRecipients,
-
-    /// Message has too many recipients.
     MessageTooManyRecipients,
 
-    /// Custom domains may not be subdomains of the Wikijump main or file domains.
+    // 5400
     CustomDomainSubdomain,
-
-    /// Cannot use custom domain, as it belongs to a different site.
     CustomDomainWrongSite,
 
-    /// Cannot perform this action because you are blocked by the user.
+    // 6000
     UserBlockedUser,
-
-    /// Cannot perform this action because you are blocked by the site.
     SiteBlockedUser,
 }
 
@@ -324,6 +196,14 @@ impl Error {
         self.error_type.code()
     }
 
+    /// Returns a basic summary of what this error is meant to represent.
+    ///
+    /// See `ErrorType::summary()` for details.
+    #[inline]
+    pub fn summary(&self) -> &'static str {
+        self.error_type.summary()
+    }
+
     /// Returns auxiliary data for this error.
     ///
     /// See `ErrorType::data()` for details.
@@ -346,7 +226,6 @@ impl ErrorType {
     /// * 3000 - Client / Protocol Errors
     ///   * 3000 - Authentication
     ///   * 3100 - Permissions
-    ///   * 3200 - Server-side
     /// * 4000 - Client / Request Errors / Core Data Objects
     ///   * 4000 - General
     ///   * 4100 - User
@@ -370,13 +249,17 @@ impl ErrorType {
             // 1000 - General
             ErrorType::ApplicationStart => 1000,
             ErrorType::Request => 1001,
-            ErrorType::DatabaseTransaction => 1002,
-            ErrorType::DatabaseSeeder => 1003,
+            ErrorType::Authentication => 1002,
+            ErrorType::DatabaseTransaction => 1003,
+            ErrorType::DatabaseSeeder => 1004,
 
             // 1100 - Intermediate Setup
             ErrorType::ServerSetup => 1100,
             ErrorType::DatabaseSetup => 1101,
-            ErrorType::RedisSetup => 1101,
+            ErrorType::RedisSetup => 1102,
+            ErrorType::RenderTimeout => 1103,
+            ErrorType::RateLimited => 1104,
+            ErrorType::EmailVerification => 1105,
 
             //
             // 2000 -- Data Consistency
@@ -425,12 +308,6 @@ impl ErrorType {
 
             // 3100 - Permissions
             // TODO
-
-            // 3200 - Server-side
-            ErrorType::AuthenticationBackend => 3200,
-            ErrorType::RenderTimeout => 3201,
-            ErrorType::RateLimited => 3202,
-            ErrorType::EmailVerification => 3203,
 
             //
             // 4000, 5000, 6000 -- Client / Request Errors
@@ -516,6 +393,173 @@ impl ErrorType {
             // 6000 - Relations
             ErrorType::SiteBlockedUser => 6000,
             ErrorType::UserBlockedUser => 6001,
+        }
+    }
+
+    /// Returns a basic summary of what this error is meant to represent.
+    ///
+    /// This is always a `&'static str`, so this lookup is cheap and has
+    /// no effect of memory consumption.
+    pub fn summary(&self) -> &'static str {
+        match self {
+            // 1000
+            ErrorType::ApplicationStart => "Application failed to start",
+            ErrorType::Request => "This request returned an error",
+            ErrorType::Authentication => {
+                "A server error occurred while attempting to authenticate"
+            }
+            ErrorType::DatabaseTransaction => {
+                "Database transaction was aborted due to error"
+            }
+            ErrorType::DatabaseSeeder => "Database seeding failed",
+
+            // 1100
+            ErrorType::ServerSetup => "Failed to set up server internal state",
+            ErrorType::DatabaseSetup => "Failed to set up the database connection",
+            ErrorType::RedisSetup => "Failed to set up the Redis connection",
+            ErrorType::RateLimited => "An external API has ratelimited us",
+            ErrorType::RenderTimeout => "Wikitext parsing and rendering has timed out",
+            ErrorType::EmailVerification => "Email verification failed",
+
+            // 2000
+            ErrorType::GeneralNotFound => "Unspecified entity does not exist",
+            ErrorType::AliasNotFound => "Alias does not exist",
+            ErrorType::RelationNotFound => "Relation value does not exist",
+            ErrorType::UserNotFound => "User does not exist",
+            ErrorType::SiteNotFound => "Site does not exist",
+            ErrorType::PageNotFound => "Page does not exist",
+            ErrorType::PageCategoryNotFound => "Page category does not exist",
+            ErrorType::PageParentNotFound => "Page parent does not exist",
+            ErrorType::PageRevisionNotFound => "Page revision does not exist",
+            ErrorType::FileNotFound => "File does not exist",
+            ErrorType::FileRevisionNotFound => "File revision does not exist",
+            ErrorType::VoteNotFound => "Vote does not exist",
+            ErrorType::FilterNotFound => "Filter does not exist",
+            ErrorType::CustomDomainNotFound => "Custom domain does not exist",
+            ErrorType::MessageNotFound => "Message does not exist",
+            ErrorType::MessageDraftNotFound => "Message draft does not exist",
+            ErrorType::BlobNotFound => "Blob item does not exist",
+            ErrorType::TextNotFound => "Text item does not exist",
+
+            // 2100
+            ErrorType::UserExists => "Cannot perform, user already exists",
+            ErrorType::UserMfaExists => "Cannot set up user MFA, already set up",
+            ErrorType::SiteExists => "Cannot perform, site already exists",
+            ErrorType::PageExists => "Cannot perform, page already exists",
+            ErrorType::PageSlugExists => "Cannot perform, page slug already exists",
+            ErrorType::PageParentExists => "Cannot perform, page parent already exists",
+            ErrorType::FileExists => "Cannot perform, file already exists",
+            ErrorType::FilterExists => "Cannot perform, filter already exists",
+            ErrorType::CustomDomainExists => {
+                "Cannot perform, custom domain already exists"
+            }
+
+            // 3000
+            ErrorType::InvalidAuthentication => {
+                "Invalid username, password, or TOTP code"
+            }
+            ErrorType::InvalidSessionToken => {
+                "Invalid session token, cannot be used for authentication"
+            }
+            ErrorType::SessionUserId { .. } => {
+                "User associated with the session does not match the active user"
+            }
+            ErrorType::EmptyPassword => "A password was required, but not provided",
+
+            // 4000
+            ErrorType::BadRequest => "The request is in some way malformed or incorrect",
+            ErrorType::InvalidEnumValue => "Invalid enum serialization value",
+
+            // 4100
+            ErrorType::UserNameTooShort => "User name is too short",
+            ErrorType::UserSlugEmpty => "User slug cannot be empty",
+            ErrorType::UserEmailEmpty => "User email cannot be empty",
+            ErrorType::UserWrongType => "Wrong user type for this operation",
+            ErrorType::InsufficientNameChanges => {
+                "The user cannot rename as they do not have enough name change tokens"
+            }
+            ErrorType::DisallowedEmail => "The user's email is disallowed",
+            ErrorType::InvalidEmail => "The user's email is invalid",
+
+            // 4200
+            ErrorType::SiteSlugEmpty => "Site slug cannot be empty",
+
+            // 4300
+            ErrorType::PageSlugEmpty => "Page slug cannot be empty",
+            ErrorType::PageNotDeleted => "Cannot restore a non-deleted page",
+            ErrorType::CannotHideLatestRevision => {
+                "Cannot hide the wikitext for the latest page revision"
+            }
+            ErrorType::NotLatestRevisionId => {
+                "Revision ID passed for this operation is not the latest"
+            }
+
+            // 4400
+            ErrorType::FileNameEmpty => "File name cannot be empty",
+            ErrorType::FileNameTooLong { .. } => "File name too long",
+            ErrorType::FileNameInvalidCharacters => {
+                "File name contains invalid characters (control chars or slashes)"
+            }
+            ErrorType::FileMimeEmpty => "File MIME type cannot be empty",
+            ErrorType::FileNotDeleted => "Cannot restore a non-deleted file",
+
+            // 5000
+            ErrorType::LocaleInvalid { .. } => "Invalid locale name",
+            ErrorType::LocaleMissing { .. } => {
+                "No messages are available for this locale"
+            }
+            ErrorType::LocaleMessageMissing { .. } => {
+                "Message key not found for this locale"
+            }
+            ErrorType::LocaleMessageValueMissing { .. } => {
+                "Message key was found, but has no value"
+            }
+            ErrorType::LocaleMessageAttributeMissing { .. } => {
+                "Message key was found, but does not have this attribute"
+            }
+            ErrorType::NoLocalesSpecified => "No locales were specified in the request",
+
+            // 5100
+            ErrorType::FilterViolation => {
+                "The request violates a configured content filter"
+            }
+            ErrorType::FilterNotDeleted => "Cannot restore a non-deleted filter",
+
+            // 5200
+            ErrorType::BlobNotUploaded => "Blob not uploaded",
+            ErrorType::BlobWrongUser => "Cannot use blob uploaded by different user",
+            ErrorType::BlobTooBig => "Uploaded blob is too big for this operation",
+            ErrorType::BlobSizeMismatch { .. } => {
+                "Uploaded blob does not match expected length"
+            }
+            ErrorType::BlobBlacklisted(_) => "Uploaded blob content is blacklisted",
+            ErrorType::BlobCannotBlacklistExisting => {
+                "Cannot blacklist a blob which is already in use, you must do a hard deletion"
+            }
+
+            // 5300
+            ErrorType::MessageSubjectEmpty => "Message subject cannot be empty",
+            ErrorType::MessageSubjectTooLong => "Message subject too long",
+            ErrorType::MessageBodyEmpty => "Message body cannot be empty",
+            ErrorType::MessageBodyTooLong => "Message body too long",
+            ErrorType::MessageNoRecipients => "Message cannot have no recipients",
+            ErrorType::MessageTooManyRecipients => "Message has too many recipients",
+
+            // 5400
+            ErrorType::CustomDomainSubdomain => {
+                "Custom domains may not be subdomains of the Wikijump main or file domains"
+            }
+            ErrorType::CustomDomainWrongSite => {
+                "Cannot use custom domain, as it belongs to a different site"
+            }
+
+            // 6000
+            ErrorType::UserBlockedUser => {
+                "Cannot perform this action because you are blocked by the user"
+            }
+            ErrorType::SiteBlockedUser => {
+                "Cannot perform this action because you are blocked by the site"
+            }
         }
     }
 
