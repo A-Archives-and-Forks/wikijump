@@ -18,8 +18,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use crate::hash::{BlobHash, blob_hash_to_hex};
-use serde_json::Value as JsonValue;
+use crate::hash::BlobHash;
 use std::error::Error as StdError;
 use std::fmt::{self, Display};
 
