@@ -603,8 +603,11 @@ impl ErrorType {
 /// foreign type. 🙁
 pub fn exn_error_to_rpc_error(exn_error: Exn<Error>) -> ErrorObjectOwned {
     use exn::Frame;
+    use serde_json::json;
 
     // Traverse the tree until we hit the highest-level Error
+    // that is not a 'request' type. As a wrapper, it's not going
+    // to be the most useful high-level Error.
     fn walk(frame: &Frame) -> Option<&Error> {
         match frame.as_any().downcast_ref::<Error>() {
             Some(err) if err.error_type != ErrorType::Request => Some(err),
@@ -615,8 +618,11 @@ pub fn exn_error_to_rpc_error(exn_error: Exn<Error>) -> ErrorObjectOwned {
     let error: &Error = walk(exn_error.as_frame())
         .expect("Missing outer wrapped error from JSONRPC request handler");
 
-    let message = str!(exn_error);
     let error_code = error.code();
-    let data = error.data();
+    let message = error.summary();
+    let data = json!({
+        "call_trace": str!(exn_error),
+        "data": error.data(),
+    });
     ErrorObjectOwned::owned(error_code, message, Some(data))
 }
