@@ -23,24 +23,26 @@ use sea_orm::{ConnectionTrait, DatabaseBackend, Statement};
 use serde_json::Value as JsonValue;
 use wikidot_normalize::normalize;
 
-async fn postgres_check(ctx: &ServiceContext<'_>) -> OldResult<()> {
+async fn postgres_check(ctx: &ServiceContext<'_>) -> Result<()> {
     ctx.transaction()
         .execute(Statement::from_string(
             DatabaseBackend::Postgres,
             str!("SELECT 1"),
         ))
-        .await?;
+        .await
+        .or_raise(|| Error::new("failed to ping PostgreSQL", ErrorType::DatabaseQuery))?;
 
     debug!("Successfully pinged Postgres");
     Ok(())
 }
 
-async fn redis_check(ctx: &ServiceContext<'_>) -> OldResult<()> {
+async fn redis_check(ctx: &ServiceContext<'_>) -> Result<()> {
     let mut redis = ctx.redis();
 
     redis
         .send_packed_command(redis::Cmd::new().arg("PING"))
-        .await?;
+        .await
+        .or_raise(|| Error::new("failed to ping Redis", ErrorType::RedisQuery))?;
 
     debug!("Successfully pinged Redis");
     Ok(())
@@ -49,10 +51,13 @@ async fn redis_check(ctx: &ServiceContext<'_>) -> OldResult<()> {
 pub async fn ping(
     ctx: &ServiceContext<'_>,
     _params: Params<'static>,
-) -> OldResult<&'static str> {
+) -> Result<&'static str> {
     // Ensure the database and cache are connected, and only then return.
     info!("Ping request");
-    try_join!(postgres_check(ctx), redis_check(ctx))?;
+
+    try_join!(postgres_check(ctx), redis_check(ctx))
+        .or_raise(|| Error::new("ping failed", ErrorType::HealthCheck))?;
+
     Ok("Pong!")
 }
 
