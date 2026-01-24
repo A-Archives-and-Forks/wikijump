@@ -60,14 +60,26 @@ pub fn exn_error_to_rpc_error(exn_error: Exn<Error>) -> ErrorObjectOwned {
         }
     }
 
-    let error: &Error = walk(exn_error.as_frame())
-        .expect("Missing outer wrapped error from JSONRPC request handler");
+    match walk(exn_error.as_frame()) {
+        // Get the top non-request Error
+        Some(error) => {
+            let error_code = error.code();
+            let message = error.summary();
+            let data = json!({
+                "call_trace": format!("{exn_error:?}"),
+                "extra": error.data(),
+            });
+            ErrorObjectOwned::owned(error_code, message, Some(data))
+        }
 
-    let error_code = error.code();
-    let message = error.summary();
-    let data = json!({
-        "call_trace": format!("{exn_error:?}"),
-        "extra": error.data(),
-    });
-    ErrorObjectOwned::owned(error_code, message, Some(data))
+        // No crate Error exists in chain,
+        // just return as string.
+        None => {
+            let message = str!(exn_error);
+            let data = json!({
+                "call_trace": format!("{exn_error:?}"),
+            });
+            ErrorObjectOwned::owned(0, message, Some(data))
+        }
+    }
 }
