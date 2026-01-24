@@ -163,9 +163,6 @@ pub enum OldError {
     #[error("Invalid username, password, or TOTP code")]
     InvalidAuthentication,
 
-    #[error("Backend error while trying to authenticate")]
-    AuthenticationBackend(Box<OldError>),
-
     #[error("Invalid session token, cannot be used for authentication")]
     InvalidSessionToken,
 
@@ -176,9 +173,6 @@ pub enum OldError {
         active_user_id: i64,
         session_user_id: i64,
     },
-
-    #[error("A password is required")]
-    EmptyPassword,
 
     #[error("The request is in some way malformed or incorrect")]
     BadRequest,

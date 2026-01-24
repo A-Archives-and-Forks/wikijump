@@ -29,6 +29,8 @@ pub enum ErrorType {
     Authentication,
     DatabaseSeeder,
     HealthCheck,
+    Login,
+    Logout,
 
     // 1100
     ServerSetup,
@@ -209,6 +211,8 @@ impl ErrorType {
             ErrorType::Authentication => 1002,
             ErrorType::DatabaseSeeder => 1004,
             ErrorType::HealthCheck => 1005,
+            ErrorType::Login => 1006,
+            ErrorType::Logout => 1007,
 
             // 1100 - Intermediate Setup
             ErrorType::ServerSetup => 1100,
@@ -375,6 +379,8 @@ impl ErrorType {
             }
             ErrorType::DatabaseSeeder => "Database seeding failed",
             ErrorType::HealthCheck => "Health check failed",
+            ErrorType::Login => "Log in failed",
+            ErrorType::Logout => "Log out failed",
 
             // 1100
             ErrorType::ServerSetup => "Failed to set up server internal state",
