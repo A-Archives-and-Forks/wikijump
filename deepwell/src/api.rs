@@ -170,7 +170,7 @@ pub async fn build_server(app_state: ServerState) -> Result<ServerHandle> {
 }
 
 async fn build_module(app_state: ServerState) -> Result<RpcModule<ServerState>> {
-    use crate::error::exn_error_to_rpc_error;
+    use crate::error::{exn_error_to_rpc_error, unwrap_transaction_error};
 
     let mut module = RpcModule::new(app_state);
 
@@ -208,10 +208,7 @@ async fn build_module(app_state: ServerState) -> Result<RpcModule<ServerState>> 
                         })
                     })
                     .await
-                    .or_raise(|| Error::new(
-                        "database transaction for JSONRPC method aborted",
-                        ErrorType::DatabaseTransaction,
-                    ))
+                    .map_err(unwrap_transaction_error)
                     .inspect_err(|error| error!("JSONRPC method {} failed: {}", $name, error))
                     .map_err(exn_error_to_rpc_error)
             })

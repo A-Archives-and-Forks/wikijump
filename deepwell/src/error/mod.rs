@@ -28,7 +28,7 @@ mod error_type;
 mod legacy;
 mod object;
 
-pub use self::convert::exn_error_to_rpc_error;
+pub use self::convert::*;
 pub use self::error_type::ErrorType;
 pub use self::legacy::OldError;
 pub use self::object::Error;

@@ -39,7 +39,6 @@ pub enum ErrorType {
     ConfigSetup,
 
     // 1200
-    DatabaseTransaction,
     DatabaseQuery,
     RedisQuery,
     RenderTimeout,
@@ -226,14 +225,13 @@ impl ErrorType {
             ErrorType::ConfigSetup => 1103,
 
             // 1200 - Intermediate Operations
-            ErrorType::DatabaseTransaction => 1200,
-            ErrorType::DatabaseQuery => 1201,
-            ErrorType::RedisQuery => 1202,
-            ErrorType::RenderTimeout => 1203,
-            ErrorType::RateLimited => 1204,
-            ErrorType::EmailVerification => 1205,
-            ErrorType::Localization => 1206,
-            ErrorType::Cryptography(_) => 1207,
+            ErrorType::DatabaseQuery => 1200,
+            ErrorType::RedisQuery => 1201,
+            ErrorType::RenderTimeout => 1202,
+            ErrorType::RateLimited => 1203,
+            ErrorType::EmailVerification => 1204,
+            ErrorType::Localization => 1205,
+            ErrorType::Cryptography(_) => 1206,
 
             // 1300 - Other / Uncommon
             ErrorType::Message => 1300,
@@ -398,9 +396,6 @@ impl ErrorType {
             ErrorType::ConfigSetup => "Failed to load application configuration",
 
             // 1200
-            ErrorType::DatabaseTransaction => {
-                "Database transaction was aborted due to error"
-            }
             ErrorType::DatabaseQuery => "Database query failed",
             ErrorType::RedisQuery => "Redis query failed",
             ErrorType::RateLimited => "An external API has ratelimited us",

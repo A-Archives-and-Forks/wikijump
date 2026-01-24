@@ -25,9 +25,25 @@
 //! the stack of `exn::Frame`s and convert it.
 
 use super::{Error, ErrorType};
-use exn::{Exn, Frame};
+use exn::{Error as ExnErrorTrait, Exn, Frame};
 use jsonrpsee::types::error::ErrorObjectOwned;
+use sea_orm::TransactionError;
 use serde_json::json;
+
+/// Unwraps Sea-ORM transaction error into a standard crate error.
+///
+/// Sea-ORM wraps all results from transactions in this enum.
+/// This function either passes through the real error or makes
+/// a new layer if it's a database connectivity issue.
+pub fn unwrap_transaction_error(txn_error: TransactionError<Exn<Error>>) -> Exn<Error> {
+    match txn_error {
+        TransactionError::Transaction(error) => error,
+        TransactionError::Connection(error) => error.raise().raise(Error::new(
+            "database transaction failed",
+            ErrorType::DatabaseQuery,
+        )),
+    }
+}
 
 /// Converts an `Exn<deepwell::error::Error>` to a JSONRPC object type.
 ///
