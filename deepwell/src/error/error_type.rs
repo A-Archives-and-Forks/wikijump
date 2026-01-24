@@ -50,6 +50,7 @@ pub enum ErrorType {
     // 1300
     Message,
     MessageDraft,
+    UserBotOwner,
 
     // 2000
     GeneralNotFound,
@@ -236,6 +237,7 @@ impl ErrorType {
             // 1300 - Other / Uncommon
             ErrorType::Message => 1300,
             ErrorType::MessageDraft => 1301,
+            ErrorType::UserBotOwner => 1302,
 
             //
             // 2000 -- Data Consistency
@@ -405,8 +407,9 @@ impl ErrorType {
             ErrorType::Cryptography(_) => "Cryptographic operation failed",
 
             // 1300
-            ErrorType::Message => "Failed to act on message",
-            ErrorType::MessageDraft => "Failed to act on message draft",
+            ErrorType::Message => "Failed to act on a message",
+            ErrorType::MessageDraft => "Failed to act on a message draft",
+            ErrorType::UserBotOwner => "Failed to act on a user / bot owner",
 
             // 2000
             ErrorType::GeneralNotFound => "Unspecified entity does not exist",
