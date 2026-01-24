@@ -34,7 +34,7 @@ impl PasswordService {
     ///
     /// Generates a salt securely and performs Argon-2 hashing
     /// and yields a string in PHC format.
-    pub fn new_hash(password: &str) -> OldResult<String> {
+    pub fn new_hash(password: &str) -> Result<String> {
         // Create and verify CSPRNG
         let mut rng = thread_rng();
         assert_is_csprng(&rng);
@@ -43,7 +43,8 @@ impl PasswordService {
         let argon2 = Argon2::default();
         let salt = SaltString::generate(&mut rng);
         let hash = argon2
-            .hash_password(password.as_bytes(), &salt)?
+            .hash_password(password.as_bytes(), &salt)
+            .map_err(convert_argon_error)?
             .to_string();
 
         Ok(hash)
@@ -60,7 +61,7 @@ impl PasswordService {
         ctx: &ServiceContext<'_>,
         password: &str,
         hash: &str,
-    ) -> OldResult<()> {
+    ) -> Result<()> {
         Self::verify_sleep(ctx, password, hash, true).await
     }
 
@@ -73,22 +74,22 @@ impl PasswordService {
         password: &str,
         hash: &str,
         sleep: bool,
-    ) -> OldResult<()> {
+    ) -> Result<()> {
         info!("Attempting to verify password");
         let result = Self::verify_internal(password, hash);
         match result {
             Ok(()) => Ok(()),
             Err(error) => {
-                match error {
+                match error.as_error().error_type {
                     // Simply the wrong password
                     // This is converted in services/error.rs
-                    OldError::InvalidAuthentication => {
-                        warn!("Invalid password entered, verification failed");
+                    ErrorType::InvalidAuthentication => {
+                        warn!("Invalid password entered, verification failed\n{error}");
                     }
 
-                    // Some kind of server error
+                    // Some other kind of server error
                     _ => {
-                        error!("Unexpected error while verifying password: {error}");
+                        error!("Unexpected error while verifying password:\n{error}");
                     }
                 }
 
@@ -99,18 +100,24 @@ impl PasswordService {
 
                 // Always return the same error for authentication methods,
                 // to not expose internal state to an adversary.
-                Err(OldError::InvalidAuthentication)
+                bail!(Error::new(
+                    "failed to verify password",
+                    ErrorType::InvalidAuthentication,
+                ))
             }
         }
     }
 
-    fn verify_internal(password: &str, hash: &str) -> OldResult<()> {
+    fn verify_internal(password: &str, hash: &str) -> Result<()> {
         // Parse PHC string
-        let hash = PasswordHash::new(hash)?;
+        let hash = PasswordHash::new(hash).map_err(convert_argon_error)?;
 
         // Create Argon-2 context, then verify the password
         let argon2 = Argon2::default();
-        argon2.verify_password(password.as_bytes(), &hash)?;
+        argon2
+            .verify_password(password.as_bytes(), &hash)
+            .map_err(convert_argon_error)?;
+
         Ok(())
     }
 
@@ -118,4 +125,11 @@ impl PasswordService {
     pub async fn failure_sleep(config: &Config) {
         time::sleep(config.authentication_fail_delay).await;
     }
+}
+
+fn convert_argon_error(error: argon2::password_hash::Error) -> Error {
+    Error::new(
+        "failed to hash password",
+        ErrorType::Cryptography(str!(error)),
+    )
 }

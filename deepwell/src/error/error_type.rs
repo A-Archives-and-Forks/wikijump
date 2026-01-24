@@ -44,7 +44,7 @@ pub enum ErrorType {
     RateLimited,
     EmailVerification,
     Localization,
-    Cryptography,
+    Cryptography(String),
 
     // 2000
     GeneralNotFound,
@@ -224,7 +224,7 @@ impl ErrorType {
             ErrorType::RateLimited => 1204,
             ErrorType::EmailVerification => 1205,
             ErrorType::Localization => 1206,
-            ErrorType::Cryptography => 1207,
+            ErrorType::Cryptography(_) => 1207,
 
             //
             // 2000 -- Data Consistency
@@ -392,7 +392,7 @@ impl ErrorType {
             ErrorType::RenderTimeout => "Wikitext parsing and rendering has timed out",
             ErrorType::EmailVerification => "Email verification failed",
             ErrorType::Localization => "Localization or translation failed",
-            ErrorType::Cryptography => "Cryptographic operation failed",
+            ErrorType::Cryptography(_) => "Cryptographic operation failed",
 
             // 2000
             ErrorType::GeneralNotFound => "Unspecified entity does not exist",
