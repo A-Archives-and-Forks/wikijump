@@ -66,7 +66,7 @@ pub fn exn_error_to_rpc_error(exn_error: Exn<Error>) -> ErrorObjectOwned {
     let error_code = error.code();
     let message = error.summary();
     let data = json!({
-        "call_trace": str!(exn_error),
+        "call_trace": format!("{exn_error:?}"),
         "extra": error.data(),
     });
     ErrorObjectOwned::owned(error_code, message, Some(data))
