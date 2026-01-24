@@ -56,10 +56,20 @@ type TranslateOutput = HashMap<String, Option<String>>;
 pub async fn locale_info(
     _ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> OldResult<LocaleOutput> {
-    let locale_str: String = params.one()?;
+) -> Result<LocaleOutput> {
+    let locale_str: String = parse_one!(params);
     info!("Getting locale information for {locale_str}");
-    let locale = LanguageIdentifier::from_bytes(locale_str.as_bytes())?;
+
+    let locale =
+        LanguageIdentifier::from_bytes(locale_str.as_bytes()).or_raise(|| {
+            Error::new(
+                "failed to parse locale string",
+                ErrorType::LocaleInvalid {
+                    locale: str!(locale_str),
+                },
+            )
+        })?;
+
     Ok(LocaleOutput {
         language: str!(locale.language),
         script: locale.script.map(|s| str!(s)),
@@ -71,26 +81,31 @@ pub async fn locale_info(
 pub async fn translate_strings(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> OldResult<TranslateOutput> {
+) -> Result<TranslateOutput> {
     let TranslateInput {
         locales,
         messages,
         strip_message_keys,
-    } = params.parse()?;
+    } = parse!(params);
 
     // Check that locales are specified
     if locales.is_empty() {
         error!("No locales specified in translate call");
-        return Err(OldError::NoLocalesSpecified);
+        bail!(Error::new(
+            "failed to translate with no locales",
+            ErrorType::NoLocalesSpecified,
+        ));
     }
 
     // Check that all message keys to strip are being requested
     for message_key in &strip_message_keys {
         if !messages.contains_key(message_key.as_str()) {
-            error!(
-                "Input mentions stripping control characters from a message not requested to be translated: {message_key}"
-            );
-            return Err(OldError::BadRequest);
+            bail!(Error::new(
+                format!(
+                    "invalid argument: cannot strip control characters from message '{message_key}' when it is not requested to be translated",
+                ),
+                ErrorType::BadRequest,
+            ));
         }
     }
 
@@ -106,7 +121,14 @@ pub async fn translate_strings(
     let locales = {
         let mut langids = Vec::new();
         for locale in locales {
-            let langid = LanguageIdentifier::from_bytes(locale.as_bytes())?;
+            let langid =
+                LanguageIdentifier::from_bytes(locale.as_bytes()).or_raise(|| {
+                    Error::new(
+                        "failed to get locale data",
+                        ErrorType::LocaleInvalid { locale },
+                    )
+                })?;
+
             langids.push(langid);
         }
         langids
@@ -121,7 +143,10 @@ pub async fn translate_strings(
         let arguments = arguments_raw.into_fluent_args();
         let translation = ctx
             .localization()
-            .translate_option(&locales, &message_key, &arguments)?
+            .translate_option(&locales, &message_key, &arguments)
+            .or_raise(|| {
+                Error::new("failed to get translation", ErrorType::Localization)
+            })?
             .map(|translation| {
                 let mut translation = translation.to_string();
 

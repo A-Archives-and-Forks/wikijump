@@ -43,6 +43,7 @@ pub enum ErrorType {
     RenderTimeout,
     RateLimited,
     EmailVerification,
+    Localization,
 
     // 2000
     GeneralNotFound,
@@ -221,6 +222,7 @@ impl ErrorType {
             ErrorType::RenderTimeout => 1203,
             ErrorType::RateLimited => 1204,
             ErrorType::EmailVerification => 1205,
+            ErrorType::Localization => 1206,
 
             //
             // 2000 -- Data Consistency
@@ -387,6 +389,7 @@ impl ErrorType {
             ErrorType::RateLimited => "An external API has ratelimited us",
             ErrorType::RenderTimeout => "Wikitext parsing and rendering has timed out",
             ErrorType::EmailVerification => "Email verification failed",
+            ErrorType::Localization => "Localization or translation failed",
 
             // 2000
             ErrorType::GeneralNotFound => "Unspecified entity does not exist",
