@@ -48,6 +48,10 @@ pub enum ErrorType {
     Localization,
     Cryptography(String),
 
+    // 1300
+    Message,
+    MessageDraft,
+
     // 2000
     GeneralNotFound,
     AliasNotFound,
@@ -176,9 +180,10 @@ impl ErrorType {
     ///
     /// Errors are divided into groups:
     /// * 1000 - High-level
-    ///   * 1000 - General
+    ///   * 1000 - Common
     ///   * 1100 - Intermediate Setup
     ///   * 1200 - Intermediate Operations
+    ///   * 1300 - Other / Uncommon
     /// * 2000 - Data-consistency
     ///   * 2000 - Not Found
     ///   * 2100 - Already Exists
@@ -205,7 +210,7 @@ impl ErrorType {
             // 1000 -- High-Level
             //
 
-            // 1000 - General
+            // 1000 - Common
             ErrorType::ApplicationStart => 1000,
             ErrorType::Request => 1001,
             ErrorType::Authentication => 1002,
@@ -229,6 +234,10 @@ impl ErrorType {
             ErrorType::EmailVerification => 1205,
             ErrorType::Localization => 1206,
             ErrorType::Cryptography(_) => 1207,
+
+            // 1300 - Other / Uncommon
+            ErrorType::Message => 1300,
+            ErrorType::MessageDraft => 1301,
 
             //
             // 2000 -- Data Consistency
@@ -399,6 +408,10 @@ impl ErrorType {
             ErrorType::EmailVerification => "Email verification failed",
             ErrorType::Localization => "Localization or translation failed",
             ErrorType::Cryptography(_) => "Cryptographic operation failed",
+
+            // 1300
+            ErrorType::Message => "Failed to act on message",
+            ErrorType::MessageDraft => "Failed to act on message draft",
 
             // 2000
             ErrorType::GeneralNotFound => "Unspecified entity does not exist",
