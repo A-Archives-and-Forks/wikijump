@@ -18,7 +18,9 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+use crate::error::Error as NewError;
 use crate::hash::BlobHash;
+use exn::Exn;
 use filemagic::FileMagicError;
 use jsonrpsee::types::error::ErrorObjectOwned;
 use reqwest::Error as ReqwestError;
@@ -33,6 +35,10 @@ pub enum OldError {
     // Error passed straight to ErrorObjectOwned without conversion
     #[error("{0}")]
     Raw(#[from] ErrorObjectOwned),
+
+    // Error passed from updated code
+    #[error("{0}")]
+    Exn(Exn<NewError>),
 
     #[error("Serialization error: {0}")]
     Serde(#[from] serde_json::Error),
@@ -333,5 +339,13 @@ impl From<DbErr> for OldError {
             DbErr::RecordNotFound(_) => OldError::GeneralNotFound,
             _ => OldError::Database(error),
         }
+    }
+}
+
+// Temporary while we convert stuff to the new error type
+impl From<Exn<NewError>> for OldError {
+    #[inline]
+    fn from(error: Exn<NewError>) -> OldError {
+        OldError::Exn(error)
     }
 }
