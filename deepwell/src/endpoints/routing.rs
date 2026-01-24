@@ -32,7 +32,7 @@ pub struct Domains {
 pub async fn platform_domains(
     ctx: &ServiceContext<'_>,
     _params: Params<'static>,
-) -> OldResult<Domains> {
+) -> Result<Domains> {
     let config = ctx.config();
 
     Ok(Domains {
@@ -46,7 +46,13 @@ pub async fn platform_domains(
 pub async fn generate_caddyfile(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> OldResult<String> {
-    let options: CaddyfileOptions<'static> = params.parse()?;
-    CaddyService::generate(ctx, &options).await
+) -> Result<String> {
+    let options: CaddyfileOptions<'static> = parse!(params, Caddyfile);
+
+    CaddyService::generate(ctx, &options).await.or_raise(|| {
+        Error::new(
+            format!("unable to generate Caddyfile with options: {options:?}"),
+            ErrorType::Caddyfile,
+        )
+    })
 }
