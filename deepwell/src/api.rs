@@ -212,6 +212,7 @@ async fn build_module(app_state: ServerState) -> Result<RpcModule<ServerState>> 
                         "database transaction for JSONRPC method aborted",
                         ErrorType::DatabaseTransaction,
                     ))
+                    .inspect_err(|error| error!("JSONRPC method {} failed: {}", $name, error))
                     .map_err(exn_error_to_rpc_error)
             })
             .or_raise(|| Error::new(
