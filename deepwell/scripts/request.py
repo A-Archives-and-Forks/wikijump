@@ -74,6 +74,8 @@ def deepwell_request(endpoint, method, data, id=0, color=False):
         case {"jsonrpc": "2.0", "id": id, "error": data}:
             print(f"{red_start}ERR {color_end}", end="")
             print_data(data)
+            print("\nCall trace:\n")
+            print(data["data"]["call_trace"])
             return 1
 
 
