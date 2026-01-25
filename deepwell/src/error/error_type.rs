@@ -586,4 +586,12 @@ impl ErrorType {
             _ => json!(null),
         }
     }
+
+    /// Indicates if this error type is high-level.
+    ///
+    /// Such errors are not useful to return to end users and exist
+    /// to indicate the overall kind of operation being performed.
+    pub fn is_high_level(&self) -> bool {
+        matches!(self.code(), 1000..2000)
+    }
 }
