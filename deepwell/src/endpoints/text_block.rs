@@ -32,12 +32,22 @@ struct GetIndexInput {
 pub async fn text_block_get_index(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> OldResult<Option<TextBlockIndex>> {
+) -> Result<Option<TextBlockIndex>> {
     let GetIndexInput {
         page_id,
         block_type,
         name,
-    } = params.parse()?;
+    } = parse!(params);
 
-    TextBlockService::get_block_index(ctx, page_id, block_type, &name).await
+    TextBlockService::get_block_index(ctx, page_id, block_type, &name)
+        .await
+        .or_raise(|| {
+            Error::new(
+                format!(
+                    "failed to get text block {:?} '{}' for page ID {}",
+                    block_type, name, page_id,
+                ),
+                ErrorType::Request,
+            )
+        })
 }
