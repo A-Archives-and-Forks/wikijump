@@ -54,13 +54,14 @@ pub enum ErrorType {
     Cryptography(String),
 
     // 1300
+    Text,
+    Blob,
     Message,
     MessageDraft,
+    SiteMembership,
+    PageAttribution,
     UserBotOwner,
     Caddyfile,
-    Blob,
-    PageAttribution,
-    SiteMembership,
 
     // 2000
     GeneralNotFound,
@@ -251,13 +252,14 @@ impl ErrorType {
             ErrorType::Cryptography(_) => 1206,
 
             // 1300 - Other / Uncommon
-            ErrorType::Message => 1300,
-            ErrorType::MessageDraft => 1301,
-            ErrorType::UserBotOwner => 1302,
-            ErrorType::Caddyfile => 1303,
-            ErrorType::Blob => 1304,
+            ErrorType::Text => 1300,
+            ErrorType::Blob => 1301,
+            ErrorType::Message => 1302,
+            ErrorType::MessageDraft => 1303,
+            ErrorType::SiteMembership => 1304,
             ErrorType::PageAttribution => 1305,
-            ErrorType::SiteMembership => 1306,
+            ErrorType::UserBotOwner => 1306,
+            ErrorType::Caddyfile => 1307,
 
             //
             // 2000 -- Data Consistency
@@ -433,13 +435,14 @@ impl ErrorType {
             ErrorType::Cryptography(_) => "Cryptographic operation failed",
 
             // 1300
+            ErrorType::Text => "Failed to act on a text entry",
+            ErrorType::Blob => "Failed to act on a file blob",
             ErrorType::Message => "Failed to act on a message",
             ErrorType::MessageDraft => "Failed to act on a message draft",
+            ErrorType::SiteMembership => "Failed to act on a site membership",
+            ErrorType::PageAttribution => "Failed to act on a page attribution",
             ErrorType::UserBotOwner => "Failed to act on a user / bot owner",
             ErrorType::Caddyfile => "Failed to generate a Caddyfile",
-            ErrorType::Blob => "Failed to act on a file blob",
-            ErrorType::PageAttribution => "Failed to act on a page attribution",
-            ErrorType::SiteMembership => "Failed to act on a site membership",
 
             // 2000
             ErrorType::GeneralNotFound => "Unspecified entity does not exist",

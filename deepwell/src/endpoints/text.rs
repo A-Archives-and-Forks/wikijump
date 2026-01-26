@@ -24,18 +24,29 @@ use crate::types::Bytes;
 pub async fn text_create(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> OldResult<Bytes<'static>> {
-    let contents: String = params.one()?;
-    info!("Inserting new stored text (bytes {})", contents.len());
-    let hash = TextService::create(ctx, contents).await?;
+) -> Result<Bytes<'static>> {
+    let contents: String = parse_one!(params, Text);
+    let content_len = contents.len();
+    info!("Inserting new stored text (bytes {content_len})");
+
+    let hash = TextService::create(ctx, contents).await.or_raise(|| {
+        Error::new(
+            format!("failed to insert text entry (bytes {content_len})"),
+            ErrorType::Text,
+        )
+    })?;
+
     Ok(Bytes::from(hash))
 }
 
 pub async fn text_get(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> OldResult<String> {
+) -> Result<String> {
     info!("Getting stored text");
-    let hash: Bytes = params.one()?;
-    TextService::get(ctx, hash.as_ref()).await
+    let hash: Bytes = parse_one!(params, Text);
+
+    TextService::get(ctx, hash.as_ref())
+        .await
+        .or_raise(|| Error::new("failed to get text entry", ErrorType::Text))
 }
