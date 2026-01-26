@@ -68,7 +68,7 @@ pub fn exn_error_to_rpc_error(exn_error: Exn<Error>) -> ErrorObjectOwned {
             let data = match error.error_type {
                 // Special case, if authentication then don't include call trace
                 // See comment in auth_login in endpoints/auth.rs
-                ErrorType::Authentication | ErrorType::InvalidAuthentication => None,
+                ErrorType::InvalidAuthentication => None,
 
                 // Normal case, provide error context
                 _ => Some(json!({

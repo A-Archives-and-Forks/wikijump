@@ -26,7 +26,6 @@ pub enum ErrorType {
     // 1000
     ApplicationStart,
     Request,
-    Authentication,
     DatabaseSeeder,
     HealthCheck,
     Login,
@@ -233,20 +232,19 @@ impl ErrorType {
             // 1000 - Common
             ErrorType::ApplicationStart => 1000,
             ErrorType::Request => 1001,
-            ErrorType::Authentication => 1002,
-            ErrorType::DatabaseSeeder => 1004,
-            ErrorType::HealthCheck => 1005,
-            ErrorType::Login => 1006,
-            ErrorType::Logout => 1007,
-            ErrorType::Site => 1008,
-            ErrorType::SiteSettings => 1009,
-            ErrorType::User => 1010,
-            ErrorType::Page => 1011,
-            ErrorType::PageRevision => 1012,
-            ErrorType::PageVote => 1013,
-            ErrorType::File => 1014,
-            ErrorType::FileRevision => 1015,
-            ErrorType::GetView => 1016,
+            ErrorType::DatabaseSeeder => 1002,
+            ErrorType::HealthCheck => 1003,
+            ErrorType::Login => 1004,
+            ErrorType::Logout => 1005,
+            ErrorType::Site => 1006,
+            ErrorType::SiteSettings => 1007,
+            ErrorType::User => 1008,
+            ErrorType::Page => 1009,
+            ErrorType::PageRevision => 1010,
+            ErrorType::PageVote => 1011,
+            ErrorType::File => 1012,
+            ErrorType::FileRevision => 1013,
+            ErrorType::GetView => 1014,
 
             // 1100 - Intermediate Setup
             ErrorType::ServerSetup => 1100,
@@ -421,9 +419,6 @@ impl ErrorType {
             // 1000
             ErrorType::ApplicationStart => "Application failed to start",
             ErrorType::Request => "This request returned an error",
-            ErrorType::Authentication => {
-                "A server error occurred while attempting to authenticate"
-            }
             ErrorType::DatabaseSeeder => "Database seeding failed",
             ErrorType::HealthCheck => "Health check failed",
             ErrorType::Login => "Log in failed",
