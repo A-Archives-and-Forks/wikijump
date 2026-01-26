@@ -25,23 +25,62 @@ use crate::services::relation::{CreateSiteMember, GetSiteMember, RemoveSiteMembe
 pub async fn membership_get(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> OldResult<Option<RelationModel>> {
-    let input: GetSiteMember = params.parse()?;
-    RelationService::get_optional_site_member(ctx, input).await
+) -> Result<Option<RelationModel>> {
+    let input: GetSiteMember = parse!(params, SiteMembership);
+    let user_id = input.user_id;
+    let site_id = input.site_id;
+
+    RelationService::get_optional_site_member(ctx, input)
+        .await
+        .or_raise(|| {
+            Error::new(
+                format!(
+                    "failed to get site member data for user ID {} on site ID {}",
+                    user_id, site_id,
+                ),
+                ErrorType::SiteMembership,
+            )
+        })
 }
 
 pub async fn membership_set(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> OldResult<()> {
-    let input: CreateSiteMember = params.parse()?;
-    RelationService::create_site_member(ctx, input).await
+) -> Result<()> {
+    let input: CreateSiteMember = parse!(params, SiteMembership);
+    let user_id = input.user_id;
+    let site_id = input.site_id;
+
+    RelationService::create_site_member(ctx, input)
+        .await
+        .or_raise(|| {
+            Error::new(
+                format!(
+                    "failed to add user ID {} as a site member of site ID {}",
+                    user_id, site_id,
+                ),
+                ErrorType::SiteMembership,
+            )
+        })
 }
 
 pub async fn membership_remove(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> OldResult<RelationModel> {
-    let input: RemoveSiteMember = params.parse()?;
-    RelationService::remove_site_member(ctx, input).await
+) -> Result<RelationModel> {
+    let input: RemoveSiteMember = parse!(params, SiteMembership);
+    let user_id = input.user_id;
+    let site_id = input.site_id;
+
+    RelationService::remove_site_member(ctx, input)
+        .await
+        .or_raise(|| {
+            Error::new(
+                format!(
+                    "failed to remove site membership for user ID {} from site ID {}",
+                    user_id, site_id,
+                ),
+                ErrorType::SiteMembership,
+            )
+        })
 }

@@ -60,6 +60,7 @@ pub enum ErrorType {
     Caddyfile,
     Blob,
     PageAttribution,
+    SiteMembership,
 
     // 2000
     GeneralNotFound,
@@ -256,6 +257,7 @@ impl ErrorType {
             ErrorType::Caddyfile => 1303,
             ErrorType::Blob => 1304,
             ErrorType::PageAttribution => 1305,
+            ErrorType::SiteMembership => 1306,
 
             //
             // 2000 -- Data Consistency
@@ -437,6 +439,7 @@ impl ErrorType {
             ErrorType::Caddyfile => "Failed to generate a Caddyfile",
             ErrorType::Blob => "Failed to act on a file blob",
             ErrorType::PageAttribution => "Failed to act on a page attribution",
+            ErrorType::SiteMembership => "Failed to act on a site membership",
 
             // 2000
             ErrorType::GeneralNotFound => "Unspecified entity does not exist",
