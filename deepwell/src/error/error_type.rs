@@ -31,6 +31,10 @@ pub enum ErrorType {
     HealthCheck,
     Login,
     Logout,
+    Site,
+    SiteSettings,
+    User,
+    Page,
 
     // 1100
     ServerSetup,
@@ -219,6 +223,10 @@ impl ErrorType {
             ErrorType::HealthCheck => 1005,
             ErrorType::Login => 1006,
             ErrorType::Logout => 1007,
+            ErrorType::Site => 1008,
+            ErrorType::SiteSettings => 1009,
+            ErrorType::User => 1010,
+            ErrorType::Page => 1011,
 
             // 1100 - Intermediate Setup
             ErrorType::ServerSetup => 1100,
@@ -392,6 +400,10 @@ impl ErrorType {
             ErrorType::HealthCheck => "Health check failed",
             ErrorType::Login => "Log in failed",
             ErrorType::Logout => "Log out failed",
+            ErrorType::Site => "Site operation failed",
+            ErrorType::SiteSettings => "Site settings operation failed",
+            ErrorType::User => "User operation failed",
+            ErrorType::Page => "Page operation failed",
 
             // 1100
             ErrorType::ServerSetup => "Failed to set up server internal state",
