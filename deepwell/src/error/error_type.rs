@@ -37,6 +37,8 @@ pub enum ErrorType {
     Page,
     PageRevision,
     PageVote,
+    File,
+    FileRevision,
     GetView,
 
     // 1100
@@ -239,7 +241,9 @@ impl ErrorType {
             ErrorType::Page => 1011,
             ErrorType::PageRevision => 1012,
             ErrorType::PageVote => 1013,
-            ErrorType::GetView => 1014,
+            ErrorType::File => 1014,
+            ErrorType::FileRevision => 1015,
+            ErrorType::GetView => 1016,
 
             // 1100 - Intermediate Setup
             ErrorType::ServerSetup => 1100,
@@ -426,6 +430,8 @@ impl ErrorType {
             ErrorType::Page => "Page operation failed",
             ErrorType::PageRevision => "Page revision operation failed",
             ErrorType::PageVote => "Page vote operation failed",
+            ErrorType::File => "File operation failed",
+            ErrorType::FileRevision => "File revision operation failed",
             ErrorType::GetView => "Getting web view failed",
 
             // 1100

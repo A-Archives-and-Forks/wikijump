@@ -32,16 +32,22 @@ use crate::types::{Bytes, FileDetails};
 pub async fn file_get(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> OldResult<Option<GetFileOutput>> {
-    let GetFileDetails { input, details } = params.parse()?;
+) -> Result<Option<GetFileOutput>> {
+    let GetFileDetails { input, details } = parse!(params, File);
 
     info!(
         "Getting file {:?} from page ID {} in site ID {}",
         input.file, input.page_id, input.site_id,
     );
 
+    let make_error = || Error::new("failed to get file", ErrorType::File);
+
     // We cannot use get_id() because we need File for build_file_response().
-    match FileService::get_optional(ctx, input).await? {
+    let file = FileService::get_optional(ctx, input)
+        .await
+        .or_raise(make_error)?;
+
+    match file {
         None => Ok(None),
         Some(file) => {
             let revision = FileRevisionService::get_latest(
@@ -50,9 +56,13 @@ pub async fn file_get(
                 file.page_id,
                 file.file_id,
             )
-            .await?;
+            .await
+            .or_raise(make_error)?;
 
-            let output = build_file_response(ctx, file, revision, details).await?;
+            let output = build_file_response(ctx, file, revision, details)
+                .await
+                .or_raise(make_error)?;
+
             Ok(Some(output))
         }
     }
@@ -61,85 +71,97 @@ pub async fn file_get(
 pub async fn file_create(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> OldResult<CreateFileOutput> {
-    let input: CreateFile = params.parse()?;
+) -> Result<CreateFileOutput> {
+    let input: CreateFile = parse!(params, File);
 
     info!(
         "Creating file on page ID {} in site ID {}",
         input.page_id, input.site_id,
     );
 
-    FileService::create(ctx, input).await
+    FileService::create(ctx, input)
+        .await
+        .or_raise(|| Error::new("failed to create file", ErrorType::File))
 }
 
 pub async fn file_edit(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> OldResult<Option<EditFileOutput>> {
-    let input: EditFile = params.parse()?;
+) -> Result<Option<EditFileOutput>> {
+    let input: EditFile = parse!(params, File);
 
     info!(
         "Editing file ID {} in page ID {} in site ID {}",
         input.file_id, input.page_id, input.site_id,
     );
 
-    FileService::edit(ctx, input).await
+    FileService::edit(ctx, input)
+        .await
+        .or_raise(|| Error::new("failed to edit file", ErrorType::File))
 }
 
 pub async fn file_delete(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> OldResult<DeleteFileOutput> {
-    let input: DeleteFile = params.parse()?;
+) -> Result<DeleteFileOutput> {
+    let input: DeleteFile = parse!(params, File);
 
     info!(
         "Deleting file {:?} in page ID {} in site ID {}",
         input.file, input.page_id, input.site_id,
     );
 
-    FileService::delete(ctx, input).await
+    FileService::delete(ctx, input)
+        .await
+        .or_raise(|| Error::new("failed to delete file", ErrorType::File))
 }
 
 pub async fn file_move(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> OldResult<Option<MoveFileOutput>> {
-    let input: MoveFile = params.parse()?;
+) -> Result<Option<MoveFileOutput>> {
+    let input: MoveFile = parse!(params, File);
 
     info!(
         "Moving file ID {} from page ID {} to page {:?} in site ID {}",
         input.file_id, input.current_page_id, input.destination_page, input.site_id,
     );
 
-    FileService::r#move(ctx, input).await
+    FileService::r#move(ctx, input)
+        .await
+        .or_raise(|| Error::new("failed to move file", ErrorType::File))
 }
 
 pub async fn file_restore(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> OldResult<RestoreFileOutput> {
-    let input: RestoreFile = params.parse()?;
+) -> Result<RestoreFileOutput> {
+    let input: RestoreFile = parse!(params, File);
 
     info!(
         "Restoring deleted file ID {} in page ID {} in site ID {}",
         input.file_id, input.page_id, input.site_id,
     );
 
-    FileService::restore(ctx, input).await
+    FileService::restore(ctx, input)
+        .await
+        .or_raise(|| Error::new("failed to restore file", ErrorType::File))
 }
 
 pub async fn file_rollback(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> OldResult<Option<EditFileOutput>> {
-    let input: RollbackFile = params.parse()?;
+) -> Result<Option<EditFileOutput>> {
+    let input: RollbackFile = parse!(params, File);
 
     info!(
         "Rolling back file {:?} in page ID {} in site ID {} to revision number {}",
         input.file, input.page_id, input.site_id, input.revision_number,
     );
 
-    FileService::rollback(ctx, input).await
+    FileService::rollback(ctx, input)
+        .await
+        .or_raise(|| Error::new("failed to rollback file", ErrorType::File))
 }
 
 async fn build_file_response(
@@ -147,8 +169,11 @@ async fn build_file_response(
     file: FileModel,
     revision: FileRevisionModel,
     details: FileDetails,
-) -> OldResult<GetFileOutput> {
-    let data = BlobService::get_maybe(ctx, details.data, &revision.s3_hash).await?;
+) -> Result<GetFileOutput> {
+    let data = BlobService::get_maybe(ctx, details.data, &revision.s3_hash)
+        .await
+        .or_raise(|| Error::new("failed to build a file response", ErrorType::File))?;
+
     Ok(GetFileOutput {
         file_id: file.file_id,
         file_created_at: file.created_at,
