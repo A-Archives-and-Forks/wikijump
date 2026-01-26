@@ -35,6 +35,7 @@ pub enum ErrorType {
     SiteSettings,
     User,
     Page,
+    PageRevision,
     PageVote,
     GetView,
 
@@ -236,8 +237,9 @@ impl ErrorType {
             ErrorType::SiteSettings => 1009,
             ErrorType::User => 1010,
             ErrorType::Page => 1011,
-            ErrorType::PageVote => 1012,
-            ErrorType::GetView => 1013,
+            ErrorType::PageRevision => 1012,
+            ErrorType::PageVote => 1013,
+            ErrorType::GetView => 1014,
 
             // 1100 - Intermediate Setup
             ErrorType::ServerSetup => 1100,
@@ -422,6 +424,7 @@ impl ErrorType {
             ErrorType::SiteSettings => "Site settings operation failed",
             ErrorType::User => "User operation failed",
             ErrorType::Page => "Page operation failed",
+            ErrorType::PageRevision => "Page revision operation failed",
             ErrorType::PageVote => "Page vote operation failed",
             ErrorType::GetView => "Getting web view failed",
 
