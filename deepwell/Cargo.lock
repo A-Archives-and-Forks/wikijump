@@ -1223,9 +1223,9 @@ dependencies = [
 
 [[package]]
 name = "ftml"
-version = "1.38.0"
+version = "1.39.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eebbfd9045084b5e2fbae74ab62acdba208b769203042514d5a4c2a2676e6326"
+checksum = "be99f019535f27413d6c3858aa96326ac07200ecbe61c74aa1aac7a2f180a781"
 dependencies = [
  "built",
  "cfg-if",
