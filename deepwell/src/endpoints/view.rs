@@ -28,25 +28,34 @@ use crate::services::view::{
 pub async fn page_view(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> OldResult<GetPageViewOutput> {
-    let input: GetPageView = params.parse()?;
-    ViewService::page(ctx, input).await
+) -> Result<GetPageViewOutput> {
+    let input: GetPageView = parse!(params, GetView);
+
+    ViewService::page(ctx, input)
+        .await
+        .or_raise(|| Error::new("failed to get page view", ErrorType::GetView))
 }
 
 /// Returns relevant context for rendering a user profile from a processed web request.
 pub async fn user_view(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> OldResult<GetUserViewOutput> {
-    let input: GetUserView = params.parse()?;
-    ViewService::user(ctx, input).await
+) -> Result<GetUserViewOutput> {
+    let input: GetUserView = parse!(params, GetView);
+
+    ViewService::user(ctx, input)
+        .await
+        .or_raise(|| Error::new("failed to get user view", ErrorType::GetView))
 }
 
 /// Returns relevant context for rendering admin panel from a processed web request.
 pub async fn admin_view(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> OldResult<GetAdminViewOutput> {
-    let input: GetAdminView = params.parse()?;
-    ViewService::admin(ctx, input).await
+) -> Result<GetAdminViewOutput> {
+    let input: GetAdminView = parse!(params, GetView);
+
+    ViewService::admin(ctx, input)
+        .await
+        .or_raise(|| Error::new("failed to get admin view", ErrorType::GetView))
 }

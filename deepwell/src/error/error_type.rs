@@ -36,6 +36,7 @@ pub enum ErrorType {
     User,
     Page,
     PageVote,
+    GetView,
 
     // 1100
     ServerSetup,
@@ -231,6 +232,7 @@ impl ErrorType {
             ErrorType::User => 1010,
             ErrorType::Page => 1011,
             ErrorType::PageVote => 1012,
+            ErrorType::GetView => 1013,
 
             // 1100 - Intermediate Setup
             ErrorType::ServerSetup => 1100,
@@ -411,6 +413,7 @@ impl ErrorType {
             ErrorType::User => "User operation failed",
             ErrorType::Page => "Page operation failed",
             ErrorType::PageVote => "Page vote operation failed",
+            ErrorType::GetView => "Getting web view failed",
 
             // 1100
             ErrorType::ServerSetup => "Failed to set up server internal state",
