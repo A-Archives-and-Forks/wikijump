@@ -19,6 +19,7 @@
  */
 
 use crate::error::prelude::*;
+use exn::Exn;
 use std::str::FromStr;
 use strum_macros::EnumIter;
 
@@ -45,16 +46,19 @@ impl ConnectionType {
 }
 
 impl FromStr for ConnectionType {
-    type Err = OldError;
+    type Err = Exn<Error>;
 
-    fn from_str(value: &str) -> OldResult<ConnectionType> {
+    fn from_str(value: &str) -> Result<ConnectionType> {
         match value {
             "include-messy" => Ok(ConnectionType::IncludeMessy),
             "include-elements" => Ok(ConnectionType::IncludeElements),
             "component" => Ok(ConnectionType::Component),
             "link" => Ok(ConnectionType::Link),
             "redirect" => Ok(ConnectionType::Redirect),
-            _ => Err(OldError::InvalidEnumValue),
+            _ => bail!(Error::new(
+                "failed to parse ConnectionType, invalid enum value",
+                ErrorType::InvalidEnumValue { value: str!(value) },
+            )),
         }
     }
 }
