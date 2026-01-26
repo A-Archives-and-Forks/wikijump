@@ -26,10 +26,14 @@ use crate::types::Reference;
 pub async fn site_get_domain(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> OldResult<String> {
+) -> Result<String> {
+    let site_id: i64 = parse!(params, SiteSettings);
     let config = ctx.config();
-    let site_id: i64 = params.one()?;
-    let site = SiteService::get(ctx, Reference::Id(site_id)).await?;
+
+    let site = SiteService::get(ctx, Reference::Id(site_id))
+        .await
+        .or_raise(|| Error::new("failed to get site domain", ErrorType::SiteSettings))?;
+
     let domain = DomainService::preferred_domain(config, &site);
     Ok(domain.into_owned())
 }
@@ -37,29 +41,47 @@ pub async fn site_get_domain(
 pub async fn site_custom_domain_create(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> OldResult<()> {
-    let input: CreateCustomDomain = params.parse()?;
-    DomainService::create_custom(ctx, input).await
+) -> Result<()> {
+    let input: CreateCustomDomain = parse!(params, SiteSettings);
+
+    DomainService::create_custom(ctx, input).await.or_raise(|| {
+        Error::new(
+            "failed to add a new customm domain",
+            ErrorType::SiteSettings,
+        )
+    })
 }
 
 // TODO rename
+
 pub async fn site_custom_domain_remove(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> OldResult<()> {
-    let domain: String = params.one()?;
-    DomainService::remove_custom(ctx, domain).await
+) -> Result<()> {
+    let domain: String = parse_one!(params, SiteSettings);
+
+    DomainService::remove_custom(ctx, domain)
+        .await
+        .or_raise(|| {
+            Error::new("failed to remove a custom domain", ErrorType::SiteSettings)
+        })
 }
 
 pub async fn site_custom_domain_list(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> OldResult<Vec<SiteDomainModel>> {
+) -> Result<Vec<SiteDomainModel>> {
     #[derive(Deserialize, Debug)]
     struct Input {
         site_id: i64,
     }
 
-    let Input { site_id } = params.parse()?;
-    DomainService::list_custom(ctx, site_id).await
+    let Input { site_id } = parse!(params, SiteSettings);
+
+    DomainService::list_custom(ctx, site_id).await.or_raise(|| {
+        Error::new(
+            format!("failed to list custom domains for site ID {site_id}"),
+            ErrorType::SiteSettings,
+        )
+    })
 }
