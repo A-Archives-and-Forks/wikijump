@@ -28,61 +28,91 @@ use crate::services::link::{
 pub async fn page_links_from_get(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> OldResult<GetLinksFromOutput> {
+) -> Result<GetLinksFromOutput> {
     let GetLinksFrom {
         site_id,
         page: reference,
-    } = params.parse()?;
+    } = parse!(params, Page);
 
     info!("Getting page links for page {reference:?} in site ID {site_id}");
-    let page_id = PageService::get_id(ctx, site_id, reference).await?;
-    LinkService::get_from(ctx, page_id).await
+
+    let make_error = || Error::new("failed to get page links from page", ErrorType::Page);
+
+    let page_id = PageService::get_id(ctx, site_id, reference)
+        .await
+        .or_raise(make_error)?;
+
+    LinkService::get_from(ctx, page_id)
+        .await
+        .or_raise(make_error)
 }
 
 pub async fn page_links_to_get(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> OldResult<GetLinksToOutput> {
+) -> Result<GetLinksToOutput> {
     let GetLinksTo {
         site_id,
         page: reference,
-    } = params.parse()?;
+    } = parse!(params, Page);
 
     info!("Getting page links from page {reference:?} in site ID {site_id}");
-    let page_id = PageService::get_id(ctx, site_id, reference).await?;
-    LinkService::get_to(ctx, page_id, None).await
+
+    let make_error = || Error::new("failed to get page links to page", ErrorType::Page);
+
+    let page_id = PageService::get_id(ctx, site_id, reference)
+        .await
+        .or_raise(make_error)?;
+
+    LinkService::get_to(ctx, page_id, None)
+        .await
+        .or_raise(make_error)
 }
 
 pub async fn page_links_to_missing_get(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> OldResult<GetLinksToMissingOutput> {
-    let GetLinksToMissing { site_id, page_slug } = params.parse()?;
+) -> Result<GetLinksToMissingOutput> {
+    let GetLinksToMissing { site_id, page_slug } = parse!(params, Page);
+
     info!("Getting missing page links from page slug {page_slug} in site ID {site_id}");
 
-    LinkService::get_to_missing(ctx, site_id, &page_slug, None).await
+    LinkService::get_to_missing(ctx, site_id, &page_slug, None)
+        .await
+        .or_raise(|| Error::new("failed to get links to missing page", ErrorType::Page))
 }
 
 pub async fn page_links_external_from(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> OldResult<GetLinksExternalFromOutput> {
+) -> Result<GetLinksExternalFromOutput> {
     let GetLinksExternalFrom {
         site_id,
         page: reference,
-    } = params.parse()?;
+    } = parse!(params);
 
     info!("Getting external links from page {reference:?} in site ID {site_id}");
 
-    let page_id = PageService::get_id(ctx, site_id, reference).await?;
-    LinkService::get_external_from(ctx, page_id).await
+    let make_error =
+        || Error::new("failed to get external links from page", ErrorType::Page);
+
+    let page_id = PageService::get_id(ctx, site_id, reference)
+        .await
+        .or_raise(make_error)?;
+
+    LinkService::get_external_from(ctx, page_id)
+        .await
+        .or_raise(make_error)
 }
 
 pub async fn page_links_external_to(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> OldResult<GetLinksExternalToOutput> {
-    let GetLinksExternalTo { site_id, url } = params.parse()?;
+) -> Result<GetLinksExternalToOutput> {
+    let GetLinksExternalTo { site_id, url } = parse!(params);
     info!("Getting external links to URL {url} in site ID {site_id}");
-    LinkService::get_external_to(ctx, site_id, &url).await
+
+    LinkService::get_external_to(ctx, site_id, &url)
+        .await
+        .or_raise(|| Error::new("failed to get external links to URL", ErrorType::Page))
 }
