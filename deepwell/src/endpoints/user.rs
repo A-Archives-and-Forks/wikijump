@@ -28,16 +28,19 @@ use crate::services::user::{
 pub async fn user_create(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> OldResult<CreateUserOutput> {
+) -> Result<CreateUserOutput> {
     info!("Creating new regular user");
-    let input: CreateUser = params.parse()?;
-    UserService::create(ctx, input).await
+    let input: CreateUser = parse!(params, User);
+
+    UserService::create(ctx, input)
+        .await
+        .or_raise(|| Error::new("failed to create user", ErrorType::User))
 }
 
 pub async fn user_import(
     _ctx: &ServiceContext<'_>,
     _params: Params<'static>,
-) -> OldResult<CreateUserOutput> {
+) -> Result<CreateUserOutput> {
     // TODO implement importing user from Wikidot
     todo!()
 }
@@ -45,15 +48,21 @@ pub async fn user_import(
 pub async fn user_get(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> OldResult<Option<GetUserOutput>> {
-    let GetUser { user: reference } = params.parse()?;
+) -> Result<Option<GetUserOutput>> {
+    let GetUser { user: reference } = parse!(params, User);
     info!("Getting user {reference:?}");
 
-    match UserService::get_optional(ctx, reference).await? {
+    let make_error = || Error::new("failed to get user", ErrorType::User);
+    let user = UserService::get_optional(ctx, reference)
+        .await
+        .or_raise(make_error)?;
+
+    match user {
         None => Ok(None),
         Some(user) => {
-            let aliases =
-                AliasService::get_all(ctx, AliasType::User, user.user_id).await?;
+            let aliases = AliasService::get_all(ctx, AliasType::User, user.user_id)
+                .await
+                .or_raise(make_error)?;
 
             Ok(Some(GetUserOutput { user, aliases }))
         }
@@ -63,32 +72,43 @@ pub async fn user_get(
 pub async fn user_edit(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> OldResult<UserModel> {
+) -> Result<UserModel> {
     let UpdateUser {
         user: reference,
         ip_address,
         body,
-    } = params.parse()?;
+    } = parse!(params, User);
 
     info!("Updating user {reference:?}");
-    UserService::update(ctx, reference, ip_address, body).await
+    UserService::update(ctx, reference, ip_address, body)
+        .await
+        .or_raise(|| Error::new("failed to update user", ErrorType::User))
 }
 
 pub async fn user_delete(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> OldResult<UserModel> {
-    let GetUser { user: reference } = params.parse()?;
+) -> Result<UserModel> {
+    let GetUser { user: reference } = parse!(params, User);
     info!("Deleting user {reference:?}");
-    UserService::delete(ctx, reference).await
+    UserService::delete(ctx, reference)
+        .await
+        .or_raise(|| Error::new("failed to delete user", ErrorType::User))
 }
 
 pub async fn user_add_name_change(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> OldResult<i16> {
-    let GetUser { user: reference } = params.parse()?;
+) -> Result<i16> {
+    let GetUser { user: reference } = parse!(params, User);
+    let make_error = || Error::new("failed to add name change to user", ErrorType::User);
+
     info!("Adding user name change token to {reference:?}");
-    let user = UserService::get(ctx, reference).await?;
-    UserService::add_name_change_token(ctx, &user).await
+    let user = UserService::get(ctx, reference)
+        .await
+        .or_raise(make_error)?;
+
+    UserService::add_name_change_token(ctx, &user)
+        .await
+        .or_raise(make_error)
 }
