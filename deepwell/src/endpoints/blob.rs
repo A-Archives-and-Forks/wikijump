@@ -32,16 +32,23 @@ use crate::types::Bytes;
 pub async fn blob_get(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> OldResult<GetBlobOutput> {
+) -> Result<GetBlobOutput> {
     info!("Getting blob for S3 hash");
-    let hash: Bytes = params.parse()?;
-    let data = BlobService::get(ctx, hash.as_ref()).await?;
+    let hash: Bytes = parse!(params, Blob);
+
+    let make_error = || Error::new("failed to get blob data", ErrorType::Blob);
+
+    let data = BlobService::get(ctx, hash.as_ref())
+        .await
+        .or_raise(make_error)?;
 
     let BlobMetadata {
         mime,
         size,
         created_at,
-    } = BlobService::get_metadata(ctx, hash.as_ref()).await?;
+    } = BlobService::get_metadata(ctx, hash.as_ref())
+        .await
+        .or_raise(make_error)?;
 
     Ok(GetBlobOutput {
         data,
@@ -55,91 +62,137 @@ pub async fn blob_get(
 pub async fn blob_cancel(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> OldResult<()> {
+) -> Result<()> {
     info!("Cancelling a pending blob upload");
 
     let CancelBlobUpload {
         user_id,
         pending_blob_id,
-    } = params.parse()?;
+    } = parse!(params, Blob);
 
-    BlobService::cancel_upload(ctx, user_id, &pending_blob_id).await
+    BlobService::cancel_upload(ctx, user_id, &pending_blob_id)
+        .await
+        .or_raise(|| {
+            Error::new(
+                format!(
+                    "failed to cancel a pending blob upload with ID {}",
+                    pending_blob_id,
+                ),
+                ErrorType::Blob,
+            )
+        })
 }
 
 /// Starts a new upload by creating a pending blob.
 pub async fn blob_upload(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> OldResult<StartBlobUploadOutput> {
+) -> Result<StartBlobUploadOutput> {
     info!("Creating new pending blob upload");
-    let input: StartBlobUpload = params.parse()?;
-    BlobService::start_upload(ctx, input).await
+    let input: StartBlobUpload = parse!(params, Blob);
+
+    BlobService::start_upload(ctx, input)
+        .await
+        .or_raise(|| Error::new("failed to start a blob upload", ErrorType::Blob))
 }
 
 pub async fn blob_blacklist_add(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> OldResult<()> {
+) -> Result<()> {
     #[derive(Deserialize, Debug)]
     struct AddBlacklist {
         s3_hash: Bytes<'static>,
         user_id: i64,
     }
 
-    let AddBlacklist { s3_hash, user_id } = params.parse()?;
+    let make_error =
+        || Error::new("failed to add a blob to the blacklist", ErrorType::Blob);
+
+    let AddBlacklist { s3_hash, user_id } = params.parse().or_raise(make_error)?;
     let s3_hash = slice_to_blob_hash(s3_hash.as_ref());
 
-    BlobService::check_hash_not_empty(s3_hash)?;
-    BlobService::check_hash_in_use(ctx, s3_hash).await?;
-    BlobService::add_blacklist(ctx, s3_hash, user_id).await
+    BlobService::check_hash_not_empty(s3_hash).or_raise(make_error)?;
+
+    BlobService::check_hash_in_use(ctx, s3_hash)
+        .await
+        .or_raise(make_error)?;
+
+    BlobService::add_blacklist(ctx, s3_hash, user_id)
+        .await
+        .or_raise(make_error)
 }
 
 pub async fn blob_blacklist_remove(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> OldResult<()> {
+) -> Result<()> {
     #[derive(Deserialize, Debug)]
     struct RemoveBlacklist {
         s3_hash: Bytes<'static>,
     }
 
-    let RemoveBlacklist { s3_hash } = params.parse()?;
+    let make_error = || {
+        Error::new(
+            "failed to remove a blob from the blacklist",
+            ErrorType::Blob,
+        )
+    };
+
+    let RemoveBlacklist { s3_hash } = params.parse().or_raise(make_error)?;
     let s3_hash = slice_to_blob_hash(s3_hash.as_ref());
-    BlobService::remove_blacklist(ctx, s3_hash).await
+
+    BlobService::remove_blacklist(ctx, s3_hash)
+        .await
+        .or_raise(make_error)
 }
 
 pub async fn blob_blacklist_check(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> OldResult<bool> {
+) -> Result<bool> {
     #[derive(Deserialize, Debug)]
     struct HasBlacklist {
         s3_hash: Bytes<'static>,
     }
 
-    let HasBlacklist { s3_hash } = params.parse()?;
+    let HasBlacklist { s3_hash } = parse!(params, Blob);
     let s3_hash = slice_to_blob_hash(s3_hash.as_ref());
-    BlobService::on_blacklist(ctx, s3_hash).await
+
+    BlobService::on_blacklist(ctx, s3_hash).await.or_raise(|| {
+        Error::new(
+            "failed to check a blob against the blacklist",
+            ErrorType::Blob,
+        )
+    })
 }
 
 pub async fn blob_hard_delete_preview(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> OldResult<HardDeleteOutput> {
+) -> Result<HardDeleteOutput> {
     #[derive(Deserialize, Debug)]
     struct HardDeletePreview {
         s3_hash: Bytes<'static>,
     }
 
-    let HardDeletePreview { s3_hash } = params.parse()?;
+    let HardDeletePreview { s3_hash } = parse!(params, Blob);
     let s3_hash = slice_to_blob_hash(s3_hash.as_ref());
-    BlobService::hard_delete_preview(ctx, s3_hash).await
+
+    BlobService::hard_delete_preview(ctx, s3_hash)
+        .await
+        .or_raise(|| {
+            Error::new("failed to preview a blob hard deletion", ErrorType::Blob)
+        })
 }
 
 pub async fn blob_hard_delete_confirm(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> OldResult<HardDeleteOutput> {
-    let input: HardDelete = params.parse()?;
-    BlobService::hard_delete_all(ctx, input).await
+) -> Result<HardDeleteOutput> {
+    let input: HardDelete = parse!(params, Blob);
+
+    BlobService::hard_delete_all(ctx, input)
+        .await
+        .or_raise(|| Error::new("failed to hard delete a blob", ErrorType::Blob))
 }

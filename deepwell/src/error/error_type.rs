@@ -57,6 +57,7 @@ pub enum ErrorType {
     MessageDraft,
     UserBotOwner,
     Caddyfile,
+    Blob,
 
     // 2000
     GeneralNotFound,
@@ -250,6 +251,7 @@ impl ErrorType {
             ErrorType::MessageDraft => 1301,
             ErrorType::UserBotOwner => 1302,
             ErrorType::Caddyfile => 1303,
+            ErrorType::Blob => 1304,
 
             //
             // 2000 -- Data Consistency
@@ -428,6 +430,7 @@ impl ErrorType {
             ErrorType::MessageDraft => "Failed to act on a message draft",
             ErrorType::UserBotOwner => "Failed to act on a user / bot owner",
             ErrorType::Caddyfile => "Failed to generate a Caddyfile",
+            ErrorType::Blob => "Failed to act on a file blob",
 
             // 2000
             ErrorType::GeneralNotFound => "Unspecified entity does not exist",
