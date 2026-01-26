@@ -51,11 +51,11 @@ pub fn unwrap_transaction_error(txn_error: TransactionError<Exn<Error>>) -> Exn<
 /// foreign type. 🙁
 pub fn exn_error_to_rpc_error(exn_error: Exn<Error>) -> ErrorObjectOwned {
     // Traverse the tree until we hit the highest-level Error
-    // that is not a 'request' type. As a wrapper, it's not going
-    // to be the most useful high-level Error.
+    // that is not a high-level error type, as it's not going
+    // to be the most useful Error to emit as the description.
     fn walk(frame: &Frame) -> Option<&Error> {
         match frame.as_any().downcast_ref::<Error>() {
-            Some(err) if err.error_type != ErrorType::Request => Some(err),
+            Some(err) if !err.error_type.is_high_level() => Some(err),
             _ => frame.children().iter().find_map(walk),
         }
     }
