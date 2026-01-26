@@ -234,18 +234,6 @@ pub enum OldError {
     #[error("Invalid locale: {0}")]
     LocaleInvalid(#[from] LanguageIdentifierError),
 
-    #[error("No messages are available for this locale")]
-    LocaleMissing,
-
-    #[error("Message key not found for this locale")]
-    LocaleMessageMissing,
-
-    #[error("Message key was found, but has no value")]
-    LocaleMessageValueMissing,
-
-    #[error("Message key was found, but does not have this attribute")]
-    LocaleMessageAttributeMissing,
-
     #[error("No locales were specified in the request")]
     NoLocalesSpecified,
 
