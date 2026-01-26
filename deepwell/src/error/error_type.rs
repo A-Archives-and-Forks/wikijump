@@ -68,6 +68,7 @@ pub enum ErrorType {
     UserBotOwner,
     Caddyfile,
     BasicError,
+    License,
 
     // 2000
     GeneralNotFound,
@@ -274,6 +275,7 @@ impl ErrorType {
             ErrorType::UserBotOwner => 1308,
             ErrorType::Caddyfile => 1309,
             ErrorType::BasicError => 1310,
+            ErrorType::License => 1311,
 
             //
             // 2000 -- Data Consistency
@@ -463,6 +465,7 @@ impl ErrorType {
             ErrorType::UserBotOwner => "Failed to act on a user / bot owner",
             ErrorType::Caddyfile => "Failed to generate a Caddyfile",
             ErrorType::BasicError => "Failed to generate a basic error message",
+            ErrorType::License => "Failed to determine license data",
 
             // 2000
             ErrorType::GeneralNotFound => "Unspecified entity does not exist",

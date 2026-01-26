@@ -95,10 +95,15 @@ impl License {
         self,
         localization: &Localizations,
         locales: &[LanguageIdentifier],
-    ) -> OldResult<String> {
+    ) -> Result<String> {
         assert!(!locales.is_empty(), "No languages specified");
         let args = FluentArgs::new();
-        let name = localization.translate(locales, self.fluent_key(), &args)?;
+        let name = localization
+            .translate(locales, self.fluent_key(), &args)
+            .or_raise(|| {
+                Error::new("failed to translate license name", ErrorType::License)
+            })?;
+
         Ok(name.to_string())
     }
 }
