@@ -75,7 +75,7 @@ def deepwell_request(endpoint, method, data, id=0, color=False):
             print(f"{red_start}ERR {color_end}", end="")
             print_data(data)
 
-            if "data" in data:
+            if isinstance(data.get("data"), dict):
                 print("\nCall trace:\n")
                 print(data["data"]["call_trace"])
 

@@ -51,18 +51,42 @@ pub fn unwrap_transaction_error(txn_error: TransactionError<Exn<Error>>) -> Exn<
 /// foreign type. 🙁
 pub fn exn_error_to_rpc_error(exn_error: Exn<Error>) -> ErrorObjectOwned {
     // Traverse the tree until we hit the highest-level Error
-    // that is not a high-level error type, as it's not going
-    // to be the most useful Error to emit as the description.
-    fn walk(frame: &Frame) -> Option<&Error> {
-        match frame.as_any().downcast_ref::<Error>() {
-            Some(err) if !err.error_type.is_high_level() => Some(err),
-            _ => frame.children().iter().find_map(walk),
+    // that is not a high-level error type, or an owned error
+    // from JSONRPC itself.
+
+    #[derive(Debug)]
+    enum TopError<'e> {
+        CrateError(&'e Error),
+        JsonrpcError(&'e ErrorObjectOwned),
+    }
+
+    fn walk<'e>(frame: &'e Frame, code_trace: &mut Vec<i32>) -> Option<TopError<'e>> {
+        let crate_error = frame.as_any().downcast_ref::<Error>();
+        if let Some(ref error) = crate_error {
+            // Log error code for trace
+            code_trace.push(error.code());
+
+            // If acceptable, return
+            if !error.error_type.is_high_level() {
+                return Some(TopError::CrateError(error));
+            }
+        }
+
+        let jsonrpc_error = frame.as_any().downcast_ref::<ErrorObjectOwned>();
+        match jsonrpc_error {
+            Some(error) => Some(TopError::JsonrpcError(error)),
+            _ => frame
+                .children()
+                .iter()
+                .find_map(|frame| walk(frame, code_trace)),
         }
     }
 
-    match walk(exn_error.as_frame()) {
-        // Get the top non-request Error
-        Some(error) => {
+    let mut code_trace = Vec::new();
+    let top_error = walk(exn_error.as_frame(), &mut code_trace);
+    match top_error {
+        // Get the top non-request crate error
+        Some(TopError::CrateError(error)) => {
             let error_code = error.code();
             let message = error.summary();
             let data = match error.error_type {
@@ -73,18 +97,23 @@ pub fn exn_error_to_rpc_error(exn_error: Exn<Error>) -> ErrorObjectOwned {
                 // Normal case, provide error context
                 _ => Some(json!({
                     "call_trace": format!("{exn_error:?}"),
+                    "code_trace": code_trace,
                     "extra": error.data(),
                 })),
             };
             ErrorObjectOwned::owned(error_code, message, data)
         }
 
-        // No crate Error exists in chain,
+        // For JSONRPC errors, just pass them as-is
+        Some(TopError::JsonrpcError(error)) => error.clone(),
+
+        // No crate or jsonrpsee Error exists in chain,
         // just return as string.
         None => {
             let message = str!(exn_error);
             let data = json!({
                 "call_trace": format!("{exn_error:?}"),
+                "code_trace": code_trace,
             });
             ErrorObjectOwned::owned(0, message, Some(data))
         }
