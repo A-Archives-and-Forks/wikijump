@@ -36,25 +36,36 @@ use futures::future::try_join_all;
 pub async fn page_create(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> OldResult<CreatePageOutput> {
-    let input: CreatePage = params.parse()?;
+) -> Result<CreatePageOutput> {
+    let input: CreatePage = parse!(params, Page);
     info!("Creating new page in site ID {}", input.site_id);
-    PageService::create(ctx, input).await
+    PageService::create(ctx, input)
+        .await
+        .or_raise(|| Error::new("failed to create page", ErrorType::Page))
 }
 
 pub async fn page_get(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> OldResult<Option<GetPageOutput>> {
+) -> Result<Option<GetPageOutput>> {
     let GetPageReferenceDetails {
         site_id,
         page: reference,
         details,
-    } = params.parse()?;
+    } = parse!(params, Page);
 
     info!("Getting page {reference:?} in site ID {site_id}");
-    match PageService::get_optional(ctx, site_id, reference).await? {
-        Some(page) => build_page_output(ctx, page, details).await,
+
+    let make_error = || Error::new("failed to get page", ErrorType::Page);
+
+    let page = PageService::get_optional(ctx, site_id, reference)
+        .await
+        .or_raise(make_error)?;
+
+    match page {
+        Some(page) => build_page_output(ctx, page, details)
+            .await
+            .or_raise(make_error),
         None => Ok(None),
     }
 }
@@ -62,35 +73,62 @@ pub async fn page_get(
 pub async fn page_get_direct(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> OldResult<Option<GetPageOutput>> {
+) -> Result<Option<GetPageOutput>> {
     let GetPageAnyDetails {
         site_id,
         page_id,
         details,
         allow_deleted,
-    } = params.parse()?;
+    } = parse!(params, Page);
 
     info!("Getting page ID {page_id} in site ID {site_id}");
-    match PageService::get_direct_optional(ctx, page_id, allow_deleted).await? {
-        Some(page) => build_page_output(ctx, page, details).await,
+
+    let make_error = || {
+        Error::new(
+            format!("failed to get page ID {} in site ID {}", page_id, site_id),
+            ErrorType::Page,
+        )
+    };
+
+    let page = PageService::get_direct_optional(ctx, page_id, allow_deleted)
+        .await
+        .or_raise(make_error)?;
+
+    match page {
         None => Ok(None),
+        Some(page) => build_page_output(ctx, page, details)
+            .await
+            .or_raise(make_error),
     }
 }
 
 pub async fn page_get_deleted(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> OldResult<Vec<GetDeletedPageOutput>> {
-    let GetPageSlug { site_id, slug } = params.parse()?;
+) -> Result<Vec<GetDeletedPageOutput>> {
+    let GetPageSlug { site_id, slug } = parse!(params, Page);
+    let slug2 = slug.clone();
+
+    let make_error = || {
+        Error::new(
+            format!(
+                "failed to get deleted page slug '{}' in site ID {}",
+                slug2, site_id
+            ),
+            ErrorType::Page,
+        )
+    };
 
     info!("Getting deleted page {slug} in site ID {site_id}");
     let get_deleted_page = PageService::get_deleted_by_slug(ctx, site_id, &slug)
-        .await?
+        .await
+        .or_raise(make_error)?
         .into_iter()
         .map(|page| build_page_deleted_output(ctx, page));
 
     let result = try_join_all(get_deleted_page)
-        .await?
+        .await
+        .or_raise(make_error)?
         .into_iter()
         .flatten()
         .collect();
@@ -101,29 +139,41 @@ pub async fn page_get_deleted(
 pub async fn page_get_score(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> OldResult<GetPageScoreOutput> {
+) -> Result<GetPageScoreOutput> {
     let GetPageReference {
         site_id,
         page: reference,
-    } = params.parse()?;
+    } = parse!(params, Page);
 
     info!("Getting score for page {reference:?} in site ID {site_id}");
-    let page_id = PageService::get_id(ctx, site_id, reference).await?;
-    let score = ScoreService::score(ctx, page_id).await?;
+
+    let make_error = || Error::new("failed to get page score", ErrorType::Page);
+
+    let page_id = PageService::get_id(ctx, site_id, reference)
+        .await
+        .or_raise(make_error)?;
+
+    let score = ScoreService::score(ctx, page_id)
+        .await
+        .or_raise(make_error)?;
+
     Ok(GetPageScoreOutput { page_id, score })
 }
 
 pub async fn page_get_files(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> OldResult<Vec<GetFileOutput>> {
+) -> Result<Vec<GetFileOutput>> {
     let GetPageFiles {
         page_id,
         site_id,
         deleted,
-    } = params.parse()?;
+    } = parse!(params, Page);
 
     info!("Getting files for page ID {page_id} in site ID {site_id}");
+
+    let make_error = || Error::new("failed to get files for page", ErrorType::Page);
+
     let get_page_files = FileService::get_all(
         ctx,
         site_id,
@@ -131,12 +181,14 @@ pub async fn page_get_files(
         deleted.to_option().copied(),
         FileOrder::default(),
     )
-    .await?
+    .await
+    .or_raise(make_error)?
     .into_iter()
     .map(|file| build_page_file_output(ctx, file));
 
     let result = try_join_all(get_page_files)
-        .await?
+        .await
+        .or_raise(make_error)?
         .into_iter()
         .flatten()
         .collect();
@@ -147,41 +199,47 @@ pub async fn page_get_files(
 pub async fn page_edit(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> OldResult<Option<EditPageOutput>> {
-    let input: EditPage = params.parse()?;
+) -> Result<Option<EditPageOutput>> {
+    let input: EditPage = parse!(params, Page);
     info!("Editing page {:?} in site ID {}", input.page, input.site_id);
-    PageService::edit(ctx, input).await
+    PageService::edit(ctx, input)
+        .await
+        .or_raise(|| Error::new("failed to edit page", ErrorType::Page))
 }
 
 pub async fn page_delete(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> OldResult<DeletePageOutput> {
-    let input: DeletePage = params.parse()?;
+) -> Result<DeletePageOutput> {
+    let input: DeletePage = parse!(params, Page);
     info!(
         "Deleting page {:?} in site ID {}",
         input.page, input.site_id,
     );
-    PageService::delete(ctx, input).await
+    PageService::delete(ctx, input)
+        .await
+        .or_raise(|| Error::new("failed to delete page", ErrorType::Page))
 }
 
 pub async fn page_move(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> OldResult<MovePageOutput> {
-    let input: MovePage = params.parse()?;
+) -> Result<MovePageOutput> {
+    let input: MovePage = parse!(params, Page);
     info!(
         "Moving page {:?} in site ID {} to {}",
         input.page, input.site_id, input.new_slug,
     );
-    PageService::r#move(ctx, input).await
+    PageService::r#move(ctx, input)
+        .await
+        .or_raise(|| Error::new("failed to move page", ErrorType::Page))
 }
 
 pub async fn page_rerender(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> OldResult<()> {
-    let input: PageId = params.parse()?;
+) -> Result<()> {
+    let input: PageId = parse!(params, Page);
     info!(
         "Re-rendering page ID {} in site ID {}",
         input.page_id, input.site_id,
@@ -193,39 +251,46 @@ pub async fn page_rerender(
         RerenderType::Full,
     )
     .await
+    .or_raise(|| Error::new("failed to rerender page", ErrorType::Page))
 }
 
 pub async fn page_restore(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> OldResult<RestorePageOutput> {
-    let input: RestorePage = params.parse()?;
+) -> Result<RestorePageOutput> {
+    let input: RestorePage = parse!(params, Page);
+
     info!(
         "Un-deleting page ID {} in site ID {}",
         input.id.site_id, input.id.page_id,
     );
-    PageService::restore(ctx, input).await
+
+    PageService::restore(ctx, input)
+        .await
+        .or_raise(|| Error::new("failed to restore (undelete) page", ErrorType::Page))
 }
 
 pub async fn page_rollback(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> OldResult<Option<EditPageOutput>> {
-    let input: RollbackPage = params.parse()?;
+) -> Result<Option<EditPageOutput>> {
+    let input: RollbackPage = parse!(params, Page);
 
     info!(
         "Rolling back page {:?} in site ID {} to revision number {}",
         input.page, input.site_id, input.revision_number,
     );
 
-    PageService::rollback(ctx, input).await
+    PageService::rollback(ctx, input)
+        .await
+        .or_raise(|| Error::new("failed to rollback page", ErrorType::Page))
 }
 
 pub async fn page_set_layout(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> OldResult<()> {
-    let input: SetPageLayout = params.parse()?;
+) -> Result<()> {
+    let input: SetPageLayout = parse!(params, Page);
 
     info!(
         "Setting layout override for page ID {} in site ID {} to layout {} (set by user ID {})",
@@ -238,38 +303,50 @@ pub async fn page_set_layout(
         input.user_id,
     );
 
-    PageService::set_layout(ctx, input).await
+    PageService::set_layout(ctx, input)
+        .await
+        .or_raise(|| Error::new("failed to set layout for page", ErrorType::Page))
 }
 
 async fn build_page_output(
     ctx: &ServiceContext<'_>,
     page: PageModel,
     details: PageDetails,
-) -> OldResult<Option<GetPageOutput>> {
+) -> Result<Option<GetPageOutput>> {
+    let make_error = || Error::new("failed to build page output", ErrorType::Page);
+
     // Get page revision
-    let revision =
-        PageRevisionService::get_latest(ctx, page.site_id, page.page_id).await?;
+    let revision = PageRevisionService::get_latest(ctx, page.site_id, page.page_id)
+        .await
+        .or_raise(make_error)?;
 
     // Get category slug from ID
     let category =
         CategoryService::get(ctx, page.site_id, Reference::from(page.page_category_id))
-            .await?;
+            .await
+            .or_raise(make_error)?;
 
     // Get text data, if requested
-    let (wikitext, compiled_body_html) = try_join!(
+    let (wikitext, compiled_body_html) = join!(
         TextService::get_conditional(ctx, details.wikitext, &revision.wikitext_hash),
         TextService::get_conditional(
             ctx,
             details.compiled_html,
             &revision.compiled_body_html_hash,
         ),
-    )?;
+    );
+
+    let wikitext = wikitext.or_raise(make_error)?;
+    let compiled_body_html = compiled_body_html.or_raise(make_error)?;
 
     // Calculate score and determine layout
-    let (rating, layout) = try_join!(
+    let (rating, layout) = join!(
         ScoreService::score(ctx, page.page_id),
         SettingsService::get_layout(ctx, page.site_id, Some(page.page_id)),
-    )?;
+    );
+
+    let rating = rating.or_raise(make_error)?;
+    let layout = layout.or_raise(make_error)?;
 
     // Build result struct
     Ok(Some(GetPageOutput {
@@ -305,13 +382,23 @@ async fn build_page_output(
 async fn build_page_deleted_output(
     ctx: &ServiceContext<'_>,
     page: PageModel,
-) -> OldResult<Option<GetDeletedPageOutput>> {
+) -> Result<Option<GetDeletedPageOutput>> {
+    let make_error = || {
+        Error::new(
+            "failed to build page output for a deleted page",
+            ErrorType::Page,
+        )
+    };
+
     // Get page revision
-    let revision =
-        PageRevisionService::get_latest(ctx, page.site_id, page.page_id).await?;
+    let revision = PageRevisionService::get_latest(ctx, page.site_id, page.page_id)
+        .await
+        .or_raise(make_error)?;
 
     // Calculate score and determine layout
-    let rating = ScoreService::score(ctx, page.page_id).await?;
+    let rating = ScoreService::score(ctx, page.page_id)
+        .await
+        .or_raise(make_error)?;
 
     // Build result struct
     Ok(Some(GetDeletedPageOutput {
@@ -334,11 +421,19 @@ async fn build_page_deleted_output(
 async fn build_page_file_output(
     ctx: &ServiceContext<'_>,
     file: FileModel,
-) -> OldResult<Option<GetFileOutput>> {
+) -> Result<Option<GetFileOutput>> {
+    let make_error = || {
+        Error::new(
+            "failed to build output for a file on a page",
+            ErrorType::Page,
+        )
+    };
+
     // Get file revision
     let revision =
         FileRevisionService::get_latest(ctx, file.site_id, file.page_id, file.file_id)
-            .await?;
+            .await
+            .or_raise(make_error)?;
 
     // Build result struct
     Ok(Some(GetFileOutput {
