@@ -59,12 +59,26 @@ impl PageService {
             bypass_filter,
             ip_address,
         }: CreatePage,
-    ) -> OldResult<CreatePageOutput> {
+    ) -> Result<CreatePageOutput> {
         let txn = ctx.transaction();
 
-        // Ensure row consistency
+        // Ensure slug is normalized
         normalize(&mut slug);
-        Self::check_conflicts(ctx, site_id, &slug, "create").await?;
+
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to create page '{}' in site ID {}, performed by user ID {}",
+                    slug, site_id, user_id,
+                ),
+                ErrorType::Page,
+            )
+        };
+
+        // Ensure row consistency
+        Self::check_conflicts(ctx, site_id, &slug, "create")
+            .await
+            .or_raise(make_error)?;
 
         // Perform filter validation
         if !bypass_filter {
@@ -75,13 +89,15 @@ impl PageService {
                 Some(&title),
                 alt_title.as_ref(),
             )
-            .await?;
+            .await
+            .or_raise(make_error)?;
         }
 
         // Create category if not already present
         let PageCategoryModel { category_id, .. } =
             CategoryService::get_or_create(ctx, site_id, get_category_name(&slug))
-                .await?;
+                .await
+                .or_raise(make_error)?;
 
         // Insert page
         let model = page::ActiveModel {
@@ -90,7 +106,7 @@ impl PageService {
             slug: Set(slug.clone()),
             ..Default::default()
         };
-        let PageModel { page_id, .. } = model.insert(txn).await?;
+        let PageModel { page_id, .. } = model.insert(txn).await.or_raise(make_error)?;
 
         // Commit first revision
         let revision_input = CreateFirstPageRevision {
@@ -115,7 +131,8 @@ impl PageService {
             },
             revision_input,
         )
-        .await?;
+        .await
+        .or_raise(make_error)?;
 
         // Update latest revision
         let model = page::ActiveModel {
@@ -123,7 +140,7 @@ impl PageService {
             latest_revision_id: Set(Some(revision_id)),
             ..Default::default()
         };
-        let page = model.update(txn).await?;
+        let page = model.update(txn).await.or_raise(make_error)?;
         assert_latest_revision(&page);
 
         // Audit log
@@ -138,7 +155,8 @@ impl PageService {
                 category_id,
             },
         )
-        .await?;
+        .await
+        .or_raise(make_error)?;
 
         // Build and return
         Ok(CreatePageOutput {
