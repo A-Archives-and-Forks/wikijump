@@ -62,6 +62,7 @@ pub enum ErrorType {
     PageAttribution,
     UserBotOwner,
     Caddyfile,
+    BasicError,
 
     // 2000
     GeneralNotFound,
@@ -260,6 +261,7 @@ impl ErrorType {
             ErrorType::PageAttribution => 1305,
             ErrorType::UserBotOwner => 1306,
             ErrorType::Caddyfile => 1307,
+            ErrorType::BasicError => 1308,
 
             //
             // 2000 -- Data Consistency
@@ -443,6 +445,7 @@ impl ErrorType {
             ErrorType::PageAttribution => "Failed to act on a page attribution",
             ErrorType::UserBotOwner => "Failed to act on a user / bot owner",
             ErrorType::Caddyfile => "Failed to generate a Caddyfile",
+            ErrorType::BasicError => "Failed to generate a basic error message",
 
             // 2000
             ErrorType::GeneralNotFound => "Unspecified entity does not exist",
