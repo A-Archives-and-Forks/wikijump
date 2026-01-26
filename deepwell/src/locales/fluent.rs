@@ -233,22 +233,34 @@ impl Localizations {
         locales: I,
         key: &str,
         args: &'a FluentArgs<'a>,
-    ) -> OldResult<Cow<'a, str>>
+    ) -> Result<Cow<'a, str>>
     where
         L: AsRef<LanguageIdentifier> + Display + 'a,
         I: IntoIterator<Item = L>,
     {
         // Parse translation key
         let (path, attribute) = Self::parse_selector(key);
-        debug!(
-            "Checking message path {}, attribute {} for a matching locale",
-            path,
-            attribute.unwrap_or("<none>"),
-        );
+        match attribute {
+            Some(attribute) => {
+                debug!(
+                    "Checking message path {}, attribute {} for a matching locale",
+                    path, attribute,
+                );
+            }
+            None => {
+                debug!(
+                    "Checking message path {}, no attribute for a matching locale",
+                    path,
+                );
+            }
+        }
 
         // Find pattern for translating
-        let (locale, bundle, pattern) =
-            self.get_pattern_locales(locales, path, attribute)?;
+        let (locale, bundle, pattern) = self
+            .get_pattern_locales(locales, path, attribute)
+            .or_raise(|| {
+                Error::new("failed to translate message", ErrorType::Localization)
+            })?;
 
         // Format using pattern
         let mut errors = vec![];
@@ -284,20 +296,20 @@ impl Localizations {
         locales: I,
         key: &str,
         args: &'a FluentArgs<'a>,
-    ) -> OldResult<Option<Cow<'a, str>>>
+    ) -> Result<Option<Cow<'a, str>>>
     where
         L: AsRef<LanguageIdentifier> + Display + 'a,
         I: IntoIterator<Item = L>,
     {
         match self.translate(locales, key, args) {
             Ok(translation) => Ok(Some(translation)),
-            Err(
-                OldError::LocaleMissing
-                | OldError::LocaleMessageMissing
-                | OldError::LocaleMessageValueMissing
-                | OldError::LocaleMessageAttributeMissing,
-            ) => Ok(None),
-            Err(error) => Err(error),
+            Err(error) => match error.as_error().error_type {
+                ErrorType::LocaleMissing { .. }
+                | ErrorType::LocaleMessageMissing { .. }
+                | ErrorType::LocaleMessageValueMissing { .. }
+                | ErrorType::LocaleMessageAttributeMissing { .. } => Ok(None),
+                _ => Err(error),
+            },
         }
     }
 }
