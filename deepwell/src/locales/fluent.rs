@@ -132,21 +132,40 @@ impl Localizations {
         locale: &LanguageIdentifier,
         path: &str,
         attribute: Option<&str>,
-    ) -> OldResult<(&FluentBundle, &Pattern<&str>)> {
+    ) -> Result<(&FluentBundle, &Pattern<&str>)> {
         debug!("Checking for translation patterns in locale {locale}");
 
         // Get appropriate message and bundle, if found
-        let (bundle, message) = self.get_message(locale, path)?;
+        let (bundle, message) = self.get_message(locale, path).or_raise(|| {
+            Error::new(
+                format!(
+                    "failed to get Fluent pattern for path '{}' (attribute {:?})",
+                    path, attribute,
+                ),
+                ErrorType::Localization,
+            )
+        })?;
 
         // Get pattern from message, if present
         let pattern = match attribute {
             Some(attribute) => match message.get_attribute(attribute) {
                 Some(attrib) => attrib.value(),
-                None => return Err(OldError::LocaleMessageAttributeMissing),
+                None => bail!(Error::new(
+                    format!("locale message '{}' has no attribute '{}'", path, attribute),
+                    ErrorType::LocaleMessageAttributeMissing {
+                        message_key: str!(path),
+                        attribute: str!(attribute),
+                    },
+                )),
             },
             None => match message.value() {
                 Some(pattern) => pattern,
-                None => return Err(OldError::LocaleMessageValueMissing),
+                None => bail!(Error::new(
+                    format!("locale message '{}' with no attribute does not exist", path),
+                    ErrorType::LocaleMessageValueMissing {
+                        message_key: str!(path),
+                    },
+                )),
             },
         };
 
@@ -159,12 +178,12 @@ impl Localizations {
         locales: I,
         path: &str,
         attribute: Option<&str>,
-    ) -> OldResult<(LanguageIdentifier, &'a FluentBundle, &'a Pattern<&'a str>)>
+    ) -> Result<(LanguageIdentifier, &'a FluentBundle, &'a Pattern<&'a str>)>
     where
         L: AsRef<LanguageIdentifier> + 'a,
         I: IntoIterator<Item = L>,
     {
-        let mut last_error = OldError::NoLocalesSpecified; // Occurs if locales is empty
+        let mut last_error = None; // Occurs if locales is empty
 
         // Iterate through each locale to try
         for locale_ref in locales {
@@ -175,7 +194,7 @@ impl Localizations {
                 match self.get_pattern(locale, path, attribute) {
                     Err(error) => {
                         debug!("Pattern not found for locale {locale}: {error}");
-                        last_error = error;
+                        last_error = Some(error);
                         None
                     }
                     Ok((bundle, pattern)) => {
@@ -185,13 +204,22 @@ impl Localizations {
                 }
             });
 
+            // Found a match, return this
             if let Some((locale, (bundle, pattern))) = result {
                 return Ok((locale, bundle, pattern));
             }
         }
 
+        let last_error = last_error.unwrap_or_else(|| {
+            Error::new(
+                "failed to get patterns for locales, no locales specified",
+                ErrorType::NoLocalesSpecified,
+            )
+            .into()
+        });
+
         warn!("Could not find any translation patterns: {last_error}");
-        Err(last_error)
+        bail!(last_error);
     }
 
     /// Translates the message, given the message key and formatting arguments.
