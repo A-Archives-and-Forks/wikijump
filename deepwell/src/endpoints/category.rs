@@ -26,29 +26,54 @@ use crate::services::site::GetSite;
 pub async fn category_get(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> OldResult<Option<PageCategoryModel>> {
-    let GetCategory { site, category } = params.parse()?;
-    let site_id = SiteService::get_id(ctx, site).await?;
+) -> Result<Option<PageCategoryModel>> {
+    let GetCategory { site, category } = parse!(params, PageCategory);
+    let make_error =
+        || Error::new("failed to get page category", ErrorType::PageCategory);
+
+    let site_id = SiteService::get_id(ctx, site).await.or_raise(make_error)?;
     info!("Getting page category {category:?} in site ID {site_id}");
-    CategoryService::get_optional(ctx, site_id, category).await
+    CategoryService::get_optional(ctx, site_id, category)
+        .await
+        .or_raise(make_error)
 }
 
 pub async fn category_get_all(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> OldResult<Vec<PageCategoryModel>> {
-    let GetSite { site } = params.parse()?;
-    let site_id = SiteService::get_id(ctx, site).await?;
+) -> Result<Vec<PageCategoryModel>> {
+    let GetSite { site } = parse!(params, PageCategory);
+
+    let make_error = || {
+        Error::new(
+            "failed to get all page categories for a site",
+            ErrorType::PageCategory,
+        )
+    };
+
+    let site_id = SiteService::get_id(ctx, site).await.or_raise(make_error)?;
     info!("Getting all page categories in site ID {site_id}");
-    CategoryService::get_all(ctx, site_id).await
+    CategoryService::get_all(ctx, site_id)
+        .await
+        .or_raise(make_error)
 }
 
 pub async fn category_get_all_active(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> OldResult<Vec<PageCategoryModel>> {
-    let GetSite { site } = params.parse()?;
-    let site_id = SiteService::get_id(ctx, site).await?;
+) -> Result<Vec<PageCategoryModel>> {
+    let GetSite { site } = parse!(params, PageCategory);
+
+    let make_error = || {
+        Error::new(
+            "failed to get all active page categories for a site",
+            ErrorType::PageCategory,
+        )
+    };
+
+    let site_id = SiteService::get_id(ctx, site).await.or_raise(make_error)?;
     info!("Getting all active page categories in site ID {site_id}");
-    CategoryService::get_all_active(ctx, site_id).await
+    CategoryService::get_all_active(ctx, site_id)
+        .await
+        .or_raise(make_error)
 }
