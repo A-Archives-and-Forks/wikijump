@@ -115,7 +115,7 @@ pub async fn page_revision_edit(
         PageRevisionService::update(ctx, input),
         PageRevisionService::get_direct(ctx, revision_id),
     );
-    let revision = revision.or_raise(make_error)?;
+    let revision = raise_multiple!(revision; make_error);
 
     filter_and_populate_revision(ctx, revision, details)
         .await

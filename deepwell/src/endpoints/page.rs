@@ -335,18 +335,15 @@ async fn build_page_output(
             &revision.compiled_body_html_hash,
         ),
     );
-
-    let wikitext = wikitext.or_raise(make_error)?;
-    let compiled_body_html = compiled_body_html.or_raise(make_error)?;
+    let (wikitext, compiled_body_html) =
+        raise_multiple!(wikitext, compiled_body_html; make_error);
 
     // Calculate score and determine layout
     let (rating, layout) = join!(
         ScoreService::score(ctx, page.page_id),
         SettingsService::get_layout(ctx, page.site_id, Some(page.page_id)),
     );
-
-    let rating = rating.or_raise(make_error)?;
-    let layout = layout.or_raise(make_error)?;
+    let (rating, layout) = raise_multiple!(rating, layout; make_error);
 
     // Build result struct
     Ok(Some(GetPageOutput {

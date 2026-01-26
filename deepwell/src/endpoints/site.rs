@@ -56,9 +56,7 @@ pub async fn site_get(
                 AliasService::get_all(ctx, AliasType::Site, site.site_id),
                 DomainService::list_custom(ctx, site.site_id),
             );
-
-            let aliases = aliases.or_raise(make_error)?;
-            let domains = domains.or_raise(make_error)?;
+            let (aliases, domains) = raise_multiple!(aliases, domains; make_error);
 
             Ok(Some(GetSiteOutput {
                 site,
