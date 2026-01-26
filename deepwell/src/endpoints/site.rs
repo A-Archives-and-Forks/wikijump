@@ -28,25 +28,37 @@ use crate::services::site::{
 pub async fn site_create(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> OldResult<CreateSiteOutput> {
-    let input: CreateSite = params.parse()?;
-    SiteService::create(ctx, input).await
+) -> Result<CreateSiteOutput> {
+    let input: CreateSite = parse!(params, Site);
+
+    SiteService::create(ctx, input)
+        .await
+        .or_raise(|| Error::new("failed to create site", ErrorType::Site))
 }
 
 pub async fn site_get(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> OldResult<Option<GetSiteOutput>> {
-    let GetSite { site } = params.parse()?;
+) -> Result<Option<GetSiteOutput>> {
+    let GetSite { site } = parse!(params, Site);
     info!("Getting site {site:?}");
 
-    match SiteService::get_optional(ctx, site).await? {
+    let make_error = || Error::new("failed to get site", ErrorType::Site);
+
+    let site = SiteService::get_optional(ctx, site)
+        .await
+        .or_raise(make_error)?;
+
+    match site {
         None => Ok(None),
         Some(site) => {
-            let (aliases, domains) = try_join!(
+            let (aliases, domains) = join!(
                 AliasService::get_all(ctx, AliasType::Site, site.site_id),
                 DomainService::list_custom(ctx, site.site_id),
-            )?;
+            );
+
+            let aliases = aliases.or_raise(make_error)?;
+            let domains = domains.or_raise(make_error)?;
 
             Ok(Some(GetSiteOutput {
                 site,
@@ -60,14 +72,17 @@ pub async fn site_get(
 pub async fn site_update(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> OldResult<SiteModel> {
+) -> Result<SiteModel> {
     let UpdateSite {
         site,
         body,
         user_id,
         ip_address,
-    } = params.parse()?;
+    } = parse!(params, Site);
 
     info!("Updating site {site:?}");
-    SiteService::update(ctx, site, body, user_id, ip_address).await
+
+    SiteService::update(ctx, site, body, user_id, ip_address)
+        .await
+        .or_raise(|| Error::new("failed update site data", ErrorType::Site))
 }
