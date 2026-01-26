@@ -61,6 +61,7 @@ pub enum ErrorType {
     SiteMembership,
     PageAttribution,
     PageCategory,
+    PageParent,
     UserBotOwner,
     Caddyfile,
     BasicError,
@@ -261,9 +262,10 @@ impl ErrorType {
             ErrorType::SiteMembership => 1304,
             ErrorType::PageAttribution => 1305,
             ErrorType::PageCategory => 1306,
-            ErrorType::UserBotOwner => 1307,
-            ErrorType::Caddyfile => 1308,
-            ErrorType::BasicError => 1309,
+            ErrorType::PageParent => 1307,
+            ErrorType::UserBotOwner => 1308,
+            ErrorType::Caddyfile => 1309,
+            ErrorType::BasicError => 1310,
 
             //
             // 2000 -- Data Consistency
@@ -446,6 +448,7 @@ impl ErrorType {
             ErrorType::SiteMembership => "Failed to act on a site membership",
             ErrorType::PageAttribution => "Failed to act on a page attribution",
             ErrorType::PageCategory => "Failed to act on a page category",
+            ErrorType::PageParent => "Failed to act on a page parent",
             ErrorType::UserBotOwner => "Failed to act on a user / bot owner",
             ErrorType::Caddyfile => "Failed to generate a Caddyfile",
             ErrorType::BasicError => "Failed to generate a basic error message",
