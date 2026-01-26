@@ -116,13 +116,23 @@ impl Localizations {
         &self,
         locale: &LanguageIdentifier,
         path: &str,
-    ) -> OldResult<(&'_ FluentBundle, FluentMessage<'_>)> {
+    ) -> Result<(&'_ FluentBundle, FluentMessage<'_>)> {
         match self.bundles.get(locale) {
-            None => Err(OldError::LocaleMissing),
             Some(bundle) => match bundle.get_message(path) {
                 Some(message) => Ok((bundle, message)),
-                None => Err(OldError::LocaleMessageMissing),
+                None => bail!(Error::new(
+                    "no such message in locale",
+                    ErrorType::LocaleMessageMissing {
+                        message_key: str!(path)
+                    }
+                )),
             },
+            None => bail!(Error::new(
+                "cannot get message, no such locale",
+                ErrorType::LocaleMissing {
+                    locale: str!(locale)
+                }
+            )),
         }
     }
 
