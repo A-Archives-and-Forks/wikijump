@@ -35,6 +35,7 @@ pub enum ErrorType {
     SiteSettings,
     User,
     Page,
+    PageVote,
 
     // 1100
     ServerSetup,
@@ -227,6 +228,7 @@ impl ErrorType {
             ErrorType::SiteSettings => 1009,
             ErrorType::User => 1010,
             ErrorType::Page => 1011,
+            ErrorType::PageVote => 1012,
 
             // 1100 - Intermediate Setup
             ErrorType::ServerSetup => 1100,
@@ -404,6 +406,7 @@ impl ErrorType {
             ErrorType::SiteSettings => "Site settings operation failed",
             ErrorType::User => "User operation failed",
             ErrorType::Page => "Page operation failed",
+            ErrorType::PageVote => "Page vote operation failed",
 
             // 1100
             ErrorType::ServerSetup => "Failed to set up server internal state",
