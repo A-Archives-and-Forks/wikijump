@@ -20,7 +20,7 @@
 
 pub mod prelude {
     pub use super::{Error, ErrorType, OldError, OldResult, Result, StdError, StdResult};
-    pub use exn::ResultExt;
+    pub use exn::{OptionExt, ResultExt};
 }
 
 mod convert;

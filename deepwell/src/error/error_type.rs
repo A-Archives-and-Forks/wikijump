@@ -180,6 +180,7 @@ pub enum ErrorType {
     },
     BlobBlacklisted(BlobHash),
     BlobCannotBlacklistExisting,
+    BlobBackend,
 
     // 5300
     MessageSubjectEmpty,
@@ -392,6 +393,7 @@ impl ErrorType {
             ErrorType::BlobSizeMismatch { .. } => 5204,
             ErrorType::BlobBlacklisted(_) => 5205,
             ErrorType::BlobCannotBlacklistExisting => 5206,
+            ErrorType::BlobBackend => 5207,
 
             // 5300 - Message
             ErrorType::MessageSubjectEmpty => 5300,
@@ -583,6 +585,7 @@ impl ErrorType {
             ErrorType::BlobCannotBlacklistExisting => {
                 "Cannot blacklist a blob which is already in use, you must do a hard deletion"
             }
+            ErrorType::BlobBackend => "S3 operation failed",
 
             // 5300
             ErrorType::MessageSubjectEmpty => "Message subject cannot be empty",

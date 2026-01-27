@@ -49,7 +49,9 @@ use sea_orm::{
 };
 use sea_query::value::ArrayType;
 use std::collections::{HashMap, HashSet};
+use std::convert::Infallible;
 use std::hash::Hash;
+use std::num::TryFromIntError;
 use std::str;
 use std::sync::Arc;
 use time::format_description::well_known::Rfc2822;
@@ -95,21 +97,36 @@ impl BlobService {
     pub async fn start_upload(
         ctx: &ServiceContext<'_>,
         StartBlobUpload { user_id, blob_size }: StartBlobUpload,
-    ) -> OldResult<StartBlobUploadOutput> {
+    ) -> Result<StartBlobUploadOutput> {
         info!("Creating upload by {user_id} with promised length {blob_size}");
         let config = ctx.config();
         let txn = ctx.transaction();
 
         // Convert expected length integer type, then check it
-        let blob_size = i64::try_from(blob_size).map_err(|_| OldError::BlobTooBig)?;
+        let blob_size = i64::try_from(blob_size).or_raise(|| Error::new(
+            format!(
+                "failed to create pending blob upload, size integer could not be converted: {}",
+                blob_size,
+            ),
+            ErrorType::BlobTooBig,
+        ))?;
+
         if blob_size > config.maximum_blob_size {
             error!(
                 "Blob proposed to upload is too big ({} > {})",
                 blob_size, config.maximum_blob_size,
             );
-
-            return Err(OldError::BlobTooBig);
+            bail!(Error::new(
+                format!(
+                    "failed to create pending blob upload, proposed file size is too large: ({} > {} bytes)",
+                    blob_size, config.maximum_blob_size,
+                ),
+                ErrorType::BlobTooBig,
+            ));
         }
+
+        let make_error =
+            || Error::new("failed to create pending blob upload", ErrorType::Blob);
 
         // Generate primary key and random S3 path
         let pending_blob_id = cuid();
@@ -130,20 +147,22 @@ impl BlobService {
         };
 
         info!(
-            "Creating presign upload URL for blob at path {s3_path} with primary key {pending_blob_id}"
+            "Creating presign upload URL for blob at path {} with primary key {}",
+            s3_path, pending_blob_id,
         );
 
         // Create presign URL
         let bucket = ctx.s3_files_bucket();
         let presign_url = bucket
             .presign_put(&s3_path, config.presigned_expiry_secs, None, None)
-            .await?;
+            .await
+            .or_raise(make_error)?;
 
         // Get timestamps
         let created_at = now();
         let expires_at = created_at
             .checked_add(Duration::seconds(i64::from(config.presigned_expiry_secs)))
-            .expect("getting expiration timestamp overflowed");
+            .ok_or_raise(make_error)?;
 
         // Add pending blob entry
         let model = blob_pending::ActiveModel {
@@ -161,7 +180,7 @@ impl BlobService {
             external_id: pending_blob_id,
             presign_url,
             ..
-        } = model.insert(txn).await?;
+        } = model.insert(txn).await.or_raise(make_error)?;
 
         debug!("New presign upload URL will last until {expires_at}");
 
@@ -176,9 +195,24 @@ impl BlobService {
         ctx: &ServiceContext<'_>,
         user_id: i64,
         pending_blob_id: &str,
-    ) -> OldResult<PendingBlob> {
+    ) -> Result<PendingBlob> {
         let txn = ctx.transaction();
-        let row = BlobPending::find_by_id(pending_blob_id).one(txn).await?;
+
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to get pending blob path for ID '{}' (from user ID {})",
+                    pending_blob_id, user_id,
+                ),
+                ErrorType::Blob,
+            )
+        };
+
+        let row = BlobPending::find_by_id(pending_blob_id)
+            .one(txn)
+            .await
+            .or_raise(make_error)?;
+
         let BlobPendingModel {
             s3_path,
             s3_hash,
@@ -187,14 +221,21 @@ impl BlobService {
             ..
         } = match row {
             Some(pending) => pending,
-            None => return Err(OldError::BlobNotFound),
+            None => bail!(Error::new("blob does not exist", ErrorType::BlobNotFound)),
         };
 
         if user_id != created_by {
             error!(
-                "User mismatch, user ID {user_id} is attempting to use blob uploaded by {created_by}"
+                "User mismatch, user ID {} is attempting to use blob uploaded by {}",
+                user_id, created_by,
             );
-            return Err(OldError::BlobWrongUser);
+            bail!(Error::new(
+                format!(
+                    "failed to get blob, user mismatch (user ID {} is requested, but uploaded by user ID {}",
+                    user_id, created_by,
+                ),
+                ErrorType::BlobWrongUser,
+            ));
         }
 
         Ok(PendingBlob {
@@ -208,17 +249,37 @@ impl BlobService {
         ctx: &ServiceContext<'_>,
         user_id: i64,
         pending_blob_id: &str,
-    ) -> OldResult<()> {
+    ) -> Result<()> {
         info!("Cancelling upload for blob for pending ID {pending_blob_id}");
         let txn = ctx.transaction();
+
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to cancel pending blob for ID '{}' (from user ID {})",
+                    pending_blob_id, user_id,
+                ),
+                ErrorType::Blob,
+            )
+        };
+
         let PendingBlob { s3_path, .. } =
-            Self::get_pending_blob_path(ctx, user_id, pending_blob_id).await?;
+            Self::get_pending_blob_path(ctx, user_id, pending_blob_id)
+                .await
+                .or_raise(make_error)?;
 
-        BlobPending::delete_by_id(pending_blob_id).exec(txn).await?;
+        BlobPending::delete_by_id(pending_blob_id)
+            .exec(txn)
+            .await
+            .or_raise(make_error)?;
 
-        if Self::head(ctx, &s3_path).await?.is_some() {
+        if Self::head(ctx, &s3_path)
+            .await
+            .or_raise(make_error)?
+            .is_some()
+        {
             let bucket = ctx.s3_files_bucket();
-            bucket.delete_object(&s3_path).await?;
+            bucket.delete_object(&s3_path).await.or_raise(make_error)?;
         }
 
         Ok(())
@@ -237,12 +298,16 @@ impl BlobService {
         pending_blob_user_id: i64,
         s3_path: &str,
         expected_length: usize,
-    ) -> OldResult<FinalizeBlobUploadOutput> {
+    ) -> Result<FinalizeBlobUploadOutput> {
         let state = ctx.state();
         let db_state = Arc::clone(&state);
 
+        let make_error =
+            || Error::new("failed to move uploaded blob to final", ErrorType::Blob);
+
         // Produce temporary context in a new transaction
-        let txn = db_state.database.begin().await?;
+        let txn = db_state.database.begin().await.or_raise(make_error)?;
+
         let inner_ctx = ServiceContext::new(&state, &txn);
         let result = Self::move_uploaded_inner(
             &inner_ctx,
@@ -254,7 +319,7 @@ impl BlobService {
         .await;
 
         // Commit separate transaction, recording a move (if it occurred)
-        txn.commit().await?;
+        txn.commit().await.or_raise(make_error)?;
         result
     }
 
@@ -264,22 +329,28 @@ impl BlobService {
         pending_blob_user_id: i64,
         s3_path: &str,
         expected_length: usize,
-    ) -> OldResult<FinalizeBlobUploadOutput> {
+    ) -> Result<FinalizeBlobUploadOutput> {
         let bucket = ctx.s3_files_bucket();
         let txn = ctx.transaction();
 
+        let make_error =
+            || Error::new("failed to move uploaded blob to final", ErrorType::Blob);
+
         debug!("Download uploaded blob from S3 uploads to get metadata");
-        let response = bucket.get_object(s3_path).await?;
+        let response = bucket.get_object(s3_path).await.or_raise(make_error)?;
+
         let data: Vec<u8> = match response.status_code() {
             200 => response.into(),
             404 => {
                 error!("No blob uploaded at presign path {s3_path}");
-                return Err(OldError::BlobNotUploaded);
+                bail!(Error::new(
+                    format!("no blob uploaded at presign path {}", s3_path),
+                    ErrorType::BlobNotUploaded,
+                ));
             }
             _ => {
                 error!("Unable to retrieve uploaded blob at {s3_path} from S3");
-                let error = s3_error(&response, "finalizing uploaded blob")?;
-                return Err(error);
+                bail!(s3_error(&response, "finalizing uploaded blob"));
             }
         };
 
@@ -289,11 +360,18 @@ impl BlobService {
                 expected_length,
                 data.len(),
             );
-            bucket.delete_object(&s3_path).await?;
-            return Err(OldError::BlobSizeMismatch {
-                expected: expected_length,
-                actual: data.len(),
-            });
+            bucket.delete_object(&s3_path).await.or_raise(make_error)?;
+            bail!(Error::new(
+                format!(
+                    "expected blob length of {} bytes, instead found a blob of {} bytes uploaded",
+                    expected_length,
+                    data.len(),
+                ),
+                ErrorType::BlobSizeMismatch {
+                    expected: expected_length,
+                    actual: data.len()
+                },
+            ));
         }
 
         // Special handling for empty blobs
@@ -316,21 +394,31 @@ impl BlobService {
         //
         // In either case, we delete the blob at the temporary upload location.
 
-        let result = Self::direct_upload(ctx, data).await?;
-        bucket.delete_object(&s3_path).await?;
+        let result = Self::direct_upload(ctx, data).await.or_raise(make_error)?;
+
+        bucket.delete_object(&s3_path).await.or_raise(make_error)?;
 
         // Check that new blob is not blacklisted
-        if Self::on_blacklist(ctx, result.s3_hash).await? {
+        if Self::on_blacklist(ctx, result.s3_hash)
+            .await
+            .or_raise(make_error)?
+        {
             let hex_hash = blob_hash_to_hex(&result.s3_hash);
             error!(
-                "Newly-uploaded blob {pending_blob_id} is blacklisted (hash {hex_hash})",
+                "Newly-uploaded blob {} is blacklisted (hash {})",
+                pending_blob_id, hex_hash,
             );
 
             // Cancel this pending upload, what they're trying to store shouldn't be on here
-            Self::cancel_upload(ctx, pending_blob_user_id, pending_blob_id).await?;
+            Self::cancel_upload(ctx, pending_blob_user_id, pending_blob_id)
+                .await
+                .or_raise(make_error)?;
 
             // Finally, return error
-            return Err(OldError::BlobBlacklisted(result.s3_hash));
+            bail!(Error::new(
+                "cannot upload blob, contents are blacklisted",
+                ErrorType::BlobBlacklisted(result.s3_hash)
+            ));
         }
 
         // Update pending blob with hash
@@ -339,7 +427,7 @@ impl BlobService {
             s3_hash: Set(Some(result.s3_hash.to_vec())),
             ..Default::default()
         };
-        model.update(txn).await?;
+        model.update(txn).await.or_raise(make_error)?;
 
         // Return
         Ok(result)
@@ -354,17 +442,20 @@ impl BlobService {
     pub(crate) async fn direct_upload(
         ctx: &ServiceContext<'_>,
         data: Vec<u8>,
-    ) -> OldResult<FinalizeBlobUploadOutput> {
+    ) -> Result<FinalizeBlobUploadOutput> {
         let bucket = ctx.s3_files_bucket();
+
+        let make_error =
+            || Error::new("failed to perform direct upload", ErrorType::Blob);
 
         // Get hash for blob
         let s3_hash = sha512_hash(&data);
         let hex_hash = blob_hash_to_hex(&s3_hash);
 
         // Convert size to correct integer type
-        let size: i64 = data.len().try_into().expect("Buffer size exceeds i64");
+        let size = usize_to_i64(data.len()).or_raise(make_error)?;
 
-        match Self::head(ctx, &hex_hash).await? {
+        match Self::head(ctx, &hex_hash).await.or_raise(make_error)? {
             Some(result) => {
                 debug!("Blob with hash {hex_hash} already exists");
 
@@ -372,7 +463,12 @@ impl BlobService {
                 //       In case of changing file formats, etc.
 
                 // Content-Type header should be returned
-                let mime = result.content_type.ok_or(OldError::S3Response)?;
+                let mime = result.content_type.ok_or_raise(|| {
+                    Error::new(
+                        format!("blob with hash {} already exists in S3", hex_hash),
+                        ErrorType::BlobBackend,
+                    )
+                })?;
 
                 Ok(FinalizeBlobUploadOutput {
                     s3_hash,
@@ -385,12 +481,17 @@ impl BlobService {
                 debug!("Blob with hash {hex_hash} to be created");
 
                 // Determine MIME type for the new blob
-                let mime = ctx.mime().get_mime_type(data.clone()).await?;
+                let mime = ctx
+                    .mime()
+                    .get_mime_type(data.clone())
+                    .await
+                    .or_raise(make_error)?;
 
                 // Upload S3 object
                 let response = bucket
                     .put_object_with_content_type(&hex_hash, &data, &mime)
-                    .await?;
+                    .await
+                    .or_raise(make_error)?;
 
                 // We assume all unexpected statuses are errors, even if 1XX or 2XX
                 match response.status_code() {
@@ -400,7 +501,7 @@ impl BlobService {
                         size,
                         created: true,
                     }),
-                    _ => s3_error(&response, "creating finalized S3 blob")?,
+                    _ => bail!(s3_error(&response, "creating finalized S3 blob")),
                 }
             }
         }
@@ -410,21 +511,29 @@ impl BlobService {
         ctx: &ServiceContext<'_>,
         user_id: i64,
         pending_blob_id: &str,
-    ) -> OldResult<FinalizeBlobUploadOutput> {
+    ) -> Result<FinalizeBlobUploadOutput> {
         info!("Finishing upload for blob for pending ID {pending_blob_id}");
+
+        let make_error = || {
+            Error::new(
+                format!("failed to finalize blob upload for '{}'", pending_blob_id),
+                ErrorType::Blob,
+            )
+        };
 
         let PendingBlob {
             s3_path,
             expected_length,
             moved_hash,
-        } = Self::get_pending_blob_path(ctx, user_id, pending_blob_id).await?;
+        } = Self::get_pending_blob_path(ctx, user_id, pending_blob_id)
+            .await
+            .or_raise(make_error)?;
 
         let output = match moved_hash {
             // Need to move from pending to main hash area
             None => {
-                let expected_length = expected_length
-                    .try_into()
-                    .map_err(|_| OldError::BlobTooBig)?;
+                let expected_length =
+                    i64_to_usize(expected_length).or_raise(make_error)?;
 
                 Self::move_uploaded(
                     ctx,
@@ -433,13 +542,15 @@ impl BlobService {
                     &s3_path,
                     expected_length,
                 )
-                .await?
+                .await
+                .or_raise(make_error)?
             }
 
             // Already moved
             Some(hash_vec) => {
-                let BlobMetadata { mime, size, .. } =
-                    Self::get_metadata(ctx, &hash_vec).await?;
+                let BlobMetadata { mime, size, .. } = Self::get_metadata(ctx, &hash_vec)
+                    .await
+                    .or_raise(make_error)?;
 
                 debug_assert_eq!(expected_length, size);
 
@@ -459,10 +570,13 @@ impl BlobService {
     // Prune operations
 
     /// Deletes all expired pending blobs from the database and S3.
-    pub async fn prune(ctx: &ServiceContext<'_>) -> OldResult<()> {
+    pub async fn prune(ctx: &ServiceContext<'_>) -> Result<()> {
         let txn = ctx.transaction();
         let bucket = ctx.s3_files_bucket();
         info!("Pruning expired pending blobs from database and S3");
+
+        let make_error =
+            || Error::new("failed to prune expired pending blobs", ErrorType::Blob);
 
         // Fetch all expired pending blobs
         let pending_blobs = BlobPending::find()
@@ -472,14 +586,15 @@ impl BlobService {
             .filter(blob_pending::Column::ExpiresAt.lte(now()))
             .into_tuple::<(String, String)>()
             .all(txn)
-            .await?;
+            .await
+            .or_raise(make_error)?;
 
         // Delete from the S3 bucket
         for (_, s3_path) in &pending_blobs {
             // Only try to delete if the object exists,
             // ignore missing objects.
-            if Self::exists(ctx, s3_path).await? {
-                bucket.delete_object(&s3_path).await?;
+            if Self::exists(ctx, s3_path).await.or_raise(make_error)? {
+                bucket.delete_object(&s3_path).await.or_raise(make_error)?;
             }
         }
 
@@ -489,7 +604,8 @@ impl BlobService {
         BlobPending::delete_many()
             .filter(blob_pending::Column::ExternalId.is_in(blob_ids))
             .exec(txn)
-            .await?;
+            .await
+            .or_raise(make_error)?;
 
         Ok(())
     }
@@ -501,8 +617,10 @@ impl BlobService {
     pub async fn hard_delete_preview(
         ctx: &ServiceContext<'_>,
         s3_hash: BlobHash,
-    ) -> OldResult<HardDeleteOutput> {
-        Self::hard_delete_inner(ctx, HardDeleteInner::DryRun { s3_hash }).await
+    ) -> Result<HardDeleteOutput> {
+        Self::hard_delete_inner(ctx, HardDeleteInner::DryRun { s3_hash })
+            .await
+            .or_raise(|| Error::new("failed to preview hard deletion", ErrorType::Blob))
     }
 
     /// Hard deletes the specified blob and all duplicates.
@@ -519,9 +637,18 @@ impl BlobService {
     pub async fn hard_delete_all(
         ctx: &ServiceContext<'_>,
         HardDelete { s3_hash, user_id }: HardDelete,
-    ) -> OldResult<HardDeleteOutput> {
+    ) -> Result<HardDeleteOutput> {
         let s3_hash = slice_to_blob_hash(s3_hash.as_ref());
-        Self::hard_delete_inner(ctx, HardDeleteInner::Commit { s3_hash, user_id }).await
+
+        Self::hard_delete_inner(ctx, HardDeleteInner::Commit { s3_hash, user_id })
+            .await
+            .or_raise(|| Error::new(
+                format!(
+                    "failed to hard delete all instances of a blob, performed by user ID {}",
+                    user_id,
+                ),
+                ErrorType::Blob,
+            ))
     }
 
     /// Inner implementation, which runs the hard deletion procedure but may not actually delete.
@@ -531,7 +658,7 @@ impl BlobService {
     async fn hard_delete_inner(
         ctx: &ServiceContext<'_>,
         input: HardDeleteInner,
-    ) -> OldResult<HardDeleteOutput> {
+    ) -> Result<HardDeleteOutput> {
         let txn = ctx.transaction();
         let (s3_hash, deleter_user_id) = match input {
             HardDeleteInner::Commit { s3_hash, user_id } => (s3_hash, Some(user_id)),
@@ -542,7 +669,17 @@ impl BlobService {
         //       If there's no user ID to record as responsible, it must necessarily
         //       be a dry run.
 
-        Self::check_hash_not_empty(s3_hash)?;
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to perform hard deletion operation for blob '{}'",
+                    blob_hash_to_hex(&s3_hash),
+                ),
+                ErrorType::Blob,
+            )
+        };
+
+        Self::check_hash_not_empty(s3_hash).or_raise(make_error)?;
 
         let mut revisions = SamplerCounter::new();
         let mut files = SamplerCounter::new();
@@ -601,7 +738,8 @@ impl BlobService {
                 .from_raw_sql(query)
                 .into_model::<LatestFileRevision>()
                 .all(txn)
-                .await?;
+                .await
+                .or_raise(make_error)?;
 
             for LatestFileRevision {
                 site_id,
@@ -628,7 +766,8 @@ impl BlobService {
                             user_id: SYSTEM_USER_ID,
                         },
                     )
-                    .await?;
+                    .await
+                    .or_raise(make_error)?;
                 }
             }
         }
@@ -639,7 +778,7 @@ impl BlobService {
                 .filter(file_revision::Column::S3Hash.eq(s3_hash.as_slice()))
                 .paginate(txn, 20);
 
-            while let Some(revs) = results.fetch_and_next().await? {
+            while let Some(revs) = results.fetch_and_next().await.or_raise(make_error)? {
                 for rev in revs {
                     revisions.add(rev.revision_id);
                     files.add(rev.file_id);
@@ -666,7 +805,7 @@ impl BlobService {
                             ..Default::default()
                         };
 
-                        model.update(txn).await?;
+                        model.update(txn).await.or_raise(make_error)?;
                     }
                 }
             }
@@ -682,9 +821,10 @@ impl BlobService {
             .limit(u64::from(SAMPLE_COUNT))
             .into_tuple()
             .all(txn)
-            .await?;
+            .await
+            .or_raise(make_error)?;
 
-        let total_users = match deleter_user_id {
+        let total_users: u64 = match deleter_user_id {
             Some(_) => {
                 // Mutate, update all users and get count
                 let model = user::ActiveModel {
@@ -696,31 +836,34 @@ impl BlobService {
                     .set(model)
                     .filter(user::Column::AvatarS3Hash.eq(s3_hash.as_slice()))
                     .exec(txn)
-                    .await?
+                    .await
+                    .or_raise(make_error)?
                     .rows_affected
             }
             None => {
                 // Read-only, just get the count
-                User::find()
+                let count: i64 = User::find()
                     .select_only()
                     .column_as(user::Column::UserId.count(), "count")
                     .filter(user::Column::AvatarS3Hash.eq(s3_hash.as_slice()))
                     .into_tuple::<i64>() // Postgres cannot return u64 as a column type
                     .one(txn)
-                    .await?
-                    .expect("No results from COUNT aggregate query")
-                    .try_into()
-                    .expect("Unable to convert i64 to u64")
+                    .await
+                    .or_raise(make_error)?
+                    .expect("No results from COUNT aggregate query");
+
+                i64_to_u64(count).or_raise(make_error)?
             }
         };
 
         if let Some(user_id) = deleter_user_id {
             // Delete and blacklist the hash, nobody should be uploading new versions
             // Only do so if we are actually mutating.
-            try_join!(
+            let (result1, result2) = join!(
                 BlobService::add_blacklist(ctx, s3_hash, user_id),
                 BlobService::hard_delete(ctx, &s3_hash),
-            )?;
+            );
+            raise_multiple!(result1, result2; make_error);
         }
 
         // Finish counting and sampling
@@ -750,13 +893,16 @@ impl BlobService {
     ///
     /// After all it makes no sense to blacklist empty files, and doing so
     /// would cause some issues internally.
-    pub(crate) fn check_hash_not_empty(hash: BlobHash) -> OldResult<()> {
+    pub(crate) fn check_hash_not_empty(hash: BlobHash) -> Result<()> {
         if hash == EMPTY_BLOB_HASH {
             error!("Cannot hard delete the empty blob");
-            Err(OldError::BadRequest)
-        } else {
-            Ok(())
+            bail!(Error::new(
+                "cannot hard delete the empty blob",
+                ErrorType::BadRequest,
+            ));
         }
+
+        Ok(())
     }
 
     /// Checks that a blob hash is not presently used anywhere in the system.
@@ -766,7 +912,17 @@ impl BlobService {
     pub(crate) async fn check_hash_in_use(
         ctx: &ServiceContext<'_>,
         hash: BlobHash,
-    ) -> OldResult<()> {
+    ) -> Result<()> {
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to check whether blob hash '{}' is in use anywhere",
+                    blob_hash_to_hex(&hash),
+                ),
+                ErrorType::Blob,
+            )
+        };
+
         let txn = ctx.transaction();
         let count = FileRevision::find()
             .select_only()
@@ -774,23 +930,32 @@ impl BlobService {
             .filter(file_revision::Column::S3Hash.eq(hash.as_slice()))
             .into_tuple::<i64>()
             .one(txn)
-            .await?
+            .await
+            .or_raise(make_error)?
             .expect("No results from COUNT aggregate query");
 
         if count > 0 {
-            error!("Cannot blacklist a blob that is already in use (found {count} uses)");
-            Err(OldError::BlobCannotBlacklistExisting)
-        } else {
-            debug!("Found no current uses of blob to be blacklisted");
-            Ok(())
+            error!(
+                "Cannot blacklist a blob that is currently in use (found {count} uses)"
+            );
+            bail!(Error::new(
+                format!(
+                    "cannot blacklist a blob that is currently in use (found {} uses)",
+                    count,
+                ),
+                ErrorType::BlobCannotBlacklistExisting
+            ));
         }
+
+        debug!("Found no current uses of blob to be blacklisted");
+        Ok(())
     }
 
     pub async fn add_blacklist(
         ctx: &ServiceContext<'_>,
         hash: BlobHash,
         created_by: i64,
-    ) -> OldResult<()> {
+    ) -> Result<()> {
         info!("Adding hash {} to blacklist", blob_hash_to_hex(&hash));
 
         // This should never happen because the callers already
@@ -800,7 +965,10 @@ impl BlobService {
             "Empty blob hash passed to add_blacklist()",
         );
 
-        if Self::on_blacklist(ctx, hash).await? {
+        let make_error =
+            || Error::new("failed to add blob to blacklist", ErrorType::Blob);
+
+        if Self::on_blacklist(ctx, hash).await.or_raise(make_error)? {
             debug!("Already blacklisted, skipping");
             return Ok(());
         }
@@ -811,34 +979,55 @@ impl BlobService {
             created_by: Set(created_by),
             ..Default::default()
         };
-        model.insert(txn).await?;
+        model.insert(txn).await.or_raise(make_error)?;
         Ok(())
     }
 
     pub async fn remove_blacklist(
         ctx: &ServiceContext<'_>,
         hash: BlobHash,
-    ) -> OldResult<()> {
+    ) -> Result<()> {
         info!("Removing hash {} to blacklist", blob_hash_to_hex(&hash));
+
         let txn = ctx.transaction();
-        BlobBlacklist::delete_by_id(hash.to_vec()).exec(txn).await?;
+        BlobBlacklist::delete_by_id(hash.to_vec())
+            .exec(txn)
+            .await
+            .or_raise(|| {
+                Error::new(
+                    format!(
+                        "failed to remove blob '{}' from blacklist",
+                        blob_hash_to_hex(&hash),
+                    ),
+                    ErrorType::Blob,
+                )
+            })?;
+
         Ok(())
     }
 
-    pub async fn on_blacklist(
-        ctx: &ServiceContext<'_>,
-        hash: BlobHash,
-    ) -> OldResult<bool> {
+    pub async fn on_blacklist(ctx: &ServiceContext<'_>, hash: BlobHash) -> Result<bool> {
         info!(
             "Checking if hash {} is on blacklist",
             blob_hash_to_hex(&hash),
         );
 
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to check if blob '{}' is on the blacklist",
+                    blob_hash_to_hex(&hash),
+                ),
+                ErrorType::Blob,
+            )
+        };
+
         let txn = ctx.transaction();
         let exists = BlobBlacklist::find()
             .filter(blob_blacklist::Column::S3Hash.eq(hash.as_slice()))
             .one(txn)
-            .await?
+            .await
+            .or_raise(make_error)?
             .is_some();
 
         Ok(exists)
@@ -849,7 +1038,7 @@ impl BlobService {
     pub async fn get_optional(
         ctx: &ServiceContext<'_>,
         hash: &[u8],
-    ) -> OldResult<Option<Vec<u8>>> {
+    ) -> Result<Option<Vec<u8>>> {
         // Special handling for empty blobs
         if hash == EMPTY_BLOB_HASH {
             debug!("Returning the empty blob");
@@ -859,46 +1048,61 @@ impl BlobService {
         // Retrieve blob from S3
         let bucket = ctx.s3_files_bucket();
         let hex_hash = blob_hash_to_hex(hash);
-        let response = bucket.get_object(&hex_hash).await?;
+        let response = bucket
+            .get_object(&hex_hash)
+            .await
+            .or_raise(|| Error::new("failed to get blob", ErrorType::Blob))?;
+
         match response.status_code() {
             200 => Ok(Some(response.into())),
             404 => Ok(None),
-            _ => s3_error(&response, "fetching S3 blob"),
+            _ => bail!(s3_error(&response, "fetching S3 blob")),
         }
     }
 
     #[inline]
-    pub async fn get(ctx: &ServiceContext<'_>, hash: &[u8]) -> OldResult<Vec<u8>> {
-        find_or_error!(Self::get_optional(ctx, hash), Blob)
+    pub async fn get(ctx: &ServiceContext<'_>, hash: &[u8]) -> Result<Vec<u8>> {
+        find_or_error_tmp!(Self::get_optional(ctx, hash), blob, Blob)
     }
 
     pub async fn get_metadata_optional(
         ctx: &ServiceContext<'_>,
         hash: &[u8],
-    ) -> OldResult<Option<BlobMetadata>> {
+    ) -> Result<Option<BlobMetadata>> {
+        let hex_hash = blob_hash_to_hex(hash);
+        let make_error = || {
+            Error::new(
+                format!("failed to get blob metadata for '{}'", hex_hash),
+                ErrorType::Blob,
+            )
+        };
+
         // Special handling for empty blobs
         if hash == EMPTY_BLOB_HASH {
             return Ok(Some(BlobMetadata {
                 mime: str!(EMPTY_BLOB_MIME),
                 size: 0,
                 created_at: OffsetDateTime::from_unix_timestamp(EMPTY_BLOB_TIMESTAMP)
-                    .unwrap(),
+                    .or_raise(make_error)?,
             }));
         }
 
         // Retrieve metadata from S3
-        let hex_hash = blob_hash_to_hex(hash);
-        match Self::head(ctx, &hex_hash).await? {
+        match Self::head(ctx, &hex_hash).await.or_raise(make_error)? {
             None => Ok(None),
             Some(result) => {
-                // Headers should be passed in
-                let size = result.content_length.ok_or(OldError::S3Response)?;
-                let mime = result.content_type.ok_or(OldError::S3Response)?;
-                let created_at = {
-                    let timestamp = result.last_modified.ok_or(OldError::S3Response)?;
+                let make_error = || {
+                    let mut error = make_error();
+                    error.error_type = ErrorType::BlobBackend;
+                    error
+                };
 
-                    OffsetDateTime::parse(&timestamp, &Rfc2822)
-                        .map_err(|_| OldError::S3Response)?
+                // Headers should be passed in
+                let size = result.content_length.ok_or_raise(make_error)?;
+                let mime = result.content_type.ok_or_raise(make_error)?;
+                let created_at = {
+                    let timestamp = result.last_modified.ok_or_raise(make_error)?;
+                    OffsetDateTime::parse(&timestamp, &Rfc2822).or_raise(make_error)?
                 };
 
                 Ok(Some(BlobMetadata {
@@ -914,8 +1118,8 @@ impl BlobService {
     pub async fn get_metadata(
         ctx: &ServiceContext<'_>,
         hash: &[u8],
-    ) -> OldResult<BlobMetadata> {
-        find_or_error!(Self::get_metadata_optional(ctx, hash), Blob)
+    ) -> Result<BlobMetadata> {
+        find_or_error_tmp!(Self::get_metadata_optional(ctx, hash), blob, Blob)
     }
 
     /// Possibly retrieve blob contents, if a flag is set.
@@ -928,9 +1132,12 @@ impl BlobService {
         ctx: &ServiceContext<'_>,
         should_fetch: bool,
         hash: &[u8],
-    ) -> OldResult<Option<Vec<u8>>> {
+    ) -> Result<Option<Vec<u8>>> {
         if should_fetch {
-            let data = Self::get(ctx, hash).await?;
+            let data = Self::get(ctx, hash).await.or_raise(|| {
+                Error::new("failed to conditionally get blob data", ErrorType::Blob)
+            })?;
+
             Ok(Some(data))
         } else {
             Ok(None)
@@ -940,26 +1147,34 @@ impl BlobService {
     async fn head(
         ctx: &ServiceContext<'_>,
         path: &str,
-    ) -> OldResult<Option<HeadObjectResult>> {
+    ) -> Result<Option<HeadObjectResult>> {
         let bucket = ctx.s3_files_bucket();
-        let (result, status) = bucket.head_object(path).await?;
+        let (result, status) = bucket.head_object(path).await.or_raise(|| {
+            Error::new(
+                format!("failed to HEAD existence of S3 object '{}'", path),
+                ErrorType::Blob,
+            )
+        })?;
 
         match status {
             200 | 204 => Ok(Some(result)),
             404 => Ok(None),
             _ => {
                 let response = ResponseData::new(Bytes::new(), status, HashMap::new());
-                s3_error(&response, "heading S3 blob")
+                bail!(s3_error(&response, "heading S3 blob"));
             }
         }
     }
 
-    async fn exists(ctx: &ServiceContext<'_>, path: &str) -> OldResult<bool> {
-        let head = Self::head(ctx, path).await?;
+    async fn exists(ctx: &ServiceContext<'_>, path: &str) -> Result<bool> {
+        let head = Self::head(ctx, path)
+            .await
+            .or_raise(|| Error::new("failed to check blob existence", ErrorType::Blob))?;
+
         Ok(head.is_some())
     }
 
-    pub async fn hard_delete(ctx: &ServiceContext<'_>, hash: &[u8]) -> OldResult<()> {
+    pub async fn hard_delete(ctx: &ServiceContext<'_>, hash: &[u8]) -> Result<()> {
         // Special handling for empty blobs
         //
         // Being virtual, having always existed, they cannot be deleted.
@@ -973,16 +1188,21 @@ impl BlobService {
         let bucket = ctx.s3_files_bucket();
         let hex_hash = blob_hash_to_hex(hash);
 
-        let response = bucket.delete_object(&hex_hash).await?;
+        let response = bucket
+            .delete_object(&hex_hash)
+            .await
+            .or_raise(|| Error::new("failed to hard delete blob", ErrorType::Blob))?;
+
         match response.status_code() {
             204 => Ok(()),
-            _ => s3_error(&response, "hard-deleting S3 blob"),
+            _ => bail!(s3_error(&response, "hard-deleting S3 blob")),
         }
     }
 }
 
 /// Helper method to parse out an S3 error response and print the message (if any).
-fn s3_error<T>(response: &ResponseData, action: &str) -> OldResult<T> {
+#[must_use]
+fn s3_error(response: &ResponseData, action: &str) -> Error {
     let error_message = match str::from_utf8(response.bytes()) {
         Ok("") => "(no content)",
         Ok(m) => m,
@@ -990,14 +1210,20 @@ fn s3_error<T>(response: &ResponseData, action: &str) -> OldResult<T> {
     };
 
     error!(
-        "OldError while {} (HTTP {}): {}",
+        "Error while {} (HTTP {}): {}",
         action,
         response.status_code(),
         error_message,
     );
-
-    // TODO replace with S3 backend-specific error
-    Err(OldError::S3Response)
+    Error::new(
+        format!(
+            "failed {}, (HTTP {}): {}",
+            action,
+            response.status_code(),
+            error_message,
+        ),
+        ErrorType::BlobBackend,
+    )
 }
 
 #[derive(Debug)]
@@ -1039,10 +1265,28 @@ impl<T: Hash + Ord + Eq> SamplerCounter<T> {
                 .into_iter()
                 .take(usize::from(SAMPLE_COUNT))
                 .collect::<Vec<_>>();
+
             samples.sort();
             samples
         };
 
         (count, samples)
     }
+}
+
+// Helper functions to assist rustc in disambiguating error typing.
+
+#[inline]
+fn usize_to_i64(value: usize) -> StdResult<i64, TryFromIntError> {
+    value.try_into()
+}
+
+#[inline]
+fn i64_to_usize(value: i64) -> StdResult<usize, TryFromIntError> {
+    value.try_into()
+}
+
+#[inline]
+fn i64_to_u64(value: i64) -> StdResult<u64, TryFromIntError> {
+    value.try_into()
 }
