@@ -782,7 +782,7 @@ impl FileService {
         .await?;
 
         if let Some(name) = name {
-            filter_matcher.verify(ctx, name).await?;
+            filter_matcher.verify(ctx, "filename", name).await?;
         }
 
         Ok(())

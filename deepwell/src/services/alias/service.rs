@@ -363,7 +363,7 @@ impl AliasService {
         let filter_matcher =
             FilterService::get_matcher(ctx, FilterClass::Platform, filter_type).await?;
 
-        filter_matcher.verify(ctx, slug).await?;
+        filter_matcher.verify(ctx, "slug", slug).await?;
         Ok(())
     }
 }

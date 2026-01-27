@@ -204,9 +204,6 @@ pub enum OldError {
     #[error("Site slug cannot be empty")]
     SiteSlugEmpty,
 
-    #[error("Page slug cannot be empty")]
-    PageSlugEmpty,
-
     #[error("Cannot restore a non-deleted page")]
     PageNotDeleted,
 

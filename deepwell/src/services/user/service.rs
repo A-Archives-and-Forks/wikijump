@@ -59,7 +59,7 @@ impl UserService {
             bypass_email_verification,
             ip_address,
         }: CreateUser,
-    ) -> OldResult<CreateUserOutput> {
+    ) -> Result<CreateUserOutput> {
         let txn = ctx.transaction();
         let slug = get_user_slug(&name, user_type);
 
@@ -71,7 +71,10 @@ impl UserService {
         // Empty slug check
         if slug.is_empty() {
             error!("Cannot create user with empty slug");
-            return Err(OldError::UserSlugEmpty);
+            bail!(Error::new(
+                "cannot create user with empty slug",
+                ErrorType::UserSlugEmpty
+            ));
         }
 
         // Check if username contains the minimum amount of required bytes and chars.
@@ -82,28 +85,51 @@ impl UserService {
                 slug.len(),
                 ctx.config().minimum_name_bytes,
             );
-            return Err(OldError::UserNameTooShort);
+            bail!(Error::new(
+                format!(
+                    "cannot create user, name is not long enough ({} < {} bytes)",
+                    slug.len(),
+                    ctx.config().minimum_name_bytes,
+                ),
+                ErrorType::UserNameTooShort,
+            ));
         }
 
-        if name.chars().count() < config.minimum_name_chars {
+        let char_count = name.chars().count();
+        if char_count < config.minimum_name_chars {
             error!(
                 "User's name is not long enough ({} < {} chars)",
-                slug.len(),
+                char_count,
                 ctx.config().minimum_name_chars,
             );
-            return Err(OldError::UserNameTooShort);
+            bail!(Error::new(
+                format!(
+                    "cannot create user, name is not long enough ({} < {} chars)",
+                    char_count,
+                    ctx.config().minimum_name_chars,
+                ),
+                ErrorType::UserNameTooShort,
+            ));
         }
+
+        let make_error = || {
+            Error::new(
+                format!("failed to create user '{}' with email '{}'", slug, email),
+                ErrorType::User,
+            )
+        };
 
         // Perform filter validation
         if !bypass_filter {
-            try_join!(
+            let (result1, result2) = join!(
                 Self::run_name_filter(ctx, &name, &slug),
                 Self::run_email_filter(ctx, &email),
-            )?;
+            );
+            raise_multiple!(result1, result2; make_error);
         }
 
         // Validate locales for this type
-        Self::validate_locales(user_type, &locales)?;
+        Self::validate_locales(user_type, &locales).or_raise(make_error)?;
 
         // Check for name conflicts
         let result = User::find()
@@ -117,18 +143,28 @@ impl UserService {
                     .add(user::Column::DeletedAt.is_null()),
             )
             .one(txn)
-            .await?;
+            .await
+            .or_raise(make_error)?;
 
-        if result.is_some() {
+        if let Some(found_user) = result {
             error!("User with conflicting name or slug already exists, cannot create");
-            error!("Checked name '{name}', slug '{slug}', found {result:#?}");
-            return Err(OldError::UserExists);
+            error!("Checked name '{name}', slug '{slug}', found {found_user:#?}");
+            bail!(Error::new(
+                format!(
+                    "cannot create user, another with a conflicting name or slug already exists. checked name '{}', slug '{}', found user '{}' (ID {})",
+                    name, slug, found_user.slug, found_user.user_id,
+                ),
+                ErrorType::UserExists,
+            ));
         }
 
         // Email must be specified for humans and bots
         if matches!(user_type, UserType::Regular | UserType::Bot) && email.is_empty() {
             error!("Attempting to create user with empty email");
-            return Err(OldError::UserEmailEmpty);
+            bail!(Error::new(
+                "cannot create user, no email was specified",
+                ErrorType::UserEmailEmpty
+            ));
         }
 
         // Check for email conflicts, if a regular user
@@ -141,34 +177,49 @@ impl UserService {
                         .add(user::Column::DeletedAt.is_null()),
                 )
                 .one(txn)
-                .await?;
+                .await
+                .or_raise(make_error)?;
 
-            if result.is_some() {
+            if let Some(found_user) = result {
                 error!("User with conflicting email already exists, cannot create");
-                error!("Checked email '{email}' found {result:#?}");
-                return Err(OldError::UserExists);
+                error!("Checked email '{email}' found {found_user:#?}");
+                // *don't* return the colliding user, as emails are non-public information
+                // and should not be shared
+                bail!(Error::new(
+                    "cannot create user, another with a conflicting email already exists",
+                    ErrorType::UserExists,
+                ));
             }
         }
 
         // Check for alias conflicts
-        if AliasService::exists(ctx, AliasType::User, &slug).await? {
+        let alias_exists = AliasService::exists(ctx, AliasType::User, &slug)
+            .await
+            .or_raise(make_error)?;
+        if alias_exists {
             error!("User alias with conflicting slug already exists, cannot create");
             error!("Checked slug '{slug}'");
-            return Err(OldError::UserExists);
+            bail!(Error::new(
+                "cannot create user, another with a conflicting user slug alias already exists",
+                ErrorType::UserExists,
+            ));
         }
 
         // Set up password field depending on type
         let password = match user_type {
             UserType::Regular => {
                 info!("Creating regular user '{slug}' with password");
-                PasswordService::new_hash(&password)?
+                PasswordService::new_hash(&password).or_raise(make_error)?
             }
             UserType::System | UserType::Site => {
                 info!("Creating site or system user '{slug}'");
 
                 if !password.is_empty() {
                     warn!("Password was specified for site or system user");
-                    return Err(OldError::BadRequest);
+                    bail!(Error::new(
+                        "password should not be specified for site or system users",
+                        ErrorType::BadRequest,
+                    ));
                 }
 
                 // Disabled password
@@ -193,7 +244,8 @@ impl UserService {
         // Also bypass email verification if it's empty (obviously invalid).
         // We've already checked for empty emails above (e.g. system users can have empty emails).
         let email_is_alias = if !bypass_email_verification && !email.is_empty() {
-            let email_validation_output = EmailService::validate(&email).await?;
+            let email_validation_output =
+                EmailService::validate(&email).await.or_raise(make_error)?;
 
             match email_validation_output.classification {
                 EmailClassification::Normal => {
@@ -210,14 +262,20 @@ impl UserService {
                     error!(
                         "User {slug}'s email is disposable and did not pass verification",
                     );
-                    return Err(OldError::DisallowedEmail);
+                    bail!(Error::new(
+                        "cannot create user, disposable emails are not permitted",
+                        ErrorType::DisallowedEmail,
+                    ));
                 }
 
                 EmailClassification::Invalid => {
                     error!(
                         "User {slug}'s email is invalid and did not pass verification",
                     );
-                    return Err(OldError::InvalidEmail);
+                    bail!(Error::new(
+                        "cannot create user, email appears to be invalid",
+                        ErrorType::InvalidEmail,
+                    ));
                 }
             }
         } else {
@@ -231,7 +289,7 @@ impl UserService {
             name: Set(name),
             slug: Set(slug.clone()),
             name_changes_left: Set(ctx.config().default_name_changes),
-            email: Set(email),
+            email: Set(email.clone()),
             email_is_alias: Set(email_is_alias),
             email_verified_at: Set(email_is_alias.map(|_| now())),
             password: Set(password),
@@ -250,8 +308,16 @@ impl UserService {
             ..Default::default()
         };
 
-        let user_id = User::insert(user).exec(txn).await?.last_insert_id;
-        AuditService::log(ctx, ip_address, AuditEvent::UserCreate { user_id }).await?;
+        let user_id = User::insert(user)
+            .exec(txn)
+            .await
+            .or_raise(make_error)?
+            .last_insert_id;
+
+        AuditService::log(ctx, ip_address, AuditEvent::UserCreate { user_id })
+            .await
+            .or_raise(make_error)?;
+
         Ok(CreateUserOutput { user_id, slug })
     }
 
@@ -627,7 +693,7 @@ impl UserService {
         Ok(())
     }
 
-    pub async fn refresh_name_change_tokens(ctx: &ServiceContext<'_>) -> OldResult<()> {
+    pub async fn refresh_name_change_tokens(ctx: &ServiceContext<'_>) -> Result<()> {
         info!("Refreshing name change tokens for all users who need one");
 
         let needs_token_time = match ctx.config().refill_name_change {
@@ -635,11 +701,19 @@ impl UserService {
             None => return Ok(()),
         };
 
+        let make_error = || {
+            Error::new(
+                "failed to refresh name tokens for all users",
+                ErrorType::User,
+            )
+        };
+
         let txn = ctx.transaction();
         let users = User::find()
             .filter(user::Column::LastNameChangeAddedAt.gte(needs_token_time))
             .all(txn)
-            .await?;
+            .await
+            .or_raise(make_error)?;
 
         debug!(
             "Found {} users in need of a name refresh token",
@@ -647,7 +721,9 @@ impl UserService {
         );
 
         for user in users {
-            Self::add_name_change_token(ctx, &user).await?;
+            Self::add_name_change_token(ctx, &user)
+                .await
+                .or_raise(make_error)?;
         }
 
         Ok(())
@@ -660,7 +736,7 @@ impl UserService {
     pub async fn add_name_change_token(
         ctx: &ServiceContext<'_>,
         user: &UserModel,
-    ) -> OldResult<i16> {
+    ) -> Result<i16> {
         let txn = ctx.transaction();
         let max_name_changes = ctx.config().maximum_name_changes;
         let name_changes = cmp::min(user.name_changes_left + 1, max_name_changes);
@@ -676,7 +752,15 @@ impl UserService {
             user.user_id, user.name_changes_left, name_changes, max_name_changes,
         );
 
-        model.update(txn).await?;
+        model.update(txn).await.or_raise(|| {
+            Error::new(
+                format!(
+                    "failed to add name change token to user '{}' (ID {}), now {} tokens",
+                    user.slug, user.user_id, name_changes,
+                ),
+                ErrorType::User,
+            )
+        })?;
         Ok(name_changes)
     }
 
@@ -686,7 +770,7 @@ impl UserService {
         user_id: i64,
         multi_factor_secret: ActiveValue<Option<String>>,
         multi_factor_recovery_codes: ActiveValue<Option<Vec<String>>>,
-    ) -> OldResult<()> {
+    ) -> Result<()> {
         info!("Setting MFA secret fields for user ID {user_id}");
         // NOTE: Audit log events are set in MfaService, not here
 
@@ -698,7 +782,12 @@ impl UserService {
             updated_at: Set(Some(now())),
             ..Default::default()
         };
-        model.update(txn).await?;
+        model.update(txn).await.or_raise(|| {
+            Error::new(
+                format!("failed to set MFA secrets for user ID {}", user_id),
+                ErrorType::UserMfa,
+            )
+        })?;
 
         Ok(())
     }
@@ -708,7 +797,7 @@ impl UserService {
         ctx: &ServiceContext<'_>,
         user: &UserModel,
         recovery_code: &str,
-    ) -> OldResult<()> {
+    ) -> Result<()> {
         let txn = ctx.transaction();
         info!("Removing recovery code from user ID {}", user.user_id);
 
@@ -728,7 +817,9 @@ impl UserService {
                 updated_at: Set(Some(now())),
                 ..Default::default()
             };
-            model.update(txn).await?;
+            model.update(txn).await.or_raise(|| {
+                Error::new("failed to remove a user recovery code", ErrorType::UserMfa)
+            })?;
         }
 
         Ok(())
@@ -737,13 +828,28 @@ impl UserService {
     pub async fn delete(
         ctx: &ServiceContext<'_>,
         reference: Reference<'_>,
-    ) -> OldResult<UserModel> {
+    ) -> Result<UserModel> {
         let txn = ctx.transaction();
-        let user = Self::get(ctx, reference).await?;
+        let user = Self::get(ctx, reference)
+            .await
+            .or_raise(|| Error::new("failed to delete user", ErrorType::User))?;
+
         info!("Deleting user with ID {}", user.user_id);
 
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to delete user '{}' (ID {})",
+                    user.slug, user.user_id,
+                ),
+                ErrorType::User,
+            )
+        };
+
         // Remove all user aliases
-        AliasService::remove_all(ctx, AliasType::User, user.user_id).await?;
+        AliasService::remove_all(ctx, AliasType::User, user.user_id)
+            .await
+            .or_raise(make_error)?;
 
         // Set deletion flag
         let model = user::ActiveModel {
@@ -753,7 +859,7 @@ impl UserService {
         };
 
         // Update and return
-        let user = model.update(txn).await?;
+        let user = model.update(txn).await.or_raise(make_error)?;
         Ok(user)
     }
 
@@ -761,36 +867,44 @@ impl UserService {
         ctx: &ServiceContext<'_>,
         name: &str,
         slug: &str,
-    ) -> OldResult<()> {
+    ) -> Result<()> {
         info!("Checking user name data against filters...");
+
+        let make_error = || Error::new("user failed name filter", ErrorType::User);
 
         let filter_matcher =
             FilterService::get_matcher(ctx, FilterClass::Platform, FilterType::User)
-                .await?;
+                .await
+                .or_raise(make_error)?;
 
-        try_join!(
-            filter_matcher.verify(ctx, name),
-            filter_matcher.verify(ctx, slug),
-        )?;
+        let (result1, result2) = join!(
+            filter_matcher.verify(ctx, "name", name),
+            filter_matcher.verify(ctx, "slug", slug),
+        );
+        raise_multiple!(result1, result2; make_error);
 
         Ok(())
     }
 
-    async fn run_email_filter(ctx: &ServiceContext<'_>, email: &str) -> OldResult<()> {
+    async fn run_email_filter(ctx: &ServiceContext<'_>, email: &str) -> Result<()> {
         info!("Checking user email data against filters...");
+
+        let make_error = || Error::new("user failed email filter", ErrorType::User);
 
         let filter_matcher =
             FilterService::get_matcher(ctx, FilterClass::Platform, FilterType::Email)
-                .await?;
+                .await
+                .or_raise(make_error)?;
 
-        filter_matcher.verify(ctx, email).await?;
+        filter_matcher
+            .verify(ctx, "email", email)
+            .await
+            .or_raise(make_error)?;
+
         Ok(())
     }
 
-    fn validate_locales<S: AsRef<str>>(
-        user_type: UserType,
-        locales: &[S],
-    ) -> OldResult<()> {
+    fn validate_locales<S: AsRef<str>>(user_type: UserType, locales: &[S]) -> Result<()> {
         use crate::utils::validate_locale;
 
         debug!(
@@ -799,9 +913,12 @@ impl UserService {
             user_type,
         );
 
+        let make_error =
+            || Error::new("failed to validate list of locales", ErrorType::User);
+
         // Ensure values are valid
         for locale in locales {
-            validate_locale(locale.as_ref())?;
+            validate_locale(locale.as_ref()).or_raise(make_error)?;
         }
 
         // Invariants for locale lists
@@ -819,7 +936,10 @@ impl UserService {
         if valid {
             Ok(())
         } else {
-            Err(OldError::BadRequest)
+            bail!(Error::new(
+                "one or more locales are invalid",
+                ErrorType::BadRequest
+            ));
         }
     }
 }

@@ -184,18 +184,33 @@ impl PageService {
                 },
             ip_address,
         }: EditPage<'_>,
-    ) -> OldResult<Option<EditPageOutput>> {
+    ) -> Result<Option<EditPageOutput>> {
         let txn = ctx.transaction();
+
         let PageModel {
             page_id,
             page_category_id: category_id,
             latest_revision_id,
+            slug,
             ..
-        } = Self::get(ctx, site_id, reference).await?;
+        } = Self::get(ctx, site_id, reference)
+            .await
+            .or_raise(|| Error::new("failed to edit page", ErrorType::Page))?;
+
         let id = PageId {
             site_id,
             category_id,
             page_id,
+        };
+
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to create edit page '{}' (ID {}) in site ID {}, performed by user ID {}",
+                    slug, page_id, site_id, user_id,
+                ),
+                ErrorType::Page,
+            )
         };
 
         // Perform filter validation
@@ -210,13 +225,16 @@ impl PageService {
                 _ => None,
             },
         )
-        .await?;
+        .await
+        .or_raise(make_error)?;
 
         // Get and check latest revision
-        let last_revision =
-            PageRevisionService::get_latest(ctx, site_id, page_id).await?;
+        let last_revision = PageRevisionService::get_latest(ctx, site_id, page_id)
+            .await
+            .or_raise(make_error)?;
 
-        check_last_revision(Some(&last_revision), latest_revision_id, last_revision_id)?;
+        check_last_revision(Some(&last_revision), latest_revision_id, last_revision_id)
+            .or_raise(make_error)?;
 
         // Create new revision
         //
@@ -237,7 +255,9 @@ impl PageService {
         };
 
         let revision_output =
-            PageRevisionService::create(ctx, id, revision_input, last_revision).await?;
+            PageRevisionService::create(ctx, id, revision_input, last_revision)
+                .await
+                .or_raise(make_error)?;
 
         let revision_id = revision_output.ref_map(|output| output.revision_id);
 
@@ -254,7 +274,8 @@ impl PageService {
             updated_at: Set(Some(now())),
             ..Default::default()
         };
-        let page = model.update(txn).await?;
+
+        let page = model.update(txn).await.or_raise(make_error)?;
         assert_latest_revision(&page);
 
         // Audit log
@@ -268,7 +289,8 @@ impl PageService {
                 revision_id,
             },
         )
-        .await?;
+        .await
+        .or_raise(make_error)?;
 
         // Build and return
         Ok(revision_output)
@@ -286,15 +308,30 @@ impl PageService {
             user_id,
             ip_address,
         }: MovePage<'_>,
-    ) -> OldResult<MovePageOutput> {
+    ) -> Result<MovePageOutput> {
         let txn = ctx.transaction();
+        normalize(&mut new_slug);
+
         let PageModel {
             page_id,
             page_category_id: category_id,
             slug: old_slug,
             latest_revision_id,
             ..
-        } = Self::get(ctx, site_id, reference).await?;
+        } = Self::get(ctx, site_id, reference)
+            .await
+            .or_raise(|| Error::new("failed to move page", ErrorType::Page))?;
+
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to move page '{}' to '{}' (ID {}) in site ID {}, performed by user ID {}",
+                    old_slug, new_slug, page_id, site_id, user_id,
+                ),
+                ErrorType::Page,
+            )
+        };
+
         let id = PageId {
             site_id,
             category_id,
@@ -302,26 +339,35 @@ impl PageService {
         };
 
         // Check last revision ID argument
-        check_last_revision(None, latest_revision_id, last_revision_id)?;
+        check_last_revision(None, latest_revision_id, last_revision_id)
+            .or_raise(make_error)?;
 
         // Check that a move is actually taking place,
         // and that a page with that slug doesn't already exist.
-        normalize(&mut new_slug);
         if old_slug == new_slug {
-            error!("Source and destination slugs are the same: {old_slug}");
-            return Err(OldError::PageSlugExists);
+            bail!(Error::new(
+                format!(
+                    "cannot move page, source and destination slugs are the same: '{}'",
+                    old_slug
+                ),
+                ErrorType::PageSlugExists
+            ));
         }
 
-        Self::check_conflicts(ctx, site_id, &new_slug, "move").await?;
+        Self::check_conflicts(ctx, site_id, &new_slug, "move")
+            .await
+            .or_raise(make_error)?;
 
         // Create category if not already present
         let PageCategoryModel { category_id, .. } =
             CategoryService::get_or_create(ctx, site_id, get_category_name(&new_slug))
-                .await?;
+                .await
+                .or_raise(make_error)?;
 
         // Get latest revision
-        let last_revision =
-            PageRevisionService::get_latest(ctx, site_id, page_id).await?;
+        let last_revision = PageRevisionService::get_latest(ctx, site_id, page_id)
+            .await
+            .or_raise(make_error)?;
 
         // Create revision for move
         let revision_input = CreatePageRevision {
@@ -335,7 +381,9 @@ impl PageService {
         };
 
         let revision_output =
-            PageRevisionService::create(ctx, id, revision_input, last_revision).await?;
+            PageRevisionService::create(ctx, id, revision_input, last_revision)
+                .await
+                .or_raise(make_error)?;
 
         let latest_revision_id = match revision_output {
             Some(ref output) => ActiveValue::Set(Some(output.revision_id)),
@@ -355,7 +403,8 @@ impl PageService {
             updated_at: Set(Some(now())),
             ..Default::default()
         };
-        let page = model.update(txn).await?;
+
+        let page = model.update(txn).await.or_raise(make_error)?;
         assert_latest_revision(&page);
 
         // Build and return
@@ -379,7 +428,8 @@ impl PageService {
                         new_slug: &new_slug,
                     },
                 )
-                .await?;
+                .await
+                .or_raise(make_error)?;
 
                 Ok(MovePageOutput {
                     old_slug,
@@ -391,7 +441,10 @@ impl PageService {
             }
             None => {
                 error!("Page move did not create new revision");
-                Err(OldError::BadRequest)
+                bail!(Error::new(
+                    "page move did not create a new revision",
+                    ErrorType::BadRequest
+                ));
             }
         }
     }
@@ -406,19 +459,37 @@ impl PageService {
             revision_comments: comments,
             ip_address,
         }: DeletePage<'_>,
-    ) -> OldResult<DeletePageOutput> {
+    ) -> Result<DeletePageOutput> {
         let txn = ctx.transaction();
+
         let PageModel {
             page_id,
             latest_revision_id,
+            slug,
+            site_id,
             ..
-        } = Self::get(ctx, site_id, reference).await?;
+        } = Self::get(ctx, site_id, reference)
+            .await
+            .or_raise(|| Error::new("failed to delete page", ErrorType::Page))?;
+
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to delete page '{}' (ID {}) in site ID {}",
+                    slug, page_id, site_id
+                ),
+                ErrorType::Page,
+            )
+        };
 
         // Get and check latest revision
-        let last_revision =
-            PageRevisionService::get_latest(ctx, site_id, page_id).await?;
+        let last_revision = PageRevisionService::get_latest(ctx, site_id, page_id)
+            .await
+            .or_raise(make_error)?;
 
-        check_last_revision(Some(&last_revision), latest_revision_id, last_revision_id)?;
+        check_last_revision(Some(&last_revision), latest_revision_id, last_revision_id)
+            .or_raise(make_error)
+            .or_raise(make_error)?;
 
         // Create tombstone revision
         // This also updates backlinks, includes, etc
@@ -432,7 +503,8 @@ impl PageService {
             },
             last_revision,
         )
-        .await?;
+        .await
+        .or_raise(make_error)?;
 
         // Set deletion flag
         let model = page::ActiveModel {
@@ -441,7 +513,7 @@ impl PageService {
             deleted_at: Set(Some(now())),
             ..Default::default()
         };
-        let page = model.update(txn).await?;
+        let page = model.update(txn).await.or_raise(make_error)?;
         assert_latest_revision(&page);
 
         // Audit log
@@ -456,14 +528,17 @@ impl PageService {
                 page_slug: &page.slug,
             },
         )
-        .await?;
+        .await
+        .or_raise(make_error)?;
 
         // Finally, clear out any hosted text blocks
         //
         // We do this last because this involves
         // removing from S3, which is not reversible
         // in a database transaction rollback.
-        TextBlockService::delete_blocks(ctx, page_id).await?;
+        TextBlockService::delete_blocks(ctx, page_id)
+            .await
+            .or_raise(make_error)?;
 
         // Return deletion information
         Ok((output, page_id).into())
@@ -479,15 +554,30 @@ impl PageService {
             revision_comments: comments,
             ip_address,
         }: RestorePage,
-    ) -> OldResult<RestorePageOutput> {
+    ) -> Result<RestorePageOutput> {
         let txn = ctx.transaction();
+
         let PageId {
             site_id,
             category_id: _,
             page_id,
         } = id;
-        let page = Self::get_direct(ctx, page_id, true).await?;
+
+        let page = Self::get_direct(ctx, page_id, true)
+            .await
+            .or_raise(|| Error::new("failed to restore page", ErrorType::Page))?;
+
         let slug = slug.unwrap_or(page.slug);
+
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to restore page '{}' (ID {}) to site ID {}",
+                    slug, page_id, site_id,
+                ),
+                ErrorType::Page,
+            )
+        };
 
         // Do page checks:
         // - Site is correct
@@ -496,24 +586,34 @@ impl PageService {
 
         if page.site_id != site_id {
             warn!("Page's site ID and passed site ID do not match");
-            return Err(OldError::PageNotFound);
+            bail!(Error::new(
+                "cannot restore page to a different site",
+                ErrorType::PageNotFound,
+            ));
         }
 
         if page.deleted_at.is_none() {
             warn!("Page requested to be restored is not currently deleted");
-            return Err(OldError::PageNotDeleted);
+            bail!(Error::new(
+                "cannot restore a page that isn't deleted",
+                ErrorType::PageNotDeleted,
+            ));
         }
 
-        Self::check_conflicts(ctx, site_id, &slug, "restore").await?;
+        Self::check_conflicts(ctx, site_id, &slug, "restore")
+            .await
+            .or_raise(make_error)?;
 
         // Create category if not already present
         let category =
             CategoryService::get_or_create(ctx, site_id, get_category_name(&slug))
-                .await?;
+                .await
+                .or_raise(make_error)?;
 
         // Get latest revision
-        let last_revision =
-            PageRevisionService::get_latest(ctx, site_id, page_id).await?;
+        let last_revision = PageRevisionService::get_latest(ctx, site_id, page_id)
+            .await
+            .or_raise(make_error)?;
 
         // Create resurrection revision
         // This also updates backlinks, includes, etc.
@@ -527,7 +627,8 @@ impl PageService {
             },
             last_revision,
         )
-        .await?;
+        .await
+        .or_raise(make_error)?;
 
         // Set deletion flag
         let model = page::ActiveModel {
@@ -537,7 +638,8 @@ impl PageService {
             deleted_at: Set(None),
             ..Default::default()
         };
-        let page = model.update(txn).await?;
+
+        let page = model.update(txn).await.or_raise(make_error)?;
         assert_latest_revision(&page);
 
         // Audit log
@@ -553,7 +655,8 @@ impl PageService {
                 page_slug: &slug,
             },
         )
-        .await?;
+        .await
+        .or_raise(make_error)?;
 
         Ok((output, slug).into())
     }
@@ -576,28 +679,46 @@ impl PageService {
             user_id,
             ip_address,
         }: RollbackPage<'_>,
-    ) -> OldResult<Option<EditPageOutput>> {
+    ) -> Result<Option<EditPageOutput>> {
         let txn = ctx.transaction();
+
         let PageModel {
             page_id,
             page_category_id: category_id,
             latest_revision_id,
+            slug,
             ..
-        } = Self::get(ctx, site_id, reference).await?;
+        } = Self::get(ctx, site_id, reference)
+            .await
+            .or_raise(|| Error::new("failed to roll back page", ErrorType::Page))?;
+
         let id = PageId {
             site_id,
             category_id,
             page_id,
         };
 
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to roll back page '{}' (ID {}) on site ID {}, performed by user ID {}",
+                    slug, page_id, site_id, user_id,
+                ),
+                ErrorType::Page,
+            )
+        };
+
         // Get target revision and latest revision
-        let (target_revision, last_revision) = try_join!(
+        let (target_revision, last_revision) = join!(
             PageRevisionService::get(ctx, site_id, page_id, revision_number),
             PageRevisionService::get_latest(ctx, site_id, page_id),
-        )?;
+        );
+        let (target_revision, last_revision) =
+            raise_multiple!(target_revision, last_revision; make_error);
 
         // Check last revision ID
-        check_last_revision(Some(&last_revision), latest_revision_id, last_revision_id)?;
+        check_last_revision(Some(&last_revision), latest_revision_id, last_revision_id)
+            .or_raise(make_error)?;
 
         let PageRevisionModel {
             wikitext_hash,
@@ -619,7 +740,10 @@ impl PageService {
         let wikitext = if hide_wikitext {
             Maybe::Unset
         } else {
-            Maybe::Set(TextService::get(ctx, &wikitext_hash).await?)
+            let text = TextService::get(ctx, &wikitext_hash)
+                .await
+                .or_raise(make_error)?;
+            Maybe::Set(text)
         };
 
         // Create new revision
@@ -652,7 +776,9 @@ impl PageService {
         };
 
         let revision_output =
-            PageRevisionService::create(ctx, id, revision_input, last_revision).await?;
+            PageRevisionService::create(ctx, id, revision_input, last_revision)
+                .await
+                .or_raise(make_error)?;
 
         let latest_revision_id = match revision_output {
             Some(ref output) => ActiveValue::Set(Some(output.revision_id)),
@@ -667,7 +793,7 @@ impl PageService {
             ..Default::default()
         };
 
-        model.update(txn).await?;
+        model.update(txn).await.or_raise(make_error)?;
 
         // Audit log
         AuditService::log(
@@ -681,7 +807,8 @@ impl PageService {
                 revision_number,
             },
         )
-        .await?;
+        .await
+        .or_raise(make_error)?;
 
         // Build and return
         Ok(revision_output)
@@ -703,7 +830,7 @@ impl PageService {
         _site_id: i64,
         _page_id: i64,
         _revision_number: i32,
-    ) -> OldResult<EditPageOutput> {
+    ) -> Result<EditPageOutput> {
         // TODO update audit-log.md
         todo!()
     }
@@ -718,8 +845,18 @@ impl PageService {
             user_id,
             ip_address,
         }: SetPageLayout,
-    ) -> OldResult<()> {
+    ) -> Result<()> {
         debug!("Setting page layout for site ID {site_id} page ID {page_id}");
+
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to set layout for page ID {} in site ID {}, performed by user ID {}",
+                    page_id, site_id, user_id,
+                ),
+                ErrorType::Page,
+            )
+        };
 
         // Update in database
         let txn = ctx.transaction();
@@ -728,7 +865,7 @@ impl PageService {
             layout: Set(layout.map(|l| str!(l.value()))),
             ..Default::default()
         };
-        model.update(txn).await?;
+        model.update(txn).await.or_raise(make_error)?;
 
         // Audit log
         AuditService::log(
@@ -741,7 +878,8 @@ impl PageService {
                 layout,
             },
         )
-        .await?;
+        .await
+        .or_raise(make_error)?;
 
         Ok(())
     }
@@ -751,15 +889,15 @@ impl PageService {
         ctx: &ServiceContext<'_>,
         site_id: i64,
         reference: Reference<'_>,
-    ) -> OldResult<PageModel> {
-        find_or_error!(Self::get_optional(ctx, site_id, reference), Page)
+    ) -> Result<PageModel> {
+        find_or_error_tmp!(Self::get_optional(ctx, site_id, reference), page, Page)
     }
 
     pub async fn get_optional(
         ctx: &ServiceContext<'_>,
         site_id: i64,
         reference: Reference<'_>,
-    ) -> OldResult<Option<PageModel>> {
+    ) -> Result<Option<PageModel>> {
         let txn = ctx.transaction();
         let page = {
             let condition = match reference {
@@ -778,7 +916,8 @@ impl PageService {
                         .add(page::Column::DeletedAt.is_null()),
                 )
                 .one(txn)
-                .await?
+                .await
+                .or_raise(|| Error::new("failed to get page", ErrorType::Page))?
         };
 
         Ok(page)
@@ -789,7 +928,7 @@ impl PageService {
         ctx: &ServiceContext<'_>,
         site_id: i64,
         slug: &str,
-    ) -> OldResult<Vec<PageModel>> {
+    ) -> Result<Vec<PageModel>> {
         let txn = ctx.transaction();
         let pages = {
             Page::find()
@@ -801,7 +940,16 @@ impl PageService {
                 )
                 .order_by_desc(page::Column::CreatedAt)
                 .all(txn)
-                .await?
+                .await
+                .or_raise(|| {
+                    Error::new(
+                        format!(
+                            "failed to get deleted page '{}' in site ID {}",
+                            slug, site_id,
+                        ),
+                        ErrorType::Page,
+                    )
+                })?
         };
 
         Ok(pages)
@@ -816,13 +964,24 @@ impl PageService {
         ctx: &ServiceContext<'_>,
         site_id: i64,
         reference: Reference<'_>,
-    ) -> OldResult<i64> {
+    ) -> Result<i64> {
         match reference {
             Reference::Id(page_id) => Ok(page_id),
             Reference::Slug(slug) => {
                 // For slugs we pass-through the call so that slug-handling is done consistently.
+                let slug: &str = slug.as_ref();
                 let PageModel { page_id, .. } =
-                    Self::get(ctx, site_id, Reference::Slug(slug)).await?;
+                    Self::get(ctx, site_id, Reference::Slug(cow!(slug)))
+                        .await
+                        .or_raise(|| {
+                            Error::new(
+                                format!(
+                                    "failed to get ID of page '{}' in site ID {}",
+                                    slug, site_id,
+                                ),
+                                ErrorType::Page,
+                            )
+                        })?;
 
                 Ok(page_id)
             }
@@ -834,17 +993,30 @@ impl PageService {
         ctx: &ServiceContext<'_>,
         page_id: i64,
         allow_deleted: bool,
-    ) -> OldResult<PageModel> {
-        find_or_error!(Self::get_direct_optional(ctx, page_id, allow_deleted), Page)
+    ) -> Result<PageModel> {
+        find_or_error_tmp!(
+            Self::get_direct_optional(ctx, page_id, allow_deleted),
+            page,
+            Page
+        )
     }
 
     pub async fn get_direct_optional(
         ctx: &ServiceContext<'_>,
         page_id: i64,
         allow_deleted: bool,
-    ) -> OldResult<Option<PageModel>> {
+    ) -> Result<Option<PageModel>> {
         let txn = ctx.transaction();
-        let page = Page::find_by_id(page_id).one(txn).await?;
+        let page = Page::find_by_id(page_id).one(txn).await.or_raise(|| {
+            Error::new(
+                format!(
+                    "failed to get page ID {} directly (accept deleted {})",
+                    page_id, allow_deleted,
+                ),
+                ErrorType::Page,
+            )
+        })?;
+
         if let Some(ref page) = page
             && !allow_deleted
             && page.deleted_at.is_some()
@@ -865,7 +1037,7 @@ impl PageService {
         ctx: &ServiceContext<'_>,
         site_id: i64,
         references: &[Reference<'_>],
-    ) -> OldResult<Vec<PageModel>> {
+    ) -> Result<Vec<PageModel>> {
         info!(
             "Getting {} pages from references in site ID {}",
             references.len(),
@@ -895,7 +1067,13 @@ impl PageService {
                     ),
             )
             .all(txn)
-            .await?;
+            .await
+            .or_raise(|| {
+                Error::new(
+                    format!("failed to get a series of {} pages", references.len()),
+                    ErrorType::Page,
+                )
+            })?;
 
         Ok(models)
     }
@@ -920,14 +1098,19 @@ impl PageService {
         category: Option<Reference<'_>>,
         deleted: Option<bool>,
         order: PageOrder,
-    ) -> OldResult<Vec<PageModel>> {
+    ) -> Result<Vec<PageModel>> {
         let txn = ctx.transaction();
+
+        let make_error =
+            || Error::new("failed to perform an all-site pages query", ErrorType::Page);
 
         let category_condition = match category {
             None => None,
             Some(category_reference) => {
                 let PageCategoryModel { category_id, .. } =
-                    CategoryService::get(ctx, site_id, category_reference).await?;
+                    CategoryService::get(ctx, site_id, category_reference)
+                        .await
+                        .or_raise(make_error)?;
 
                 Some(page::Column::PageCategoryId.eq(category_id))
             }
@@ -948,7 +1131,8 @@ impl PageService {
             )
             .order_by(order.column.into_column(), order.direction)
             .all(txn)
-            .await?;
+            .await
+            .or_raise(make_error)?;
 
         Ok(pages)
     }
@@ -961,12 +1145,14 @@ impl PageService {
         site_id: i64,
         slug: &str,
         action: &str,
-    ) -> OldResult<()> {
+    ) -> Result<()> {
         let txn = ctx.transaction();
 
         if slug.is_empty() {
-            error!("Cannot create page with empty slug");
-            return Err(OldError::PageSlugEmpty);
+            bail!(Error::new(
+                "cannot create page with empty slug",
+                ErrorType::PageSlugEmpty,
+            ));
         }
 
         let result = Page::find()
@@ -977,7 +1163,16 @@ impl PageService {
                     .add(page::Column::DeletedAt.is_null()),
             )
             .one(txn)
-            .await?;
+            .await
+            .or_raise(|| {
+                Error::new(
+                    format!(
+                        "checking page conflicts for page '{}' on site ID {} failed",
+                        slug, site_id,
+                    ),
+                    ErrorType::Page,
+                )
+            })?;
 
         match result {
             None => Ok(()),
@@ -986,8 +1181,13 @@ impl PageService {
                     "Page {} with slug '{}' already exists on site ID {}, cannot {}",
                     page.page_id, slug, site_id, action,
                 );
-
-                Err(OldError::PageExists)
+                bail!(Error::new(
+                    format!(
+                        "cannot {} page '{}' on site ID {}, another page (ID {}) already exists",
+                        action, slug, site_id, page.page_id,
+                    ),
+                    ErrorType::PageExists,
+                ));
             }
         }
     }
@@ -998,32 +1198,39 @@ impl PageService {
         wikitext: Option<S>,
         title: Option<S>,
         alt_title: Option<S>,
-    ) -> OldResult<()> {
+    ) -> Result<()> {
         info!("Checking page data against filters...");
+
+        let make_error = || Error::new("filter verification failed", ErrorType::Page);
 
         let filter_matcher = FilterService::get_matcher(
             ctx,
             FilterClass::PlatformAndSite(site_id),
             FilterType::Page,
         )
-        .await?;
+        .await
+        .or_raise(make_error)?;
 
         macro_rules! verify_optional {
-            ($option:expr) => {
+            ($field:expr) => {
                 async {
-                    match $option {
-                        Some(value) => filter_matcher.verify(ctx, value.as_ref()).await,
+                    match $field {
                         None => Ok(()),
+                        Some(value) => filter_matcher
+                            .verify(ctx, stringify!($field), value.as_ref())
+                            .await
+                            .or_raise(make_error),
                     }
                 }
             };
         }
 
-        try_join!(
+        let (result1, result2, result3) = join!(
             verify_optional!(title),
             verify_optional!(alt_title),
             verify_optional!(wikitext),
-        )?;
+        );
+        raise_multiple!(result1, result2, result3; make_error);
 
         Ok(())
     }
@@ -1041,7 +1248,7 @@ fn check_last_revision(
     last_revision_model: Option<&PageRevisionModel>,
     page_latest_revision_id: Option<i64>,
     arg_last_revision_id: i64,
-) -> OldResult<()> {
+) -> Result<()> {
     // Only check if we have this model fetched anyways
     if let Some(model) = last_revision_model {
         assert_eq!(
@@ -1058,8 +1265,14 @@ fn check_last_revision(
             page_latest_revision_id.unwrap(),
             arg_last_revision_id,
         );
-
-        return Err(OldError::NotLatestRevisionId);
+        bail!(Error::new(
+            format!(
+                "last revision verification failed, actual last revision ID {}, but user passed in ID {}",
+                page_latest_revision_id.unwrap(),
+                arg_last_revision_id,
+            ),
+            ErrorType::NotLatestRevisionId,
+        ));
     }
 
     Ok(())

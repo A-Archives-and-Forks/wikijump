@@ -65,6 +65,7 @@ pub enum ErrorType {
     PageCategory,
     PageParent,
     UserBotOwner,
+    UserMfa,
     Caddyfile,
     BasicError,
     License,
@@ -163,7 +164,10 @@ pub enum ErrorType {
     NoLocalesSpecified,
 
     // 5100
-    FilterViolation,
+    FilterViolation {
+        field: String,
+        value: String,
+    },
     FilterNotDeleted,
 
     // 5200
@@ -271,9 +275,10 @@ impl ErrorType {
             ErrorType::PageCategory => 1306,
             ErrorType::PageParent => 1307,
             ErrorType::UserBotOwner => 1308,
-            ErrorType::Caddyfile => 1309,
-            ErrorType::BasicError => 1310,
-            ErrorType::License => 1311,
+            ErrorType::UserMfa => 1309,
+            ErrorType::Caddyfile => 1310,
+            ErrorType::BasicError => 1311,
+            ErrorType::License => 1312,
 
             //
             // 2000 -- Data Consistency
@@ -377,7 +382,7 @@ impl ErrorType {
             ErrorType::NoLocalesSpecified => 5005,
 
             // 5100 - Filter
-            ErrorType::FilterViolation => 5100,
+            ErrorType::FilterViolation { .. } => 5100,
             ErrorType::FilterNotDeleted => 5102,
 
             // 5200 - Blob
@@ -458,6 +463,7 @@ impl ErrorType {
             ErrorType::PageCategory => "Failed to act on a page category",
             ErrorType::PageParent => "Failed to act on a page parent",
             ErrorType::UserBotOwner => "Failed to act on a user / bot owner",
+            ErrorType::UserMfa => "Failed to act on a user's MFA settings",
             ErrorType::Caddyfile => "Failed to generate a Caddyfile",
             ErrorType::BasicError => "Failed to generate a basic error message",
             ErrorType::License => "Failed to determine license data",
@@ -561,7 +567,7 @@ impl ErrorType {
             ErrorType::NoLocalesSpecified => "No locales were specified in the request",
 
             // 5100
-            ErrorType::FilterViolation => {
+            ErrorType::FilterViolation { .. } => {
                 "The request violates a configured content filter"
             }
             ErrorType::FilterNotDeleted => "Cannot restore a non-deleted filter",

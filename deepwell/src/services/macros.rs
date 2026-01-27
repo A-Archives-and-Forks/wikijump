@@ -25,3 +25,19 @@ macro_rules! find_or_error {
         }
     };
 }
+
+// temorary variant while migrating off of the old error type
+macro_rules! find_or_error_tmp {
+    ($future:expr, $noun:ident, $error:ident $(,)?) => {
+        paste! {
+            match $future.await {
+                Ok(Some(result)) => Ok(result),
+                Ok(None) => bail!(Error::new(
+                    concat!(stringify!($noun), " does not exist"),
+                    ErrorType::[<$error NotFound>],
+                )),
+                Err(error) => bail!(error),
+            }
+        }
+    };
+}
