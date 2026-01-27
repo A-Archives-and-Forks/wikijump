@@ -167,20 +167,8 @@ pub enum OldError {
     #[error("User name is too short")]
     UserNameTooShort,
 
-    #[error("User slug cannot be empty")]
-    UserSlugEmpty,
-
     #[error("Wrong user type for this operation")]
     UserWrongType,
-
-    #[error("The user cannot rename as they do not have enough name change tokens")]
-    InsufficientNameChanges,
-
-    #[error("The user's email is disallowed")]
-    DisallowedEmail,
-
-    #[error("The user's email is invalid")]
-    InvalidEmail,
 
     #[error("Site slug cannot be empty")]
     SiteSlugEmpty,

@@ -68,49 +68,7 @@ impl UserService {
 
         info!("Attempting to create user '{name}' ('{slug}')");
 
-        // Empty slug check
-        if slug.is_empty() {
-            error!("Cannot create user with empty slug");
-            bail!(Error::new(
-                "cannot create user with empty slug",
-                ErrorType::UserSlugEmpty
-            ));
-        }
-
-        // Check if username contains the minimum amount of required bytes and chars.
-        let config = ctx.config();
-        if name.len() < config.minimum_name_bytes {
-            error!(
-                "User's name is not long enough ({} < {} bytes)",
-                slug.len(),
-                ctx.config().minimum_name_bytes,
-            );
-            bail!(Error::new(
-                format!(
-                    "cannot create user, name is not long enough ({} < {} bytes)",
-                    slug.len(),
-                    ctx.config().minimum_name_bytes,
-                ),
-                ErrorType::UserNameTooShort,
-            ));
-        }
-
-        let char_count = name.chars().count();
-        if char_count < config.minimum_name_chars {
-            error!(
-                "User's name is not long enough ({} < {} chars)",
-                char_count,
-                ctx.config().minimum_name_chars,
-            );
-            bail!(Error::new(
-                format!(
-                    "cannot create user, name is not long enough ({} < {} chars)",
-                    char_count,
-                    ctx.config().minimum_name_chars,
-                ),
-                ErrorType::UserNameTooShort,
-            ));
-        }
+        check_user_name(ctx.config(), &slug, &name)?;
 
         let make_error = || {
             Error::new(
@@ -247,37 +205,11 @@ impl UserService {
             let email_validation_output =
                 EmailService::validate(&email).await.or_raise(make_error)?;
 
-            match email_validation_output.classification {
-                EmailClassification::Normal => {
-                    info!("User {slug}'s email was verified successfully");
-                    Some(false)
-                }
+            let is_alias =
+                check_email_validation(&slug, email_validation_output.classification)
+                    .or_raise(make_error)?;
 
-                EmailClassification::Alias => {
-                    info!("User {slug}'s email was verified successfully (as an alias)");
-                    Some(true)
-                }
-
-                EmailClassification::Disposable => {
-                    error!(
-                        "User {slug}'s email is disposable and did not pass verification",
-                    );
-                    bail!(Error::new(
-                        "cannot create user, disposable emails are not permitted",
-                        ErrorType::DisallowedEmail,
-                    ));
-                }
-
-                EmailClassification::Invalid => {
-                    error!(
-                        "User {slug}'s email is invalid and did not pass verification",
-                    );
-                    bail!(Error::new(
-                        "cannot create user, email appears to be invalid",
-                        ErrorType::InvalidEmail,
-                    ));
-                }
-            }
+            Some(is_alias)
         } else {
             // Skipping email verification
             None
@@ -335,7 +267,7 @@ impl UserService {
     pub async fn exists(
         ctx: &ServiceContext<'_>,
         reference: Reference<'_>,
-    ) -> OldResult<bool> {
+    ) -> Result<bool> {
         Self::get_optional(ctx, reference)
             .await
             .map(|user| user.is_some())
@@ -344,8 +276,10 @@ impl UserService {
     pub async fn get_optional(
         ctx: &ServiceContext<'_>,
         mut reference: Reference<'_>,
-    ) -> OldResult<Option<UserModel>> {
+    ) -> Result<Option<UserModel>> {
         let txn = ctx.transaction();
+
+        let make_error = || Error::new("failed to get user", ErrorType::User);
 
         // If slug, determine if this is a user alias.
         //
@@ -356,9 +290,11 @@ impl UserService {
         //       they would be slower than doing queries on
         //       simple indexes directly, which is why we are
         //       doing it this way.
+
         if let Reference::Slug(ref slug) = reference
-            && let Some(alias) =
-                AliasService::get_optional(ctx, AliasType::User, slug).await?
+            && let Some(alias) = AliasService::get_optional(ctx, AliasType::User, slug)
+                .await
+                .or_raise(make_error)?
         {
             // If present, this is the actual user. Proceed with SELECT by id.
             // Rewrite reference so in the "real" user search
@@ -367,17 +303,18 @@ impl UserService {
         }
 
         let user = match reference {
-            Reference::Id(id) => User::find_by_id(id).one(txn).await?,
-            Reference::Slug(slug) => {
-                User::find()
-                    .filter(
-                        Condition::all()
-                            .add(user::Column::Slug.eq(slug))
-                            .add(user::Column::DeletedAt.is_null()),
-                    )
-                    .one(txn)
-                    .await?
+            Reference::Id(id) => {
+                User::find_by_id(id).one(txn).await.or_raise(make_error)?
             }
+            Reference::Slug(slug) => User::find()
+                .filter(
+                    Condition::all()
+                        .add(user::Column::Slug.eq(slug))
+                        .add(user::Column::DeletedAt.is_null()),
+                )
+                .one(txn)
+                .await
+                .or_raise(make_error)?,
         };
 
         Ok(user)
@@ -387,8 +324,8 @@ impl UserService {
     pub async fn get(
         ctx: &ServiceContext<'_>,
         reference: Reference<'_>,
-    ) -> OldResult<UserModel> {
-        find_or_error!(Self::get_optional(ctx, reference), User)
+    ) -> Result<UserModel> {
+        find_or_error_tmp!(Self::get_optional(ctx, reference), user, User)
     }
 
     pub async fn update(
@@ -396,11 +333,23 @@ impl UserService {
         reference: Reference<'_>,
         ip_address: IpAddr,
         input: UpdateUserBody,
-    ) -> OldResult<UserModel> {
+    ) -> Result<UserModel> {
         use crate::services::audit::UserFields;
 
         let txn = ctx.transaction();
-        let user = Self::get(ctx, reference).await?;
+        let user = Self::get(ctx, reference)
+            .await
+            .or_raise(|| Error::new("failed to update user", ErrorType::User))?;
+
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to update user '{}' (ID {})",
+                    user.slug, user.user_id,
+                ),
+                ErrorType::User,
+            )
+        };
 
         // Gather data for audit log entry
         {
@@ -468,7 +417,8 @@ impl UserService {
                     changed_fields,
                 },
             )
-            .await?;
+            .await
+            .or_raise(make_error)?;
         }
 
         // Add fields to update
@@ -481,22 +431,26 @@ impl UserService {
         // Add each field
         if let Maybe::Set(name) = input.name {
             // NOTE: Name filter validation occurs in update_name(), not here
-            Self::update_name(ctx, name, &user, &mut model, input.bypass_filter).await?;
+            Self::update_name(ctx, name, &user, &mut model, input.bypass_filter)
+                .await
+                .or_raise(make_error)?;
         }
 
         if let Maybe::Set(email) = input.email {
             if !input.bypass_filter {
-                Self::run_email_filter(ctx, &email).await?;
+                Self::run_email_filter(ctx, &email)
+                    .await
+                    .or_raise(make_error)?;
             }
 
             // Validate email
-            let email_validation_output = EmailService::validate(&email).await?;
-            let is_alias = match email_validation_output.classification {
-                EmailClassification::Normal => false,
-                EmailClassification::Alias => true,
-                EmailClassification::Disposable => return Err(OldError::DisallowedEmail),
-                EmailClassification::Invalid => return Err(OldError::InvalidEmail),
-            };
+            let email_validation_output =
+                EmailService::validate(&email).await.or_raise(make_error)?;
+
+            let is_alias = check_email_validation(
+                &user.slug,
+                email_validation_output.classification,
+            )?;
 
             model.email = Set(email);
             model.email_is_alias = Set(Some(is_alias));
@@ -549,14 +503,21 @@ impl UserService {
                     let config = ctx.config();
                     let FinalizeBlobUploadOutput { s3_hash, size, .. } =
                         BlobService::finish_upload(ctx, user.user_id, &uploaded_blob_id)
-                            .await?;
+                            .await
+                            .or_raise(make_error)?;
 
                     if size > config.maximum_avatar_size {
                         error!(
                             "Uploaded avatar size is too big {} > {}",
                             size, config.maximum_avatar_size,
                         );
-                        return Err(OldError::BlobTooBig);
+                        bail!(Error::new(
+                            format!(
+                                "failed to update user, avatar size is too big ({} > {} bytes)",
+                                size, config.maximum_avatar_size,
+                            ),
+                            ErrorType::BlobTooBig,
+                        ));
                     }
 
                     Some(s3_hash.to_vec())
@@ -568,14 +529,15 @@ impl UserService {
 
         // Update user
         model.updated_at = Set(Some(now()));
-        let new_user = model.update(txn).await?;
+        let new_user = model.update(txn).await.or_raise(make_error)?;
 
         // Run verification afterwards if the slug changed
         if user.slug != new_user.slug {
-            try_join!(
+            let (result1, result2) = join!(
                 AliasService::verify(ctx, AliasType::User, &user.slug),
                 AliasService::verify(ctx, AliasType::User, &new_user.slug),
-            )?;
+            );
+            raise_multiple!(result1, result2; make_error);
         }
 
         Ok(new_user)
@@ -595,7 +557,7 @@ impl UserService {
         user: &UserModel,
         model: &mut user::ActiveModel,
         bypass_filter: bool,
-    ) -> OldResult<()> {
+    ) -> Result<()> {
         // Regardless of the number of name change tokens,
         // the user can always change their name if the slug is
         // unaltered, or if the slug is a prior name of theirs
@@ -604,15 +566,18 @@ impl UserService {
         let new_slug = get_user_slug(&new_name, user.user_type);
         let old_slug = &user.slug;
 
-        // Empty slug check
-        if new_slug.is_empty() {
-            error!("Cannot create user with empty slug");
-            return Err(OldError::UserSlugEmpty);
-        }
+        let make_error = || {
+            Error::new(
+                format!("failed to update name '{}' -> '{}'", old_slug, new_slug,),
+                ErrorType::User,
+            )
+        };
 
         // Perform filter validation
         if !bypass_filter {
-            Self::run_name_filter(ctx, &new_name, &new_slug).await?;
+            Self::run_name_filter(ctx, &new_name, &new_slug)
+                .await
+                .or_raise(make_error)?;
         }
 
         if new_slug == user.slug {
@@ -624,13 +589,16 @@ impl UserService {
             return Ok(());
         }
 
-        if let Some(alias) =
-            AliasService::get_optional(ctx, AliasType::User, &new_slug).await?
+        if let Some(alias) = AliasService::get_optional(ctx, AliasType::User, &new_slug)
+            .await
+            .or_raise(make_error)?
         {
             debug!("User slug is a past alias, rename is free");
 
             // Swap user alias for old slug
-            AliasService::swap(ctx, alias.alias_id, old_slug).await?;
+            AliasService::swap(ctx, alias.alias_id, old_slug)
+                .await
+                .or_raise(make_error)?;
 
             // Set model, but return early, we don't deduct a name change token
             model.name = Set(new_name);
@@ -640,24 +608,20 @@ impl UserService {
             return Ok(());
         }
 
+        check_user_name(ctx.config(), &new_slug, &new_name)?;
+
         // All changes beyond this point involve creating a new alias, so
         // a name change token must be consumed. Check if there are any remaining tokens.
 
         if user.name_changes_left == 0 {
             error!("User ID {} has no remaining name changes", user.user_id);
-            return Err(OldError::InsufficientNameChanges);
-        }
-
-        // Check if the new name has the minimum required amount of bytes.
-
-        if new_name.len() < ctx.config().minimum_name_bytes {
-            error!(
-                "User's name is not long enough ({} < {})",
-                new_name.len(),
-                ctx.config().minimum_name_bytes,
-            );
-
-            return Err(OldError::UserNameTooShort);
+            bail!(Error::new(
+                format!(
+                    "failed to rename user, user '{}' (ID {}) has no remaining name changes",
+                    user.slug, user.user_id,
+                ),
+                ErrorType::InsufficientNameChanges,
+            ));
         }
 
         // Deduct name change token and add user alias for old slug.
@@ -674,8 +638,8 @@ impl UserService {
         );
 
         model.name_changes_left = Set(user.name_changes_left - 1);
-        model.name = Set(new_name);
-        model.slug = Set(new_slug);
+        model.name = Set(new_name.clone());
+        model.slug = Set(new_slug.clone());
 
         AliasService::create2(
             ctx,
@@ -688,7 +652,8 @@ impl UserService {
             },
             false,
         )
-        .await?;
+        .await
+        .or_raise(make_error)?;
 
         Ok(())
     }
@@ -956,5 +921,85 @@ fn get_user_slug(name: &str, user_type: UserType) -> String {
         get_slug(name)
     } else {
         get_regular_slug(name)
+    }
+}
+
+fn check_user_name(config: &Config, slug: &str, name: &str) -> Result<()> {
+    // Empty slug check
+    if slug.is_empty() {
+        error!("Cannot create user with empty slug");
+        bail!(Error::new(
+            "cannot create user with empty slug",
+            ErrorType::UserSlugEmpty
+        ));
+    }
+
+    // Check if username contains the minimum amount of required bytes and chars.
+    if name.len() < config.minimum_name_bytes {
+        error!(
+            "User's name is not long enough ({} < {} bytes)",
+            slug.len(),
+            config.minimum_name_bytes,
+        );
+        bail!(Error::new(
+            format!(
+                "cannot create user, name is not long enough ({} < {} bytes)",
+                slug.len(),
+                config.minimum_name_bytes,
+            ),
+            ErrorType::UserNameTooShort,
+        ));
+    }
+
+    let char_count = name.chars().count();
+    if char_count < config.minimum_name_chars {
+        error!(
+            "User's name is not long enough ({} < {} chars)",
+            char_count, config.minimum_name_chars,
+        );
+        bail!(Error::new(
+            format!(
+                "cannot create user, name is not long enough ({} < {} chars)",
+                char_count, config.minimum_name_chars,
+            ),
+            ErrorType::UserNameTooShort,
+        ));
+    }
+
+    Ok(())
+}
+
+fn check_email_validation(
+    user_slug: &str,
+    classification: EmailClassification,
+) -> Result<bool> {
+    match classification {
+        EmailClassification::Normal => {
+            info!("User {user_slug}'s email was verified successfully");
+            Ok(false)
+        }
+
+        EmailClassification::Alias => {
+            info!("User {user_slug}'s email was verified successfully (as an alias)");
+            Ok(true)
+        }
+
+        EmailClassification::Disposable => {
+            error!(
+                "User {user_slug}'s email is disposable and did not pass verification",
+            );
+            bail!(Error::new(
+                "cannot create user, disposable emails are not permitted",
+                ErrorType::DisallowedEmail,
+            ));
+        }
+
+        EmailClassification::Invalid => {
+            error!("User {user_slug}'s email is invalid and did not pass verification");
+            bail!(Error::new(
+                "cannot create user, email appears to be invalid",
+                ErrorType::InvalidEmail,
+            ));
+        }
     }
 }

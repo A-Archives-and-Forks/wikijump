@@ -26,10 +26,12 @@ pub struct EmailService;
 impl EmailService {
     /// Validates an email through the MailCheck API.
     pub async fn validate(email: &str) -> Result<EmailValidationOutput> {
-        let make_error = || Error::new(
-            format!("failed to validate email '{email}'"),
-            ErrorType::EmailVerification,
-        );
+        let make_error = || {
+            Error::new(
+                format!("failed to validate email '{email}'"),
+                ErrorType::EmailVerification,
+            )
+        };
 
         // Sends a GET request to the MailCheck API and deserializes the response.
         let mailcheck = reqwest::get(format!("https://api.mailcheck.ai/email/{email}"))
@@ -53,7 +55,9 @@ impl EmailService {
                     "MailCheck API request failed with bad response: {:?}",
                     mailcheck.error,
                 );
-                let mut message = str!("failed to validate email, MailCheck API returned an error");
+
+                let mut message =
+                    str!("failed to validate email, MailCheck API returned an error");
                 if let Some(remote_error) = &mailcheck.error {
                     str_write!(&mut message, ": {remote_error}");
                 }
