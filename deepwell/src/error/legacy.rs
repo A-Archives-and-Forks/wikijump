@@ -23,7 +23,6 @@ use crate::hash::BlobHash;
 use exn::Exn;
 use filemagic::FileMagicError;
 use jsonrpsee::types::error::ErrorObjectOwned;
-use reqwest::Error as ReqwestError;
 use s3::error::S3Error;
 use sea_orm::error::DbErr;
 use thiserror::Error as ThisError;
@@ -46,9 +45,6 @@ pub enum OldError {
     #[error("Database error: {0}")]
     Database(DbErr),
 
-    #[error("Cryptography error: {0}")]
-    Cryptography(argon2::password_hash::Error),
-
     #[error("Redis error: {0}")]
     Redis(#[from] redis::RedisError),
 
@@ -61,17 +57,8 @@ pub enum OldError {
     #[error("One-time password error: {0}")]
     Otp(#[from] rust_otp::Error),
 
-    #[error("The rate limit for an external API has been reached")]
-    RateLimited,
-
-    #[error("Web request error: {0}")]
-    WebRequest(#[from] ReqwestError),
-
     #[error("Attempting to perform a wikitext parse and render has timed out")]
     RenderTimeout,
-
-    #[error("Email verification error: {}", .0.as_ref().unwrap_or(&str!("<unspecified>")))]
-    EmailVerification(Option<String>),
 
     #[error("S3 service returned error: {0}")]
     S3Service(#[from] S3Error),
@@ -286,19 +273,6 @@ pub enum OldError {
 //
 // Required if the value doesn't implement StdError,
 // or we want custom conversions.
-
-impl From<argon2::password_hash::Error> for OldError {
-    #[inline]
-    fn from(error: argon2::password_hash::Error) -> OldError {
-        match error {
-            // Password is invalid, expected error
-            argon2::password_hash::Error::Password => OldError::InvalidAuthentication,
-
-            // Problem with the password hashing process
-            _ => OldError::Cryptography(error),
-        }
-    }
-}
 
 impl From<DbErr> for OldError {
     fn from(error: DbErr) -> OldError {
