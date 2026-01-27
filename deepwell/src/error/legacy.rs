@@ -145,9 +145,6 @@ pub enum OldError {
     #[error("Cannot perform, page already exists")]
     PageExists,
 
-    #[error("Cannot perform, page slug already exists")]
-    PageSlugExists,
-
     #[error("Cannot perform, page parent already exists")]
     PageParentExists,
 
@@ -186,9 +183,6 @@ pub enum OldError {
     #[error("User slug cannot be empty")]
     UserSlugEmpty,
 
-    #[error("User email cannot be empty")]
-    UserEmailEmpty,
-
     #[error("Wrong user type for this operation")]
     UserWrongType,
 
@@ -203,9 +197,6 @@ pub enum OldError {
 
     #[error("Site slug cannot be empty")]
     SiteSlugEmpty,
-
-    #[error("Cannot restore a non-deleted page")]
-    PageNotDeleted,
 
     #[error("Cannot hide the wikitext for the latest page revision")]
     CannotHideLatestRevision,
@@ -233,9 +224,6 @@ pub enum OldError {
 
     #[error("No locales were specified in the request")]
     NoLocalesSpecified,
-
-    #[error("The request violates a configured content filter")]
-    FilterViolation,
 
     #[error("The regular expression found in the database is invalid")]
     FilterRegexInvalid(regex::Error),
