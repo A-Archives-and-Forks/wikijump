@@ -19,7 +19,6 @@
  */
 
 use crate::error::Error as NewError;
-use crate::hash::BlobHash;
 use exn::Exn;
 use filemagic::FileMagicError;
 use jsonrpsee::types::error::ErrorObjectOwned;
@@ -62,9 +61,6 @@ pub enum OldError {
 
     #[error("S3 service returned error: {0}")]
     S3Service(#[from] S3Error),
-
-    #[error("S3 service failed to respond properly")]
-    S3Response,
 
     #[error("Unspecified entity not found")]
     GeneralNotFound,
@@ -113,9 +109,6 @@ pub enum OldError {
 
     #[error("Message draft does not exist")]
     MessageDraftNotFound,
-
-    #[error("Blob item does not exist")]
-    BlobNotFound,
 
     #[error("Text item does not exist")]
     TextNotFound,
@@ -205,26 +198,6 @@ pub enum OldError {
 
     #[error("Cannot restore a non-deleted filter")]
     FilterNotDeleted,
-
-    #[error("Blob not uploaded")]
-    BlobNotUploaded,
-
-    #[error("Cannot use blob uploaded by different user")]
-    BlobWrongUser,
-
-    #[error("Uploaded blob is too big for this operation")]
-    BlobTooBig,
-
-    #[error("Uploaded blob does not match expected length")]
-    BlobSizeMismatch { expected: usize, actual: usize },
-
-    #[error("Uploaded blob content is blacklisted")]
-    BlobBlacklisted(BlobHash),
-
-    #[error(
-        "Cannot blacklist a blob which is already in use, you must do a hard deletion"
-    )]
-    BlobCannotBlacklistExisting,
 
     #[error("Message subject cannot be empty")]
     MessageSubjectEmpty,
