@@ -39,33 +39,43 @@ impl TextService {
     pub async fn get_optional(
         ctx: &ServiceContext<'_>,
         hash: &[u8],
-    ) -> OldResult<Option<String>> {
+    ) -> Result<Option<String>> {
         if hash.len() != TEXT_HASH_LENGTH {
             error!(
                 "Text hash length does not match, should be {}, is {}",
                 TEXT_HASH_LENGTH,
                 hash.len(),
             );
-            return Err(OldError::BadRequest);
+            bail!(Error::new(
+                format!(
+                    "failed to get text entry, hash should be {} bytes, but is {} bytes",
+                    TEXT_HASH_LENGTH,
+                    hash.len(),
+                ),
+                ErrorType::BadRequest,
+            ));
         }
 
         let txn = ctx.transaction();
         let contents = Text::find()
             .filter(text::Column::Hash.eq(hash))
             .one(txn)
-            .await?
+            .await
+            .or_raise(|| {
+                Error::new("failed to get optional text entry", ErrorType::Text)
+            })?
             .map(|model| model.contents);
 
         Ok(contents)
     }
 
     #[inline]
-    pub async fn get(ctx: &ServiceContext<'_>, hash: &[u8]) -> OldResult<String> {
-        find_or_error!(Self::get_optional(ctx, hash), Text)
+    pub async fn get(ctx: &ServiceContext<'_>, hash: &[u8]) -> Result<String> {
+        find_or_error_tmp!(Self::get_optional(ctx, hash), text, Text)
     }
 
     #[inline]
-    pub async fn exists(ctx: &ServiceContext<'_>, hash: &[u8]) -> OldResult<bool> {
+    pub async fn exists(ctx: &ServiceContext<'_>, hash: &[u8]) -> Result<bool> {
         Self::get_optional(ctx, hash)
             .await
             .map(|text| text.is_some())
@@ -81,9 +91,11 @@ impl TextService {
         ctx: &ServiceContext<'_>,
         should_fetch: bool,
         hash: &[u8],
-    ) -> OldResult<Option<String>> {
+    ) -> Result<Option<String>> {
         if should_fetch {
-            let text = Self::get(ctx, hash).await?;
+            let text = Self::get(ctx, hash).await.or_raise(|| {
+                Error::new("failed to conditionally get text entry", ErrorType::Text)
+            })?;
             Ok(Some(text))
         } else {
             Ok(None)
@@ -96,7 +108,7 @@ impl TextService {
     /// but because it is `async` and returns `Result`, the actual equivalent code
     /// would be:
     /// ```rs
-    /// # fn get_option(ctx: &ServiceContext<'_>, hash: Option<&[u8]>) -> OldResult<Option<String>> {
+    /// # fn get_option(ctx: &ServiceContext<'_>, hash: Option<&[u8]>) -> Result<Option<String>> {
     /// match hash {
     ///     None => Ok(None),
     ///     Some(hash) => {
@@ -117,12 +129,15 @@ impl TextService {
     pub async fn get_option<B: AsRef<[u8]>>(
         ctx: &ServiceContext<'_>,
         hash: &Option<B>,
-    ) -> OldResult<Option<String>> {
+    ) -> Result<Option<String>> {
         match hash {
             None => Ok(None),
             Some(hash) => {
                 let hash = hash.as_ref();
-                let text = Self::get(ctx, hash).await?;
+                let text = Self::get(ctx, hash).await.or_raise(|| {
+                    Error::new("failed to get optional text entry", ErrorType::Text)
+                })?;
+
                 Ok(Some(text))
             }
         }
@@ -140,7 +155,7 @@ impl TextService {
         ctx: &ServiceContext<'_>,
         should_fetch: bool,
         hash: &Option<B>,
-    ) -> OldResult<Option<String>> {
+    ) -> Result<Option<String>> {
         if should_fetch {
             Self::get_option(ctx, hash).await
         } else {
@@ -149,20 +164,21 @@ impl TextService {
     }
 
     /// Creates a text entry with this data, if it does not already exist.
-    pub async fn create(
-        ctx: &ServiceContext<'_>,
-        contents: String,
-    ) -> OldResult<TextHash> {
+    pub async fn create(ctx: &ServiceContext<'_>, contents: String) -> Result<TextHash> {
+        let make_error =
+            || Error::new("failed to create new text entry", ErrorType::Text);
+
         let txn = ctx.transaction();
         let hash = k12_hash(contents.as_bytes());
+        let exists = Self::exists(ctx, &hash).await.or_raise(make_error)?;
 
-        if !Self::exists(ctx, &hash).await? {
+        if !exists {
             let model = text::ActiveModel {
                 hash: Set(hash.to_vec()),
                 contents: Set(contents),
             };
 
-            Text::insert(model).exec(txn).await?;
+            Text::insert(model).exec(txn).await.or_raise(make_error)?;
         }
 
         Ok(hash)
@@ -172,7 +188,7 @@ impl TextService {
     ///
     /// This is rare, but can happen when text is invalidated,
     /// such as rerendering pages.
-    pub async fn prune(ctx: &ServiceContext<'_>) -> OldResult<()> {
+    pub async fn prune(ctx: &ServiceContext<'_>) -> Result<()> {
         macro_rules! not_in_column {
             ($table:expr, $column:expr $(,)?) => {
                 text::Column::Hash.not_in_subquery(
@@ -223,7 +239,10 @@ impl TextService {
                 // TODO add forum_post_revision
             )
             .exec(txn)
-            .await?;
+            .await
+            .or_raise(|| {
+                Error::new("failed to prune unused text entries", ErrorType::Text)
+            })?;
 
         debug!("Pruned {rows_affected} unused text rows");
         Ok(())

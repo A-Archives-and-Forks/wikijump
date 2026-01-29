@@ -110,9 +110,6 @@ pub enum OldError {
     #[error("Message draft does not exist")]
     MessageDraftNotFound,
 
-    #[error("Text item does not exist")]
-    TextNotFound,
-
     #[error("Cannot perform, user already exists")]
     UserExists,
 

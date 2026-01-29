@@ -159,7 +159,8 @@ impl BlueprintPageService {
                 let revision =
                     PageRevisionService::get_latest(ctx, site_id, page.page_id).await?;
 
-                return TextService::get(ctx, &revision.wikitext_hash).await;
+                let text = TextService::get(ctx, &revision.wikitext_hash).await?;
+                return Ok(text);
             }
         }
 

@@ -41,14 +41,39 @@ impl SettingsService {
         ctx: &ServiceContext<'_>,
         site_id: i64,
         page_id: Option<i64>,
-    ) -> OldResult<Layout> {
-        fn parse_layout(value: &str) -> OldResult<Layout> {
-            value.parse().map_err(|_| OldError::InvalidEnumValue)
+    ) -> Result<Layout> {
+        fn parse_layout(value: &str) -> Result<Layout> {
+            let layout = value.parse().map_err(|_| {
+                Error::new(
+                    "failed to parse layout value: {error}",
+                    ErrorType::InvalidEnumValue { value: str!(value) },
+                )
+            })?;
+
+            Ok(layout)
         }
+
+        let make_error = || {
+            Error::new(
+                match page_id {
+                    Some(page_id) => format!(
+                        "failed to get layout for site ID {}, page ID {}",
+                        site_id, page_id,
+                    ),
+                    None => {
+                        format!("failed to get layout for site ID {}, no page", site_id)
+                    }
+                },
+                ErrorType::SiteSettings,
+            )
+        };
 
         if let Some(page_id) = page_id {
             debug!("Getting layout for site ID {site_id} page ID {page_id}");
-            let page = PageService::get_direct(ctx, page_id, true).await?;
+            let page = PageService::get_direct(ctx, page_id, true)
+                .await
+                .or_raise(make_error)?;
+
             if let Some(layout) = page.layout {
                 debug!("Found page-level layout override: {layout}");
                 return parse_layout(&layout);
@@ -56,8 +81,9 @@ impl SettingsService {
 
             let category_id = page.page_category_id;
             debug!("Getting layout for page category ID {category_id}");
-            let category =
-                CategoryService::get(ctx, site_id, Reference::Id(category_id)).await?;
+            let category = CategoryService::get(ctx, site_id, Reference::Id(category_id))
+                .await
+                .or_raise(make_error)?;
 
             if let Some(layout) = category.layout {
                 debug!("Found category-level layout override: {layout}");
@@ -66,7 +92,10 @@ impl SettingsService {
         }
 
         debug!("Getting layout for site ID {site_id}");
-        let site = SiteService::get(ctx, Reference::Id(site_id)).await?;
+        let site = SiteService::get(ctx, Reference::Id(site_id))
+            .await
+            .or_raise(make_error)?;
+
         if let Some(layout) = site.layout {
             debug!("Found site-level layout override: {layout}");
             return parse_layout(&layout);
@@ -91,14 +120,35 @@ impl SettingsService {
         ctx: &ServiceContext<'_>,
         site_id: i64,
         category_id: Option<i64>,
-    ) -> OldResult<NavigationPageSlugs> {
-        let site = SiteService::get(ctx, Reference::Id(site_id)).await?;
+    ) -> Result<NavigationPageSlugs> {
+        let make_error = || {
+            Error::new(
+                match category_id {
+                    Some(category_id) => format!(
+                        "failed to get nav page slugs for site ID {}, category ID {}",
+                        site_id, category_id,
+                    ),
+                    None => format!(
+                        "failed to get nav page slugs for site ID {}, no category",
+                        site_id,
+                    ),
+                },
+                ErrorType::SiteSettings,
+            )
+        };
+
+        let site = SiteService::get(ctx, Reference::Id(site_id))
+            .await
+            .or_raise(make_error)?;
+
         let (override_top_bar, override_side_bar) = match category_id {
             None => (None, None),
             Some(category_id) => {
                 let category =
                     CategoryService::get(ctx, site_id, Reference::Id(category_id))
-                        .await?;
+                        .await
+                        .or_raise(make_error)?;
+
                 (category.top_bar_page, category.side_bar_page)
             }
         };
@@ -118,18 +168,36 @@ impl SettingsService {
         ctx: &ServiceContext<'_>,
         site_id: i64,
         category_id: Option<i64>,
-    ) -> OldResult<NavigationPageWikitext> {
+    ) -> Result<NavigationPageWikitext> {
+        let make_error = || {
+            Error::new(
+                match category_id {
+                    Some(category_id) => format!(
+                        "failed to get nav page wikitext contents for site ID {}, category ID {}",
+                        site_id, category_id,
+                    ),
+                    None => format!(
+                        "failed to get nav page wikitext contents for site ID {}, no category",
+                        site_id,
+                    ),
+                },
+                ErrorType::SiteSettings,
+            )
+        };
+
         let NavigationPageSlugs {
             top_bar_page,
             side_bar_page,
-        } = Self::get_nav_page_slugs(ctx, site_id, category_id).await?;
+        } = Self::get_nav_page_slugs(ctx, site_id, category_id)
+            .await
+            .or_raise(make_error)?;
 
         // Helper function so we can do a clean try_join!
         async fn get_wikitext(
             ctx: &ServiceContext<'_>,
             site_id: i64,
             page: &NavigationPage,
-        ) -> OldResult<Option<String>> {
+        ) -> Result<Option<String>> {
             let page_slug = match page {
                 NavigationPage::Enabled(page_slug) => page_slug,
                 NavigationPage::Disabled => return Ok(None),
@@ -141,12 +209,23 @@ impl SettingsService {
                 Reference::Slug(cow!(page_slug)),
             )
             .await
+            .or_raise(|| {
+                Error::new(
+                    format!(
+                        "failed to get wikitext for page '{}' in site ID {}",
+                        page_slug, site_id,
+                    ),
+                    ErrorType::Text,
+                )
+            })
         }
 
-        let (top_bar_page_wikitext, side_bar_page_wikitext) = try_join!(
+        let (top_bar_wikitext_result, side_bar_wikitext_result) = join!(
             get_wikitext(ctx, site_id, &top_bar_page),
             get_wikitext(ctx, site_id, &side_bar_page),
-        )?;
+        );
+
+        let (top_bar_page_wikitext, side_bar_page_wikitext) = raise_multiple!(top_bar_wikitext_result, side_bar_wikitext_result; make_error);
 
         Ok(NavigationPageWikitext {
             top_bar_page_wikitext,
@@ -163,18 +242,36 @@ impl SettingsService {
         ctx: &ServiceContext<'_>,
         site_id: i64,
         category_id: Option<i64>,
-    ) -> OldResult<NavigationPageHtml> {
+    ) -> Result<NavigationPageHtml> {
+        let make_error = || {
+            Error::new(
+                match category_id {
+                    Some(category_id) => format!(
+                        "failed to get nav page HTML for site ID {}, category ID {}",
+                        site_id, category_id,
+                    ),
+                    None => format!(
+                        "failed to get nav page HTML for site ID {}, no category",
+                        site_id,
+                    ),
+                },
+                ErrorType::SiteSettings,
+            )
+        };
+
         let NavigationPageSlugs {
             top_bar_page,
             side_bar_page,
-        } = Self::get_nav_page_slugs(ctx, site_id, category_id).await?;
+        } = Self::get_nav_page_slugs(ctx, site_id, category_id)
+            .await
+            .or_raise(make_error)?;
 
         // Helper function, like above
         async fn get_html(
             ctx: &ServiceContext<'_>,
             site_id: i64,
             page: &NavigationPage,
-        ) -> OldResult<Option<String>> {
+        ) -> Result<Option<String>> {
             let page_slug = match page {
                 NavigationPage::Enabled(page_slug) => page_slug,
                 NavigationPage::Disabled => return Ok(None),
@@ -186,12 +283,24 @@ impl SettingsService {
                 Reference::Slug(cow!(page_slug)),
             )
             .await
+            .or_raise(|| {
+                Error::new(
+                    format!(
+                        "failed to get HTML for page '{}' in site ID {}",
+                        page_slug, site_id,
+                    ),
+                    ErrorType::Text,
+                )
+            })
         }
 
-        let (compiled_top_bar_html, compiled_side_bar_html) = try_join!(
+        let (top_bar_html_result, side_bar_html_result) = join!(
             get_html(ctx, site_id, &top_bar_page),
             get_html(ctx, site_id, &side_bar_page),
-        )?;
+        );
+
+        let (compiled_top_bar_html, compiled_side_bar_html) =
+            raise_multiple!(top_bar_html_result, side_bar_html_result; make_error);
 
         Ok(NavigationPageHtml {
             compiled_top_bar_html,

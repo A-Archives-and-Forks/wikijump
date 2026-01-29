@@ -25,11 +25,18 @@ use super::prelude::*;
 pub struct ScoreService;
 
 impl ScoreService {
-    pub async fn score(ctx: &ServiceContext<'_>, page_id: i64) -> OldResult<ScoreValue> {
+    pub async fn score(ctx: &ServiceContext<'_>, page_id: i64) -> Result<ScoreValue> {
         let txn = ctx.transaction();
+        let make_error = || {
+            Error::new(
+                format!("failed to evaluate score for page ID {}", page_id),
+                ErrorType::PageVote,
+            )
+        };
+
         let condition = Self::build_condition(page_id);
-        let scorer = Self::get_scorer(ctx, page_id).await?;
-        let score = scorer.score(txn, condition).await?;
+        let scorer = Self::get_scorer(ctx, page_id).await.or_raise(make_error)?;
+        let score = scorer.score(txn, condition).await.or_raise(make_error)?;
         Ok(score)
     }
 
@@ -39,7 +46,7 @@ impl ScoreService {
     pub async fn get_scorer(
         _ctx: &ServiceContext<'_>,
         _page_id: i64,
-    ) -> OldResult<impl Scorer> {
+    ) -> Result<impl Scorer> {
         // TODO
         Ok(TestScorer)
     }
@@ -51,7 +58,7 @@ impl ScoreService {
     pub(crate) async fn collect_votes(
         txn: &DatabaseTransaction,
         condition: Condition,
-    ) -> OldResult<VoteMap> {
+    ) -> Result<VoteMap> {
         // Query for votes aggregated by value.
         //
         // As raw SQL:
@@ -76,7 +83,8 @@ impl ScoreService {
             .group_by(page_vote::Column::Value)
             .into_model::<VoteCountRow>()
             .all(txn)
-            .await?;
+            .await
+            .or_raise(|| Error::new("failed to collect votes", ErrorType::PageVote))?;
 
         // Gather results into map
         let mut map = VoteMap::new();
