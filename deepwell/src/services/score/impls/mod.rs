@@ -21,7 +21,16 @@
 // TEMP
 #![allow(dead_code)]
 
-use super::prelude;
+pub mod prelude {
+    pub use super::super::prelude::*;
+
+    pub fn make_error(method: &str) -> Error {
+        Error::new(
+            format!("failed to calculate {} score for page", method),
+            ErrorType::PageVote,
+        )
+    }
+}
 
 mod mean;
 mod null;

@@ -40,7 +40,7 @@ impl Scorer for MeanScorer {
         &self,
         txn: &DatabaseTransaction,
         condition: Condition,
-    ) -> OldResult<ScoreValue> {
+    ) -> Result<ScoreValue> {
         #[derive(FromQueryResult, Debug)]
         struct MeanRow {
             sum: u64,
@@ -65,7 +65,8 @@ impl Scorer for MeanScorer {
             .filter(condition)
             .into_model::<MeanRow>()
             .one(txn)
-            .await?
+            .await
+            .or_raise(|| make_error("mean"))?
             .expect("No results in aggregate query");
 
         let score = if count == 0 {

@@ -39,7 +39,7 @@ impl Scorer for SumScorer {
         &self,
         txn: &DatabaseTransaction,
         condition: Condition,
-    ) -> OldResult<ScoreValue> {
+    ) -> Result<ScoreValue> {
         #[derive(FromQueryResult, Debug)]
         struct SumRow {
             sum: i64,
@@ -61,7 +61,8 @@ impl Scorer for SumScorer {
             .filter(condition)
             .into_model::<SumRow>()
             .one(txn)
-            .await?
+            .await
+            .or_raise(|| make_error("sum"))?
             .expect("No results in aggregate query");
 
         Ok(ScoreValue::Integer(result.sum))
