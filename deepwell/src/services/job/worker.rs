@@ -154,29 +154,47 @@ impl JobWorker {
         }
     }
 
-    async fn process_job(&mut self) -> OldResult<JobProcessStatus> {
-        let data: RsmqMessage<Vec<u8>> =
-            match self.rsmq.receive_message(JOB_QUEUE_NAME, None).await? {
-                None => return Ok(JobProcessStatus::NoJob),
-                Some(data) => data,
-            };
+    async fn process_job(&mut self) -> Result<JobProcessStatus> {
+        let make_error =
+            || Error::new("failed to process job from queue", ErrorType::Job);
+
+        let next_job = self
+            .rsmq
+            .receive_message(JOB_QUEUE_NAME, None)
+            .await
+            .or_raise(make_error)?;
+
+        let data: RsmqMessage<Vec<u8>> = match next_job {
+            None => return Ok(JobProcessStatus::NoJob),
+            Some(data) => data,
+        };
 
         debug!("Received raw data from queue (worker {})", self.id);
         debug!("* Message ID:          {}", data.id);
         debug!("* Previously received: {}", data.rc);
         debug!("* Created:             {}", data.sent);
         debug!("* Received:            {}", data.fr);
-        let job = serde_json::from_slice(&data.message)?;
+        let job = serde_json::from_slice(&data.message).or_raise(make_error)?;
+
+        let make_error = || {
+            Error::new(
+                format!("failed to process job ID {}: {:#?}", data.id, job),
+                ErrorType::Job,
+            )
+        };
 
         let no_more_retries = data.rc >= u64::from(self.state.config.job_max_attempts);
         if no_more_retries {
             debug!("Last attempt for this message, it will not be retried if it fails");
-            self.rsmq.delete_message(JOB_QUEUE_NAME, &data.id).await?;
+            self.rsmq
+                .delete_message(JOB_QUEUE_NAME, &data.id)
+                .await
+                .or_raise(make_error)?;
         }
 
         debug!("Received job from queue: {job:?}");
         trace!("Setting up ServiceContext for job processing");
-        let txn = self.state.database.begin().await?;
+        let txn = self.state.database.begin().await.or_raise(make_error)?;
         let ctx = &ServiceContext::new(&self.state, &txn);
 
         trace!("Beginning job processing");
@@ -197,7 +215,8 @@ impl JobWorker {
                 };
 
                 debug!(
-                    "Rerendering page ID {page_id} in site ID {site_id} (category ID {category_id}, depth {depth}) ({extra})",
+                    "Rerendering page ID {} in site ID {} (category ID {}, depth {}) ({})",
+                    page_id, site_id, category_id, depth, extra,
                 );
 
                 PageRevisionService::rerender(
@@ -210,13 +229,14 @@ impl JobWorker {
                     depth,
                     rerender_type,
                 )
-                .await?;
+                .await
+                .or_raise(make_error)?;
 
                 NextJob::Done
             }
             Job::PruneSessions => {
                 debug!("Pruning all expired sesions from database");
-                SessionService::prune(ctx).await?;
+                SessionService::prune(ctx).await.or_raise(make_error)?;
                 NextJob::Next {
                     job: Job::PruneSessions,
                     delay: Some(self.state.config.job_prune_session),
@@ -224,7 +244,7 @@ impl JobWorker {
             }
             Job::PrunePendingUploads => {
                 debug!("Pruning all expired pending uploads from database and S3");
-                BlobService::prune(ctx).await?;
+                BlobService::prune(ctx).await.or_raise(make_error)?;
                 NextJob::Next {
                     job: Job::PrunePendingUploads,
                     delay: Some(self.state.config.job_prune_uploads),
@@ -232,7 +252,7 @@ impl JobWorker {
             }
             Job::PruneText => {
                 debug!("Pruning all unused text items from database");
-                TextService::prune(ctx).await?;
+                TextService::prune(ctx).await.or_raise(make_error)?;
                 NextJob::Next {
                     job: Job::PruneText,
                     delay: Some(self.state.config.job_prune_text),
@@ -240,7 +260,11 @@ impl JobWorker {
             }
             Job::NameChangeRefill => {
                 debug!("Checking users for those who can get a name change token refill");
-                UserService::refresh_name_change_tokens(ctx).await?;
+
+                UserService::refresh_name_change_tokens(ctx)
+                    .await
+                    .or_raise(make_error)?;
+
                 NextJob::Next {
                     job: Job::NameChangeRefill,
                     delay: Some(self.state.config.job_name_change_refill),
@@ -267,7 +291,10 @@ impl JobWorker {
         // NOTE: We're only at this point if the job succeeded.
         if !no_more_retries {
             trace!("Job execution finished, deleting message");
-            self.rsmq.delete_message(JOB_QUEUE_NAME, &data.id).await?;
+            self.rsmq
+                .delete_message(JOB_QUEUE_NAME, &data.id)
+                .await
+                .or_raise(make_error)?;
         }
 
         // Add follow-up job to queue, if required.
@@ -277,12 +304,14 @@ impl JobWorker {
                 debug!("Job execution finished, follow-up job has been produced");
                 trace!("* Job:   {job:?}");
                 trace!("* Delay: {delay:?}");
-                JobService::queue_job(ctx, &job, delay).await?;
+                JobService::queue_job(ctx, &job, delay)
+                    .await
+                    .or_raise(make_error)?;
             }
         }
 
         trace!("Committing transaction, returning success");
-        txn.commit().await?;
+        txn.commit().await.or_raise(make_error)?;
         Ok(JobProcessStatus::ReceivedJob)
     }
 }

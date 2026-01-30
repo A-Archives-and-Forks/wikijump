@@ -39,6 +39,7 @@ pub enum ErrorType {
     File,
     FileRevision,
     GetView,
+    Job,
 
     // 1100
     ServerSetup,
@@ -251,6 +252,7 @@ impl ErrorType {
             ErrorType::File => 1012,
             ErrorType::FileRevision => 1013,
             ErrorType::GetView => 1014,
+            ErrorType::Job => 1015,
 
             // 1100 - Intermediate Setup
             ErrorType::ServerSetup => 1100,
@@ -441,6 +443,7 @@ impl ErrorType {
             ErrorType::File => "File operation failed",
             ErrorType::FileRevision => "File revision operation failed",
             ErrorType::GetView => "Getting web view failed",
+            ErrorType::Job => "Failed to process job from queue",
 
             // 1100
             ErrorType::ServerSetup => "Failed to set up server internal state",
