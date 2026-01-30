@@ -85,11 +85,23 @@ impl TextBlockService {
         page_id: i64,
         block_type: TextBlockType,
         blocks: &[TextBlock<'_>],
-    ) -> OldResult<()> {
+    ) -> Result<()> {
         use std::ops::Add;
 
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to insert {} new {} text blocks for page ID {}",
+                    blocks.len(),
+                    block_type_name(block_type),
+                    page_id,
+                ),
+                ErrorType::TextBlock,
+            )
+        };
+
         info!(
-            "Inserting {} {} blocks for page ID {}",
+            "Inserting {} {} text blocks for page ID {}",
             blocks.len(),
             block_type_name(block_type),
             page_id,
@@ -114,7 +126,10 @@ impl TextBlockService {
         // with the PutObject operation). So we fetch the maximum block index and
         // delete everything from index blocks.len() through max_index.
 
-        let prev_max_index = Self::get_block_count(ctx, page_id, block_type).await?;
+        let prev_max_index = Self::get_block_count(ctx, page_id, block_type)
+            .await
+            .or_raise(make_error)?;
+
         let max_index: i16 = blocks
             .len()
             .add(1)
@@ -135,7 +150,7 @@ impl TextBlockService {
         for index in max_index..=prev_max_index {
             let filename = filename!(index);
             debug!("Deleting now-out-of-range S3 text block {filename}");
-            bucket.delete_object(filename).await?;
+            bucket.delete_object(filename).await.or_raise(make_error)?;
         }
 
         // Upload the new text blocks to S3.
@@ -166,7 +181,8 @@ impl TextBlockService {
             debug!("Uploading new S3 text block {filename} ({mime})");
             bucket
                 .put_object_with_content_type(filename, text.as_bytes(), mime)
-                .await?;
+                .await
+                .or_raise(make_error)?;
 
             let index: i16 = index
                 .try_into()
@@ -201,7 +217,8 @@ impl TextBlockService {
                     .add(text_block::Column::PageId.eq(page_id)),
             )
             .exec(txn)
-            .await?;
+            .await
+            .or_raise(make_error)?;
 
         debug_assert_eq!(
             rows_affected, prev_max_index as u64,
@@ -210,7 +227,10 @@ impl TextBlockService {
 
         // Finally, insert the batch of new text block rows, then return.
         if !models.is_empty() {
-            TextBlockTable::insert_many(models).exec(txn).await?;
+            TextBlockTable::insert_many(models)
+                .exec(txn)
+                .await
+                .or_raise(make_error)?;
         }
 
         Ok(())
@@ -222,13 +242,25 @@ impl TextBlockService {
         page_id: i64,
         block_type: TextBlockType,
         name: &str,
-    ) -> OldResult<Option<TextBlockIndex>> {
+    ) -> Result<Option<TextBlockIndex>> {
         info!(
             "Looking for a {} text block on page ID {} with name '{}'",
             block_type_name(block_type),
             page_id,
             name,
         );
+
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to find a {} text block on page ID {} with name '{}'",
+                    block_type_name(block_type),
+                    page_id,
+                    name,
+                ),
+                ErrorType::TextBlock,
+            )
+        };
 
         let txn = ctx.transaction();
         let index: Option<i16> = TextBlockTable::find()
@@ -242,7 +274,8 @@ impl TextBlockService {
             )
             .into_tuple()
             .one(txn)
-            .await?;
+            .await
+            .or_raise(make_error)?;
 
         match index {
             None => Ok(None),
@@ -259,7 +292,7 @@ impl TextBlockService {
         ctx: &ServiceContext<'_>,
         page_id: i64,
         block_type: TextBlockType,
-    ) -> OldResult<i16> {
+    ) -> Result<i16> {
         let txn = ctx.transaction();
         let count = TextBlockTable::find()
             .select_only()
@@ -273,7 +306,17 @@ impl TextBlockService {
             .limit(1)
             .into_tuple()
             .one(txn)
-            .await?
+            .await
+            .or_raise(|| {
+                Error::new(
+                    format!(
+                        "failed to get {} text block count for page ID {}",
+                        block_type_name(block_type),
+                        page_id,
+                    ),
+                    ErrorType::TextBlock,
+                )
+            })?
             .unwrap_or(0);
 
         Ok(count)
@@ -284,10 +327,17 @@ impl TextBlockService {
     /// This is run when a page is deleted, since the page
     /// becomes inaccessible and storing this redundant information
     /// becomes unnecessary.
-    pub async fn delete_blocks(ctx: &ServiceContext<'_>, page_id: i64) -> OldResult<()> {
+    pub async fn delete_blocks(ctx: &ServiceContext<'_>, page_id: i64) -> Result<()> {
         let txn = ctx.transaction();
         let bucket = ctx.s3_tblocks_bucket();
         let mut buffer = String::new();
+
+        let make_error = || {
+            Error::new(
+                format!("failed to delete text blocks on page ID {}", page_id),
+                ErrorType::TextBlock,
+            )
+        };
 
         // For each kind of text block type, find out how many
         // blocks exist and then delete the objects in S3.
@@ -299,11 +349,14 @@ impl TextBlockService {
                 }};
             }
 
-            let max_index = Self::get_block_count(ctx, page_id, block_type).await?;
+            let max_index = Self::get_block_count(ctx, page_id, block_type)
+                .await
+                .or_raise(make_error)?;
+
             for index in 1..=max_index {
                 let filename = filename!(index);
                 debug!("Deleting text block {filename}");
-                bucket.delete_object(filename).await?;
+                bucket.delete_object(filename).await.or_raise(make_error)?;
             }
         }
 
@@ -312,7 +365,8 @@ impl TextBlockService {
         TextBlockTable::delete_many()
             .filter(text_block::Column::PageId.eq(page_id))
             .exec(txn)
-            .await?;
+            .await
+            .or_raise(make_error)?;
 
         Ok(())
     }

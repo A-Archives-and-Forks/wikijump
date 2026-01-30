@@ -69,6 +69,7 @@ pub enum ErrorType {
     Caddyfile,
     BasicError,
     License,
+    TextBlock,
 
     // 2000
     GeneralNotFound,
@@ -280,6 +281,7 @@ impl ErrorType {
             ErrorType::Caddyfile => 1310,
             ErrorType::BasicError => 1311,
             ErrorType::License => 1312,
+            ErrorType::TextBlock => 1313,
 
             //
             // 2000 -- Data Consistency
@@ -469,6 +471,7 @@ impl ErrorType {
             ErrorType::Caddyfile => "Failed to generate a Caddyfile",
             ErrorType::BasicError => "Failed to generate a basic error message",
             ErrorType::License => "Failed to determine license data",
+            ErrorType::TextBlock => "Failed to act on a text block",
 
             // 2000
             ErrorType::GeneralNotFound => "Unspecified entity does not exist",
