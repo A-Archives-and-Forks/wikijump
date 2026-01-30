@@ -93,7 +93,8 @@ impl OutdateService {
     ) -> OldResult<()> {
         let page = PageService::get_direct(ctx, page_id, false).await?;
         let id = PageId::from_page_model(&page);
-        JobService::queue_rerender_page(ctx, id, depth.plus_one()).await
+        JobService::queue_rerender_page(ctx, id, depth.plus_one()).await?;
+        Ok(())
     }
 
     pub async fn outdate_incoming_links(

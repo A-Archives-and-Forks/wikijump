@@ -59,7 +59,7 @@ impl JobService {
         ctx: &ServiceContext<'_>,
         job: &Job,
         delay: Option<Duration>,
-    ) -> OldResult<()> {
+    ) -> Result<()> {
         let mut rsmq = ctx.rsmq();
         Self::queue_job_inner(&mut rsmq, job, delay).await
     }
@@ -68,10 +68,24 @@ impl JobService {
         rsmq: &mut Rsmq,
         job: &Job,
         delay: Option<Duration>,
-    ) -> OldResult<()> {
+    ) -> Result<()> {
         info!("Queuing job {job:?} (delay {delay:?})");
-        let payload = serde_json::to_vec(job)?;
-        rsmq.send_message(JOB_QUEUE_NAME, payload, delay).await?;
+
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to queue job to RSMQ: {:#?} (delay {:?})",
+                    job, delay,
+                ),
+                ErrorType::Job,
+            )
+        };
+
+        let payload = serde_json::to_vec(job).or_raise(make_error)?;
+        rsmq.send_message(JOB_QUEUE_NAME, payload, delay)
+            .await
+            .or_raise(make_error)?;
+
         Ok(())
     }
 
@@ -87,7 +101,7 @@ impl JobService {
         ctx: &ServiceContext<'_>,
         id: PageId,
         depth: RerenderDepth,
-    ) -> OldResult<()> {
+    ) -> Result<()> {
         debug!(
             "Queuing page rerender for page ID {} and site ID {}",
             id.page_id, id.site_id,
@@ -112,7 +126,7 @@ impl JobService {
         ctx: &ServiceContext<'_>,
         id: PageId,
         depth: RerenderDepth,
-    ) -> OldResult<()> {
+    ) -> Result<()> {
         debug!(
             "Queuing page rerender for page ID {} and site ID {}",
             id.page_id, id.site_id,
