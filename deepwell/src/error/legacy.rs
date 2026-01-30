@@ -96,9 +96,6 @@ pub enum OldError {
     #[error("File revision does not exist")]
     FileRevisionNotFound,
 
-    #[error("Vote does not exist")]
-    VoteNotFound,
-
     #[error("Filter does not exist")]
     FilterNotFound,
 
