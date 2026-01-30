@@ -19,7 +19,6 @@
  */
 
 use crate::error::prelude::*;
-use exn::Exn;
 use std::str::FromStr;
 use strum_macros::EnumIter;
 
@@ -56,16 +55,13 @@ impl FetchDirection {
 }
 
 impl FromStr for FetchDirection {
-    type Err = Exn<Error>;
+    type Err = EnumConversionError;
 
-    fn from_str(value: &str) -> Result<FetchDirection> {
+    fn from_str(value: &str) -> StdResult<FetchDirection, EnumConversionError> {
         match value {
             "before" => Ok(FetchDirection::Before),
             "after" => Ok(FetchDirection::After),
-            _ => bail!(Error::new(
-                "failed to parse FetchDirection, invalid enum value",
-                ErrorType::InvalidEnumValue { value: str!(value) },
-            )),
+            _ => Err(EnumConversionError::new("FetchDirection", value)),
         }
     }
 }

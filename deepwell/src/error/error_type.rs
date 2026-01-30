@@ -114,9 +114,6 @@ pub enum ErrorType {
 
     // 4000
     BadRequest,
-    InvalidEnumValue {
-        value: String,
-    },
 
     // 4100
     UserNameTooShort,
@@ -347,7 +344,6 @@ impl ErrorType {
             // consider adding a new error case when code to handle new fail states are
             // introduced.
             ErrorType::BadRequest => 4000,
-            ErrorType::InvalidEnumValue { .. } => 4001,
 
             // 4100 - User
             ErrorType::UserNameTooShort => 4100,
@@ -523,7 +519,6 @@ impl ErrorType {
 
             // 4000
             ErrorType::BadRequest => "The request is in some way malformed or incorrect",
-            ErrorType::InvalidEnumValue { .. } => "Invalid enum serialization value",
 
             // 4100
             ErrorType::UserNameTooShort => "User name is too short",

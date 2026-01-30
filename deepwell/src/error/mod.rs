@@ -20,6 +20,7 @@
 
 pub mod prelude {
     pub use super::{Error, ErrorType, OldError, OldResult, Result, StdError, StdResult};
+    pub use crate::types::EnumConversionError;
     pub use exn::{OptionExt, ResultExt};
 }
 

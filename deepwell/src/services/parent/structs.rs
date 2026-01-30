@@ -56,13 +56,13 @@ impl ParentalRelationshipType {
 }
 
 impl FromStr for ParentalRelationshipType {
-    type Err = OldError;
+    type Err = EnumConversionError;
 
-    fn from_str(value: &str) -> OldResult<ParentalRelationshipType> {
+    fn from_str(value: &str) -> StdResult<ParentalRelationshipType, EnumConversionError> {
         match value {
             "parents" => Ok(ParentalRelationshipType::Parent),
             "children" => Ok(ParentalRelationshipType::Child),
-            _ => Err(OldError::InvalidEnumValue),
+            _ => Err(EnumConversionError::new("ParentalRelationshipType", value)),
         }
     }
 }

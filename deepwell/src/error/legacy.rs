@@ -19,6 +19,7 @@
  */
 
 use crate::error::Error as NewError;
+use crate::types::EnumConversionError;
 use exn::Exn;
 use filemagic::FileMagicError;
 use jsonrpsee::types::error::ErrorObjectOwned;
@@ -152,7 +153,7 @@ pub enum OldError {
     BadRequest,
 
     #[error("Invalid enum serialization value")]
-    InvalidEnumValue,
+    InvalidEnumValue(#[from] EnumConversionError),
 
     #[error("User name is too short")]
     UserNameTooShort,

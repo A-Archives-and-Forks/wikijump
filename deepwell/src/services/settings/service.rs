@@ -22,6 +22,7 @@ use super::prelude::*;
 use crate::services::{
     CategoryService, PageRevisionService, PageService, SiteService, TextService,
 };
+use crate::types::parse_layout;
 use ftml::layout::Layout;
 use std::borrow::Cow;
 
@@ -42,17 +43,6 @@ impl SettingsService {
         site_id: i64,
         page_id: Option<i64>,
     ) -> Result<Layout> {
-        fn parse_layout(value: &str) -> Result<Layout> {
-            let layout = value.parse().map_err(|_| {
-                Error::new(
-                    "failed to parse layout value: {error}",
-                    ErrorType::InvalidEnumValue { value: str!(value) },
-                )
-            })?;
-
-            Ok(layout)
-        }
-
         let make_error = || {
             Error::new(
                 match page_id {
@@ -76,7 +66,7 @@ impl SettingsService {
 
             if let Some(layout) = page.layout {
                 debug!("Found page-level layout override: {layout}");
-                return parse_layout(&layout);
+                return parse_layout(&layout).or_raise(make_error);
             }
 
             let category_id = page.page_category_id;
@@ -87,7 +77,7 @@ impl SettingsService {
 
             if let Some(layout) = category.layout {
                 debug!("Found category-level layout override: {layout}");
-                return parse_layout(&layout);
+                return parse_layout(&layout).or_raise(make_error);
             }
         }
 
@@ -98,7 +88,7 @@ impl SettingsService {
 
         if let Some(layout) = site.layout {
             debug!("Found site-level layout override: {layout}");
-            return parse_layout(&layout);
+            return parse_layout(&layout).or_raise(make_error);
         }
 
         debug!("Using platform-level layout");
