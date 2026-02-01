@@ -92,7 +92,10 @@ impl RelationService {
 
         // Relations are not permitted to point to themselves
         if dest == from {
-            error!("Source and destination are the same: {dest:?}, cannot create relation");
+            error!(
+                "Source and destination are the same: {:?}, cannot create relation",
+                dest,
+            );
             return Err(Error::BadRequest);
         }
 
