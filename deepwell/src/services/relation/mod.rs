@@ -96,7 +96,7 @@ impl RelationService {
                 "Source and destination are the same: {:?}, cannot create relation",
                 dest,
             );
-            return Err(Error::BadRequest);
+            return Err(OldError::BadRequest);
         }
 
         // Get previous relation, if present
