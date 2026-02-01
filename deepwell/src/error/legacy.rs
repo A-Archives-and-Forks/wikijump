@@ -117,9 +117,6 @@ pub enum OldError {
     #[error("Cannot perform, site already exists")]
     SiteExists,
 
-    #[error("Cannot perform, page already exists")]
-    PageExists,
-
     #[error("Cannot perform, page parent already exists")]
     PageParentExists,
 

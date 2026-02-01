@@ -19,7 +19,9 @@
  */
 
 macro_rules! parse_connection_type {
-    ($connection:expr) => {
-        $connection.connection_type.as_str().parse()?
-    };
+    ($connection:expr, $make_error:expr $(,)?) => {{
+        let result: StdResult<ConnectionType, _> =
+            $connection.connection_type.as_str().parse();
+        result.or_raise($make_error)?
+    }};
 }
