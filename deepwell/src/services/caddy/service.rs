@@ -48,9 +48,16 @@ impl CaddyService {
     pub async fn generate(
         ctx: &ServiceContext<'_>,
         options: &CaddyfileOptions<'_>,
-    ) -> OldResult<String> {
+    ) -> Result<String> {
         let config = ctx.config();
         let txn = ctx.transaction();
+
+        let make_error = || {
+            Error::new(
+                format!("failed to generate Caddyfile with options {:#?}", options),
+                ErrorType::Caddyfile,
+            )
+        };
 
         let sites: Vec<(i64, String, Option<String>)> = Site::find()
             .select_only()
@@ -60,14 +67,16 @@ impl CaddyService {
             .order_by_asc(site::Column::SiteId)
             .into_tuple()
             .all(txn)
-            .await?;
+            .await
+            .or_raise(make_error)?;
 
         let domains = {
             let mut domains = HashMap::with_capacity(sites.len());
 
             for &(site_id, _, _) in &sites {
                 let aliases = AliasService::get_all(ctx, AliasType::Site, site_id)
-                    .await?
+                    .await
+                    .or_raise(make_error)?
                     .into_iter()
                     .map(|AliasModel { slug, .. }| slug)
                     .collect();
@@ -79,7 +88,8 @@ impl CaddyService {
                     .filter(site_domain::Column::SiteId.eq(site_id))
                     .into_tuple()
                     .all(txn)
-                    .await?;
+                    .await
+                    .or_raise(make_error)?;
 
                 domains.insert(
                     site_id,
