@@ -93,12 +93,6 @@ pub enum OldError {
     #[error("Custom domain does not exist")]
     CustomDomainNotFound,
 
-    #[error("Message does not exist")]
-    MessageNotFound,
-
-    #[error("Message draft does not exist")]
-    MessageDraftNotFound,
-
     #[error("Cannot perform, user already exists")]
     UserExists,
 
@@ -172,24 +166,6 @@ pub enum OldError {
 
     #[error("Cannot restore a non-deleted filter")]
     FilterNotDeleted,
-
-    #[error("Message subject cannot be empty")]
-    MessageSubjectEmpty,
-
-    #[error("Message subject too long")]
-    MessageSubjectTooLong,
-
-    #[error("Message body cannot be empty")]
-    MessageBodyEmpty,
-
-    #[error("Message body too long")]
-    MessageBodyTooLong,
-
-    #[error("Message cannot have no recipients")]
-    MessageNoRecipients,
-
-    #[error("Message has too many recipients")]
-    MessageTooManyRecipients,
 
     #[error("Custom domains may not be subdomains of the Wikijump main or file domains")]
     CustomDomainSubdomain,

@@ -56,19 +56,37 @@ impl MessageService {
             reply_to,
             forwarded_from,
         }: CreateMessageDraft,
-    ) -> OldResult<MessageDraftModel> {
+    ) -> Result<MessageDraftModel> {
         info!("Creating message draft for user ID {user_id}");
 
+        let wikitext_len = wikitext.len();
+        let recipients_len = recipients.len();
+        let is_reply = reply_to.is_some();
+        let is_forward = forwarded_from.is_some();
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to create message draft for user ID {} to {} recipients, wikitext {} bytes, reply {}, forward {}",
+                    user_id, recipients_len, wikitext_len, is_reply, is_forward,
+                ),
+                ErrorType::MessageDraft,
+            )
+        };
+
         // Check locale
-        validate_locale(&locale)?;
+        validate_locale(&locale).or_raise(make_error)?;
 
         // Check foreign keys
         if let Some(record_id) = &reply_to {
-            Self::check_message_access(ctx, record_id, user_id, "reply").await?;
+            Self::check_message_access(ctx, record_id, user_id, "reply")
+                .await
+                .or_raise(make_error)?;
         }
 
         if let Some(record_id) = &forwarded_from {
-            Self::check_message_access(ctx, record_id, user_id, "forward").await?;
+            Self::check_message_access(ctx, record_id, user_id, "forward")
+                .await
+                .or_raise(make_error)?;
         }
 
         // Insert draft into database
@@ -89,9 +107,11 @@ impl MessageService {
                 forwarded_from: Maybe::Set(forwarded_from),
             },
         )
-        .await?
+        .await
+        .or_raise(make_error)?
         .insert(txn)
-        .await?;
+        .await
+        .or_raise(make_error)?;
 
         Ok(draft)
     }
@@ -107,14 +127,27 @@ impl MessageService {
             subject,
             wikitext,
         }: UpdateMessageDraft,
-    ) -> OldResult<MessageDraftModel> {
+    ) -> Result<MessageDraftModel> {
         info!("Updating message draft {draft_id}");
+
+        let draft_id_2 = draft_id.clone();
+        let wikitext_len = wikitext.len();
+        let recipients_len = recipients.len();
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to update message draft for draft ID {} to {} recipients, wikitext {} bytes",
+                    draft_id_2, recipients_len, wikitext_len,
+                ),
+                ErrorType::MessageDraft,
+            )
+        };
 
         // Validate parameters
         validate_locale(&locale)?;
 
         // Get current draft
-        let current_draft = Self::get_draft(ctx, &draft_id).await?;
+        let current_draft = Self::get_draft(ctx, &draft_id).await.or_raise(make_error)?;
 
         // Update the draft
         let txn = ctx.transaction();
@@ -134,9 +167,11 @@ impl MessageService {
                 forwarded_from: Maybe::Unset,
             },
         )
-        .await?
+        .await
+        .or_raise(make_error)?
         .update(txn)
-        .await?;
+        .await
+        .or_raise(make_error)?;
 
         Ok(draft)
     }
@@ -157,7 +192,14 @@ impl MessageService {
             reply_to,
             forwarded_from,
         }: DraftProcess,
-    ) -> OldResult<message_draft::ActiveModel> {
+    ) -> Result<message_draft::ActiveModel> {
+        let make_error = || {
+            Error::new(
+                format!("failed to process message draft ID {}", draft_id),
+                ErrorType::MessageDraft,
+            )
+        };
+
         // Check constraints
         let recipients = DraftRecipients {
             regular: recipients,
@@ -166,17 +208,30 @@ impl MessageService {
         };
 
         for recipient_id in recipients.iter() {
-            if !UserService::exists(ctx, Reference::Id(recipient_id)).await? {
-                error!("Recipient user ID {recipient_id} does not exist");
-                return Err(OldError::UserNotFound);
+            let recipient_exists = UserService::exists(ctx, Reference::Id(recipient_id))
+                .await
+                .or_raise(make_error)?;
+
+            if !recipient_exists {
+                error!("Recipient user ID {recipient_id} does not exist!");
+                bail!(Error::new(
+                    format!(
+                        "failed to process message draft ID {}, as recipient user ID {} does not exist",
+                        draft_id, recipient_id
+                    ),
+                    ErrorType::MessageDraft
+                ));
             }
         }
 
         // Populate fields
-        let recipients = serde_json::to_value(&recipients)?;
+        let recipients = serde_json::to_value(&recipients).or_raise(make_error)?;
 
         let config = ctx.config();
-        let wikitext_hash = TextService::create(ctx, wikitext.clone()).await?;
+        let wikitext_hash = TextService::create(ctx, wikitext.clone())
+            .await
+            .or_raise(make_error)?;
+
         let RenderOutput {
             // TODO: use html_output
             html_output: _,
@@ -185,7 +240,9 @@ impl MessageService {
             compiled_hash,
             compiled_at,
             compiled_generator,
-        } = Self::render(ctx, wikitext, &locale, config.message_layout).await?;
+        } = Self::render(ctx, wikitext, &locale, config.message_layout)
+            .await
+            .or_raise(make_error)?;
 
         Ok(message_draft::ActiveModel {
             updated_at: Set(if is_update { Some(now()) } else { None }),
@@ -203,12 +260,21 @@ impl MessageService {
         })
     }
 
-    pub async fn delete_draft(
-        ctx: &ServiceContext<'_>,
-        draft_id: String,
-    ) -> OldResult<()> {
+    pub async fn delete_draft(ctx: &ServiceContext<'_>, draft_id: String) -> Result<()> {
+        let make_error = || {
+            Error::new(
+                format!("failed to delete message draft ID {}", draft_id),
+                ErrorType::MessageDraft,
+            )
+        };
+
         let txn = ctx.transaction();
-        MessageDraft::delete_by_id(draft_id).exec(txn).await?;
+
+        MessageDraft::delete_by_id(draft_id.clone())
+            .exec(txn)
+            .await
+            .or_raise(make_error)?;
+
         Ok(())
     }
 
@@ -217,19 +283,39 @@ impl MessageService {
     pub async fn send(
         ctx: &ServiceContext<'_>,
         draft_id: &str,
-    ) -> OldResult<MessageRecordModel> {
+    ) -> Result<MessageRecordModel> {
         info!("Sending draft ID {draft_id} as message");
+
+        let make_error = || {
+            Error::new(
+                format!("failed to send message draft ID {}", draft_id),
+                ErrorType::MessageDraft,
+            )
+        };
 
         // Gather resources
         let config = ctx.config();
-        let draft = Self::get_draft(ctx, draft_id).await?;
-        let wikitext = TextService::get(ctx, &draft.wikitext_hash).await?;
-        let mut recipients: DraftRecipients = serde_json::from_value(draft.recipients)?;
+        let draft = Self::get_draft(ctx, draft_id).await.or_raise(make_error)?;
+        let wikitext = TextService::get(ctx, &draft.wikitext_hash)
+            .await
+            .or_raise(make_error)?;
+
+        let mut recipients: DraftRecipients =
+            serde_json::from_value(draft.recipients).or_raise(make_error)?;
 
         // Message validation checks
+        //
+        // Checking things which are valid for drafts but invalid for sent messages
+
         if draft.subject.is_empty() {
             error!("Subject line cannot be empty");
-            return Err(OldError::MessageSubjectEmpty);
+            bail!(Error::new(
+                format!(
+                    "cannot send message from draft ID {}, subject line is empty",
+                    draft_id,
+                ),
+                ErrorType::MessageSubjectEmpty
+            ));
         }
 
         if draft.subject.len() > config.maximum_message_subject_bytes {
@@ -238,12 +324,26 @@ impl MessageService {
                 draft.subject.len(),
                 config.maximum_message_subject_bytes,
             );
-            return Err(OldError::MessageSubjectTooLong);
+            bail!(Error::new(
+                format!(
+                    "cannot send message from draft ID {}, subject line is too long ({} > {} bytes)",
+                    draft_id,
+                    draft.subject.len(),
+                    config.maximum_message_subject_bytes,
+                ),
+                ErrorType::MessageSubjectEmpty
+            ));
         }
 
         if wikitext.is_empty() {
             error!("Wikitext body cannot be empty");
-            return Err(OldError::MessageBodyEmpty);
+            bail!(Error::new(
+                format!(
+                    "cannot send message from draft ID {}, message body is empty",
+                    draft_id,
+                ),
+                ErrorType::MessageBodyEmpty
+            ));
         }
 
         if wikitext.len() > config.maximum_message_body_bytes {
@@ -252,12 +352,26 @@ impl MessageService {
                 wikitext.len(),
                 config.maximum_message_body_bytes,
             );
-            return Err(OldError::MessageBodyTooLong);
+            bail!(Error::new(
+                format!(
+                    "cannot send message from draft ID {}, message body is too long ({} > {} bytes)",
+                    draft_id,
+                    wikitext.len(),
+                    config.maximum_message_body_bytes,
+                ),
+                ErrorType::MessageBodyTooLong
+            ));
         }
 
         if recipients.is_empty() {
             error!("Must have at least one message recipient");
-            return Err(OldError::MessageNoRecipients);
+            bail!(Error::new(
+                format!(
+                    "cannot send message from draft ID {}, must have at least one recipient",
+                    draft_id,
+                ),
+                ErrorType::MessageNoRecipients
+            ));
         }
 
         if recipients.len() > config.maximum_message_recipients {
@@ -266,7 +380,15 @@ impl MessageService {
                 recipients.len(),
                 config.maximum_message_recipients,
             );
-            return Err(OldError::MessageTooManyRecipients);
+            bail!(Error::new(
+                format!(
+                    "cannot send message from draft ID {}, recipient list is too long ({} > {})",
+                    draft_id,
+                    recipients.len(),
+                    config.maximum_message_recipients,
+                ),
+                ErrorType::MessageBodyTooLong
+            ));
         }
 
         let mut recipients_to_add = Vec::new();
@@ -278,17 +400,23 @@ impl MessageService {
                 recipient_user_id,
                 "send a direct message to",
             )
-            .await?;
+            .await
+            .or_raise(make_error)?;
 
             // If recipient is a site user, then forward to corresponding site staff.
-            let user = UserService::get(ctx, Reference::Id(recipient_user_id)).await?;
+            let user = UserService::get(ctx, Reference::Id(recipient_user_id))
+                .await
+                .or_raise(make_error)?;
+
             if user.user_type == UserType::Site {
                 // TODO what to do if user is banned from site? needs to be possible to block
                 //      permabanned bad actors, but also allow normal banned users to message
                 //      to appeal bans etc
                 // TODO get the listed site staff, add them to recipients
                 let _site_id =
-                    RelationService::get_site_id_for_site_user(ctx, user.user_id).await?;
+                    RelationService::get_site_id_for_site_user(ctx, user.user_id)
+                        .await
+                        .or_raise(make_error)?;
 
                 let _ = &recipients_to_add;
             }
@@ -320,13 +448,15 @@ impl MessageService {
             forwarded_from: Set(draft.forwarded_from),
             ..Default::default()
         };
-        let record_model = model.insert(txn).await?;
+        let record_model = model.insert(txn).await.or_raise(make_error)?;
 
         // Delete message draft
-        Self::delete_draft(ctx, record_id.clone()).await?;
+        Self::delete_draft(ctx, record_id.clone())
+            .await
+            .or_raise(make_error)?;
 
         // Add recipients
-        try_join!(
+        let (result1, result2, result3) = join!(
             Self::add_recipients(
                 txn,
                 &record_id,
@@ -345,7 +475,8 @@ impl MessageService {
                 &recipients.blind_carbon_copy,
                 MessageRecipientType::Bcc,
             ),
-        )?;
+        );
+        raise_multiple!(result1, result2, result3; make_error);
 
         // Add message records
         let mut has_self = false;
@@ -373,7 +504,7 @@ impl MessageService {
                 flag_self: Set(false),
                 ..Default::default()
             };
-            model.insert(txn).await?;
+            model.insert(txn).await.or_raise(make_error)?;
             added_user_ids.push(user_id);
         }
 
@@ -399,7 +530,7 @@ impl MessageService {
             flag_self: Set(flag_self), // message you sent to yourself
             ..Default::default()
         };
-        model.insert(txn).await?;
+        model.insert(txn).await.or_raise(make_error)?;
 
         Ok(record_model)
     }
@@ -410,17 +541,32 @@ impl MessageService {
         record_id: &str,
         user_id: i64,
         value: bool,
-    ) -> OldResult<()> {
-        info!("Setting message read status for {record_id} / {user_id}: {value}");
+    ) -> Result<()> {
+        info!("Setting message read status for {record_id} / {user_id}: read={value}");
+
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to mark message ID {} from user ID {} as {}",
+                    record_id,
+                    user_id,
+                    if value { "read" } else { "unread" },
+                ),
+                ErrorType::Message,
+            )
+        };
 
         let txn = ctx.transaction();
-        let message = Self::get_message(ctx, record_id, user_id).await?;
+        let message = Self::get_message(ctx, record_id, user_id)
+            .await
+            .or_raise(make_error)?;
+
         let model = message::ActiveModel {
             internal_id: Set(message.internal_id),
             flag_read: Set(value),
             ..Default::default()
         };
-        model.update(txn).await?;
+        model.update(txn).await.or_raise(make_error)?;
 
         Ok(())
     }
@@ -431,7 +577,17 @@ impl MessageService {
         ctx: &ServiceContext<'_>,
         record_id: &str,
         user_id: i64,
-    ) -> OldResult<Option<MessageModel>> {
+    ) -> Result<Option<MessageModel>> {
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to get message ID {} from user ID {}",
+                    record_id, user_id,
+                ),
+                ErrorType::Message,
+            )
+        };
+
         let txn = ctx.transaction();
         let message = Message::find()
             .filter(
@@ -440,7 +596,8 @@ impl MessageService {
                     .add(message::Column::UserId.eq(user_id)),
             )
             .one(txn)
-            .await?;
+            .await
+            .or_raise(make_error)?;
 
         Ok(message)
     }
@@ -449,19 +606,31 @@ impl MessageService {
         ctx: &ServiceContext<'_>,
         record_id: &str,
         user_id: i64,
-    ) -> OldResult<MessageModel> {
-        find_or_error!(Self::get_message_optional(ctx, record_id, user_id), Message)
+    ) -> Result<MessageModel> {
+        find_or_error_tmp!(
+            Self::get_message_optional(ctx, record_id, user_id),
+            "message",
+            Message,
+        )
     }
 
     pub async fn get_record_optional(
         ctx: &ServiceContext<'_>,
         record_id: &str,
-    ) -> OldResult<Option<MessageRecordModel>> {
+    ) -> Result<Option<MessageRecordModel>> {
+        let make_error = || {
+            Error::new(
+                format!("failed to get message record ID {}", record_id),
+                ErrorType::MessageRecord,
+            )
+        };
+
         let txn = ctx.transaction();
         let record = MessageRecord::find()
             .filter(message_record::Column::ExternalId.eq(record_id))
             .one(txn)
-            .await?;
+            .await
+            .or_raise(make_error)?;
 
         Ok(record)
     }
@@ -469,12 +638,20 @@ impl MessageService {
     pub async fn get_draft_optional(
         ctx: &ServiceContext<'_>,
         draft_id: &str,
-    ) -> OldResult<Option<MessageDraftModel>> {
+    ) -> Result<Option<MessageDraftModel>> {
+        let make_error = || {
+            Error::new(
+                format!("failed to get message draft ID {}", draft_id),
+                ErrorType::MessageDraft,
+            )
+        };
+
         let txn = ctx.transaction();
         let draft = MessageDraft::find()
             .filter(message_draft::Column::ExternalId.eq(draft_id))
             .one(txn)
-            .await?;
+            .await
+            .or_raise(make_error)?;
 
         Ok(draft)
     }
@@ -482,8 +659,12 @@ impl MessageService {
     pub async fn get_draft(
         ctx: &ServiceContext<'_>,
         draft_id: &str,
-    ) -> OldResult<MessageDraftModel> {
-        find_or_error!(Self::get_draft_optional(ctx, draft_id), MessageDraft)
+    ) -> Result<MessageDraftModel> {
+        find_or_error_tmp!(
+            Self::get_draft_optional(ctx, draft_id),
+            "message draft",
+            MessageDraft,
+        )
     }
 
     // Helper methods
@@ -494,7 +675,17 @@ impl MessageService {
         record_id: &str,
         user_ids: &[i64],
         recipient_type: MessageRecipientType,
-    ) -> OldResult<()> {
+    ) -> Result<()> {
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to add recipients to database for message record ID {}: user IDs {:?}",
+                    record_id, user_ids,
+                ),
+                ErrorType::MessageRecord,
+            )
+        };
+
         let mut added_user_ids = Vec::new();
         for user_id in user_ids.iter().copied() {
             // NOTE: Because recipient lists are generally short, well under 100,
@@ -511,7 +702,7 @@ impl MessageService {
                 recipient_type: Set(recipient_type),
                 recipient_id: Set(user_id),
             };
-            model.insert(txn).await?;
+            model.insert(txn).await.or_raise(make_error)?;
             added_user_ids.push(user_id);
         }
 
@@ -532,27 +723,40 @@ impl MessageService {
         record_id: &str,
         user_id: i64,
         purpose: &'static str,
-    ) -> OldResult<()> {
+    ) -> Result<()> {
+        // To protect privacy, if the user doesn't have access to a message with a
+        // given ID, we pretend it does not exist for the purposes of returning errors.
+        let make_error = || {
+            Error::new(
+                format!(
+                    "the {} message record with ID {} does not exist",
+                    purpose, record_id,
+                ),
+                ErrorType::MessageNotFound,
+            )
+        };
+
         // Ensure the message record exists
-        let record = match Self::get_record_optional(ctx, record_id).await? {
+        let record = match Self::get_record_optional(ctx, record_id)
+            .await
+            .or_raise(make_error)?
+        {
             Some(record) => record,
             None => {
                 error!("The {purpose} message record does not exist: {record_id}");
-
-                return Err(OldError::MessageNotFound);
+                bail!(make_error());
             }
         };
 
         // Check that the user has access to the message.
         // That is, the user is the sender or one of the recipients.
         if record.sender_id != user_id
-            && Self::any_recipient_exists(ctx, record_id, user_id).await?
+            && Self::any_recipient_exists(ctx, record_id, user_id)
+                .await
+                .or_raise(make_error)?
         {
             error!("User ID {user_id} is not a sender or recipient of the {purpose}");
-
-            // To protect privacy, if the user doesn't have access to a message with a
-            // given ID, we pretend it does not exist for the purposes of returning errors.
-            return Err(OldError::MessageNotFound);
+            bail!(make_error());
         }
 
         Ok(())
@@ -563,8 +767,18 @@ impl MessageService {
         ctx: &ServiceContext<'_>,
         record_id: &str,
         user_id: i64,
-    ) -> OldResult<bool> {
+    ) -> Result<bool> {
         info!("Checking if user ID {user_id} is a recipient of record ID {record_id}");
+
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed checking if user ID {} is a recipient of record ID {}",
+                    user_id, record_id,
+                ),
+                ErrorType::MessageRecord,
+            )
+        };
 
         let txn = ctx.transaction();
         let model = MessageRecipient::find()
@@ -574,7 +788,8 @@ impl MessageService {
                     .add(message_recipient::Column::RecipientId.eq(user_id)),
             )
             .one(txn)
-            .await?;
+            .await
+            .or_raise(make_error)?;
 
         Ok(model.is_some())
     }

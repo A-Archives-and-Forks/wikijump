@@ -66,7 +66,6 @@ impl DraftRecipients {
         let i1 = self.regular.iter().copied();
         let i2 = self.carbon_copy.iter().copied();
         let i3 = self.blind_carbon_copy.iter().copied();
-
         i1.chain(i2).chain(i3)
     }
 
