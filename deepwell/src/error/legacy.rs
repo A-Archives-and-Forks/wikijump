@@ -108,9 +108,6 @@ pub enum OldError {
     #[error("Cannot perform, user already exists")]
     UserExists,
 
-    #[error("Cannot set up user MFA, already set up")]
-    UserMfaExists,
-
     #[error("Cannot perform, site already exists")]
     SiteExists,
 
@@ -122,9 +119,6 @@ pub enum OldError {
 
     #[error("Cannot perform, custom domain already exists")]
     CustomDomainExists,
-
-    #[error("Invalid username, password, or TOTP code")]
-    InvalidAuthentication,
 
     #[error("Invalid session token, cannot be used for authentication")]
     InvalidSessionToken,
