@@ -77,6 +77,7 @@ pub enum ErrorType {
     TextBlock,
     AuditLog,
     BlueprintPage,
+    Filter,
 
     // 2000
     GeneralNotFound,
@@ -171,6 +172,9 @@ pub enum ErrorType {
     FilterViolation {
         field: String,
         value: String,
+    },
+    FilterRegexInvalid {
+        regex: String,
     },
     FilterNotDeleted,
 
@@ -292,6 +296,7 @@ impl ErrorType {
             ErrorType::TextBlock => 1314,
             ErrorType::AuditLog => 1315,
             ErrorType::BlueprintPage => 1316,
+            ErrorType::Filter => 1317,
 
             //
             // 2000 -- Data Consistency
@@ -394,6 +399,7 @@ impl ErrorType {
 
             // 5100 - Filter
             ErrorType::FilterViolation { .. } => 5100,
+            ErrorType::FilterRegexInvalid { .. } => 5101,
             ErrorType::FilterNotDeleted => 5102,
 
             // 5200 - Blob
@@ -487,6 +493,7 @@ impl ErrorType {
             ErrorType::TextBlock => "Failed to act on a text block",
             ErrorType::AuditLog => "Failed to generate an audit log entry",
             ErrorType::BlueprintPage => "Failed to get or format a blueprint page",
+            ErrorType::Filter => "Failed to act on a filter",
 
             // 2000
             ErrorType::GeneralNotFound => "Unspecified entity does not exist",
@@ -587,6 +594,9 @@ impl ErrorType {
             // 5100
             ErrorType::FilterViolation { .. } => {
                 "The request violates a configured content filter"
+            }
+            ErrorType::FilterRegexInvalid { .. } => {
+                "The proposed filter has invalid regex"
             }
             ErrorType::FilterNotDeleted => "Cannot restore a non-deleted filter",
 

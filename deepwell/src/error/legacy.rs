@@ -161,9 +161,6 @@ pub enum OldError {
     #[error("No locales were specified in the request")]
     NoLocalesSpecified,
 
-    #[error("The regular expression found in the database is invalid")]
-    FilterRegexInvalid(regex::Error),
-
     #[error("Cannot restore a non-deleted filter")]
     FilterNotDeleted,
 
