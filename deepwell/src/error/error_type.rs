@@ -76,6 +76,7 @@ pub enum ErrorType {
     License,
     TextBlock,
     AuditLog,
+    BlueprintPage,
 
     // 2000
     GeneralNotFound,
@@ -290,6 +291,7 @@ impl ErrorType {
             ErrorType::License => 1313,
             ErrorType::TextBlock => 1314,
             ErrorType::AuditLog => 1315,
+            ErrorType::BlueprintPage => 1316,
 
             //
             // 2000 -- Data Consistency
@@ -484,6 +486,7 @@ impl ErrorType {
             ErrorType::License => "Failed to determine license data",
             ErrorType::TextBlock => "Failed to act on a text block",
             ErrorType::AuditLog => "Failed to generate an audit log entry",
+            ErrorType::BlueprintPage => "Failed to get or format a blueprint page",
 
             // 2000
             ErrorType::GeneralNotFound => "Unspecified entity does not exist",

@@ -183,7 +183,8 @@ impl<'a> AuditEvent<'a> {
                 let previous_fields_json =
                     serde_json::to_string(previous_fields).or_raise(make_error)?;
 
-                let changed_fields_json = serde_json::to_string(changed_fields).or_raise(make_error)?;
+                let changed_fields_json =
+                    serde_json::to_string(changed_fields).or_raise(make_error)?;
 
                 RawAuditEvent {
                     event_type: "site.update",

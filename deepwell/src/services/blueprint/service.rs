@@ -47,11 +47,23 @@ impl BlueprintPageService {
         locales: &[LanguageIdentifier],
         layout: Layout,
         page_info: PageInfo<'_>,
-    ) -> OldResult<GetBlueprintPageOutput> {
+    ) -> Result<GetBlueprintPageOutput> {
         info!(
             "Getting blueprint page {:?} for site ID {}",
             blueprint_type, site.site_id,
         );
+
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to get blueprint page type {:?} with layout {}, info {:?}",
+                    blueprint_type,
+                    layout.description(),
+                    page_info,
+                ),
+                ErrorType::BlueprintPage,
+            )
+        };
 
         // Extract fields based on blueprint page type.
         //
@@ -94,7 +106,8 @@ impl BlueprintPageService {
             locales,
             &page_info,
         )
-        .await?;
+        .await
+        .or_raise(make_error)?;
 
         // Render here with relevant page context.
         //
@@ -105,7 +118,9 @@ impl BlueprintPageService {
         // no "real" page ID.
         let settings = WikitextSettings::from_mode(WikitextMode::Page, layout);
         let render_output =
-            RenderService::render(ctx, wikitext.clone(), &page_info, &settings).await?;
+            RenderService::render(ctx, wikitext.clone(), &page_info, &settings)
+                .await
+                .or_raise(make_error)?;
 
         Ok(GetBlueprintPageOutput {
             wikitext,
@@ -143,23 +158,39 @@ impl BlueprintPageService {
         site_id: i64,
         locales: &[LanguageIdentifier],
         page_info: &PageInfo<'_>,
-    ) -> OldResult<String> {
+    ) -> Result<String> {
         debug!(
             "Getting wikitext for blueprint page ({} slugs)",
             slugs.len(),
         );
 
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to get blueprint wikitext for translation key '{}' for site ID {}",
+                    translate_key, site_id,
+                ),
+                ErrorType::BlueprintPage,
+            )
+        };
+
         // Try all the pages listed.
         for slug in slugs {
             if let Some(page) =
                 PageService::get_optional(ctx, site_id, Reference::Slug(cow!(slug)))
-                    .await?
+                    .await
+                    .or_raise(make_error)?
             {
                 // Fetch blueprint page wikitext, it must exist.
                 let revision =
-                    PageRevisionService::get_latest(ctx, site_id, page.page_id).await?;
+                    PageRevisionService::get_latest(ctx, site_id, page.page_id)
+                        .await
+                        .or_raise(make_error)?;
 
-                let text = TextService::get(ctx, &revision.wikitext_hash).await?;
+                let text = TextService::get(ctx, &revision.wikitext_hash)
+                    .await
+                    .or_raise(make_error)?;
+
                 return Ok(text);
             }
         }
