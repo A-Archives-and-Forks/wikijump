@@ -211,8 +211,8 @@ impl ParentService {
     ) -> Result<PageParentModel> {
         find_or_error_tmp!(
             Self::get_optional(ctx, description),
-            page_parent,
-            PageParent
+            "page parent",
+            PageParent,
         )
     }
 

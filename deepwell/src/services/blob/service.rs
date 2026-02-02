@@ -1062,7 +1062,7 @@ impl BlobService {
 
     #[inline]
     pub async fn get(ctx: &ServiceContext<'_>, hash: &[u8]) -> Result<Vec<u8>> {
-        find_or_error_tmp!(Self::get_optional(ctx, hash), blob, Blob)
+        find_or_error_tmp!(Self::get_optional(ctx, hash), "blob", Blob)
     }
 
     pub async fn get_metadata_optional(
@@ -1119,7 +1119,7 @@ impl BlobService {
         ctx: &ServiceContext<'_>,
         hash: &[u8],
     ) -> Result<BlobMetadata> {
-        find_or_error_tmp!(Self::get_metadata_optional(ctx, hash), blob, Blob)
+        find_or_error_tmp!(Self::get_metadata_optional(ctx, hash), "blob", Blob)
     }
 
     /// Possibly retrieve blob contents, if a flag is set.
