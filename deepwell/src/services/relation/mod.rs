@@ -90,6 +90,15 @@ impl RelationService {
     ) -> Result<RelationModel> {
         debug!("Create relation for {dest:?} ← {relation_type:?} ← {from:?}");
 
+        // Relations are not permitted to point to themselves
+        if dest == from {
+            error!(
+                "Source and destination are the same: {:?}, cannot create relation",
+                dest,
+            );
+            return Err(Error::BadRequest);
+        }
+
         // Get previous relation, if present
         let txn = ctx.transaction();
         if let Some(relation) = Self::get_optional(
