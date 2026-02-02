@@ -40,12 +40,13 @@ impl CategoryService {
         slug: &str,
     ) -> Result<PageCategoryModel> {
         let make_error = || {
-            Error::new(format!(
-                "failed to create new page category '{}' in site ID {}",
-                slug,
-                site_id,
+            Error::new(
+                format!(
+                    "failed to create new page category '{}' in site ID {}",
+                    slug, site_id,
+                ),
                 ErrorType::PageCategory,
-            ))
+            )
         };
 
         let txn = ctx.transaction();
@@ -67,7 +68,7 @@ impl CategoryService {
         let make_error = || {
             Error::new(
                 format!(
-                    "failed to get page category {} in site ID {}",
+                    "failed to get page category {:?} in site ID {}",
                     reference, site_id,
                 ),
                 ErrorType::PageCategory,
@@ -75,7 +76,7 @@ impl CategoryService {
         };
 
         let txn = ctx.transaction();
-        let condition = match reference {
+        let condition = match reference.borrow() {
             Reference::Id(id) => page_category::Column::CategoryId.eq(id),
             Reference::Slug(slug) => page_category::Column::Slug.eq(slug),
         };
@@ -163,7 +164,7 @@ impl CategoryService {
     ) -> Result<Vec<PageCategoryModel>> {
         let make_error = || {
             Error::new(
-                format("failed to get all active categories in site ID {}", site_id),
+                format!("failed to get all active categories in site ID {}", site_id),
                 ErrorType::PageCategory,
             )
         };

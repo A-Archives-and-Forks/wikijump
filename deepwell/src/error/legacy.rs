@@ -81,9 +81,6 @@ pub enum OldError {
     #[error("Page does not exist")]
     PageNotFound,
 
-    #[error("Page category does not exist")]
-    PageCategoryNotFound,
-
     #[error("Page revision does not exist")]
     PageRevisionNotFound,
 
