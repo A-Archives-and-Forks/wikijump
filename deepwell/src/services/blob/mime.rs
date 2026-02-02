@@ -70,13 +70,15 @@ impl MimeAnalyzer {
     }
 
     /// Loads the libmagic database from file, failing if it was invalid or missing.
-    fn load_magic() -> OldResult<Magic> {
+    fn load_magic() -> Result<Magic> {
         const MAGIC_FLAGS: MagicFlags = MagicFlags::MIME;
         const MAGIC_PATHS: &[&str] = &[]; // Empty indicates using the default magic database
 
+        let make_error = || Error::new("failed to open magic database", ErrorType::Blob);
+
         info!("Loading magic database data");
-        let magic = Magic::open(MAGIC_FLAGS)?;
-        magic.load(MAGIC_PATHS)?;
+        let magic = Magic::open(MAGIC_FLAGS).or_raise(make_error)?;
+        magic.load(MAGIC_PATHS).or_raise(make_error)?;
         Ok(magic)
     }
 
@@ -101,8 +103,9 @@ impl MimeAnalyzer {
     /// Because all requests involve sending an item over the channel,
     /// and then waiting for the response, we need to send both the input
     /// and a oneshot channel to get the response.
-    pub async fn get_mime_type(&self, buffer: Vec<u8>) -> OldResult<String> {
-        info!("Sending MIME request ({} bytes)", buffer.len());
+    pub async fn get_mime_type(&self, buffer: Vec<u8>) -> Result<String> {
+        let buffer_len = buffer.len();
+        info!("Sending MIME request ({} bytes)", buffer_len);
 
         // Channel for getting the result
         let (resp_send, resp_recv): (ResponseSender, ResponseReceiver) =
@@ -118,7 +121,16 @@ impl MimeAnalyzer {
         //
         // Two layers of result for channel failure and MIME request failure
         let resp = resp_recv.await.expect("Response channel is closed");
-        let mime = resp?;
+        let mime = resp.or_raise(|| {
+            Error::new(
+                format!(
+                    "failed to get MIME type from buffer of length {}",
+                    buffer_len,
+                ),
+                ErrorType::Blob,
+            )
+        })?;
+
         Ok(mime)
     }
 }
