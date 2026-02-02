@@ -84,9 +84,6 @@ pub enum OldError {
     #[error("Page category does not exist")]
     PageCategoryNotFound,
 
-    #[error("Page parent does not exist")]
-    PageParentNotFound,
-
     #[error("Page revision does not exist")]
     PageRevisionNotFound,
 
@@ -116,9 +113,6 @@ pub enum OldError {
 
     #[error("Cannot perform, site already exists")]
     SiteExists,
-
-    #[error("Cannot perform, page parent already exists")]
-    PageParentExists,
 
     #[error("Cannot perform, file already exists")]
     FileExists,

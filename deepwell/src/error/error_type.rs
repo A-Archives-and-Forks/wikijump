@@ -100,7 +100,6 @@ pub enum ErrorType {
     SiteExists,
     PageExists,
     PageSlugExists,
-    PageParentExists,
     FileExists,
     FilterExists,
     CustomDomainExists,
@@ -316,10 +315,9 @@ impl ErrorType {
             ErrorType::SiteExists => 2102,
             ErrorType::PageExists => 2103,
             ErrorType::PageSlugExists => 2104,
-            ErrorType::PageParentExists => 2105,
-            ErrorType::FileExists => 2106,
-            ErrorType::FilterExists => 2107,
-            ErrorType::CustomDomainExists => 2108,
+            ErrorType::FileExists => 2105,
+            ErrorType::FilterExists => 2106,
+            ErrorType::CustomDomainExists => 2107,
 
             //
             // 3000 -- Client / Protocol Errors
@@ -504,7 +502,6 @@ impl ErrorType {
             ErrorType::SiteExists => "Cannot perform, site already exists",
             ErrorType::PageExists => "Cannot perform, page already exists",
             ErrorType::PageSlugExists => "Cannot perform, page slug already exists",
-            ErrorType::PageParentExists => "Cannot perform, page parent already exists",
             ErrorType::FileExists => "Cannot perform, file already exists",
             ErrorType::FilterExists => "Cannot perform, filter already exists",
             ErrorType::CustomDomainExists => {
