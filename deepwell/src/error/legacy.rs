@@ -87,9 +87,6 @@ pub enum OldError {
     #[error("File revision does not exist")]
     FileRevisionNotFound,
 
-    #[error("Filter does not exist")]
-    FilterNotFound,
-
     #[error("Custom domain does not exist")]
     CustomDomainNotFound,
 
@@ -101,12 +98,6 @@ pub enum OldError {
 
     #[error("Cannot perform, file already exists")]
     FileExists,
-
-    #[error("Cannot perform, filter already exists")]
-    FilterExists,
-
-    #[error("Cannot perform, custom domain already exists")]
-    CustomDomainExists,
 
     #[error("Invalid session token, cannot be used for authentication")]
     InvalidSessionToken,
@@ -160,12 +151,6 @@ pub enum OldError {
 
     #[error("No locales were specified in the request")]
     NoLocalesSpecified,
-
-    #[error("Cannot restore a non-deleted filter")]
-    FilterNotDeleted,
-
-    #[error("Custom domains may not be subdomains of the Wikijump main or file domains")]
-    CustomDomainSubdomain,
 
     #[error("Cannot use custom domain, as it belongs to a different site")]
     CustomDomainWrongSite,

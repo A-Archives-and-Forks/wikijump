@@ -39,14 +39,24 @@ impl DomainService {
     pub async fn create_custom(
         ctx: &ServiceContext<'_>,
         CreateCustomDomain { domain, site_id }: CreateCustomDomain,
-    ) -> OldResult<()> {
+    ) -> Result<()> {
         info!("Creating custom domain '{domain}' (site ID {site_id})");
+
+        let make_error = || {
+            Error::new(
+                format!("failed to create new custom domain for site ID {}", site_id),
+                ErrorType::CustomDomain,
+            )
+        };
 
         // Correctness checks
 
         if Self::custom_domain_exists(ctx, &domain).await? {
             error!("Custom domain '{domain}' already exists, cannot create");
-            return Err(OldError::CustomDomainExists);
+            bail!(Error::new(
+                format!("cannot create domain '{}', already exists", domain),
+                ErrorType::CustomDomainExists,
+            ));
         }
 
         let config = ctx.config();
@@ -55,7 +65,13 @@ impl DomainService {
             error!(
                 "Custom domains cannot be subdomains of the Wikijump main or files domain: {domain}"
             );
-            return Err(OldError::CustomDomainSubdomain);
+            bail!(Error::new(
+                format!(
+                    "cannot create domain '{}', must not be subdomain of the Wikijump main ('{}') or files domains ('{}')",
+                    domain, config.main_domain, config.files_domain
+                ),
+                ErrorType::CustomDomainSubdomain,
+            ));
         }
 
         // Seems good, insert data
@@ -66,35 +82,52 @@ impl DomainService {
             site_id: Set(site_id),
             created_at: Set(now()),
         };
-        model.insert(txn).await?;
+        model.insert(txn).await.or_raise(make_error)?;
         Ok(())
     }
 
     /// Delete the given custom domain.
     ///
     /// Yields `ErrorType::CustomDomainNotFound` if it's missing.
-    pub async fn remove_custom(
-        ctx: &ServiceContext<'_>,
-        domain: String,
-    ) -> OldResult<()> {
+    pub async fn remove_custom(ctx: &ServiceContext<'_>, domain: String) -> Result<()> {
         info!("Deleting custom domain '{domain}'");
 
+        let make_error = || {
+            Error::new(
+                format!("failed to remove custom domain '{}'", domain),
+                ErrorType::CustomDomain,
+            )
+        };
+
         let txn = ctx.transaction();
-        let DeleteResult { rows_affected, .. } =
-            SiteDomain::delete_by_id(domain).exec(txn).await?;
+
+        let DeleteResult { rows_affected, .. } = SiteDomain::delete_by_id(&domain)
+            .exec(txn)
+            .await
+            .or_raise(make_error)?;
 
         if rows_affected == 1 {
             Ok(())
         } else {
-            Err(OldError::CustomDomainNotFound)
+            bail!(Error::new(
+                format!("cannot remove custom domain '{}', not found", domain),
+                ErrorType::CustomDomainNotFound,
+            ));
         }
     }
 
     pub async fn site_from_custom_domain_optional(
         ctx: &ServiceContext<'_>,
         domain: &str,
-    ) -> OldResult<Option<SiteModel>> {
+    ) -> Result<Option<SiteModel>> {
         info!("Getting site for custom domain {domain:?}");
+
+        let make_error = || {
+            Error::new(
+                format!("failed to get site model from custom domain '{}'", domain),
+                ErrorType::CustomDomain,
+            )
+        };
 
         // Join with the site table so we can get that data, rather than just the ID.
         let txn = ctx.transaction();
@@ -102,7 +135,8 @@ impl DomainService {
             .join(JoinType::Join, site::Relation::SiteDomain.def())
             .filter(site_domain::Column::Domain.eq(domain))
             .one(txn)
-            .await?;
+            .await
+            .or_raise(make_error)?;
 
         Ok(model)
     }
@@ -112,7 +146,7 @@ impl DomainService {
     pub async fn custom_domain_exists(
         ctx: &ServiceContext<'_>,
         domain: &str,
-    ) -> OldResult<bool> {
+    ) -> Result<bool> {
         Self::site_from_custom_domain_optional(ctx, domain)
             .await
             .map(|site| site.is_some())
@@ -158,14 +192,22 @@ impl DomainService {
     pub async fn list_custom(
         ctx: &ServiceContext<'_>,
         site_id: i64,
-    ) -> OldResult<Vec<SiteDomainModel>> {
+    ) -> Result<Vec<SiteDomainModel>> {
         info!("Getting domains for site ID {site_id}");
+
+        let make_error = || {
+            Error::new(
+                format!("failed to list all custom domains for site ID {}", site_id),
+                ErrorType::CustomDomain,
+            )
+        };
 
         let txn = ctx.transaction();
         let models = SiteDomain::find()
             .filter(site_domain::Column::SiteId.eq(site_id))
             .all(txn)
-            .await?;
+            .await
+            .or_raise(make_error)?;
 
         Ok(models)
     }

@@ -78,6 +78,7 @@ pub enum ErrorType {
     AuditLog,
     BlueprintPage,
     Filter,
+    CustomDomain,
 
     // 2000
     GeneralNotFound,
@@ -297,6 +298,7 @@ impl ErrorType {
             ErrorType::AuditLog => 1315,
             ErrorType::BlueprintPage => 1316,
             ErrorType::Filter => 1317,
+            ErrorType::CustomDomain => 1318,
 
             //
             // 2000 -- Data Consistency
@@ -494,6 +496,7 @@ impl ErrorType {
             ErrorType::AuditLog => "Failed to generate an audit log entry",
             ErrorType::BlueprintPage => "Failed to get or format a blueprint page",
             ErrorType::Filter => "Failed to act on a filter",
+            ErrorType::CustomDomain => "Failed to act on a custom domain",
 
             // 2000
             ErrorType::GeneralNotFound => "Unspecified entity does not exist",
