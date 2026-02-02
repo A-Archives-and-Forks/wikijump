@@ -57,9 +57,6 @@ pub enum OldError {
     #[error("One-time password error: {0}")]
     Otp(#[from] rust_otp::Error),
 
-    #[error("Attempting to perform a wikitext parse and render has timed out")]
-    RenderTimeout,
-
     #[error("S3 service returned error: {0}")]
     S3Service(#[from] S3Error),
 

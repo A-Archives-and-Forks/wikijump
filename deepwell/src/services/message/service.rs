@@ -585,7 +585,7 @@ impl MessageService {
         wikitext: String,
         locale: &str,
         layout: Layout,
-    ) -> OldResult<RenderOutput> {
+    ) -> Result<RenderOutput> {
         info!("Rendering message wikitext ({} bytes)", wikitext.len());
 
         let settings = WikitextSettings::from_mode(WikitextMode::DirectMessage, layout);
@@ -600,7 +600,13 @@ impl MessageService {
             language: cow!(locale),
         };
 
-        RenderService::render(ctx, wikitext, &page_info, &settings).await
+        let output = RenderService::render(ctx, wikitext, &page_info, &settings)
+            .await
+            .or_raise(|| {
+                Error::new("failed to render message contents", ErrorType::Message)
+            })?;
+
+        Ok(output)
     }
 }
 
