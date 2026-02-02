@@ -230,6 +230,7 @@ impl FilterService {
     /// Get all filters of a type.
     ///
     /// For the `filter_class` argument, see `FilterClass`.
+    /// Note that this argument is what provides the `site_id` argument (or not).
     ///
     /// The `filter_type` argument:
     /// * If it is `Some(_)`, it determines what kind of object is being filtered.
