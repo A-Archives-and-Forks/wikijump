@@ -75,6 +75,7 @@ pub enum ErrorType {
     BasicError,
     License,
     TextBlock,
+    AuditLog,
 
     // 2000
     GeneralNotFound,
@@ -288,6 +289,7 @@ impl ErrorType {
             ErrorType::BasicError => 1312,
             ErrorType::License => 1313,
             ErrorType::TextBlock => 1314,
+            ErrorType::AuditLog => 1315,
 
             //
             // 2000 -- Data Consistency
@@ -481,6 +483,7 @@ impl ErrorType {
             ErrorType::BasicError => "Failed to generate a basic error message",
             ErrorType::License => "Failed to determine license data",
             ErrorType::TextBlock => "Failed to act on a text block",
+            ErrorType::AuditLog => "Failed to generate an audit log entry",
 
             // 2000
             ErrorType::GeneralNotFound => "Unspecified entity does not exist",
