@@ -69,7 +69,7 @@ impl EmailService {
                 error!("MailCheck API hit ratelimit: {:?}", mailcheck.error);
                 bail!(Error::new(
                     "failed to validate email, MailCheck API hit ratelimit",
-                    ErrorType::EmailVerification,
+                    ErrorType::RateLimited,
                 ));
             }
 
