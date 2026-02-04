@@ -73,7 +73,7 @@ impl MfaService {
                     "cannot setup MFA for user '{}' (ID {}) because it is already set up",
                     user.slug, user.user_id
                 ),
-                ErrorType::BadRequest,
+                ErrorType::UserMfaExists,
             ));
         }
 
