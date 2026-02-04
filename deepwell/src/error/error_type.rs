@@ -58,6 +58,7 @@ pub enum ErrorType {
     EmailVerification,
     Localization,
     Cryptography(String),
+    DatabaseImport,
 
     // 1300
     Text,
@@ -278,6 +279,7 @@ impl ErrorType {
             ErrorType::EmailVerification => 1204,
             ErrorType::Localization => 1205,
             ErrorType::Cryptography(_) => 1206,
+            ErrorType::DatabaseImport => 1207,
 
             // 1300 - Other / Uncommon
             ErrorType::Text => 1300,
@@ -476,6 +478,7 @@ impl ErrorType {
             ErrorType::EmailVerification => "Email verification failed",
             ErrorType::Localization => "Localization or translation failed",
             ErrorType::Cryptography(_) => "Cryptographic operation failed",
+            ErrorType::DatabaseImport => "Database import operation failed",
 
             // 1300
             ErrorType::Text => "Failed to act on a text entry",

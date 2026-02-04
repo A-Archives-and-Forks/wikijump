@@ -426,9 +426,7 @@ impl FilterService {
             Error::new(
                 format!(
                     "failed conflict check for filter '{}' for {:?}, cannot {}",
-                    regex,
-                    site_id,
-                    action,
+                    regex, site_id, action,
                 ),
                 ErrorType::Filter,
             )
