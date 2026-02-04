@@ -21,7 +21,7 @@
 use super::prelude::*;
 use crate::services::view::{
     GetAdminView, GetAdminViewOutput, GetPageView, GetPageViewOutput, GetUserView,
-    GetUserViewOutput,
+    GetUserViewOutput, ViewType,
 };
 
 /// Returns relevant context for rendering a page from a processed web request.
@@ -29,11 +29,14 @@ pub async fn page_view(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
 ) -> Result<GetPageViewOutput> {
-    let input: GetPageView = parse!(params, GetView);
+    let input: GetPageView = parse!(params => ErrorType::GetView(ViewType::Page));
 
-    ViewService::page(ctx, input)
-        .await
-        .or_raise(|| Error::new("failed to get page view", ErrorType::GetView))
+    ViewService::page(ctx, input).await.or_raise(|| {
+        Error::new(
+            "failed to get page view",
+            ErrorType::GetView(ViewType::Page),
+        )
+    })
 }
 
 /// Returns relevant context for rendering a user profile from a processed web request.
@@ -41,11 +44,14 @@ pub async fn user_view(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
 ) -> Result<GetUserViewOutput> {
-    let input: GetUserView = parse!(params, GetView);
+    let input: GetUserView = parse!(params => ErrorType::GetView(ViewType::User));
 
-    ViewService::user(ctx, input)
-        .await
-        .or_raise(|| Error::new("failed to get user view", ErrorType::GetView))
+    ViewService::user(ctx, input).await.or_raise(|| {
+        Error::new(
+            "failed to get user view",
+            ErrorType::GetView(ViewType::User),
+        )
+    })
 }
 
 /// Returns relevant context for rendering admin panel from a processed web request.
@@ -53,9 +59,12 @@ pub async fn admin_view(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
 ) -> Result<GetAdminViewOutput> {
-    let input: GetAdminView = parse!(params, GetView);
+    let input: GetAdminView = parse!(params => ErrorType::GetView(ViewType::Admin));
 
-    ViewService::admin(ctx, input)
-        .await
-        .or_raise(|| Error::new("failed to get admin view", ErrorType::GetView))
+    ViewService::admin(ctx, input).await.or_raise(|| {
+        Error::new(
+            "failed to get admin view",
+            ErrorType::GetView(ViewType::Admin),
+        )
+    })
 }

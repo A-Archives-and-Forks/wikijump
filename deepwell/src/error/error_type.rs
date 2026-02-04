@@ -19,6 +19,7 @@
  */
 
 use crate::hash::BlobHash;
+use crate::services::view::ViewType;
 use serde_json::Value as JsonValue;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -40,7 +41,7 @@ pub enum ErrorType {
     PageVote,
     File,
     FileRevision,
-    GetView,
+    GetView(ViewType),
     Job,
     Render,
 
@@ -262,7 +263,7 @@ impl ErrorType {
             ErrorType::PageVote => 1013,
             ErrorType::File => 1014,
             ErrorType::FileRevision => 1015,
-            ErrorType::GetView => 1016,
+            ErrorType::GetView(_) => 1016,
             ErrorType::Job => 1017,
             ErrorType::Render => 1018,
 
@@ -462,7 +463,7 @@ impl ErrorType {
             ErrorType::PageVote => "Page vote operation failed",
             ErrorType::File => "File operation failed",
             ErrorType::FileRevision => "File revision operation failed",
-            ErrorType::GetView => "Getting web view failed",
+            ErrorType::GetView(_) => "Getting web view failed",
             ErrorType::Job => "Failed to process job from queue",
             ErrorType::Render => "Wikitext parsing and rendering failed",
 

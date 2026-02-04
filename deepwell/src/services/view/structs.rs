@@ -165,3 +165,11 @@ pub struct UserSession {
     pub user: UserModel,
     pub user_permissions: UserPermissions,
 }
+
+#[derive(Serialize, Deserialize, Debug, Copy, Clone, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ViewType {
+    Page,
+    User,
+    Admin,
+}
