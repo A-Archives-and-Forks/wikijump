@@ -19,15 +19,19 @@
  */
 
 macro_rules! parse {
-    ($params_method:ident; $params:expr, $error_type:ident $(,)?) => {
+    ($params_method:ident; $params:expr, $error_type:expr $(,)?) => {
         $params.$params_method().or_raise(|| Error::new(
             "failed to read input JSON",
-            ErrorType::$error_type,
+            $error_type,
         ))?
     };
 
-    ($params:expr, $error_type:ident $(,)?) => {
+    ($params:expr => $error_type:expr $(,)?) => {
         parse!(parse; $params, $error_type)
+    };
+
+    ($params:expr, $error_type:ident $(,)?) => {
+        parse!(parse; $params, ErrorType::$error_type)
     };
 
     ($params:expr $(,)?) => {
@@ -37,6 +41,10 @@ macro_rules! parse {
 
 macro_rules! parse_one {
     ($params:expr, $error_type:ident $(,)?) => {
+        parse!(one; $params, ErrorType::$error_type)
+    };
+
+    ($params:expr => $error_type:expr $(,)?) => {
         parse!(one; $params, $error_type)
     };
 
