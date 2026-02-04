@@ -63,9 +63,6 @@ pub enum OldError {
     #[error("Unspecified entity not found")]
     GeneralNotFound,
 
-    #[error("Alias does not exist")]
-    AliasNotFound,
-
     #[error("Relation value does not exist")]
     RelationNotFound,
 
@@ -90,9 +87,6 @@ pub enum OldError {
     #[error("Custom domain does not exist")]
     CustomDomainNotFound,
 
-    #[error("Cannot perform, user already exists")]
-    UserExists,
-
     #[error("Cannot perform, site already exists")]
     SiteExists,
 
@@ -115,9 +109,6 @@ pub enum OldError {
 
     #[error("Invalid enum serialization value")]
     InvalidEnumValue(#[from] EnumConversionError),
-
-    #[error("User name is too short")]
-    UserNameTooShort,
 
     #[error("Wrong user type for this operation")]
     UserWrongType,

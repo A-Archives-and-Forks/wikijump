@@ -80,6 +80,7 @@ pub enum ErrorType {
     BlueprintPage,
     Filter,
     CustomDomain,
+    Alias,
 
     // 2000
     GeneralNotFound,
@@ -301,6 +302,7 @@ impl ErrorType {
             ErrorType::BlueprintPage => 1316,
             ErrorType::Filter => 1317,
             ErrorType::CustomDomain => 1318,
+            ErrorType::Alias => 1319,
 
             //
             // 2000 -- Data Consistency
@@ -500,6 +502,7 @@ impl ErrorType {
             ErrorType::BlueprintPage => "Failed to get or format a blueprint page",
             ErrorType::Filter => "Failed to act on a filter",
             ErrorType::CustomDomain => "Failed to act on a custom domain",
+            ErrorType::Alias => "Failed to act on an object alias",
 
             // 2000
             ErrorType::GeneralNotFound => "Unspecified entity does not exist",
