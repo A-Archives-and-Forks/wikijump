@@ -331,7 +331,7 @@ impl MessageService {
                     draft.subject.len(),
                     config.maximum_message_subject_bytes,
                 ),
-                ErrorType::MessageSubjectEmpty
+                ErrorType::MessageSubjectTooLong,
             ));
         }
 
@@ -359,7 +359,7 @@ impl MessageService {
                     wikitext.len(),
                     config.maximum_message_body_bytes,
                 ),
-                ErrorType::MessageBodyTooLong
+                ErrorType::MessageBodyTooLong,
             ));
         }
 
@@ -370,7 +370,7 @@ impl MessageService {
                     "cannot send message from draft ID {}, must have at least one recipient",
                     draft_id,
                 ),
-                ErrorType::MessageNoRecipients
+                ErrorType::MessageNoRecipients,
             ));
         }
 
@@ -387,7 +387,7 @@ impl MessageService {
                     recipients.len(),
                     config.maximum_message_recipients,
                 ),
-                ErrorType::MessageBodyTooLong
+                ErrorType::MessageTooManyRecipients,
             ));
         }
 
