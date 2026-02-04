@@ -503,7 +503,7 @@ impl FileRevisionService {
             warn!("Attempting to edit latest revision, denying request");
             bail!(Error::new(
                 "cannot edit latest file revision",
-                ErrorType::CannotHideLatestRevision
+                ErrorType::CannotHideLatestRevision,
             ));
         }
 
@@ -563,9 +563,9 @@ impl FileRevisionService {
             None => bail!(Error::new(
                 format!(
                     "no latest file revision for file ID {} on page ID {} in site ID {}",
-                    file_id, page_id, site_id
+                    file_id, page_id, site_id,
                 ),
-                ErrorType::FileRevision,
+                ErrorType::FileRevisionNotFound,
             )),
         }
     }
@@ -688,7 +688,7 @@ impl FileRevisionService {
         let make_error = || {
             Error::new(
                 format!(
-                    "failed to {} file revisions from number {} in file ID {} (max {})",
+                    "failed to get {} file revisions from number {} in file ID {} (max {})",
                     revision_direction.name(),
                     revision_number,
                     file_id,

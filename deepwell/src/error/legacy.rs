@@ -72,12 +72,6 @@ pub enum OldError {
     #[error("Site does not exist")]
     SiteNotFound,
 
-    #[error("Page does not exist")]
-    PageNotFound,
-
-    #[error("Page revision does not exist")]
-    PageRevisionNotFound,
-
     #[error("Custom domain does not exist")]
     CustomDomainNotFound,
 
@@ -106,9 +100,6 @@ pub enum OldError {
 
     #[error("Site slug cannot be empty")]
     SiteSlugEmpty,
-
-    #[error("Cannot hide the wikitext for the latest page revision")]
-    CannotHideLatestRevision,
 
     #[error("Revision ID passed for this operation is not the latest")]
     NotLatestRevisionId,
