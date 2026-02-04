@@ -45,7 +45,6 @@ pub enum FetchDirection {
 }
 
 impl FetchDirection {
-    #[cfg(test)]
     pub fn name(self) -> &'static str {
         match self {
             FetchDirection::Before => "before",

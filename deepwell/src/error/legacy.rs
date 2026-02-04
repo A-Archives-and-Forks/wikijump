@@ -78,20 +78,11 @@ pub enum OldError {
     #[error("Page revision does not exist")]
     PageRevisionNotFound,
 
-    #[error("File does not exist")]
-    FileNotFound,
-
-    #[error("File revision does not exist")]
-    FileRevisionNotFound,
-
     #[error("Custom domain does not exist")]
     CustomDomainNotFound,
 
     #[error("Cannot perform, site already exists")]
     SiteExists,
-
-    #[error("Cannot perform, file already exists")]
-    FileExists,
 
     #[error("Invalid session token, cannot be used for authentication")]
     InvalidSessionToken,
@@ -130,12 +121,6 @@ pub enum OldError {
 
     #[error("File name contains invalid characters (control chars or slashes)")]
     FileNameInvalidCharacters,
-
-    #[error("File MIME type cannot be empty")]
-    FileMimeEmpty,
-
-    #[error("Cannot restore a non-deleted file")]
-    FileNotDeleted,
 
     #[error("Invalid locale: {0}")]
     LocaleInvalid(#[from] LanguageIdentifierError),
