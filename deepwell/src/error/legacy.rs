@@ -101,18 +101,6 @@ pub enum OldError {
     #[error("Site slug cannot be empty")]
     SiteSlugEmpty,
 
-    #[error("Revision ID passed for this operation is not the latest")]
-    NotLatestRevisionId,
-
-    #[error("File name cannot be empty")]
-    FileNameEmpty,
-
-    #[error("File name too long")]
-    FileNameTooLong { length: usize, maximum: usize },
-
-    #[error("File name contains invalid characters (control chars or slashes)")]
-    FileNameInvalidCharacters,
-
     #[error("Invalid locale: {0}")]
     LocaleInvalid(#[from] LanguageIdentifierError),
 

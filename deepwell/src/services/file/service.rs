@@ -999,7 +999,7 @@ impl FileService {
 /// This helper function is generally read-only, but if
 /// it finds a name which has leading or trailing whitespace,
 /// then it trims that off in-place.
-fn check_file_name(name: &mut String) -> OldResult<()> {
+fn check_file_name(name: &mut String) -> Result<()> {
     // Removes leading or trailing whitespace
     trim_spaces_in_place(name);
     debug!("Trimmed file name: '{name}'");
@@ -1007,7 +1007,10 @@ fn check_file_name(name: &mut String) -> OldResult<()> {
     // Disallow empty filenames
     if name.is_empty() {
         error!("File name is empty");
-        return Err(OldError::FileNameEmpty);
+        bail!(Error::new(
+            "empty file names are not allowed",
+            ErrorType::FileNameEmpty
+        ));
     }
 
     // Limit filename length
@@ -1017,10 +1020,18 @@ fn check_file_name(name: &mut String) -> OldResult<()> {
             name.len(),
             MAXIMUM_FILE_NAME_LENGTH,
         );
-        return Err(OldError::FileNameTooLong {
-            length: name.len(),
-            maximum: MAXIMUM_FILE_NAME_LENGTH,
-        });
+        bail!(Error::new(
+            format!(
+                "file name is too long ({} > {} bytes): {}",
+                name.len(),
+                MAXIMUM_FILE_NAME_LENGTH,
+                name,
+            ),
+            ErrorType::FileNameTooLong {
+                length: name.len(),
+                maximum: MAXIMUM_FILE_NAME_LENGTH,
+            }
+        ));
     }
 
     // Makes sure there aren't any control characters or slashes.
@@ -1032,7 +1043,13 @@ fn check_file_name(name: &mut String) -> OldResult<()> {
         .any(|c| c.is_control() || c == '/' || c == '\\')
     {
         error!("File name contains control characters or slashes");
-        return Err(OldError::FileNameInvalidCharacters);
+        bail!(Error::new(
+            format!(
+                "file name contains invalid characters (control chars or slashes): {}",
+                name,
+            ),
+            ErrorType::FileNameInvalidCharacters
+        ));
     }
 
     // Looks good
@@ -1045,14 +1062,19 @@ fn check_file_name(name: &mut String) -> OldResult<()> {
 fn check_last_revision(
     last_revision_model: &FileRevisionModel,
     arg_last_revision_id: i64,
-) -> OldResult<()> {
+) -> Result<()> {
     if last_revision_model.revision_id != arg_last_revision_id {
         error!(
             "Latest revision ID in file table is {}, but user argument has ID {}",
             last_revision_model.revision_id, arg_last_revision_id,
         );
-
-        return Err(OldError::NotLatestRevisionId);
+        bail!(Error::new(
+            format!(
+                "latest file revision ID in table is {}, but user is out-of-date as they passed in {}",
+                last_revision_model.revision_id, arg_last_revision_id,
+            ),
+            ErrorType::NotLatestRevisionId,
+        ));
     }
 
     Ok(())
