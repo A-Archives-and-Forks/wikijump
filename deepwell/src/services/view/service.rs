@@ -38,6 +38,7 @@ use crate::services::page_revision::RerenderType;
 use crate::services::relation::{GetPageAttributions, PageAttribution, RelationService};
 use crate::services::render::RenderOutput;
 use crate::services::settings::{NavigationPageHtml, SettingsService};
+use crate::services::view::ViewType;
 use crate::services::{
     BlueprintPageService, CategoryService, DomainService, PageRevisionService,
     PageService, SessionService, SiteService, TextService, UserService,
@@ -64,10 +65,20 @@ impl ViewService {
             route,
             session_token,
         }: GetPageView,
-    ) -> OldResult<GetPageViewOutput> {
+    ) -> Result<GetPageViewOutput> {
         info!(
             "Getting page view data for site ID {site_id}, route '{route:?}', locales '{locales_str:?}'"
         );
+
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to generate page view for site ID {}, route '{:?}', locales '{:?}'",
+                    site_id, route, locales_str,
+                ),
+                ErrorType::GetView(ViewType::Page),
+            )
+        };
 
         let mut locales = parse_locales(&locales_str)?;
         let config = ctx.config();
@@ -82,8 +93,10 @@ impl ViewService {
             &mut locales,
             site_id,
             session_token.ref_map(|s| s.as_str()),
+            ViewType::Page,
         )
-        .await?;
+        .await
+        .or_raise(make_error)?;
 
         // If None, means the main page for the site. Pull from site data.
         let (page_full_slug, page_extra): (&str, &str) = match &route {
@@ -154,14 +167,16 @@ impl ViewService {
             site.site_id,
             Reference::Slug(cow!(page_full_slug)),
         )
-        .await?
+        .await
+        .or_raise(make_error)?
         {
             // This page exists, return its data directly.
             Some(page) => {
                 // Get associated revision
                 let page_revision =
                     PageRevisionService::get_latest(ctx, site.site_id, page.page_id)
-                        .await?;
+                        .await
+                        .or_raise(make_error)?;
 
                 // Check user access to page
                 let user_permissions = match user_session {
@@ -179,11 +194,16 @@ impl ViewService {
                 //
                 // This returns false if the user is banned *and* the site
                 // disallows banned viewing.
-                if Self::can_access_page(ctx, user_permissions).await? {
+                if Self::can_access_page(ctx, user_permissions)
+                    .await
+                    .or_raise(make_error)?
+                {
                     debug!("User has page access, return text data");
 
                     if options.rerender
-                        && Self::can_edit_page(ctx, user_permissions).await?
+                        && Self::can_edit_page(ctx, user_permissions)
+                            .await
+                            .or_raise(make_error)?
                     {
                         let depth = RerenderDepth::default();
                         info!(
@@ -196,15 +216,16 @@ impl ViewService {
                             depth,
                             RerenderType::Full,
                         )
-                        .await?;
+                        .await
+                        .or_raise(make_error)?;
                     };
 
                     let (
-                        wikitext,
-                        compiled_body_html,
-                        compiled_top_bar_html,
-                        compiled_side_bar_html,
-                    ) = try_join!(
+                        wikitext_result,
+                        compiled_body_result,
+                        compiled_top_bar_result,
+                        compiled_side_bar_result,
+                    ) = join!(
                         TextService::get(ctx, &page_revision.wikitext_hash),
                         TextService::get(ctx, &page_revision.compiled_body_html_hash),
                         TextService::get_option(
@@ -215,7 +236,14 @@ impl ViewService {
                             ctx,
                             &page_revision.compiled_side_bar_html_hash,
                         ),
-                    )?;
+                    );
+
+                    let (
+                        wikitext,
+                        compiled_body_html,
+                        compiled_top_bar_html,
+                        compiled_side_bar_html,
+                    ) = raise_multiple!(wikitext_result, compiled_body_result, compiled_top_bar_result, compiled_side_bar_result; make_error);
 
                     let attributions = RelationService::get_page_attributions(
                         ctx,
@@ -224,7 +252,8 @@ impl ViewService {
                             page: Reference::Id(page.page_id),
                         },
                     )
-                    .await?;
+                    .await
+                    .or_raise(make_error)?;
 
                     PageReturn {
                         page_status: PageStatus::Found {
@@ -257,7 +286,8 @@ impl ViewService {
                         config.default_page_layout,
                         page_info,
                     )
-                    .await?;
+                    .await
+                    .or_raise(make_error)?;
 
                     let RenderOutput {
                         html_output:
@@ -271,7 +301,7 @@ impl ViewService {
                     // Even though the page isn't visible to this user,
                     // we display its nav pages since they're already
                     // set up for us.
-                    let (compiled_top_bar_html, compiled_side_bar_html) = try_join!(
+                    let (compiled_top_bar_result, compiled_side_bar_result) = join!(
                         TextService::get_option(
                             ctx,
                             &page_revision.compiled_top_bar_html_hash,
@@ -280,7 +310,8 @@ impl ViewService {
                             ctx,
                             &page_revision.compiled_side_bar_html_hash,
                         ),
-                    )?;
+                    );
+                    let (compiled_top_bar_html, compiled_side_bar_html) = raise_multiple!(compiled_top_bar_result, compiled_side_bar_result; make_error);
 
                     PageReturn {
                         page_status,
@@ -304,7 +335,8 @@ impl ViewService {
                     config.default_page_layout,
                     page_info,
                 )
-                .await?;
+                .await
+                .or_raise(make_error)?;
 
                 let RenderOutput {
                     html_output:
@@ -315,13 +347,16 @@ impl ViewService {
                     ..
                 } = render_output;
 
-                let category_id =
-                    Self::get_category_id(ctx, site_id, category_slug).await?;
+                let category_id = Self::get_category_id(ctx, site_id, category_slug)
+                    .await
+                    .or_raise(make_error)?;
 
                 let NavigationPageHtml {
                     compiled_top_bar_html,
                     compiled_side_bar_html,
-                } = SettingsService::get_nav_page_html(ctx, site_id, category_id).await?;
+                } = SettingsService::get_nav_page_html(ctx, site_id, category_id)
+                    .await
+                    .or_raise(make_error)?;
 
                 PageReturn {
                     page_status: PageStatus::Missing,
@@ -399,10 +434,20 @@ impl ViewService {
             user: user_ref,
             session_token,
         }: GetUserView<'_>,
-    ) -> OldResult<GetUserViewOutput> {
+    ) -> Result<GetUserViewOutput> {
         info!(
             "Getting user view data for site ID {site_id}, user '{user_ref:?}', locales '{locales_str:?}'"
         );
+
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to generate user view for site ID {}, user '{:?}', locales '{:?}'",
+                    site_id, user_ref, locales_str,
+                ),
+                ErrorType::GetView(ViewType::User),
+            )
+        };
 
         let mut locales = parse_locales(&locales_str)?;
         let viewer = Self::get_viewer(
@@ -410,14 +455,19 @@ impl ViewService {
             &mut locales,
             site_id,
             session_token.ref_map(|s| s.as_str()),
+            ViewType::User,
         )
-        .await?;
+        .await
+        .or_raise(make_error)?;
 
         // TODO Check if user-agent and IP match?
 
         // Get data to return for this user.
         let user = match user_ref {
-            Some(user_ref) => UserService::get_optional(ctx, user_ref).await?,
+            Some(ref user_ref) => UserService::get_optional(ctx, user_ref.borrow())
+                .await
+                .or_raise(make_error)?,
+
             // For users visiting their own user info page
             None => viewer
                 .user_session
@@ -440,8 +490,18 @@ impl ViewService {
             locales: locales_str,
             session_token,
         }: GetAdminView,
-    ) -> OldResult<GetAdminViewOutput> {
+    ) -> Result<GetAdminViewOutput> {
         info!("Getting site view data for site ID {site_id}, locales '{locales_str:?}'");
+
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to generate user view for site ID {}, locales '{:?}'",
+                    site_id, locales_str,
+                ),
+                ErrorType::GetView(ViewType::Admin),
+            )
+        };
 
         let mut locales = parse_locales(&locales_str)?;
         let config = ctx.config();
@@ -450,8 +510,10 @@ impl ViewService {
             &mut locales,
             site_id,
             session_token.ref_map(|s| s.as_str()),
+            ViewType::Admin,
         )
-        .await?;
+        .await
+        .or_raise(make_error)?;
 
         let page_info = PageInfo {
             page: cow!(""),
@@ -479,7 +541,8 @@ impl ViewService {
             config.default_page_layout,
             page_info,
         )
-        .await?;
+        .await
+        .or_raise(make_error)?;
 
         let RenderOutput {
             html_output:
@@ -503,7 +566,10 @@ impl ViewService {
         };
 
         // Determine whether to return the actual admin panel content
-        let output = if Self::can_access_admin(ctx, user_permissions).await? {
+        let output = if Self::can_access_admin(ctx, user_permissions)
+            .await
+            .or_raise(make_error)?
+        {
             debug!("User has admin access, return data");
             GetAdminViewOutput::SiteFound { viewer }
         } else {
@@ -536,17 +602,28 @@ impl ViewService {
         locales: &mut Vec<LanguageIdentifier>,
         site_id: i64,
         session_token: Option<&str>,
-    ) -> OldResult<Viewer> {
+        view_type: ViewType,
+    ) -> Result<Viewer> {
         info!("Getting viewer data site ID {site_id} and session token");
 
         let config = ctx.config();
+        let make_error = || {
+            Error::new(
+                format!("failed to get common viewer for site ID {}", site_id),
+                ErrorType::GetView(view_type),
+            )
+        };
 
         // Get user data from session token (if present)
         let user_session = match session_token {
             Some("") | None => None,
             Some(token) => {
-                let session = SessionService::get(ctx, token).await?;
-                let user = UserService::get(ctx, Reference::Id(session.user_id)).await?;
+                let session =
+                    SessionService::get(ctx, token).await.or_raise(make_error)?;
+
+                let user = UserService::get(ctx, Reference::Id(session.user_id))
+                    .await
+                    .or_raise(make_error)?;
 
                 // Prefer what the user has set over what the browser is requesting
                 {
@@ -564,7 +641,8 @@ impl ViewService {
                     // the start before the previous items, and 'user_locales' ends up
                     // drained since it was inserted into the preserved 'locales' vector.
 
-                    let mut user_locales = parse_locales(&user.locales)?;
+                    let mut user_locales =
+                        parse_locales(&user.locales).or_raise(make_error)?;
                     user_locales.append(locales);
                     mem::swap(locales, &mut user_locales);
                     debug_assert!(user_locales.is_empty());
@@ -581,11 +659,17 @@ impl ViewService {
         // Ensure at least one locale was requested
         if locales.is_empty() {
             error!("No locales specified in user settings or Accept-Language header");
-            return Err(OldError::NoLocalesSpecified);
+            bail!(Error::new(
+                "no locales are specified in the user's settings or their Accept-Language header",
+                ErrorType::NoLocalesSpecified
+            ));
         }
 
         // Get site information
-        let site = SiteService::get(ctx, Reference::Id(site_id)).await?;
+        let site = SiteService::get(ctx, Reference::Id(site_id))
+            .await
+            .or_raise(make_error)?;
+
         let site_file_domain = DomainService::get_files(config, &site.slug);
         let license_name = site.license.translate(ctx.localization(), locales)?;
         let license_url = site.license.url();
@@ -603,7 +687,7 @@ impl ViewService {
     async fn can_access_page(
         _ctx: &ServiceContext<'_>,
         permissions: UserPermissions,
-    ) -> OldResult<bool> {
+    ) -> Result<bool> {
         info!("Checking page access: {permissions:?}");
         debug!("TODO: stub");
         // TODO perform permission checks
@@ -613,7 +697,7 @@ impl ViewService {
     async fn can_edit_page(
         _ctx: &ServiceContext<'_>,
         permissions: UserPermissions,
-    ) -> OldResult<bool> {
+    ) -> Result<bool> {
         info!("Checking page access: {permissions:?}");
         debug!("TODO: stub");
         // TODO perform permission checks
@@ -623,7 +707,7 @@ impl ViewService {
     async fn can_access_admin(
         _ctx: &ServiceContext<'_>,
         permissions: UserPermissions,
-    ) -> OldResult<bool> {
+    ) -> Result<bool> {
         info!("Checking admin access: {permissions:?}");
         debug!("TODO: stub");
         // TODO perform permission checks
@@ -652,7 +736,7 @@ impl ViewService {
         ctx: &ServiceContext<'_>,
         site_id: i64,
         category_slug: Option<&str>,
-    ) -> OldResult<Option<i64>> {
+    ) -> Result<Option<i64>> {
         match category_slug {
             Some(category_slug) => {
                 let category = CategoryService::get_optional(
@@ -660,7 +744,13 @@ impl ViewService {
                     site_id,
                     Reference::Slug(cow!(category_slug)),
                 )
-                .await?;
+                .await
+                .or_raise(|| {
+                    Error::new(
+                        format!("faild to get category ID for '{}'", category_slug),
+                        ErrorType::PageCategory,
+                    )
+                })?;
 
                 Ok(category.map(|cat| cat.category_id))
             }

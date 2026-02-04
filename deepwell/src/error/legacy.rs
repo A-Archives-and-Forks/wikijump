@@ -140,9 +140,6 @@ pub enum OldError {
     #[error("Invalid locale: {0}")]
     LocaleInvalid(#[from] LanguageIdentifierError),
 
-    #[error("No locales were specified in the request")]
-    NoLocalesSpecified,
-
     #[error("Cannot use custom domain, as it belongs to a different site")]
     CustomDomainWrongSite,
 
