@@ -1009,7 +1009,7 @@ fn check_file_name(name: &mut String) -> Result<()> {
         error!("File name is empty");
         bail!(Error::new(
             "empty file names are not allowed",
-            ErrorType::FileNameEmpty
+            ErrorType::FileNameEmpty,
         ));
     }
 

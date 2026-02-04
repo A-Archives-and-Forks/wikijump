@@ -69,15 +69,6 @@ pub enum OldError {
     #[error("User does not exist")]
     UserNotFound,
 
-    #[error("Site does not exist")]
-    SiteNotFound,
-
-    #[error("Custom domain does not exist")]
-    CustomDomainNotFound,
-
-    #[error("Cannot perform, site already exists")]
-    SiteExists,
-
     #[error("Invalid session token, cannot be used for authentication")]
     InvalidSessionToken,
 
@@ -98,14 +89,8 @@ pub enum OldError {
     #[error("Wrong user type for this operation")]
     UserWrongType,
 
-    #[error("Site slug cannot be empty")]
-    SiteSlugEmpty,
-
     #[error("Invalid locale: {0}")]
     LocaleInvalid(#[from] LanguageIdentifierError),
-
-    #[error("Cannot use custom domain, as it belongs to a different site")]
-    CustomDomainWrongSite,
 
     #[error("Cannot perform this action because you are blocked by the user")]
     UserBlockedUser,
