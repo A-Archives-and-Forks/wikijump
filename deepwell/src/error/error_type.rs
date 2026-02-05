@@ -223,7 +223,7 @@ pub enum ErrorType {
 
     // 6100
     UserBlockedUser,
-    SiteBlockedUser,
+    SiteBannedUser,
 }
 
 impl ErrorType {
@@ -473,7 +473,7 @@ impl ErrorType {
 
             // 6100 - Relation Conflicts
             ErrorType::UserBlockedUser => 6100,
-            ErrorType::SiteBlockedUser => 6101,
+            ErrorType::SiteBannedUser => 6101,
         }
     }
 
@@ -705,8 +705,8 @@ impl ErrorType {
             ErrorType::UserBlockedUser => {
                 "Cannot perform this action because you are blocked by the user"
             }
-            ErrorType::SiteBlockedUser => {
-                "Cannot perform this action because you are blocked by the site"
+            ErrorType::SiteBannedUser => {
+                "Cannot perform this action because you are banned by the site"
             }
         }
     }

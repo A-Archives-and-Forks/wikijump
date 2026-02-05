@@ -48,7 +48,17 @@ impl RelationService {
             created_by,
             metadata,
         }: CreateSiteBan,
-    ) -> OldResult<()> {
+    ) -> Result<()> {
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to create ban from site ID {} → user ID {}, as created by ID {} (metadata {:?})",
+                    site_id, user_id, created_by, metadata,
+                ),
+                ErrorType::SiteBanRelation,
+            )
+        };
+
         Self::remove_site_member(
             ctx,
             RemoveSiteMember {
@@ -57,12 +67,15 @@ impl RelationService {
                 removed_by: created_by,
             },
         )
-        .await?;
+        .await
+        .or_raise(make_error)?;
+
         // TODO: remove site member applications
         // TODO: remove site roles
 
-        create_operation!(
+        create_operation_tmp!(
             ctx, SiteBan, Site, site_id, User, user_id, created_by, &metadata,
+            make_error,
         )
     }
 
@@ -71,14 +84,32 @@ impl RelationService {
         ctx: &ServiceContext<'_>,
         body: GetSiteBan,
         action: &str,
-    ) -> OldResult<()> {
-        if Self::site_ban_exists(ctx, body).await? {
+    ) -> Result<()> {
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to check for ban of user ID {} in site ID {}",
+                    body.user_id, body.site_id,
+                ),
+                ErrorType::SiteBanRelation,
+            )
+        };
+
+        if Self::site_ban_exists(ctx, body)
+            .await
+            .or_raise(make_error)?
+        {
             error!(
                 "User ID {} cannot {} site ID {} because they are banned",
                 body.user_id, action, body.site_id,
             );
-
-            return Err(OldError::SiteBlockedUser);
+            bail!(Error::new(
+                format!(
+                    "cannot {} because user ID {} is banned on site ID {}",
+                    action, body.user_id, body.site_id
+                ),
+                ErrorType::SiteBannedUser,
+            ));
         }
 
         Ok(())

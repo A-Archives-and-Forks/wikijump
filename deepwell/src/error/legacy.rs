@@ -77,9 +77,6 @@ pub enum OldError {
 
     #[error("Invalid locale: {0}")]
     LocaleInvalid(#[from] LanguageIdentifierError),
-
-    #[error("Cannot perform this action because you are blocked by the site")]
-    SiteBlockedUser,
 }
 
 // Error conversion implementations
