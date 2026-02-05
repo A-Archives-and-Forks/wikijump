@@ -81,7 +81,7 @@ impl RelationService {
         );
         raise_multiple!(result1, result2; make_error);
 
-        create_operation_tmp!(
+        create_operation!(
             ctx,
             UserBlock,
             User,

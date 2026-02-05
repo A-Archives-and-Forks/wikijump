@@ -73,7 +73,7 @@ impl RelationService {
         // TODO: remove site member applications
         // TODO: remove site roles
 
-        create_operation_tmp!(
+        create_operation!(
             ctx, SiteBan, Site, site_id, User, user_id, created_by, &metadata,
             make_error,
         )

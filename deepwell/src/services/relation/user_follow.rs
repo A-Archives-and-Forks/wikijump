@@ -56,7 +56,7 @@ impl RelationService {
             .await
             .or_raise(make_error)?;
 
-        create_operation_tmp!(
+        create_operation!(
             ctx,
             UserFollow,
             User,

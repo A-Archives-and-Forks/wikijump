@@ -139,7 +139,7 @@ impl RelationService {
             ));
         }
 
-        create_operation_tmp!(
+        create_operation!(
             ctx,
             UserBotOwner,
             User,

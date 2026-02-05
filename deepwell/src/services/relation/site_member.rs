@@ -70,7 +70,7 @@ impl RelationService {
             .await
             .or_raise(make_error)?;
 
-        create_operation_tmp!(
+        create_operation!(
             ctx, SiteMember, Site, site_id, User, user_id, created_by, &metadata,
             make_error,
         )
