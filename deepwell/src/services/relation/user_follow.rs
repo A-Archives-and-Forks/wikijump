@@ -40,11 +40,23 @@ impl RelationService {
             created_by,
             metadata: (),
         }: CreateUserFollow,
-    ) -> OldResult<()> {
-        // Cannot follow if blocked
-        Self::check_user_block(ctx, followed_user, following_user, "follow").await?;
+    ) -> Result<()> {
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to create user follow ({} is following {}), as created by {}",
+                    following_user, followed_user, created_by,
+                ),
+                ErrorType::UserFollowRelation,
+            )
+        };
 
-        create_operation!(
+        // Cannot follow if blocked
+        Self::check_user_block(ctx, followed_user, following_user, "follow")
+            .await
+            .or_raise(make_error)?;
+
+        create_operation_tmp!(
             ctx,
             UserFollow,
             User,
@@ -52,6 +64,7 @@ impl RelationService {
             User,
             following_user,
             created_by,
+            make_error,
         )
     }
 }
