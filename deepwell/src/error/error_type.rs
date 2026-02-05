@@ -210,6 +210,7 @@ pub enum ErrorType {
     CustomDomainWrongSite,
 
     // 6000
+    Relation,
     UserBlockedUser,
     SiteBlockedUser,
 }
@@ -441,8 +442,9 @@ impl ErrorType {
             //
 
             // 6000 - Relations
-            ErrorType::SiteBlockedUser => 6000,
-            ErrorType::UserBlockedUser => 6001,
+            ErrorType::Relation => 6000,
+            ErrorType::SiteBlockedUser => 6001,
+            ErrorType::UserBlockedUser => 6002,
         }
     }
 
@@ -649,6 +651,7 @@ impl ErrorType {
             }
 
             // 6000
+            ErrorType::Relation => "Cannot perform relation operation",
             ErrorType::UserBlockedUser => {
                 "Cannot perform this action because you are blocked by the user"
             }
