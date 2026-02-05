@@ -52,7 +52,7 @@ impl RelationService {
             Error::new(
                 format!(
                     "failed to create user block ({} is blocking {}), as created by {}",
-                    blocked_user, blocking_user, created_by,
+                    blocking_user, blocked_user, created_by,
                 ),
                 ErrorType::UserBlockRelation,
             )
