@@ -53,7 +53,7 @@ impl SessionService {
             user_agent,
             restricted,
         }: CreateSession,
-    ) -> OldResult<String> {
+    ) -> Result<String> {
         info!("Creating new session for user ID {user_id} (restricted: {restricted})");
 
         let txn = ctx.transaction();
@@ -66,6 +66,16 @@ impl SessionService {
             now + config.normal_session_duration
         };
 
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to create a user session for user ID {} (restricted {})",
+                    user_id, restricted,
+                ),
+                ErrorType::CreateSession,
+            )
+        };
+
         let model = session::ActiveModel {
             session_token: Set(token),
             user_id: Set(user_id),
@@ -76,7 +86,9 @@ impl SessionService {
             restricted: Set(restricted),
         };
 
-        let SessionModel { session_token, .. } = model.insert(txn).await?;
+        let SessionModel { session_token, .. } =
+            model.insert(txn).await.or_raise(make_error)?;
+
         info!("Created new session token");
         Ok(session_token)
     }
@@ -100,17 +112,24 @@ impl SessionService {
     pub async fn get(
         ctx: &ServiceContext<'_>,
         session_token: &str,
-    ) -> OldResult<SessionModel> {
+    ) -> Result<SessionModel> {
         info!("Looking up session with token {session_token}");
-        Self::get_optional(ctx, session_token)
-            .await?
-            .ok_or(OldError::InvalidSessionToken)
+
+        let make_error =
+            |error_type| Error::new("failed to look up session by token", error_type);
+
+        let user = Self::get_optional(ctx, session_token)
+            .await
+            .or_raise(|| make_error(ErrorType::Session))?
+            .ok_or_else(|| make_error(ErrorType::InvalidSessionToken))?;
+
+        Ok(user)
     }
 
     pub async fn get_optional(
         ctx: &ServiceContext<'_>,
         session_token: &str,
-    ) -> OldResult<Option<SessionModel>> {
+    ) -> Result<Option<SessionModel>> {
         let txn = ctx.transaction();
         let session = Session::find()
             .filter(
@@ -119,7 +138,10 @@ impl SessionService {
                     .add(session::Column::ExpiresAt.gt(now())),
             )
             .one(txn)
-            .await?;
+            .await
+            .or_raise(|| {
+                Error::new("failed to look up session by token", ErrorType::Session)
+            })?;
 
         Ok(session)
     }
@@ -134,11 +156,18 @@ impl SessionService {
         ctx: &ServiceContext<'_>,
         session_token: &str,
         restricted: bool,
-    ) -> OldResult<UserModel> {
+    ) -> Result<UserModel> {
         info!("Looking up user for session token");
 
+        let make_error = || {
+            Error::new(
+                "failed to get user associated with session token",
+                ErrorType::Session,
+            )
+        };
+
         let txn = ctx.transaction();
-        let user = User::find()
+        let user_opt = User::find()
             .join(JoinType::Join, user::Relation::Session.def())
             .filter(
                 Condition::all()
@@ -147,10 +176,16 @@ impl SessionService {
                     .add(session::Column::Restricted.eq(restricted)),
             )
             .one(txn)
-            .await?
-            .ok_or(OldError::UserNotFound)?;
+            .await
+            .or_raise(make_error)?;
 
-        Ok(user)
+        match user_opt {
+            Some(user) => Ok(user),
+            None => bail!(Error::new(
+                "cannot get user associated with session token, user does not exist",
+                ErrorType::UserNotFound
+            )),
+        }
     }
 
     /// Gets the associated `UserModel` from a session, and checks it against a user ID.
@@ -161,18 +196,36 @@ impl SessionService {
         session_token: &str,
         restricted: bool,
         user_id: i64,
-    ) -> OldResult<UserModel> {
-        let user = Self::get_user(ctx, session_token, restricted).await?;
+    ) -> Result<UserModel> {
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to check that user associated with a session matches user ID {} (restricted {})",
+                    user_id, restricted,
+                ),
+                ErrorType::Session,
+            )
+        };
+
+        let user = Self::get_user(ctx, session_token, restricted)
+            .await
+            .or_raise(make_error)?;
+
         if user.user_id != user_id {
             error!(
                 "Passed user ID ({}) does not match session token ({})",
                 user_id, user.user_id,
             );
-
-            return Err(OldError::SessionUserId {
-                active_user_id: user_id,
-                session_user_id: user.user_id,
-            });
+            bail!(Error::new(
+                format!(
+                    "user associated with session (ID {}) does not match expected user ID {}",
+                    user.user_id, user_id,
+                ),
+                ErrorType::SessionUserId {
+                    active_user_id: user_id,
+                    session_user_id: user.user_id,
+                }
+            ));
         }
 
         Ok(user)
@@ -183,8 +236,15 @@ impl SessionService {
     pub async fn get_all(
         ctx: &ServiceContext<'_>,
         user_id: i64,
-    ) -> OldResult<Vec<SessionModel>> {
+    ) -> Result<Vec<SessionModel>> {
         info!("Getting all sessions for user ID {user_id}");
+
+        let make_error = || {
+            Error::new(
+                format!("failed to get all sessions for user ID {}", user_id),
+                ErrorType::Session,
+            )
+        };
 
         let txn = ctx.transaction();
         let sessions = Session::find()
@@ -194,7 +254,8 @@ impl SessionService {
                     .add(session::Column::ExpiresAt.gt(now())),
             )
             .all(txn)
-            .await?;
+            .await
+            .or_raise(make_error)?;
 
         Ok(sessions)
     }
@@ -212,25 +273,40 @@ impl SessionService {
             ip_address,
             user_agent,
         }: RenewSession,
-    ) -> OldResult<String> {
+    ) -> Result<String> {
         info!("Renewing session ID {old_session_token}");
 
+        let make_error = || {
+            Error::new(
+                format!("failed to renew session for user ID {}", user_id),
+                ErrorType::Session,
+            )
+        };
+
         // Get existing session to ensure the token matches the passed user ID.
-        let old_session = Self::get(ctx, &old_session_token).await?;
+        let old_session = Self::get(ctx, &old_session_token)
+            .await
+            .or_raise(make_error)?;
+
         if old_session.user_id != user_id {
             error!(
                 "Requested session renewal, user IDs do not match! (current: {}, request: {})",
                 old_session.user_id, user_id,
             );
-
-            return Err(OldError::SessionUserId {
-                active_user_id: user_id,
-                session_user_id: old_session.user_id,
-            });
+            bail!(Error::new(
+                format!(
+                    "cannot renew session for user ID {}, this session is for user ID {}",
+                    user_id, old_session.user_id
+                ),
+                ErrorType::SessionUserId {
+                    active_user_id: user_id,
+                    session_user_id: old_session.user_id,
+                }
+            ));
         }
 
         // Invalid and recreate
-        let (_, session_token) = try_join!(
+        let (result1, session_token_result) = join!(
             Self::invalidate(ctx, old_session_token),
             Self::create(
                 ctx,
@@ -241,7 +317,9 @@ impl SessionService {
                     restricted: false,
                 }
             ),
-        )?;
+        );
+        let (_, session_token) =
+            raise_multiple!(result1, session_token_result; make_error);
 
         Ok(session_token)
     }
@@ -250,16 +328,24 @@ impl SessionService {
     pub async fn invalidate(
         ctx: &ServiceContext<'_>,
         session_token: String,
-    ) -> OldResult<()> {
+    ) -> Result<()> {
         info!("Invalidating session ID {session_token}");
 
+        let make_error =
+            || Error::new("failed to invalidate session", ErrorType::Session);
+
         let txn = ctx.transaction();
-        let DeleteResult { rows_affected } =
-            Session::delete_by_id(session_token).exec(txn).await?;
+        let DeleteResult { rows_affected } = Session::delete_by_id(session_token)
+            .exec(txn)
+            .await
+            .or_raise(make_error)?;
 
         if rows_affected != 1 {
             error!("This session was already deleted or does not exist");
-            return Err(OldError::InvalidSessionToken);
+            bail!(Error::new(
+                "cannot invalidate session, already deleted or does not exist",
+                ErrorType::InvalidSessionToken
+            ));
         }
 
         Ok(())
@@ -277,21 +363,37 @@ impl SessionService {
         ctx: &ServiceContext<'_>,
         session_token: &str,
         user_id: i64,
-    ) -> OldResult<u64> {
+    ) -> Result<u64> {
         info!("Invalidation all other session IDs for user ID {user_id}");
 
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to invalidate all other sessions for user ID {}",
+                    user_id,
+                ),
+                ErrorType::Session,
+            )
+        };
+
         let txn = ctx.transaction();
-        let session = Self::get(ctx, session_token).await?;
+        let session = Self::get(ctx, session_token).await.or_raise(make_error)?;
+
         if session.user_id != user_id {
             error!(
                 "Requested invalidation of other sessions, user IDs do not match! (current: {}, request: {})",
                 session.user_id, user_id,
             );
-
-            return Err(OldError::SessionUserId {
-                active_user_id: user_id,
-                session_user_id: session.user_id,
-            });
+            bail!(Error::new(
+                format!(
+                    "cannot invalidate all other sessions for user ID {}, but this session is for user ID {}",
+                    user_id, session.user_id
+                ),
+                ErrorType::SessionUserId {
+                    active_user_id: user_id,
+                    session_user_id: session.user_id,
+                }
+            ));
         }
 
         // Delete all sessions from user_id, except if it's this session_token
@@ -302,7 +404,8 @@ impl SessionService {
                     .add(session::Column::UserId.eq(user_id)),
             )
             .exec(txn)
-            .await?;
+            .await
+            .or_raise(make_error)?;
 
         debug!("User ID {user_id}: {rows_affected} other sessions were invalidated");
         Ok(rows_affected)
@@ -312,14 +415,18 @@ impl SessionService {
     ///
     /// # Returns
     /// The number of pruned sessions.
-    pub async fn prune(ctx: &ServiceContext<'_>) -> OldResult<u64> {
+    pub async fn prune(ctx: &ServiceContext<'_>) -> Result<u64> {
         info!("Pruning all expired sessions");
+
+        let make_error =
+            || Error::new("failed to prune all expired sessions", ErrorType::Session);
 
         let txn = ctx.transaction();
         let DeleteResult { rows_affected } = Session::delete_many()
             .filter(session::Column::ExpiresAt.lte(now()))
             .exec(txn)
-            .await?;
+            .await
+            .or_raise(make_error)?;
 
         debug!("{rows_affected} expired sessions were pruned");
         Ok(rows_affected)

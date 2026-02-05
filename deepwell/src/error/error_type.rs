@@ -117,6 +117,8 @@ pub enum ErrorType {
     // 3000
     InvalidAuthentication,
     InvalidSessionToken,
+    CreateSession,
+    Session,
     SessionUserId {
         active_user_id: i64,
         session_user_id: i64,
@@ -348,8 +350,10 @@ impl ErrorType {
             // 3000 - Authentication
             ErrorType::InvalidAuthentication => 3000,
             ErrorType::InvalidSessionToken => 3001,
-            ErrorType::SessionUserId { .. } => 3002,
-            ErrorType::EmptyPassword => 3003,
+            ErrorType::CreateSession => 3002,
+            ErrorType::Session => 3003,
+            ErrorType::SessionUserId { .. } => 3004,
+            ErrorType::EmptyPassword => 3005,
 
             // 3100 - Permissions
             // TODO
@@ -547,6 +551,8 @@ impl ErrorType {
             ErrorType::InvalidSessionToken => {
                 "Invalid session token, cannot be used for authentication"
             }
+            ErrorType::CreateSession => "Unable to create new login session",
+            ErrorType::Session => "Unable to perform operation involving a login session",
             ErrorType::SessionUserId { .. } => {
                 "User associated with the session does not match the active user"
             }
