@@ -85,6 +85,7 @@ pub enum ErrorType {
     Alias,
 
     // 2000
+    #[allow(dead_code)]
     GeneralNotFound,
     AliasNotFound,
     RelationNotFound,
