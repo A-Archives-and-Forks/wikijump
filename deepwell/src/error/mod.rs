@@ -19,7 +19,7 @@
  */
 
 pub mod prelude {
-    pub use super::{Error, ErrorType, OldError, OldResult, Result, StdError, StdResult};
+    pub use super::{Error, ErrorType, ExnError, OldResult, Result, StdError, StdResult};
     pub use crate::types::EnumConversionError;
     pub use exn::{OptionExt, ResultExt};
 }
@@ -33,8 +33,10 @@ pub use self::convert::*;
 pub use self::error_type::ErrorType;
 pub use self::legacy::OldError;
 pub use self::object::Error;
-pub use exn::Result as ExnResult;
+pub use exn::{Exn, Result as ExnResult};
 pub use std::error::Error as StdError;
+
+pub type ExnError = Exn<Error>;
 
 pub type StdResult<T, E> = std::result::Result<T, E>;
 pub type OldResult<T> = StdResult<T, OldError>;
