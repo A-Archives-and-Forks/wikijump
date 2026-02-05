@@ -337,7 +337,7 @@ macro_rules! create_operation_tmp {
             $from_name,
             $created_by,
             &(),
-            $make_error:expr,
+            $make_error,
         )
     };
 }
