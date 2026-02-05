@@ -292,3 +292,52 @@ macro_rules! create_operation {
         )
     };
 }
+
+macro_rules! create_operation_tmp {
+    (
+        $ctx:expr,
+        $relation_type:ident,
+        $dest_type:ident,
+        $dest_name:ident,
+        $from_type:ident,
+        $from_name:ident,
+        $created_by:expr,
+        $metadata:expr,
+        $make_error:expr $(,)?
+    ) => {{
+        Self::create(
+            $ctx,
+            RelationType::$relation_type,
+            RelationObject::$dest_type($dest_name),
+            RelationObject::$from_type($from_name),
+            $created_by,
+            $metadata,
+        )
+        .await
+        .or_raise($make_error)?;
+        Ok(())
+    }};
+
+    (
+        $ctx:expr,
+        $relation_type:ident,
+        $dest_type:ident,
+        $dest_name:ident,
+        $from_type:ident,
+        $from_name:ident,
+        $created_by:expr,
+        $make_error:expr $(,)?
+    ) => {
+        create_operation_tmp!(
+            $ctx,
+            $relation_type,
+            $dest_type,
+            $dest_name,
+            $from_type,
+            $from_name,
+            $created_by,
+            &(),
+            $make_error:expr,
+        )
+    };
+}

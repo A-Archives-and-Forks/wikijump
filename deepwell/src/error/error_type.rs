@@ -211,6 +211,17 @@ pub enum ErrorType {
 
     // 6000
     Relation,
+    UserBlockRelation,
+    UserBotOwnerRelation,
+    UserFollowRelation,
+    SiteBanRelation,
+    SiteMemberRelation,
+    SiteUserRelation,
+    PageAttributionRelation,
+    PageStarRelation,
+    PageWatchRelation,
+
+    // 6100
     UserBlockedUser,
     SiteBlockedUser,
 }
@@ -243,7 +254,8 @@ impl ErrorType {
     ///   * 5300 - Message
     ///   * 5400 - Domains
     /// * 6000 - Client / Request Errors / Composite Data
-    ///   * 6000 - Relations
+    ///   * 6000 - Relation Types
+    ///   * 6100 - Relation Conflicts
     pub fn code(&self) -> i32 {
         match self {
             //
@@ -441,10 +453,27 @@ impl ErrorType {
             // 6000 -- Client / Request Errors - Composite Data
             //
 
-            // 6000 - Relations
+            // 6000 - Relation Types
             ErrorType::Relation => 6000,
-            ErrorType::SiteBlockedUser => 6001,
-            ErrorType::UserBlockedUser => 6002,
+
+            //  6010 - User
+            ErrorType::UserBlockRelation => 6010,
+            ErrorType::UserBotOwnerRelation => 6011,
+            ErrorType::UserFollowRelation => 6012,
+
+            //  6020 - Site
+            ErrorType::SiteBanRelation => 6020,
+            ErrorType::SiteMemberRelation => 6021,
+            ErrorType::SiteUserRelation => 6022,
+
+            //  6030 - Page
+            ErrorType::PageAttributionRelation => 6030,
+            ErrorType::PageStarRelation => 6031,
+            ErrorType::PageWatchRelation => 6032,
+
+            // 6100 - Relation Conflicts
+            ErrorType::UserBlockedUser => 6100,
+            ErrorType::SiteBlockedUser => 6101,
         }
     }
 
@@ -652,6 +681,27 @@ impl ErrorType {
 
             // 6000
             ErrorType::Relation => "Cannot perform relation operation",
+
+            //  6010 - User
+            ErrorType::UserBlockRelation => "Failed to act on a user block",
+            ErrorType::UserBotOwnerRelation => {
+                "Failed to act on a bot user's ownership information"
+            }
+            ErrorType::UserFollowRelation => "Failed to act on a user follow",
+
+            //  6020 - Site
+            ErrorType::SiteBanRelation => "Failed to act on a site ban",
+            ErrorType::SiteMemberRelation => "Failed to act on a site membership",
+            ErrorType::SiteUserRelation => "Failed to act on a site user",
+
+            //  6030 - Page
+            ErrorType::PageAttributionRelation => {
+                "Failed to act on a page attribution entry"
+            }
+            ErrorType::PageStarRelation => "Failed to act on a page star",
+            ErrorType::PageWatchRelation => "Failed to act on a page watch",
+
+            // 6100
             ErrorType::UserBlockedUser => {
                 "Cannot perform this action because you are blocked by the user"
             }

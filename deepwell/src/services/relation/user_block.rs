@@ -45,11 +45,21 @@ impl RelationService {
             created_by,
             metadata,
         }: CreateUserBlock,
-    ) -> OldResult<()> {
+    ) -> Result<()> {
         // Never reject a block, even if already blocked the other way.
 
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to create user block ({} is blocking {}), as created by {}",
+                    blocked_user, blocking_user, created_by,
+                ),
+                ErrorType::UserBlockRelation,
+            )
+        };
+
         // Unfollow, remove contacts, etc., both ways
-        try_join!(
+        let (result1, result2) = join!(
             Self::remove_user_follow(
                 ctx,
                 RemoveUserFollow {
@@ -68,9 +78,10 @@ impl RelationService {
             ),
             // TODO add user_contact
             // TODO add user_contact_request
-        )?;
+        );
+        raise_multiple!(result1, result2; make_error);
 
-        create_operation!(
+        create_operation_tmp!(
             ctx,
             UserBlock,
             User,
@@ -79,6 +90,7 @@ impl RelationService {
             blocking_user,
             created_by,
             &metadata,
+            make_error,
         )
     }
 
@@ -88,7 +100,17 @@ impl RelationService {
         user_id_1: i64,
         user_id_2: i64,
         action: &str,
-    ) -> OldResult<()> {
+    ) -> Result<()> {
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to check for user block between user ID {} ↔ user ID {}, cannot {}",
+                    user_id_1, user_id_2, action,
+                ),
+                ErrorType::UserBlockRelation,
+            )
+        };
+
         macro_rules! obj {
             ($first:expr, $second:expr $(,)?) => {
                 GetUserBlock {
@@ -98,13 +120,27 @@ impl RelationService {
             };
         }
 
-        if Self::user_block_exists(ctx, obj!(user_id_1, user_id_2)).await?
-            || Self::user_block_exists(ctx, obj!(user_id_2, user_id_1)).await?
+        macro_rules! check_user_block_exists {
+            ($first:expr, $second:expr $(,)?) => {
+                Self::user_block_exists(ctx, obj!($first, $second))
+                    .await
+                    .or_raise(make_error)?
+            };
+        }
+
+        if check_user_block_exists!(user_id_1, user_id_2)
+            || check_user_block_exists!(user_id_2, user_id_2)
         {
             error!(
                 "User ID {user_id_1} cannot {action} user ID {user_id_2} because there is a block"
             );
-            return Err(OldError::UserBlockedUser);
+            bail!(Error::new(
+                format!(
+                    "cannot {} because there is a block between user ID {} ↔ user ID {}",
+                    action, user_id_1, user_id_2,
+                ),
+                ErrorType::UserBlockedUser,
+            ));
         }
 
         Ok(())
