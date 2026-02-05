@@ -244,7 +244,7 @@ impl RelationService {
         ctx: &ServiceContext<'_>,
         reference: RelationReference,
     ) -> Result<RelationModel> {
-        find_or_error_tmp!(Self::get_optional(ctx, reference), "relation", Relation)
+        find_or_error!(Self::get_optional(ctx, reference), "relation", Relation)
     }
 
     pub async fn exists(

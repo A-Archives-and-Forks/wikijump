@@ -485,7 +485,7 @@ impl SiteService {
         ctx: &ServiceContext<'_>,
         reference: Reference<'_>,
     ) -> Result<SiteModel> {
-        find_or_error_tmp!(Self::get_optional(ctx, reference), "site", Site)
+        find_or_error!(Self::get_optional(ctx, reference), "site", Site)
     }
 
     /// Gets the site ID from a reference, looking up if necessary.

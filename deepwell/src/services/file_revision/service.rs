@@ -617,7 +617,7 @@ impl FileRevisionService {
         ctx: &ServiceContext<'_>,
         input: GetFileRevision,
     ) -> Result<FileRevisionModel> {
-        find_or_error_tmp!(
+        find_or_error!(
             Self::get_optional(ctx, input),
             "file revision",
             FileRevision

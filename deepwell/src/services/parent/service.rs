@@ -209,7 +209,7 @@ impl ParentService {
         ctx: &ServiceContext<'_>,
         description: ParentDescription<'_>,
     ) -> Result<PageParentModel> {
-        find_or_error_tmp!(
+        find_or_error!(
             Self::get_optional(ctx, description),
             "page parent",
             PageParent,

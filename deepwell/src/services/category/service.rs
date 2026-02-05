@@ -100,7 +100,7 @@ impl CategoryService {
         site_id: i64,
         reference: Reference<'_>,
     ) -> Result<PageCategoryModel> {
-        find_or_error_tmp!(
+        find_or_error!(
             Self::get_optional(ctx, site_id, reference),
             "page category",
             PageCategory,

@@ -757,7 +757,7 @@ impl FileService {
 
     #[inline]
     pub async fn get(ctx: &ServiceContext<'_>, input: GetFile<'_>) -> Result<FileModel> {
-        find_or_error_tmp!(Self::get_optional(ctx, input), "file", File)
+        find_or_error!(Self::get_optional(ctx, input), "file", File)
     }
 
     /// Gets all files on a page, with potential conditions.
@@ -898,7 +898,7 @@ impl FileService {
         file_id: i64,
         allow_deleted: bool,
     ) -> Result<FileModel> {
-        find_or_error_tmp!(
+        find_or_error!(
             Self::get_direct_optional(ctx, file_id, allow_deleted),
             "file",
             File

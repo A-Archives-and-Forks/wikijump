@@ -1147,7 +1147,7 @@ impl PageRevisionService {
         site_id: i64,
         reference: Reference<'_>,
     ) -> Result<String> {
-        find_or_error_tmp!(
+        find_or_error!(
             Self::get_wikitext_optional(ctx, site_id, reference),
             "page revision",
             PageRevision,
@@ -1181,7 +1181,7 @@ impl PageRevisionService {
         site_id: i64,
         reference: Reference<'_>,
     ) -> Result<String> {
-        find_or_error_tmp!(
+        find_or_error!(
             Self::get_compiled_html_optional(ctx, site_id, reference),
             "page revision",
             PageRevision,
@@ -1226,7 +1226,7 @@ impl PageRevisionService {
         page_id: i64,
         revision_number: i32,
     ) -> Result<PageRevisionModel> {
-        find_or_error_tmp!(
+        find_or_error!(
             Self::get_optional(ctx, site_id, page_id, revision_number),
             "page revision",
             PageRevision,
@@ -1237,7 +1237,7 @@ impl PageRevisionService {
         ctx: &ServiceContext<'_>,
         revision_id: i64,
     ) -> Result<PageRevisionModel> {
-        find_or_error_tmp!(
+        find_or_error!(
             Self::get_direct_optional(ctx, revision_id),
             "page revision",
             PageRevision

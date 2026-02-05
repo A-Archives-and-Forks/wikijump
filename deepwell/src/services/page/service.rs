@@ -890,7 +890,7 @@ impl PageService {
         site_id: i64,
         reference: Reference<'_>,
     ) -> Result<PageModel> {
-        find_or_error_tmp!(Self::get_optional(ctx, site_id, reference), "page", Page)
+        find_or_error!(Self::get_optional(ctx, site_id, reference), "page", Page)
     }
 
     pub async fn get_optional(
@@ -994,7 +994,7 @@ impl PageService {
         page_id: i64,
         allow_deleted: bool,
     ) -> Result<PageModel> {
-        find_or_error_tmp!(
+        find_or_error!(
             Self::get_direct_optional(ctx, page_id, allow_deleted),
             "page",
             Page,

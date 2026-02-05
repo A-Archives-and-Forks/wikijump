@@ -261,7 +261,7 @@ impl AliasService {
         alias_type: AliasType,
         slug: &str,
     ) -> Result<AliasModel> {
-        find_or_error_tmp!(Self::get_optional(ctx, alias_type, slug), "alias", Alias)
+        find_or_error!(Self::get_optional(ctx, alias_type, slug), "alias", Alias)
     }
 
     #[inline]

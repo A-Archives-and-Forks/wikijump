@@ -19,15 +19,6 @@
  */
 
 macro_rules! find_or_error {
-    ($future:expr, $error:ident $(,)?) => {
-        paste! {
-            $future.await?.ok_or(OldError::[<$error NotFound>])
-        }
-    };
-}
-
-// temorary variant while migrating off of the old error type
-macro_rules! find_or_error_tmp {
     ($future:expr, $noun:expr, $error:ident $(,)?) => {
         paste! {
             match $future.await {

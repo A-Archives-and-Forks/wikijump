@@ -325,7 +325,7 @@ impl UserService {
         ctx: &ServiceContext<'_>,
         reference: Reference<'_>,
     ) -> Result<UserModel> {
-        find_or_error_tmp!(Self::get_optional(ctx, reference), "user", User)
+        find_or_error!(Self::get_optional(ctx, reference), "user", User)
     }
 
     pub async fn update(
