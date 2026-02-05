@@ -42,15 +42,34 @@ impl RelationService {
             metadata: (),
             created_by,
         }: CreateSiteUser,
-    ) -> OldResult<()> {
+    ) -> Result<()> {
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to designate user ID {} as the site user for site ID {}, created by user ID {}",
+                    user_id, site_id, created_by,
+                ),
+                ErrorType::SiteUserRelation,
+            )
+        };
+
         // User to be added must of type 'site'
-        let user = UserService::get(ctx, Reference::Id(user_id)).await?;
+        let user = UserService::get(ctx, Reference::Id(user_id))
+            .await
+            .or_raise(make_error)?;
+
         if user.user_type != UserType::Site {
             error!(
                 "Can only create site user relations if the user is of type 'site', not {:?}",
                 user.user_type,
             );
-            return Err(OldError::BadRequest);
+            bail!(Error::new(
+                format!(
+                    "cannot create site user relation if user is not of type 'site', here {:?}",
+                    user.user_type,
+                ),
+                ErrorType::BadRequest
+            ));
         }
 
         // Site <--> User must be 1:1
@@ -68,9 +87,16 @@ impl RelationService {
 
         if !sites.is_empty() {
             error!(
-                "Found a different relation with this site, cannot create relation: {sites:?}"
+                "Found a different relation with this site, cannot create relation: {:?}",
+                sites,
             );
-            return Err(OldError::BadRequest);
+            bail!(Error::new(
+                format!(
+                    "cannot create site user relation, sites not 1:1 - {:?}",
+                    sites,
+                ),
+                ErrorType::BadRequest,
+            ));
         }
 
         let users = RelationService::get_entries(
@@ -79,23 +105,41 @@ impl RelationService {
             RelationObject::User(user_id),
             RelationDirection::From,
         )
-        .await?;
+        .await
+        .or_raise(make_error)?;
 
         if !users.is_empty() {
             error!(
-                "Found a different relation with this user, cannot create relation: {users:?}"
+                "Found a different relation with this user, cannot create relation: {:?}",
+                users,
             );
-            return Err(OldError::BadRequest);
+            bail!(Error::new(
+                format!(
+                    "cannot create site user relation, users not 1:1 - {:?}",
+                    sites,
+                ),
+                ErrorType::BadRequest,
+            ));
         }
 
         // Checks done, create
-        create_operation!(ctx, SiteUser, Site, site_id, User, user_id, created_by, &())
+        create_operation_tmp!(
+            ctx,
+            SiteUser,
+            Site,
+            site_id,
+            User,
+            user_id,
+            created_by,
+            &(),
+            make_error,
+        )
     }
 
     pub async fn get_site_user_id_for_site(
         ctx: &ServiceContext<'_>,
         site_id: i64,
-    ) -> OldResult<i64> {
+    ) -> Result<i64> {
         info!("Getting site user for site ID {site_id}");
 
         let model = get_relation(
@@ -104,7 +148,13 @@ impl RelationService {
                 .add(relation::Column::DestType.eq(RelationObjectType::Site))
                 .add(relation::Column::DestId.eq(site_id)),
         )
-        .await?;
+        .await
+        .or_raise(|| {
+            Error::new(
+                format!("failed to get site user for site ID {}", site_id),
+                ErrorType::SiteUserRelation,
+            )
+        })?;
 
         Ok(model.from_id)
     }
@@ -112,14 +162,20 @@ impl RelationService {
     pub async fn get_site_id_for_site_user(
         ctx: &ServiceContext<'_>,
         user_id: i64,
-    ) -> OldResult<i64> {
+    ) -> Result<i64> {
         let model = get_relation(
             ctx,
             Condition::all()
                 .add(relation::Column::FromType.eq(RelationObjectType::User))
                 .add(relation::Column::FromId.eq(user_id)),
         )
-        .await?;
+        .await
+        .or_raise(|| {
+            Error::new(
+                format!("failed to get site ID for site user ID {}", user_id),
+                ErrorType::SiteUserRelation,
+            )
+        })?;
 
         Ok(model.dest_id)
     }
@@ -128,10 +184,17 @@ impl RelationService {
 async fn get_relation(
     ctx: &ServiceContext<'_>,
     condition: Condition,
-) -> OldResult<RelationModel> {
+) -> Result<RelationModel> {
     // We implement our own query since it's 1:1 and we
     // don't have to worry about multiple results like
     // for get_entries().
+
+    let make_error = || {
+        Error::new(
+            "failed to get site user relation data",
+            ErrorType::SiteUserRelation,
+        )
+    };
 
     let txn = ctx.transaction();
     let model = Relation::find()
@@ -144,10 +207,14 @@ async fn get_relation(
         )
         .order_by_asc(relation::Column::CreatedAt)
         .one(txn)
-        .await?;
+        .await
+        .or_raise(make_error)?;
 
     match model {
         Some(model) => Ok(model),
-        None => Err(OldError::RelationNotFound),
+        None => bail!(Error::new(
+            "no site user relation found",
+            ErrorType::RelationNotFound,
+        )),
     }
 }

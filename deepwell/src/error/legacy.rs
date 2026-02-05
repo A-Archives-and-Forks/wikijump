@@ -63,12 +63,6 @@ pub enum OldError {
     #[error("Unspecified entity not found")]
     GeneralNotFound,
 
-    #[error("Relation value does not exist")]
-    RelationNotFound,
-
-    #[error("The request is in some way malformed or incorrect")]
-    BadRequest,
-
     #[error("Invalid enum serialization value")]
     InvalidEnumValue(#[from] EnumConversionError),
 
