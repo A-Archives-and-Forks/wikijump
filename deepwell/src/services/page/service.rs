@@ -206,7 +206,7 @@ impl PageService {
         let make_error = || {
             Error::new(
                 format!(
-                    "failed to create edit page '{}' (ID {}) in site ID {}, performed by user ID {}",
+                    "failed to edit page '{}' (ID {}) in site ID {}, performed by user ID {}",
                     slug, page_id, site_id, user_id,
                 ),
                 ErrorType::Page,
