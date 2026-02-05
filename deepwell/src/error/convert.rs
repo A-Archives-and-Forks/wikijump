@@ -62,7 +62,7 @@ pub fn exn_error_to_rpc_error(exn_error: Exn<Error>) -> ErrorObjectOwned {
 
     fn walk<'e>(frame: &'e Frame, code_trace: &mut Vec<i32>) -> Option<TopError<'e>> {
         let crate_error = frame.as_any().downcast_ref::<Error>();
-        if let Some(ref error) = crate_error {
+        if let Some(error) = crate_error {
             // Log error code for trace
             code_trace.push(error.code());
 
