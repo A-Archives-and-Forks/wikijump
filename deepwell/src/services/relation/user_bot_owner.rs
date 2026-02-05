@@ -89,12 +89,24 @@ impl RelationService {
             created_by,
             metadata,
         }: CreateSingleUserBotOwner<'_>,
-    ) -> OldResult<()> {
+    ) -> Result<()> {
         let bot_user_id = bot_user.user_id;
         let owner_user_id = owner_user.user_id;
 
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to add regular user ID {} as owner of bot user ID {}, created by user ID {} (metadata {:?})",
+                    owner_user_id, bot_user_id, created_by, metadata,
+                ),
+                ErrorType::UserBotOwnerRelation,
+            )
+        };
+
         // Cannot be the owner if the bot is blocked
-        Self::check_user_block(ctx, bot_user_id, owner_user_id, "follow").await?;
+        Self::check_user_block(ctx, bot_user_id, owner_user_id, "follow")
+            .await
+            .or_raise(make_error)?;
 
         // Verify user types
         if bot_user.user_type != UserType::Bot {
@@ -102,7 +114,13 @@ impl RelationService {
                 "Bot user must have user type Bot, not {:?}",
                 bot_user.user_type,
             );
-            return Err(OldError::UserWrongType);
+            bail!(Error::new(
+                format!(
+                    "cannot give bot user ID {} an owner user ID {} because the 'bot' is actually type {:?}",
+                    bot_user_id, owner_user_id, bot_user.user_type,
+                ),
+                ErrorType::UserWrongType,
+            ));
         }
 
         // Should we allow 'site' users to own a bot?
@@ -112,10 +130,16 @@ impl RelationService {
                 "Owner account of a bot must have user type Regular, not {:?}",
                 owner_user.user_type,
             );
-            return Err(OldError::UserWrongType);
+            bail!(Error::new(
+                format!(
+                    "cannot give regular user ID {} ownership of bot user ID {} because the owner is actually type {:?}",
+                    owner_user_id, bot_user_id, owner_user.user_type,
+                ),
+                ErrorType::UserWrongType,
+            ));
         }
 
-        create_operation!(
+        create_operation_tmp!(
             ctx,
             UserBotOwner,
             User,
@@ -124,6 +148,7 @@ impl RelationService {
             owner_user_id,
             created_by,
             metadata,
+            make_error,
         )
     }
 
@@ -131,13 +156,22 @@ impl RelationService {
     pub async fn get_bots_owned_by_user(
         ctx: &ServiceContext<'_>,
         owner_user_id: i64,
-    ) -> OldResult<Vec<UserBotOwner>> {
+    ) -> Result<Vec<UserBotOwner>> {
         let models = RelationService::get_user_bot_owner_entries(
             ctx,
             RelationObject::User(owner_user_id),
             RelationDirection::From,
         )
-        .await?;
+        .await
+        .or_raise(|| {
+            Error::new(
+                format!(
+                    "failed to get list of bots owned by user ID {}",
+                    owner_user_id,
+                ),
+                ErrorType::UserBotOwnerRelation,
+            )
+        })?;
 
         models_to_owners(models)
     }
@@ -146,23 +180,40 @@ impl RelationService {
     pub async fn get_owners_for_bot(
         ctx: &ServiceContext<'_>,
         bot_user_id: i64,
-    ) -> OldResult<Vec<UserBotOwner>> {
+    ) -> Result<Vec<UserBotOwner>> {
         let models = RelationService::get_user_bot_owner_entries(
             ctx,
             RelationObject::User(bot_user_id),
             RelationDirection::Dest,
         )
-        .await?;
+        .await
+        .or_raise(|| {
+            Error::new(
+                format!(
+                    "failed to get list of owners for bot user ID {}",
+                    bot_user_id,
+                ),
+                ErrorType::UserBotOwnerRelation,
+            )
+        })?;
 
         models_to_owners(models)
     }
 }
 
-fn models_to_owners(models: Vec<RelationModel>) -> OldResult<Vec<UserBotOwner>> {
+fn models_to_owners(models: Vec<RelationModel>) -> Result<Vec<UserBotOwner>> {
     let mut owners = Vec::with_capacity(models.len());
 
+    let make_error = || {
+        Error::new(
+            "failed to convert RelationModels to UserBotOwner models",
+            ErrorType::UserBotOwnerRelation,
+        )
+    };
+
     for model in models {
-        let metadata: UserBotMetadata = serde_json::from_value(model.metadata)?;
+        let metadata: UserBotMetadata =
+            serde_json::from_value(model.metadata).or_raise(make_error)?;
 
         assert_eq!(model.relation_type, "bot-owner");
         assert_eq!(model.dest_type, RelationObjectType::User);

@@ -66,9 +66,6 @@ pub enum OldError {
     #[error("Invalid enum serialization value")]
     InvalidEnumValue(#[from] EnumConversionError),
 
-    #[error("Wrong user type for this operation")]
-    UserWrongType,
-
     #[error("Invalid locale: {0}")]
     LocaleInvalid(#[from] LanguageIdentifierError),
 }
