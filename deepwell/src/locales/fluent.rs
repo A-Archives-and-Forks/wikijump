@@ -38,9 +38,7 @@ pub struct Localizations {
 }
 
 impl Localizations {
-    pub async fn open<P: Into<PathBuf>>(
-        directory: P,
-    ) -> StdResult<Self, LocalizationLoadError> {
+    pub async fn open<P: Into<PathBuf>>(directory: P) -> Result<Self> {
         debug!("Reading Fluent localization directory...");
 
         let directory = {
@@ -49,12 +47,24 @@ impl Localizations {
             path
         };
 
-        let mut bundles = HashMap::new();
-        let mut entries = fs::read_dir(&directory).await?;
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to open localization directory at {}",
+                    directory.display(),
+                ),
+                ErrorType::Localization,
+            )
+        };
 
-        while let Some(entry) = entries.next_entry().await? {
+        let mut bundles = HashMap::new();
+        let mut entries = fs::read_dir(&directory).await.or_raise(make_error)?;
+
+        while let Some(entry) = entries.next_entry().await.or_raise(make_error)? {
             let path = entry.path();
-            Self::load_component(&mut bundles, &path).await?;
+            Self::load_component(&mut bundles, &path)
+                .await
+                .or_raise(make_error)?;
         }
 
         Ok(Localizations { bundles })
@@ -63,11 +73,19 @@ impl Localizations {
     async fn load_component(
         bundles: &mut HashMap<LanguageIdentifier, FluentBundle>,
         directory: &Path,
-    ) -> StdResult<(), LocalizationLoadError> {
+    ) -> Result<()> {
         debug!("Reading component at {}", directory.display());
-        let mut entries = fs::read_dir(directory).await?;
 
-        while let Some(entry) = entries.next_entry().await? {
+        let make_error = || {
+            Error::new(
+                format!("failed to load component at {}", directory.display()),
+                ErrorType::Localization,
+            )
+        };
+
+        let mut entries = fs::read_dir(directory).await.or_raise(make_error)?;
+
+        while let Some(entry) = entries.next_entry().await.or_raise(make_error)? {
             let path = entry.path();
 
             // Get locale from filename
@@ -78,11 +96,21 @@ impl Localizations {
                 .expect("Path is not valid UTF-8");
 
             debug!("Loading locale {locale_name}");
-            let locale: LanguageIdentifier = locale_name.parse()?;
+            let locale = {
+                let result: StdResult<LanguageIdentifier, _> = locale_name.parse();
+                result.or_raise(make_error)?
+            };
 
             // Read and parse localization strings
-            let source = fs::read_to_string(&path).await?;
-            let resource = FluentResource::try_new(source).map_err(fluent_load_err)?;
+            let source = fs::read_to_string(&path).await.or_raise(make_error)?;
+
+            let resource =
+                FluentResource::try_new(source).map_err(|(_resource, errors)| {
+                    Error::new(
+                        format!("failed to load resource from {}", path.display()),
+                        ErrorType::FluentParser(errors),
+                    )
+                })?;
 
             // Create or modify bundle
             let locale2 = locale.clone();
@@ -90,7 +118,12 @@ impl Localizations {
                 .entry(locale)
                 .or_insert_with(|| FluentBundle::new_concurrent(vec![locale2]));
 
-            bundle.add_resource(resource).map_err(fluent_load_err)?;
+            bundle.add_resource(resource).map_err(|errors| {
+                Error::new(
+                    format!("failed to add resources from {} to bundle", path.display()),
+                    ErrorType::Fluent(errors),
+                )
+            })?;
         }
 
         Ok(())
