@@ -63,10 +63,10 @@ pub async fn page_get(
         .or_raise(make_error)?;
 
     match page {
+        None => Ok(None),
         Some(page) => build_page_output(ctx, page, details)
             .await
             .or_raise(make_error),
-        None => Ok(None),
     }
 }
 
