@@ -51,7 +51,6 @@ use sea_query::value::ArrayType;
 use std::collections::{HashMap, HashSet};
 use std::convert::Infallible;
 use std::hash::Hash;
-use std::num::TryFromIntError;
 use std::str;
 use std::sync::Arc;
 use time::format_description::well_known::Rfc2822;
@@ -453,7 +452,7 @@ impl BlobService {
         let hex_hash = blob_hash_to_hex(&s3_hash);
 
         // Convert size to correct integer type
-        let size = usize_to_i64(data.len()).or_raise(make_error)?;
+        let size = data.len().try_into_i64().or_raise(make_error)?;
 
         match Self::head(ctx, &hex_hash).await.or_raise(make_error)? {
             Some(result) => {
@@ -533,7 +532,7 @@ impl BlobService {
             // Need to move from pending to main hash area
             None => {
                 let expected_length =
-                    i64_to_usize(expected_length).or_raise(make_error)?;
+                    expected_length.try_into_usize().or_raise(make_error)?;
 
                 Self::move_uploaded(
                     ctx,
@@ -842,7 +841,7 @@ impl BlobService {
             }
             None => {
                 // Read-only, just get the count
-                let count: i64 = User::find()
+                User::find()
                     .select_only()
                     .column_as(user::Column::UserId.count(), "count")
                     .filter(user::Column::AvatarS3Hash.eq(s3_hash.as_slice()))
@@ -850,9 +849,9 @@ impl BlobService {
                     .one(txn)
                     .await
                     .or_raise(make_error)?
-                    .expect("No results from COUNT aggregate query");
-
-                i64_to_u64(count).or_raise(make_error)?
+                    .expect("No results from COUNT aggregate query")
+                    .try_into_u64()
+                    .or_raise(make_error)?
             }
         };
 
@@ -1275,18 +1274,3 @@ impl<T: Hash + Ord + Eq> SamplerCounter<T> {
 }
 
 // Helper functions to assist rustc in disambiguating error typing.
-
-#[inline]
-fn usize_to_i64(value: usize) -> StdResult<i64, TryFromIntError> {
-    value.try_into()
-}
-
-#[inline]
-fn i64_to_usize(value: i64) -> StdResult<usize, TryFromIntError> {
-    value.try_into()
-}
-
-#[inline]
-fn i64_to_u64(value: i64) -> StdResult<u64, TryFromIntError> {
-    value.try_into()
-}
