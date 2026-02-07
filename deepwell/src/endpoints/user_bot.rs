@@ -88,7 +88,7 @@ pub async fn bot_user_create(
 
     let make_error = || {
         Error::new(
-            "failed to create a user / bot owner",
+            "failed to create a bot user account",
             ErrorType::UserBotOwner,
         )
     };
