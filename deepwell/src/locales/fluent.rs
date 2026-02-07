@@ -18,7 +18,6 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use super::error::{LocalizationLoadError, fluent_load_err};
 use super::fallback::iterate_locale_fallbacks;
 use crate::error::prelude::*;
 use fluent::{FluentArgs, FluentMessage, FluentResource, bundle};
