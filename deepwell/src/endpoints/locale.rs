@@ -57,7 +57,7 @@ pub async fn locale_info(
     _ctx: &ServiceContext<'_>,
     params: Params<'static>,
 ) -> Result<LocaleOutput> {
-    let locale_str: String = parse_one!(params);
+    let locale_str: String = parse_one!(params, Localization);
     info!("Getting locale information for {locale_str}");
 
     let locale =
@@ -86,7 +86,7 @@ pub async fn translate_strings(
         locales,
         messages,
         strip_message_keys,
-    } = parse!(params);
+    } = parse!(params, Localization);
 
     // Check that locales are specified
     if locales.is_empty() {
