@@ -83,13 +83,13 @@ pub async fn translate_strings(
     params: Params<'static>,
 ) -> Result<TranslateOutput> {
     let TranslateInput {
-        locales,
+        locales: locales_str,
         messages,
         strip_message_keys,
     } = parse!(params, Localization);
 
     // Check that locales are specified
-    if locales.is_empty() {
+    if locales_str.is_empty() {
         error!("No locales specified in translate call");
         bail!(Error::new(
             "failed to translate with no locales",
@@ -102,7 +102,8 @@ pub async fn translate_strings(
         if !messages.contains_key(message_key.as_str()) {
             bail!(Error::new(
                 format!(
-                    "invalid argument: cannot strip control characters from message '{message_key}' when it is not requested to be translated",
+                    "invalid argument: cannot strip control characters from message '{}' when it is not requested to be translated, for locales {:?}",
+                    message_key, locales_str,
                 ),
                 ErrorType::BadRequest,
             ));
@@ -112,20 +113,22 @@ pub async fn translate_strings(
     info!(
         "Translating {} message keys in locale {} (or {} fallbacks)",
         messages.len(),
-        &locales[0],
-        locales.len() - 1,
+        &locales_str[0],
+        locales_str.len() - 1,
     );
     debug!("Message keys to translate: {messages:?}");
 
     let mut output: TranslateOutput = HashMap::new();
     let locales = {
         let mut langids = Vec::new();
-        for locale in locales {
+        for locale in &locales_str {
             let langid =
                 LanguageIdentifier::from_bytes(locale.as_bytes()).or_raise(|| {
                     Error::new(
                         "failed to get locale data",
-                        ErrorType::LocaleInvalid { locale },
+                        ErrorType::LocaleInvalid {
+                            locale: locale.clone(),
+                        },
                     )
                 })?;
 
@@ -145,7 +148,13 @@ pub async fn translate_strings(
             .localization()
             .translate_option(&locales, &message_key, &arguments)
             .or_raise(|| {
-                Error::new("failed to get translation", ErrorType::Localization)
+                Error::new(
+                    format!(
+                        "failed to get translation for message '{}' with locales {:?}",
+                        message_key, locales_str,
+                    ),
+                    ErrorType::Localization,
+                )
             })?
             .map(|translation| {
                 let mut translation = translation.to_string();
