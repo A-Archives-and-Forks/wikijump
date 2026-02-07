@@ -510,7 +510,10 @@ impl FileService {
         // - Name doesn't already exist
 
         if file.page_id != page_id {
-            warn!("File's page ID and passed page ID do not match");
+            warn!(
+                "File's page ID ({}) and passed page ID ({}) do not match",
+                file.page_id, page_id,
+            );
             bail!(Error::new(
                 format!(
                     "cannot restore file, file's page ID ({}) and passed page ID ({}) do not match",

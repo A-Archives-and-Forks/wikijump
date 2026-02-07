@@ -229,8 +229,8 @@ impl ParentService {
         let make_error = || {
             Error::new(
                 format!(
-                    "failed to get page parents relations in site ID for {:?} {:?}",
-                    reference, relationship_type,
+                    "failed to get page parents relations in site ID {} for {:?} {:?}",
+                    site_id, reference, relationship_type,
                 ),
                 ErrorType::PageParent,
             )

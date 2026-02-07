@@ -585,7 +585,10 @@ impl PageService {
         // - Slug doesn't already exist
 
         if page.site_id != site_id {
-            warn!("Page's site ID and passed site ID do not match");
+            warn!(
+                "Page's site ID ({}) and passed site ID ({}) do not match",
+                page.site_id, site_id,
+            );
             bail!(Error::new(
                 "cannot restore page to a different site",
                 ErrorType::PageNotFound,
