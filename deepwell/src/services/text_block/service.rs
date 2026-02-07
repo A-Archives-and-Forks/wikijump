@@ -130,11 +130,7 @@ impl TextBlockService {
             .await
             .or_raise(make_error)?;
 
-        let max_index: i16 = blocks
-            .len()
-            .add(1)
-            .try_into()
-            .expect("Unable to fit block count in a i16");
+        let max_index = blocks.len().add(1).try_into_i16().or_raise(make_error)?;
 
         // If there's no additional work for us, quit early
 
@@ -160,9 +156,7 @@ impl TextBlockService {
         // While we're at it, we can also create the models to be
         // inserted to the database.
 
-        let max_index_usize =
-            usize::try_from(max_index).expect("Unable to convert max_index to usize");
-
+        let max_index_usize = max_index.try_into_usize().or_raise(make_error)?;
         let mut models = Vec::with_capacity(max_index_usize);
         let mut previous_block_names = HashSet::with_capacity(max_index_usize);
         for (index, block) in blocks.iter().enumerate() {
@@ -174,7 +168,7 @@ impl TextBlockService {
             } = block;
 
             // Text block indices are always 1-indexed
-            let index = index + 1;
+            let index = index.add(1).try_into_i16().or_raise(make_error)?;
 
             // Upload text block to S3
             let filename = filename!(index);
@@ -183,10 +177,6 @@ impl TextBlockService {
                 .put_object_with_content_type(filename, text.as_bytes(), mime)
                 .await
                 .or_raise(make_error)?;
-
-            let index: i16 = index
-                .try_into()
-                .expect("Unable to convert block index in a i16");
 
             // Deny invalid block names
             if let Some(mut value) = name {

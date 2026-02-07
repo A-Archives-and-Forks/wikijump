@@ -1286,13 +1286,9 @@ impl PageRevisionService {
             )
             .count(txn)
             .await
+            .or_raise(make_error)?
+            .try_into_i32()
             .or_raise(make_error)?;
-
-        // We store revision_number in INT, which is i32.
-        // So even though this row count is usize, it
-        // should always fit inside an i32.
-        let row_count = i32::try_from(row_count)
-            .expect("Revision row count greater than revision_number integer size");
 
         // All pages have at least one revision, so if there are none
         // that means this page does not exist, and we should return an error.
@@ -1301,7 +1297,7 @@ impl PageRevisionService {
             None => bail!(Error::new(
                 format!(
                     "cannot count page revisions, page ID {} does not exist on site ID {}",
-                    page_id, site_id
+                    page_id, site_id,
                 ),
                 ErrorType::PageRevision
             )),
