@@ -20,6 +20,8 @@
 
 use crate::hash::BlobHash;
 use crate::services::view::ViewType;
+use fluent::FluentError;
+use fluent_syntax::parser::ParserError as FluentParserError;
 use serde_json::Value as JsonValue;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -57,9 +59,11 @@ pub enum ErrorType {
     RenderTimeout,
     RateLimited,
     EmailVerification,
-    Localization,
-    Cryptography(String),
     DatabaseImport,
+    Localization,
+    Fluent(Vec<FluentError>),
+    FluentParser(Vec<FluentParserError>),
+    Cryptography(String),
 
     // 1300
     Text,
@@ -296,9 +300,11 @@ impl ErrorType {
             ErrorType::RenderTimeout => 1202,
             ErrorType::RateLimited => 1203,
             ErrorType::EmailVerification => 1204,
-            ErrorType::Localization => 1205,
-            ErrorType::Cryptography(_) => 1206,
-            ErrorType::DatabaseImport => 1207,
+            ErrorType::DatabaseImport => 1205,
+            ErrorType::Localization => 1206,
+            ErrorType::Fluent(_) => 1207,
+            ErrorType::FluentParser(_) => 1208,
+            ErrorType::Cryptography(_) => 1209,
 
             // 1300 - Other / Uncommon
             ErrorType::Text => 1300,
@@ -517,9 +523,11 @@ impl ErrorType {
             ErrorType::RateLimited => "An external API has ratelimited us",
             ErrorType::RenderTimeout => "Wikitext parsing and rendering has timed out",
             ErrorType::EmailVerification => "Email verification failed",
-            ErrorType::Localization => "Localization or translation failed",
-            ErrorType::Cryptography(_) => "Cryptographic operation failed",
             ErrorType::DatabaseImport => "Database import operation failed",
+            ErrorType::Localization => "Localization or translation failed",
+            ErrorType::Fluent(_) => "Fluent bundle error",
+            ErrorType::FluentParser(_) => "Fluent parser error",
+            ErrorType::Cryptography(_) => "Cryptographic operation failed",
 
             // 1300
             ErrorType::Text => "Failed to act on a text entry",
