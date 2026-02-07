@@ -129,7 +129,7 @@ impl RelationService {
         }
 
         if check_user_block_exists!(user_id_1, user_id_2)
-            || check_user_block_exists!(user_id_2, user_id_2)
+            || check_user_block_exists!(user_id_2, user_id_1)
         {
             error!(
                 "User ID {user_id_1} cannot {action} user ID {user_id_2} because there is a block"
