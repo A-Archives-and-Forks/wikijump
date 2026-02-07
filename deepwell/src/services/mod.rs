@@ -41,7 +41,7 @@ mod prelude {
     pub use crate::config::Config;
     pub use crate::error::prelude::*;
     pub use crate::types::{Maybe, Reference};
-    pub use crate::utils::{ConvertToI64, ConvertToU64, ConvertToUsize, now};
+    pub use crate::utils::{ConvertToI16, ConvertToI64, ConvertToU64, ConvertToUsize, now};
     pub use paste::paste;
     pub use sea_orm::{
         ActiveModelTrait, ColumnTrait, Condition, ConnectionTrait, DeleteResult,

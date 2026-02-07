@@ -28,6 +28,22 @@ use crate::error::StdResult;
 use std::num::TryFromIntError;
 
 macro_rules! impl_convert_traits {
+    ($int:ty => i16) => {
+        impl ConvertToI16 for $int {
+            fn try_into_i16(self) -> StdResult<i16, TryFromIntError> {
+                self.try_into()
+            }
+        }
+    };
+
+    ($int:ty => i32) => {
+        impl ConvertToI32 for $int {
+            fn try_into_i32(self) -> StdResult<i32, TryFromIntError> {
+                self.try_into()
+            }
+        }
+    };
+
     ($int:ty => i64) => {
         impl ConvertToI64 for $int {
             fn try_into_i64(self) -> StdResult<i64, TryFromIntError> {
@@ -53,6 +69,14 @@ macro_rules! impl_convert_traits {
     };
 }
 
+pub trait ConvertToI16 {
+    fn try_into_i16(self) -> StdResult<i16, TryFromIntError>;
+}
+
+pub trait ConvertToI32 {
+    fn try_into_i32(self) -> StdResult<i32, TryFromIntError>;
+}
+
 pub trait ConvertToI64 {
     fn try_into_i64(self) -> StdResult<i64, TryFromIntError>;
 }
@@ -65,11 +89,19 @@ pub trait ConvertToUsize {
     fn try_into_usize(self) -> StdResult<usize, TryFromIntError>;
 }
 
+impl_convert_traits!(i16 => usize);
+
+impl_convert_traits!(i64 => i16);
+impl_convert_traits!(i64 => i32);
 impl_convert_traits!(i64 => u64);
 impl_convert_traits!(i64 => usize);
 
+impl_convert_traits!(u64 => i16);
+impl_convert_traits!(u64 => i32);
 impl_convert_traits!(u64 => i64);
 impl_convert_traits!(u64 => usize);
 
+impl_convert_traits!(usize => i16);
+impl_convert_traits!(usize => i32);
 impl_convert_traits!(usize => i64);
 impl_convert_traits!(usize => u64);
