@@ -82,5 +82,5 @@ pub async fn site_update(
 
     SiteService::update(ctx, site, body, user_id, ip_address)
         .await
-        .or_raise(|| Error::new("failed update site data", ErrorType::Site))
+        .or_raise(|| Error::new("failed to update site data", ErrorType::Site))
 }
