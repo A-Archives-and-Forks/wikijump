@@ -865,7 +865,6 @@ dependencies = [
  "strum 0.27.2",
  "strum_macros",
  "subtle",
- "thiserror 2.0.18",
  "time",
  "tiny-keccak",
  "tokio",

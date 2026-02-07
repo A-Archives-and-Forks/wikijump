@@ -57,7 +57,6 @@ str-macro = "1"
 strum = "0.27"
 strum_macros = "0.27"
 subtle = "2.6"
-thiserror = "2"
 time = { version = "0.3", features = ["parsing", "serde"], default-features = false }
 tiny-keccak = { version = "2", features = ["k12"] }
 toml = { version = "0.9", features = ["parse"] }
