@@ -68,3 +68,18 @@ macro_rules! fluent_str {
         FluentValue::String(cow!(&$value))
     };
 }
+
+/// Performs `.or_raise()?` on a number of `Result`s.
+/// Intended for use in conjunction with `join!()`.
+macro_rules! raise_multiple {
+    // Singular case
+    ($result:ident; $raise:expr $(,)?) => {
+        $result.or_raise($raise)?
+    };
+
+    // Multiple case
+    ($($result:ident),+ ; $raise:expr $(,)?) => {{
+        $(let $result = $result.or_raise($raise)?;)+
+        ($($result,)+)
+    }};
+}

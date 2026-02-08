@@ -106,17 +106,28 @@ impl RelationService {
         }: CreatePageAttribution,
     ) -> Result<PageAttribution> {
         let txn = ctx.transaction();
-        let metadata_json = serde_json::to_value(metadata)?;
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to create page attribution entry for user ID {} on page ID {}, created by user ID {} (metadata {:?})",
+                    user_id, page_id, created_by, metadata,
+                ),
+                ErrorType::PageAttributionRelation,
+            )
+        };
 
-        if let Some(model) =
-            find_page_attribution(ctx, page_id, user_id, &metadata_json).await?
+        let metadata_json = serde_json::to_value(metadata).or_raise(make_error)?;
+
+        if let Some(model) = find_page_attribution(ctx, page_id, user_id, &metadata_json)
+            .await
+            .or_raise(make_error)?
         {
             debug!(
                 "Page attribution already exists for page {} user {} ({:?} @ {})",
                 page_id, user_id, metadata.attribution_type, metadata.attribution_date,
             );
-
-            return PageAttribution::try_from(model);
+            let attrib = PageAttribution::try_from(model).or_raise(make_error)?;
+            return Ok(attrib);
         }
 
         debug!(
@@ -139,8 +150,9 @@ impl RelationService {
             ..Default::default()
         };
 
-        let model = model.insert(txn).await?;
-        PageAttribution::try_from(model)
+        let model = model.insert(txn).await.or_raise(make_error)?;
+        let attrib = PageAttribution::try_from(model).or_raise(make_error)?;
+        Ok(attrib)
     }
 
     #[allow(dead_code)]
@@ -150,7 +162,18 @@ impl RelationService {
         user_id: i64,
         metadata: &PageAttributionMetadata,
     ) -> Result<bool> {
-        let metadata_json = serde_json::to_value(metadata)?;
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to check if page attribution entry for user ID {} on page ID {} (metadata {:?})",
+                    user_id, page_id, metadata,
+                ),
+                ErrorType::PageAttributionRelation,
+            )
+        };
+
+        let metadata_json = serde_json::to_value(metadata).or_raise(make_error)?;
+
         find_page_attribution(ctx, page_id, user_id, &metadata_json)
             .await
             .map(|relation| relation.is_some())
@@ -160,17 +183,35 @@ impl RelationService {
         ctx: &ServiceContext<'_>,
         GetPageAttributions { site_id, page }: GetPageAttributions<'_>,
     ) -> Result<Vec<PageAttribution>> {
-        let page = PageService::get(ctx, site_id, page).await?;
         let txn = ctx.transaction();
+        let page = PageService::get(ctx, site_id, page).await.or_raise(|| {
+            Error::new(
+                "failed to get page attributions",
+                ErrorType::PageAttributionRelation,
+            )
+        })?;
+
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to get page attributions for page '{}' (ID {}) on site ID {}",
+                    page.slug, page.page_id, site_id,
+                ),
+                ErrorType::PageAttributionRelation,
+            )
+        };
+
         let models = Relation::find()
             .filter(page_attributions_condition(page.page_id))
             .all(txn)
-            .await?;
+            .await
+            .or_raise(make_error)?;
 
         let mut attributions = models
             .into_iter()
             .map(PageAttribution::try_from)
-            .collect::<Result<Vec<_>>>()?;
+            .collect::<Result<Vec<_>>>()
+            .or_raise(make_error)?;
 
         sort_attributions(&mut attributions);
         Ok(attributions)
@@ -185,8 +226,24 @@ impl RelationService {
             attributions,
         }: SetPageAttributions<'_>,
     ) -> Result<Vec<PageAttribution>> {
-        let page = PageService::get(ctx, site_id, page).await?;
         let txn = ctx.transaction();
+        let page = PageService::get(ctx, site_id, page).await.or_raise(|| {
+            Error::new(
+                "failed to set page attributions",
+                ErrorType::PageAttributionRelation,
+            )
+        })?;
+
+        let attributions_len = attributions.len();
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to set {} page attributions for page '{}' (ID {}) on site ID {}",
+                    attributions_len, page.slug, page.page_id, site_id,
+                ),
+                ErrorType::PageAttributionRelation,
+            )
+        };
 
         // Delete existing active attributions for this page.
         let delete_model = relation::ActiveModel {
@@ -199,10 +256,11 @@ impl RelationService {
             .set(delete_model)
             .filter(page_attributions_condition(page.page_id))
             .exec(txn)
-            .await?;
+            .await
+            .or_raise(make_error)?;
 
         // Insert the new set.
-        let mut created = Vec::with_capacity(attributions.len());
+        let mut created = Vec::with_capacity(attributions_len);
         let mut seen = BTreeSet::new();
         for PageAttributionEntry { user_id, metadata } in attributions {
             if !seen.insert((user_id, metadata)) {
@@ -218,7 +276,8 @@ impl RelationService {
                     created_by: updated_by,
                 },
             )
-            .await?;
+            .await
+            .or_raise(make_error)?;
 
             created.push(attribution);
         }
@@ -235,8 +294,23 @@ impl RelationService {
             removed_by,
         }: ClearPageAttributions<'_>,
     ) -> Result<()> {
-        let page = PageService::get(ctx, site_id, page).await?;
         let txn = ctx.transaction();
+        let page = PageService::get(ctx, site_id, page).await.or_raise(|| {
+            Error::new(
+                "failed to clear page attributions",
+                ErrorType::PageAttributionRelation,
+            )
+        })?;
+
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to clear page attributions for page '{}' (ID {}) on site ID {}",
+                    page.slug, page.page_id, site_id,
+                ),
+                ErrorType::PageAttributionRelation,
+            )
+        };
 
         let delete_model = relation::ActiveModel {
             deleted_by: Set(Some(removed_by)),
@@ -248,7 +322,8 @@ impl RelationService {
             .set(delete_model)
             .filter(page_attributions_condition(page.page_id))
             .exec(txn)
-            .await?;
+            .await
+            .or_raise(make_error)?;
 
         Ok(())
     }
@@ -287,7 +362,13 @@ fn convert_model(model: RelationModel) -> Result<PageAttribution> {
     assert_eq!(model.dest_type, RelationObjectType::Page);
     assert_eq!(model.from_type, RelationObjectType::User);
 
-    let metadata: PageAttributionMetadata = serde_json::from_value(model.metadata)?;
+    let metadata: PageAttributionMetadata = serde_json::from_value(model.metadata)
+        .or_raise(|| {
+            Error::new(
+                "failed to convert RelationModel to PageAttribution",
+                ErrorType::PageAttributionRelation,
+            )
+        })?;
 
     Ok(PageAttribution {
         relation_id: model.relation_id,
@@ -304,7 +385,7 @@ fn convert_model(model: RelationModel) -> Result<PageAttribution> {
 }
 
 impl TryFrom<RelationModel> for PageAttribution {
-    type Error = Error;
+    type Error = ExnError;
 
     fn try_from(model: RelationModel) -> Result<Self> {
         convert_model(model)
@@ -317,12 +398,24 @@ async fn find_page_attribution(
     user_id: i64,
     metadata_json: &serde_json::Value,
 ) -> Result<Option<RelationModel>> {
+    let make_error = || {
+        Error::new(
+            format!(
+                "failed to query for page attribution user ID {} on page ID {}",
+                user_id, page_id,
+            ),
+            ErrorType::PageAttributionRelation,
+        )
+    };
+
     let txn = ctx.transaction();
-    Relation::find()
+    let model = Relation::find()
         .filter(page_attribution_condition(page_id, user_id, metadata_json))
         .one(txn)
         .await
-        .map_err(Into::into)
+        .or_raise(make_error)?;
+
+    Ok(model)
 }
 
 fn sort_attributions(attributions: &mut [PageAttribution]) {

@@ -34,7 +34,7 @@
 //! This feature assumes you are running on a UNIX-like system.
 
 use crate::config::Config;
-use anyhow::Result;
+use crate::error::prelude::*;
 use notify::{
     Config as WatcherConfig, Event, EventKind, RecommendedWatcher, RecursiveMode,
     Result as WatcherResult, Watcher,
@@ -56,9 +56,21 @@ struct WatchedPaths {
 
 pub fn setup_autorestart(config: &Config) -> Result<RecommendedWatcher> {
     info!("Starting watcher for auto-restart on file change");
+
+    let make_error = || {
+        Error::new(
+            "failed to setup auto-restart (compile feature 'watch')",
+            ErrorType::ServerSetup,
+        )
+    };
+
+    let config_path = fs::canonicalize(&config.raw_toml_path).or_raise(make_error)?;
+    let localization_path =
+        fs::canonicalize(&config.localization_path).or_raise(make_error)?;
+
     let watched_paths = WatchedPaths {
-        config_path: fs::canonicalize(&config.raw_toml_path)?,
-        localization_path: fs::canonicalize(&config.localization_path)?,
+        config_path,
+        localization_path,
     };
 
     let mut watcher = RecommendedWatcher::new(
@@ -76,11 +88,14 @@ pub fn setup_autorestart(config: &Config) -> Result<RecommendedWatcher> {
             }
         },
         WatcherConfig::default().with_poll_interval(POLL_INTERVAL),
-    )?;
+    )
+    .or_raise(make_error)?;
 
     // Add autowatch to configuration file.
     debug!("Adding regular watch to {}", config.raw_toml_path.display());
-    watcher.watch(&config.raw_toml_path, RecursiveMode::NonRecursive)?;
+    watcher
+        .watch(&config.raw_toml_path, RecursiveMode::NonRecursive)
+        .or_raise(make_error)?;
 
     // Add autowatch to localization directory.
     // Recursive because it is nested.
@@ -88,7 +103,9 @@ pub fn setup_autorestart(config: &Config) -> Result<RecommendedWatcher> {
         "Adding recursive watch to {}",
         config.localization_path.display(),
     );
-    watcher.watch(&config.localization_path, RecursiveMode::Recursive)?;
+    watcher
+        .watch(&config.localization_path, RecursiveMode::Recursive)
+        .or_raise(make_error)?;
 
     // Return. Once out of scope, the watcher stops working, so we must preserve it.
     Ok(watcher)

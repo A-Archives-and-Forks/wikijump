@@ -45,20 +45,41 @@ impl FilterService {
 
         info!("Creating filter with regex '{regex}' because '{description}'");
 
-        // Ensure the regular expression is valid
-        if let Err(error) = Regex::new(&regex) {
-            error!("Passed regular expression '{regex}' pattern is invalid: {error}");
-            return Err(Error::FilterRegexInvalid(error));
-        }
+        let regex_2 = regex.clone();
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to create filter with base regex pattern '{}': user {}, email {}, page {}, file {}, forum {}, case sensitive {}",
+                    regex_2,
+                    affects_user,
+                    affects_email,
+                    affects_page,
+                    affects_file,
+                    affects_forum,
+                    case_sensitive,
+                ),
+                ErrorType::Filter,
+            )
+        };
 
         // Ensure there aren't conflicts
-        Self::check_conflicts(ctx, site_id, &regex, "create").await?;
+        Self::check_conflicts(ctx, site_id, &regex, "create")
+            .await
+            .or_raise(make_error)?;
 
         // Add case-insensitivity flag to regex if specified
         if !case_sensitive {
             regex = str!(regex.trim_start_matches("(?i)"));
             regex.insert_str(0, "(?i)");
         }
+
+        // Ensure the regular expression is valid
+        let _ = Regex::new(&regex).or_raise(|| {
+            Error::new(
+                format!("failed to create filter with regex pattern '{}'", regex),
+                ErrorType::FilterRegexInvalid { regex: str!(regex) },
+            )
+        })?;
 
         let model = filter::ActiveModel {
             site_id: Set(site_id),
@@ -71,7 +92,7 @@ impl FilterService {
             description: Set(description),
             ..Default::default()
         };
-        let filter = model.insert(txn).await?;
+        let filter = model.insert(txn).await.or_raise(make_error)?;
         Ok(filter)
     }
 
@@ -93,6 +114,13 @@ impl FilterService {
         let txn = ctx.transaction();
 
         info!("Updating filter with ID {filter_id}");
+
+        let make_error = || {
+            Error::new(
+                format!("failed to update filter ID {}", filter_id),
+                ErrorType::Filter,
+            )
+        };
 
         let mut model = filter::ActiveModel {
             filter_id: Set(filter_id),
@@ -156,7 +184,7 @@ impl FilterService {
         }
 
         // Perform update
-        let filter = model.update(txn).await?;
+        let filter = model.update(txn).await.or_raise(make_error)?;
         Ok(filter)
     }
 
@@ -165,11 +193,22 @@ impl FilterService {
         info!("Deleting filter with ID {filter_id}");
         let txn = ctx.transaction();
 
+        let make_error = || {
+            Error::new(
+                format!("failed to delete filter ID {}", filter_id),
+                ErrorType::Filter,
+            )
+        };
+
         // Ensure filter exists
-        let filter = Self::get(ctx, filter_id).await?;
+        let filter = Self::get(ctx, filter_id).await.or_raise(make_error)?;
+
         if filter.deleted_at.is_some() {
             error!("Attempting to remove already-deleted filter");
-            return Err(Error::FilterNotFound);
+            bail!(Error::new(
+                format!("cannot delete filter ID {}, is already deleted", filter_id),
+                ErrorType::FilterNotFound,
+            ));
         }
 
         // Delete the filter
@@ -178,7 +217,7 @@ impl FilterService {
             deleted_at: Set(Some(now())),
             ..Default::default()
         };
-        model.update(txn).await?;
+        model.update(txn).await.or_raise(make_error)?;
         Ok(())
     }
 
@@ -192,14 +231,29 @@ impl FilterService {
 
         info!("Undeleting filter with ID {filter_id}");
 
+        let make_error = || {
+            Error::new(
+                format!("failed to restore (undelete) filter ID {}", filter_id),
+                ErrorType::Filter,
+            )
+        };
+
         let filter = Self::get(ctx, filter_id).await?;
         if filter.deleted_at.is_none() {
             error!("Attempting to un-delete extant filter");
-            return Err(Error::FilterNotDeleted);
+            bail!(Error::new(
+                format!(
+                    "cannot restore (undelete) filter ID {} that isn't deleted",
+                    filter_id,
+                ),
+                ErrorType::FilterNotDeleted
+            ));
         }
 
         // Ensure it doesn't conflict with a since-added filter
-        Self::check_conflicts(ctx, filter.site_id, &filter.regex, "restore").await?;
+        Self::check_conflicts(ctx, filter.site_id, &filter.regex, "restore")
+            .await
+            .or_raise(make_error)?;
 
         // Un-delete the filter
         let model = filter::ActiveModel {
@@ -207,13 +261,13 @@ impl FilterService {
             deleted_at: Set(None),
             ..Default::default()
         };
-        let filter = model.update(txn).await?;
+        let filter = model.update(txn).await.or_raise(make_error)?;
         Ok(filter)
     }
 
     #[inline]
     pub async fn get(ctx: &ServiceContext<'_>, filter_id: i64) -> Result<FilterModel> {
-        find_or_error!(Self::get_optional(ctx, filter_id), Filter)
+        find_or_error!(Self::get_optional(ctx, filter_id), "filter", Filter)
     }
 
     pub async fn get_optional(
@@ -222,14 +276,26 @@ impl FilterService {
     ) -> Result<Option<FilterModel>> {
         info!("Getting filter with ID {filter_id}");
 
+        let make_error = || {
+            Error::new(
+                format!("failed to get filter ID {}", filter_id),
+                ErrorType::Filter,
+            )
+        };
+
         let txn = ctx.transaction();
-        let filter = Filter::find_by_id(filter_id).one(txn).await?;
+        let filter = Filter::find_by_id(filter_id)
+            .one(txn)
+            .await
+            .or_raise(make_error)?;
+
         Ok(filter)
     }
 
     /// Get all filters of a type.
     ///
     /// For the `filter_class` argument, see `FilterClass`.
+    /// Note that this argument is what provides the `site_id` argument (or not).
     ///
     /// The `filter_type` argument:
     /// * If it is `Some(_)`, it determines what kind of object is being filtered.
@@ -249,6 +315,34 @@ impl FilterService {
 
         info!("Getting all {} filters", filter_class.name());
 
+        let make_error = || {
+            let mut message = format!("failed to get all {} ", filter_class.name());
+
+            match deleted {
+                Some(true) => message.push_str("deleted "),
+                Some(false) => message.push_str("extant "),
+                None => (),
+            }
+
+            message.push_str("filters ");
+
+            if let Some(filter_type) = filter_type {
+                str_write!(&mut message, "of type {:?} ", filter_type);
+            }
+
+            match filter_class {
+                FilterClass::Platform => message.push_str("on the platform"),
+                FilterClass::Site(site_id) => {
+                    str_write!(&mut message, "on site ID {}", site_id)
+                }
+                FilterClass::PlatformAndSite(site_id) => {
+                    str_write!(&mut message, "on the platform and on site ID {}", site_id)
+                }
+            }
+
+            Error::new(message, ErrorType::Filter)
+        };
+
         let filter_condition =
             filter_type.map(|filter_type| filter_type.into_column().eq(true));
 
@@ -266,7 +360,8 @@ impl FilterService {
                     .add_option(deleted_condition),
             )
             .all(txn)
-            .await?;
+            .await
+            .or_raise(make_error)?;
 
         Ok(filters)
     }
@@ -287,8 +382,11 @@ impl FilterService {
             filter_class.name(),
         );
 
-        let filters =
-            Self::get_all(ctx, filter_class, Some(filter_type), Some(false)).await?;
+        let make_error = || Error::new("failed to get filter matcher", ErrorType::Filter);
+
+        let filters = Self::get_all(ctx, filter_class, Some(filter_type), Some(false))
+            .await
+            .or_raise(make_error)?;
 
         let mut regexes = Vec::new();
         let mut filter_data = Vec::new();
@@ -307,9 +405,11 @@ impl FilterService {
             });
         }
 
-        let regex_set = RegexSet::new(regexes).map_err(|error| {
-            error!("Invalid regular expression found in the database: {error}");
-            Error::FilterRegexInvalid(error)
+        let regex_set = RegexSet::new(regexes).or_raise(|| {
+            Error::new(
+                "invalid regular expression found in database",
+                ErrorType::Filter,
+            )
         })?;
 
         Ok(FilterMatcher::new(regex_set, filter_data))
@@ -322,8 +422,17 @@ impl FilterService {
         regex: &str,
         action: &str,
     ) -> Result<()> {
-        let txn = ctx.transaction();
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed conflict check for filter '{}' for {:?}, cannot {}",
+                    regex, site_id, action,
+                ),
+                ErrorType::Filter,
+            )
+        };
 
+        let txn = ctx.transaction();
         let result = Filter::find()
             .filter(
                 Condition::all()
@@ -337,15 +446,23 @@ impl FilterService {
                     .add(filter::Column::DeletedAt.is_null()),
             )
             .one(txn)
-            .await?;
+            .await
+            .or_raise(make_error)?;
 
         match result {
             None => Ok(()),
             Some(_) => {
                 error!(
-                    " filter '{regex}' for {site_id:?} already exists, cannot {action}"
+                    "Filter '{}' for {:?} already exists, cannot {}",
+                    regex, site_id, action,
                 );
-                Err(Error::FilterExists)
+                bail!(Error::new(
+                    format!(
+                        "cannot {}, filter '{}' for {:?} already exists",
+                        action, regex, site_id,
+                    ),
+                    ErrorType::FilterExists,
+                ));
             }
         }
     }

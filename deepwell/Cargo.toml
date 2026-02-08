@@ -8,7 +8,7 @@ keywords = ["wikijump", "api", "backend", "wiki"]
 categories = ["asynchronous", "database", "web-programming::http-server"]
 exclude = [".gitignore", ".editorconfig"]
 
-version = "2026.1.18"
+version = "2026.2.7"
 authors = ["Emmie Smith <emmie.maeda@gmail.com>"]
 edition = "2024"
 
@@ -16,7 +16,6 @@ edition = "2024"
 watch = ["notify"]
 
 [dependencies]
-anyhow = "1"
 argon2 = "0.5"
 arraystring = "0.3"
 async-trait = "0.1"  # remove when trait async fn enhancements land
@@ -27,6 +26,7 @@ color-backtrace = "0.7"
 cuid2 = "0.1"
 data-encoding = "2"
 dotenvy = "0.15"
+exn = "0.2"
 femme = "2"
 filemagic = "0.13"
 fluent = "0.17"
@@ -57,7 +57,6 @@ str-macro = "1"
 strum = "0.27"
 strum_macros = "0.27"
 subtle = "2.6"
-thiserror = "2"
 time = { version = "0.3", features = ["parsing", "serde"], default-features = false }
 tiny-keccak = { version = "2", features = ["k12"] }
 toml = { version = "0.9", features = ["parse"] }

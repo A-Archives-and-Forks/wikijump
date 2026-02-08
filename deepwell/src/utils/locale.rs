@@ -18,15 +18,19 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use crate::services::{Error, Result};
+use crate::error::prelude::*;
 use unic_langid::LanguageIdentifier;
 
 /// Ensure the given locale string is valid, returning the parsed locale.
 /// If it is invalid, then the appropriate `Error` variant is returned.
 pub fn validate_locale(locale_str: &str) -> Result<LanguageIdentifier> {
-    LanguageIdentifier::from_bytes(locale_str.as_bytes()).map_err(|error| {
-        warn!("Invalid locale '{locale_str}' passed: {error:?}");
-        Error::LocaleInvalid(error)
+    LanguageIdentifier::from_bytes(locale_str.as_bytes()).or_raise(|| {
+        Error::new(
+            format!("failed to validate locale for '{locale_str}'"),
+            ErrorType::LocaleInvalid {
+                locale: str!(locale_str),
+            },
+        )
     })
 }
 
@@ -39,8 +43,19 @@ pub fn parse_locales<S: AsRef<str>>(
 ) -> Result<Vec<LanguageIdentifier>> {
     let mut locales = Vec::with_capacity(locales_str.len());
     for locale_str in locales_str {
-        let locale = LanguageIdentifier::from_bytes(locale_str.as_ref().as_bytes())?;
+        let locale_str = locale_str.as_ref();
+        let locale_bytes = locale_str.as_bytes();
+        let locale = LanguageIdentifier::from_bytes(locale_bytes).or_raise(|| {
+            Error::new(
+                format!("failed to parse locale '{locale_str}'"),
+                ErrorType::LocaleInvalid {
+                    locale: str!(locale_str),
+                },
+            )
+        })?;
+
         locales.push(locale);
     }
+
     Ok(locales)
 }

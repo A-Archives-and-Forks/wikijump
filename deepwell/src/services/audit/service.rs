@@ -32,6 +32,8 @@ impl AuditService {
         ip_address: IpAddr,
         event: AuditEvent<'_>,
     ) -> Result<i64> {
+        let make_error = || Error::new("failed to write audit log", ErrorType::AuditLog);
+
         let RawAuditEvent {
             event_type,
             ip_address,
@@ -43,7 +45,7 @@ impl AuditService {
             extra_string_1,
             extra_string_2,
             extra_number,
-        } = event.extract(ip_address)?;
+        } = event.extract(ip_address).or_raise(make_error)?;
 
         let model = audit_log::ActiveModel {
             event_type: Set(str!(event_type)),
@@ -60,7 +62,12 @@ impl AuditService {
         };
 
         let txn = ctx.transaction();
-        let event_id = AuditLog::insert(model).exec(txn).await?.last_insert_id;
+        let event_id = AuditLog::insert(model)
+            .exec(txn)
+            .await
+            .or_raise(make_error)?
+            .last_insert_id;
+
         info!("Adding audit log event '{event_type}' (ID {event_id})");
         Ok(event_id)
     }

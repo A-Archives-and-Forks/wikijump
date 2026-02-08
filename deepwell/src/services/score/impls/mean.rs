@@ -65,7 +65,8 @@ impl Scorer for MeanScorer {
             .filter(condition)
             .into_model::<MeanRow>()
             .one(txn)
-            .await?
+            .await
+            .or_raise(|| make_error("mean"))?
             .expect("No results in aggregate query");
 
         let score = if count == 0 {

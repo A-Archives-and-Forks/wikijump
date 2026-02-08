@@ -55,6 +55,16 @@ impl BasicErrorService {
         locales: &[LanguageIdentifier],
         site_slug: &str,
     ) -> Result<BasicErrorOutput> {
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to generate missing_site_slug basic error for site '{}'",
+                    site_slug,
+                ),
+                ErrorType::BasicError,
+            )
+        };
+
         assert!(!locales.is_empty(), "No languages specified");
         let config = ctx.config();
         let mut args = FluentArgs::new();
@@ -62,15 +72,15 @@ impl BasicErrorService {
         args.set("files_domain", fluent_str!(config.files_domain_no_dot));
         args.set("slug", fluent_str!(site_slug));
 
-        let title = ctx.localization().translate(
-            locales,
-            "basic-error-site-slug.title",
-            &args,
-        )?;
+        let title = ctx
+            .localization()
+            .translate(locales, "basic-error-site-slug.title", &args)
+            .or_raise(make_error)?;
 
-        let body =
-            ctx.localization()
-                .translate(locales, "basic-error-site-slug", &args)?;
+        let body = ctx
+            .localization()
+            .translate(locales, "basic-error-site-slug", &args)
+            .or_raise(make_error)?;
 
         Ok(BasicErrorOutput {
             title: title.to_string(),
@@ -84,6 +94,16 @@ impl BasicErrorService {
         locales: &[LanguageIdentifier],
         domain: &str,
     ) -> Result<BasicErrorOutput> {
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to generate missing_custom_domain basic error for domain '{}'",
+                    domain,
+                ),
+                ErrorType::BasicError,
+            )
+        };
+
         assert!(!locales.is_empty(), "No languages specified");
         let config = ctx.config();
         let mut args = FluentArgs::new();
@@ -91,15 +111,15 @@ impl BasicErrorService {
         args.set("files_domain", fluent_str!(config.files_domain_no_dot));
         args.set("custom_domain", fluent_str!(domain));
 
-        let title = ctx.localization().translate(
-            locales,
-            "basic-error-site-custom.title",
-            &args,
-        )?;
+        let title = ctx
+            .localization()
+            .translate(locales, "basic-error-site-custom.title", &args)
+            .or_raise(make_error)?;
 
-        let body =
-            ctx.localization()
-                .translate(locales, "basic-error-site-custom", &args)?;
+        let body = ctx
+            .localization()
+            .translate(locales, "basic-error-site-custom", &args)
+            .or_raise(make_error)?;
 
         Ok(BasicErrorOutput {
             title: title.to_string(),
@@ -120,23 +140,36 @@ impl BasicErrorService {
         site_id: i64,
         page_slug: &str,
     ) -> Result<BasicErrorOutput> {
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to generate missing_page_slug basic error for site ID {} page '{}'",
+                    site_id, page_slug,
+                ),
+                ErrorType::BasicError,
+            )
+        };
+
         assert!(!locales.is_empty(), "No languages specified");
         let config = ctx.config();
         let mut args = FluentArgs::new();
-        let site = SiteService::get(ctx, Reference::Id(site_id)).await?;
+        let site = SiteService::get(ctx, Reference::Id(site_id))
+            .await
+            .or_raise(make_error)?;
+
         let domain = DomainService::preferred_domain(config, &site);
         args.set("domain", fluent_str!(domain));
         args.set("page_slug", fluent_str!(page_slug));
 
-        let title = ctx.localization().translate(
-            locales,
-            "basic-error-page-slug.title",
-            &args,
-        )?;
+        let title = ctx
+            .localization()
+            .translate(locales, "basic-error-page-slug.title", &args)
+            .or_raise(make_error)?;
 
-        let body =
-            ctx.localization()
-                .translate(locales, "basic-error-page-slug", &args)?;
+        let body = ctx
+            .localization()
+            .translate(locales, "basic-error-page-slug", &args)
+            .or_raise(make_error)?;
 
         Ok(BasicErrorOutput {
             title: title.to_string(),
@@ -153,23 +186,35 @@ impl BasicErrorService {
         site_id: i64,
         page_slug: &str,
     ) -> Result<BasicErrorOutput> {
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to generate page_fetch basic error for site ID {} page '{}'",
+                    site_id, page_slug,
+                ),
+                ErrorType::BasicError,
+            )
+        };
+
         assert!(!locales.is_empty(), "No languages specified");
         let config = ctx.config();
         let mut args = FluentArgs::new();
-        let site = SiteService::get(ctx, Reference::Id(site_id)).await?;
+        let site = SiteService::get(ctx, Reference::Id(site_id))
+            .await
+            .or_raise(make_error)?;
         let domain = DomainService::preferred_domain(config, &site);
         args.set("domain", fluent_str!(domain));
         args.set("page_slug", fluent_str!(page_slug));
 
-        let title = ctx.localization().translate(
-            locales,
-            "basic-error-page-fetch.title",
-            &args,
-        )?;
+        let title = ctx
+            .localization()
+            .translate(locales, "basic-error-page-fetch.title", &args)
+            .or_raise(make_error)?;
 
-        let body =
-            ctx.localization()
-                .translate(locales, "basic-error-page-fetch", &args)?;
+        let body = ctx
+            .localization()
+            .translate(locales, "basic-error-page-fetch", &args)
+            .or_raise(make_error)?;
 
         Ok(BasicErrorOutput {
             title: title.to_string(),
@@ -185,24 +230,36 @@ impl BasicErrorService {
         page_slug: &str,
         filename: &str,
     ) -> Result<BasicErrorOutput> {
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to generate missing_file_name basic error for site ID {} page '{}' file '{}'",
+                    site_id, page_slug, filename,
+                ),
+                ErrorType::BasicError,
+            )
+        };
+
         assert!(!locales.is_empty(), "No languages specified");
         let config = ctx.config();
         let mut args = FluentArgs::new();
-        let site = SiteService::get(ctx, Reference::Id(site_id)).await?;
+        let site = SiteService::get(ctx, Reference::Id(site_id))
+            .await
+            .or_raise(make_error)?;
         let domain = DomainService::preferred_domain(config, &site);
         args.set("domain", fluent_str!(domain));
         args.set("page_slug", fluent_str!(page_slug));
         args.set("filename", fluent_str!(filename));
 
-        let title = ctx.localization().translate(
-            locales,
-            "basic-error-file-name.title",
-            &args,
-        )?;
+        let title = ctx
+            .localization()
+            .translate(locales, "basic-error-file-name.title", &args)
+            .or_raise(make_error)?;
 
-        let body =
-            ctx.localization()
-                .translate(locales, "basic-error-file-name", &args)?;
+        let body = ctx
+            .localization()
+            .translate(locales, "basic-error-file-name", &args)
+            .or_raise(make_error)?;
 
         Ok(BasicErrorOutput {
             title: title.to_string(),
@@ -217,24 +274,37 @@ impl BasicErrorService {
         page_slug: &str,
         filename: &str,
     ) -> Result<BasicErrorOutput> {
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to generate file_fetch basic error for site ID {} page '{}' filename '{}'",
+                    site_id, page_slug, filename,
+                ),
+                ErrorType::BasicError,
+            )
+        };
+
         assert!(!locales.is_empty(), "No languages specified");
         let config = ctx.config();
         let mut args = FluentArgs::new();
-        let site = SiteService::get(ctx, Reference::Id(site_id)).await?;
+        let site = SiteService::get(ctx, Reference::Id(site_id))
+            .await
+            .or_raise(make_error)?;
+
         let domain = DomainService::preferred_domain(config, &site);
         args.set("domain", fluent_str!(domain));
         args.set("page_slug", fluent_str!(page_slug));
         args.set("filename", fluent_str!(filename));
 
-        let title = ctx.localization().translate(
-            locales,
-            "basic-error-file-fetch.title",
-            &args,
-        )?;
+        let title = ctx
+            .localization()
+            .translate(locales, "basic-error-file-fetch.title", &args)
+            .or_raise(make_error)?;
 
-        let body =
-            ctx.localization()
-                .translate(locales, "basic-error-file-fetch", &args)?;
+        let body = ctx
+            .localization()
+            .translate(locales, "basic-error-file-fetch", &args)
+            .or_raise(make_error)?;
 
         Ok(BasicErrorOutput {
             title: title.to_string(),
@@ -251,25 +321,37 @@ impl BasicErrorService {
         block_type: &str,
         reason: &str,
     ) -> Result<BasicErrorOutput> {
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to generate text_block basic error for site ID {} {} block at index {}, with reason {}",
+                    site_id, block_type, index, reason,
+                ),
+                ErrorType::BasicError,
+            )
+        };
+
         assert!(!locales.is_empty(), "No languages specified");
         let config = ctx.config();
         let mut args = FluentArgs::new();
-        let site = SiteService::get(ctx, Reference::Id(site_id)).await?;
+        let site = SiteService::get(ctx, Reference::Id(site_id))
+            .await
+            .or_raise(make_error)?;
         let domain = DomainService::preferred_domain(config, &site);
         args.set("domain", fluent_str!(domain));
         args.set("index", fluent_str!(index));
         args.set("block_type", fluent_str!(block_type));
         args.set("reason", fluent_str!(reason));
 
-        let title = ctx.localization().translate(
-            locales,
-            "basic-error-text-block.title",
-            &args,
-        )?;
+        let title = ctx
+            .localization()
+            .translate(locales, "basic-error-text-block.title", &args)
+            .or_raise(make_error)?;
 
-        let body =
-            ctx.localization()
-                .translate(locales, "basic-error-text-block", &args)?;
+        let body = ctx
+            .localization()
+            .translate(locales, "basic-error-text-block", &args)
+            .or_raise(make_error)?;
 
         Ok(BasicErrorOutput {
             title: title.to_string(),
@@ -282,21 +364,28 @@ impl BasicErrorService {
         ctx: &ServiceContext<'_>,
         locales: &[LanguageIdentifier],
     ) -> Result<BasicErrorOutput> {
+        let make_error = || {
+            Error::new(
+                "failed to generate file_root basic error",
+                ErrorType::BasicError,
+            )
+        };
+
         assert!(!locales.is_empty(), "No languages specified");
         let config = ctx.config();
         let mut args = FluentArgs::new();
         args.set("main_domain", fluent_str!(config.main_domain_no_dot));
         args.set("files_domain", fluent_str!(config.files_domain_no_dot));
 
-        let title = ctx.localization().translate(
-            locales,
-            "basic-error-file-root.title",
-            &args,
-        )?;
+        let title = ctx
+            .localization()
+            .translate(locales, "basic-error-file-root.title", &args)
+            .or_raise(make_error)?;
 
-        let body =
-            ctx.localization()
-                .translate(locales, "basic-error-file-root", &args)?;
+        let body = ctx
+            .localization()
+            .translate(locales, "basic-error-file-root", &args)
+            .or_raise(make_error)?;
 
         Ok(BasicErrorOutput {
             title: title.to_string(),

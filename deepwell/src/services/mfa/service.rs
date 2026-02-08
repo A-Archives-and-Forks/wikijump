@@ -41,10 +41,26 @@ impl MfaService {
     ) -> Result<MultiFactorSetupOutput> {
         info!("Setting up MFA for user ID {}", user.user_id);
 
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to set up MFA for user '{}' (ID {})",
+                    user.slug, user.user_id,
+                ),
+                ErrorType::UserMfa,
+            )
+        };
+
         // Only regular accounts can have MFA
         if user.user_type != UserType::Regular {
             error!("Only regular users may have MFA");
-            return Err(Error::BadRequest);
+            bail!(Error::new(
+                format!(
+                    "cannot setup MFA for user '{}' (ID {}), only permitted for regular users",
+                    user.slug, user.user_id
+                ),
+                ErrorType::BadRequest,
+            ));
         }
 
         // Ensure MFA is not yet set up
@@ -52,13 +68,19 @@ impl MfaService {
             || user.multi_factor_recovery_codes.is_some()
         {
             error!("User already has MFA set up");
-            return Err(Error::UserMfaExists);
+            bail!(Error::new(
+                format!(
+                    "cannot setup MFA for user '{}' (ID {}) because it is already set up",
+                    user.slug, user.user_id
+                ),
+                ErrorType::UserMfaExists,
+            ));
         }
 
         // Securely generate and store secrets
         debug!("Generating MFA secrets for user ID {}", user.user_id);
         let totp_secret = generate_totp_secret();
-        let recovery = RecoveryCodes::generate(ctx.config())?;
+        let recovery = RecoveryCodes::generate(ctx.config()).or_raise(make_error)?;
 
         debug!("Committing MFA secrets for user ID {}", user.user_id);
         UserService::set_mfa_secrets(
@@ -67,7 +89,8 @@ impl MfaService {
             ActiveValue::Set(Some(totp_secret.clone())),
             ActiveValue::Set(Some(recovery.recovery_codes_hashed)),
         )
-        .await?;
+        .await
+        .or_raise(make_error)?;
 
         // Audit log
         AuditService::log(
@@ -78,7 +101,8 @@ impl MfaService {
                 operation: UpdateMfaOperation::Setup,
             },
         )
-        .await?;
+        .await
+        .or_raise(make_error)?;
 
         // Return to user for their storage
         Ok(MultiFactorSetupOutput {
@@ -97,17 +121,33 @@ impl MfaService {
     ) -> Result<MultiFactorResetOutput> {
         info!("Resetting MFA recovery codes for user ID {}", user.user_id);
 
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to reset recovery codes MFA for user '{}' (ID {})",
+                    user.slug, user.user_id,
+                ),
+                ErrorType::UserMfa,
+            )
+        };
+
         // Ensure MFA is set up
         if user.multi_factor_secret.is_none()
             || user.multi_factor_recovery_codes.is_none()
         {
             error!("User does not have MFA set up");
-            return Err(Error::UserMfaExists);
+            bail!(Error::new(
+                format!(
+                    "cannot reset MFA recovery codes for user '{}' (ID {}) because they do not have MFA set up",
+                    user.slug, user.user_id
+                ),
+                ErrorType::BadRequest,
+            ));
         }
 
         // Securely generate and store secrets
         debug!("Generating recovery codes for user ID {}", user.user_id);
-        let recovery = RecoveryCodes::generate(ctx.config())?;
+        let recovery = RecoveryCodes::generate(ctx.config()).or_raise(make_error)?;
 
         debug!("Committing recovery codes for user ID {}", user.user_id);
         UserService::set_mfa_secrets(
@@ -116,7 +156,8 @@ impl MfaService {
             ActiveValue::NotSet,
             ActiveValue::Set(Some(recovery.recovery_codes_hashed)),
         )
-        .await?;
+        .await
+        .or_raise(make_error)?;
 
         // Audit log
         AuditService::log(
@@ -127,7 +168,8 @@ impl MfaService {
                 operation: UpdateMfaOperation::ResetRecoveryCodes,
             },
         )
-        .await?;
+        .await
+        .or_raise(make_error)?;
 
         // Return to user for their storage
         Ok(MultiFactorResetOutput {
@@ -146,13 +188,21 @@ impl MfaService {
     ) -> Result<()> {
         info!("Tearing down MFA for user ID {user_id}");
 
+        let make_error = || {
+            Error::new(
+                format!("failed to disable MFA for user ID {}", user_id,),
+                ErrorType::UserMfa,
+            )
+        };
+
         UserService::set_mfa_secrets(
             ctx,
             user_id,
             ActiveValue::Set(None),
             ActiveValue::Set(None),
         )
-        .await?;
+        .await
+        .or_raise(make_error)?;
 
         // Audit log
         AuditService::log(
@@ -163,7 +213,8 @@ impl MfaService {
                 operation: UpdateMfaOperation::Disable,
             },
         )
-        .await?;
+        .await
+        .or_raise(make_error)?;
 
         Ok(())
     }
@@ -179,11 +230,27 @@ impl MfaService {
     ) -> Result<()> {
         info!("Verifying TOTP code for user ID {}", user.user_id);
 
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to verify MFA for user '{}' (ID {})",
+                    user.slug, user.user_id,
+                ),
+                ErrorType::UserMfa,
+            )
+        };
+
         let secret = match &user.multi_factor_secret {
             Some(secret) => secret,
             None => {
-                warn!("User has no MFA secret, cannot verify TOTP");
-                return Err(Error::InvalidAuthentication);
+                error!("User has no MFA secret, cannot verify TOTP");
+                bail!(Error::new(
+                    format!(
+                        "cannot verify MFA for user '{}' (ID {}) because it is not set up",
+                        user.slug, user.user_id,
+                    ),
+                    ErrorType::InvalidAuthentication,
+                ));
             }
         };
 
@@ -191,14 +258,21 @@ impl MfaService {
             secret,
             ctx.config().totp_time_step,
             ctx.config().totp_time_skew,
-        )?;
+        )
+        .or_raise(make_error)?;
 
         // Constant-time comparison
         if actual_totp.ct_eq(&entered_totp).into() {
-            Ok(())
-        } else {
-            Err(Error::InvalidAuthentication)
+            return Ok(());
         }
+
+        bail!(Error::new(
+            format!(
+                "cannot verify MFA for user '{}' (ID {})",
+                user.slug, user.user_id,
+            ),
+            ErrorType::InvalidAuthentication,
+        ));
     }
 
     /// Verifies if the recovery code for this user is valid.
@@ -218,9 +292,14 @@ impl MfaService {
         let recovery_code_hashes = match &user.multi_factor_recovery_codes {
             Some(codes) => codes,
             None => {
-                warn!("User has no MFA recovery codes, but wants to verify recovery");
-
-                return Err(Error::InvalidAuthentication);
+                error!("User has no MFA recovery codes, but wants to verify recovery");
+                bail!(Error::new(
+                    format!(
+                        "cannot verify MFA recovery code for user '{}' (ID {}) because there are no codes set up",
+                        user.slug, user.user_id,
+                    ),
+                    ErrorType::InvalidAuthentication,
+                ));
             }
         };
 
@@ -253,7 +332,13 @@ impl MfaService {
             // the recovery code was correct or not.
             None => {
                 PasswordService::failure_sleep(ctx.config()).await;
-                Err(Error::InvalidAuthentication)
+                bail!(Error::new(
+                    format!(
+                        "cannot verify MFA recovery code for user '{}' (ID {})",
+                        user.slug, user.user_id,
+                    ),
+                    ErrorType::InvalidAuthentication,
+                ));
             }
         }
     }

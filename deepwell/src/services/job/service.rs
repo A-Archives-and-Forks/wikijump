@@ -70,8 +70,22 @@ impl JobService {
         delay: Option<Duration>,
     ) -> Result<()> {
         info!("Queuing job {job:?} (delay {delay:?})");
-        let payload = serde_json::to_vec(job)?;
-        rsmq.send_message(JOB_QUEUE_NAME, payload, delay).await?;
+
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to queue job to RSMQ: {:#?} (delay {:?})",
+                    job, delay,
+                ),
+                ErrorType::Job,
+            )
+        };
+
+        let payload = serde_json::to_vec(job).or_raise(make_error)?;
+        rsmq.send_message(JOB_QUEUE_NAME, payload, delay)
+            .await
+            .or_raise(make_error)?;
+
         Ok(())
     }
 

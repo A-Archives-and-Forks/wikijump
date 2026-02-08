@@ -20,7 +20,6 @@
 
 use super::prelude::*;
 use crate::models::session::Model as SessionModel;
-use crate::services::Error;
 use crate::services::authentication::{
     AuthenticateUserOutput, AuthenticationService, LoginUser, LoginUserMfa,
     LoginUserOutput, MultiFactorAuthenticateUser,
@@ -41,7 +40,7 @@ pub async fn auth_login(
         authenticate,
         ip_address,
         user_agent,
-    } = params.parse()?;
+    } = parse!(params, Login);
 
     // Don't allow empty passwords.
     //
@@ -50,8 +49,13 @@ pub async fn auth_login(
     // *not* want to be logging.
     if authenticate.password.is_empty() {
         error!("User submitted empty password in auth request");
-        return Err(Error::EmptyPassword);
+        bail!(Error::new(
+            "password cannot be empty",
+            ErrorType::EmptyPassword,
+        ));
     }
+
+    let make_error = || Error::new("failed to perform login", ErrorType::Login);
 
     // All authentication issue should return the same error.
     //
@@ -66,14 +70,10 @@ pub async fn auth_login(
     let result = AuthenticationService::auth_password(ctx, authenticate).await;
     let AuthenticateUserOutput { needs_mfa, user_id } = match result {
         Ok(output) => output,
-        Err(mut error) => {
-            if !matches!(error, Error::InvalidAuthentication) {
-                error!("Unexpected error during user authentication: {error}");
-                error = Error::AuthenticationBackend(Box::new(error));
-            }
-
-            return Err(error);
-        }
+        Err(error) => match error.as_error().error_type {
+            ErrorType::InvalidAuthentication => bail!(error),
+            _ => bail!(error.raise(make_error())),
+        },
     };
 
     let login_complete = !needs_mfa;
@@ -90,7 +90,8 @@ pub async fn auth_login(
             restricted: !login_complete,
         },
     )
-    .await?;
+    .await
+    .or_raise(make_error)?;
 
     Ok(LoginUserOutput {
         session_token,
@@ -102,8 +103,11 @@ pub async fn auth_logout(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
 ) -> Result<()> {
-    let session_token: String = params.one()?;
-    SessionService::invalidate(ctx, session_token).await
+    let session_token: String = parse_one!(params, Logout);
+
+    SessionService::invalidate(ctx, session_token)
+        .await
+        .or_raise(|| Error::new("failed to perform logout", ErrorType::Logout))
 }
 
 /// Gets the information associated with a particular session token.
@@ -114,16 +118,22 @@ pub async fn auth_session_get(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
 ) -> Result<Option<SessionModel>> {
-    let session_token: String = params.one()?;
-    SessionService::get_optional(ctx, &session_token).await
+    let session_token: String = parse_one!(params);
+
+    SessionService::get_optional(ctx, &session_token)
+        .await
+        .or_raise(|| Error::new("failed to get session data", ErrorType::Request))
 }
 
 pub async fn auth_session_renew(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
 ) -> Result<String> {
-    let input: RenewSession = params.parse()?;
-    SessionService::renew(ctx, input).await
+    let input: RenewSession = parse_one!(params);
+
+    SessionService::renew(ctx, input)
+        .await
+        .or_raise(|| Error::new("failed to renew session data", ErrorType::Request))
 }
 
 pub async fn auth_session_get_others(
@@ -133,11 +143,16 @@ pub async fn auth_session_get_others(
     let GetOtherSessions {
         user_id,
         session_token,
-    } = params.parse()?;
+    } = parse!(params);
+
+    let make_error = || Error::new("failed to get other sessions", ErrorType::Request);
 
     // Produce output struct, which extracts the current session and
     // places it in its own location.
-    let mut sessions = SessionService::get_all(ctx, user_id).await?;
+    let mut sessions = SessionService::get_all(ctx, user_id)
+        .await
+        .or_raise(make_error)?;
+
     let current = match sessions
         .iter()
         .position(|session| session.session_token == session_token)
@@ -147,7 +162,10 @@ pub async fn auth_session_get_others(
             error!(
                 "Cannot find own session token in list of all sessions, must be invalid",
             );
-            return Err(Error::InvalidSessionToken);
+            bail!(Error::new(
+                "failed to get session token, must be invalid",
+                ErrorType::InvalidSessionToken,
+            ));
         }
     };
 
@@ -164,9 +182,13 @@ pub async fn auth_session_invalidate_others(
     let InvalidateOtherSessions {
         session_token,
         user_id,
-    } = params.parse()?;
+    } = parse!(params);
 
-    SessionService::invalidate_others(ctx, &session_token, user_id).await
+    SessionService::invalidate_others(ctx, &session_token, user_id)
+        .await
+        .or_raise(|| {
+            Error::new("failed to invalidate other sessions", ErrorType::Request)
+        })
 }
 
 pub async fn auth_mfa_verify(
@@ -178,7 +200,14 @@ pub async fn auth_mfa_verify(
         totp_or_code,
         ip_address,
         user_agent,
-    } = params.parse()?;
+    } = parse!(params, InvalidAuthentication);
+
+    let make_error = || {
+        Error::new(
+            "failed to verify user MFA",
+            ErrorType::InvalidAuthentication,
+        )
+    };
 
     info!("Verifying user's MFA for login (temporary session token {session_token})");
 
@@ -189,7 +218,8 @@ pub async fn auth_mfa_verify(
             totp_or_code: &totp_or_code,
         },
     )
-    .await?;
+    .await
+    .or_raise(make_error)?;
 
     SessionService::renew(
         ctx,
@@ -201,6 +231,7 @@ pub async fn auth_mfa_verify(
         },
     )
     .await
+    .or_raise(make_error)
 }
 
 pub async fn auth_mfa_setup(
@@ -211,12 +242,17 @@ pub async fn auth_mfa_setup(
         user_id,
         session_token,
         ip_address,
-    } = params.parse()?;
+    } = parse!(params);
 
-    let user =
-        SessionService::get_user_with_id(ctx, &session_token, false, user_id).await?;
+    let make_error = || Error::new("failed to set up MFA", ErrorType::Request);
 
-    MfaService::setup(ctx, &user, ip_address).await
+    let user = SessionService::get_user_with_id(ctx, &session_token, false, user_id)
+        .await
+        .or_raise(make_error)?;
+
+    MfaService::setup(ctx, &user, ip_address)
+        .await
+        .or_raise(make_error)
 }
 
 pub async fn auth_mfa_disable(
@@ -227,12 +263,17 @@ pub async fn auth_mfa_disable(
         user_id,
         session_token,
         ip_address,
-    } = params.parse()?;
+    } = parse!(params);
 
-    let user =
-        SessionService::get_user_with_id(ctx, &session_token, false, user_id).await?;
+    let make_error = || Error::new("failed to disable MFA", ErrorType::Request);
 
-    MfaService::disable(ctx, user.user_id, ip_address).await
+    let user = SessionService::get_user_with_id(ctx, &session_token, false, user_id)
+        .await
+        .or_raise(make_error)?;
+
+    MfaService::disable(ctx, user.user_id, ip_address)
+        .await
+        .or_raise(make_error)
 }
 
 pub async fn auth_mfa_reset_recovery(
@@ -243,10 +284,15 @@ pub async fn auth_mfa_reset_recovery(
         user_id,
         session_token,
         ip_address,
-    } = params.parse()?;
+    } = parse!(params);
 
-    let user =
-        SessionService::get_user_with_id(ctx, &session_token, false, user_id).await?;
+    let make_error = || Error::new("failed to reset recovery codes", ErrorType::Request);
 
-    MfaService::reset_recovery_codes(ctx, &user, ip_address).await
+    let user = SessionService::get_user_with_id(ctx, &session_token, false, user_id)
+        .await
+        .or_raise(make_error)?;
+
+    MfaService::reset_recovery_codes(ctx, &user, ip_address)
+        .await
+        .or_raise(make_error)
 }

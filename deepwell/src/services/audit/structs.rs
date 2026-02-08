@@ -106,6 +106,13 @@ pub enum AuditEvent<'a> {
 
 impl<'a> AuditEvent<'a> {
     pub fn extract(&self, ip_address: IpAddr) -> Result<RawAuditEvent<'a>> {
+        let make_error = || {
+            Error::new(
+                format!("failed to extract raw audit event from {:#?}", self),
+                ErrorType::AuditLog,
+            )
+        };
+
         let raw_event = match *self {
             AuditEvent::UserCreate { user_id } => RawAuditEvent {
                 event_type: "user.create",
@@ -124,8 +131,11 @@ impl<'a> AuditEvent<'a> {
                 ref previous_fields,
                 ref changed_fields,
             } => {
-                let previous_fields_json = serde_json::to_string(previous_fields)?;
-                let changed_fields_json = serde_json::to_string(changed_fields)?;
+                let previous_fields_json =
+                    serde_json::to_string(previous_fields).or_raise(make_error)?;
+
+                let changed_fields_json =
+                    serde_json::to_string(changed_fields).or_raise(make_error)?;
 
                 RawAuditEvent {
                     event_type: "user.update",
@@ -170,8 +180,11 @@ impl<'a> AuditEvent<'a> {
                 ref previous_fields,
                 ref changed_fields,
             } => {
-                let previous_fields_json = serde_json::to_string(previous_fields)?;
-                let changed_fields_json = serde_json::to_string(changed_fields)?;
+                let previous_fields_json =
+                    serde_json::to_string(previous_fields).or_raise(make_error)?;
+
+                let changed_fields_json =
+                    serde_json::to_string(changed_fields).or_raise(make_error)?;
 
                 RawAuditEvent {
                     event_type: "site.update",

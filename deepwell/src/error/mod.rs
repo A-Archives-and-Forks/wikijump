@@ -1,5 +1,5 @@
 /*
- * cache.rs
+ * error/mod.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
  * Copyright (C) 2019-2026 Wikijump Team
@@ -18,22 +18,22 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use crate::services::Result;
-use rsmq_async::Rsmq;
-
-/// Creates primary `redis::Client` instance.
-///
-/// Used to spawn off other connections to Redis as needed.
-pub async fn connect_redis(redis_uri: &str) -> Result<redis::Client> {
-    let client = redis::Client::open(redis_uri)?;
-    Ok(client)
+pub mod prelude {
+    pub use super::{Error, ErrorType, ExnError, Result, StdError, StdResult};
+    pub use crate::types::EnumConversionError;
+    pub use exn::{OptionExt, ResultExt};
 }
 
-/// Creates an RSMQ instance for temporary use.
-///
-/// A connection is fetched from the `Client`, which is then used to create
-/// an owned `Rsmq` available for use by the caller.
-pub async fn connect_rsmq(client: &redis::Client) -> Result<Rsmq> {
-    let connection = client.get_tokio_connection().await?;
-    Ok(Rsmq::new_with_connection(connection, true, None))
-}
+mod convert;
+mod error_type;
+mod object;
+
+pub use self::convert::*;
+pub use self::error_type::ErrorType;
+pub use self::object::Error;
+pub use exn::{Exn, Result as ExnResult};
+pub use std::error::Error as StdError;
+
+pub type ExnError = Exn<Error>;
+pub type StdResult<T, E> = std::result::Result<T, E>;
+pub type Result<T> = ExnResult<T, Error>;

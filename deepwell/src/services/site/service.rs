@@ -20,6 +20,7 @@
 
 use super::prelude::*;
 use crate::constants::SYSTEM_USER_ID;
+use crate::error::prelude::*;
 use crate::models::sea_orm_active_enums::{AliasType, UserType};
 use crate::models::site::{self, Entity as Site, Model as SiteModel};
 use crate::services::alias::CreateAlias;
@@ -27,7 +28,7 @@ use crate::services::audit::{AuditEvent, AuditService, SiteFields};
 use crate::services::domain::{DEFAULT_SITE_SLUG, DomainService};
 use crate::services::relation::CreateSiteUser;
 use crate::services::user::{CreateUser, UpdateUserBody};
-use crate::services::{AliasService, Error, RelationService, UserService};
+use crate::services::{AliasService, RelationService, UserService};
 use crate::utils::validate_locale;
 use ftml::layout::Layout;
 use ref_map::*;
@@ -60,8 +61,13 @@ impl SiteService {
         // Normalize slug.
         normalize(&mut slug);
 
+        let make_error =
+            || Error::new(format!("failed to create site '{}'", slug), ErrorType::Site);
+
         // Check for slug conflicts.
-        Self::check_conflicts(ctx, &slug, "create").await?;
+        Self::check_conflicts(ctx, &slug, "create")
+            .await
+            .or_raise(make_error)?;
 
         // Validate locale.
         validate_locale(&locale)?;
@@ -81,7 +87,7 @@ impl SiteService {
             locale: Set(locale.clone()),
             ..Default::default()
         };
-        let site = model.insert(txn).await?;
+        let site = model.insert(txn).await.or_raise(make_error)?;
 
         // Create site user, and add relation
 
@@ -98,7 +104,8 @@ impl SiteService {
                 ip_address,
             },
         )
-        .await?;
+        .await
+        .or_raise(make_error)?;
 
         // Some fields can only be set in update after creation
         UserService::update(
@@ -110,7 +117,8 @@ impl SiteService {
                 ..Default::default()
             },
         )
-        .await?;
+        .await
+        .or_raise(make_error)?;
 
         RelationService::create_site_user(
             ctx,
@@ -121,7 +129,8 @@ impl SiteService {
                 created_by: SYSTEM_USER_ID,
             },
         )
-        .await?;
+        .await
+        .or_raise(make_error)?;
 
         AuditService::log(
             ctx,
@@ -130,7 +139,8 @@ impl SiteService {
                 site_id: site.site_id,
             },
         )
-        .await?;
+        .await
+        .or_raise(make_error)?;
 
         // Build and return
         Ok(CreateSiteOutput {
@@ -149,13 +159,26 @@ impl SiteService {
         ip_address: IpAddr,
     ) -> Result<SiteModel> {
         let txn = ctx.transaction();
-        let site = Self::get(ctx, reference).await?;
+        let site = Self::get(ctx, reference)
+            .await
+            .or_raise(|| Error::new("failed to update site data", ErrorType::Site))?;
+
         let mut model = site::ActiveModel {
             site_id: Set(site.site_id),
             ..Default::default()
         };
 
-        // Gather data for audit lgo entry
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to update site ID {}, changed by user ID {}",
+                    site.site_id, updating_user_id,
+                ),
+                ErrorType::Site,
+            )
+        };
+
+        // Gather data for audit log entry
         {
             let mut previous_fields = SiteFields::default();
             let mut changed_fields = SiteFields::default();
@@ -216,15 +239,19 @@ impl SiteService {
 
         // For updating the corresponding site user
         let mut site_user_body = UpdateUserBody::default();
-        let site_user_id =
-            RelationService::get_site_user_id_for_site(ctx, site.site_id).await?;
+        let site_user_id = RelationService::get_site_user_id_for_site(ctx, site.site_id)
+            .await
+            .or_raise(make_error)?;
 
         if let Maybe::Set(name) = input.name {
             model.name = Set(name);
         }
 
         if let Maybe::Set(new_slug) = input.slug {
-            Self::update_slug(ctx, &site, &new_slug, updating_user_id).await?;
+            Self::update_slug(ctx, &site, &new_slug, updating_user_id)
+                .await
+                .or_raise(make_error)?;
+
             site_user_body.name = Maybe::Set(format!("site:{new_slug}"));
             model.slug = Set(new_slug);
         }
@@ -252,32 +279,53 @@ impl SiteService {
             // Disallow preferred domains for the default site (www)
             if site.slug == DEFAULT_SITE_SLUG && preferred_domain.is_some() {
                 error!("Cannot set a preferred domain for the default site");
-                return Err(Error::BadRequest);
+                bail!(Error::new(
+                    "cannot set a preferred domain for the default site",
+                    ErrorType::BadRequest
+                ));
             }
 
             // TODO expire redis cache on change to domains
 
             // Ensure that the custom domain exists and belongs to this site
             if let Some(domain) = &preferred_domain {
-                match DomainService::site_from_custom_domain_optional(ctx, domain).await?
+                match DomainService::site_from_custom_domain_optional(ctx, domain)
+                    .await
+                    .or_raise(make_error)?
                 {
                     Some(found_site) if found_site.site_id == site.site_id => (),
                     Some(found_site) => {
                         error!(
-                            "Attempting to set preferred domain for site ID {} '{}' to {}, but the custom domain belongs to site ID {} '{}'!",
+                            "Attempting to set preferred domain for site ID {} '{}' to '{}', but the custom domain belongs to site ID {} '{}'!",
                             site.site_id,
                             site.slug,
                             domain,
                             found_site.site_id,
                             found_site.slug,
                         );
-                        return Err(Error::CustomDomainWrongSite);
+                        bail!(Error::new(
+                            format!(
+                                "cannot set preferred domain for site '{}' (ID {}) to '{}', because the custom domain belongs to site '{}' (ID {})",
+                                site.slug,
+                                site.site_id,
+                                domain,
+                                found_site.slug,
+                                found_site.site_id,
+                            ),
+                            ErrorType::CustomDomainWrongSite,
+                        ));
                     }
                     None => {
                         error!(
                             "Attempting to set preferred domain to '{domain}', but this is not a known custom domain!"
                         );
-                        return Err(Error::CustomDomainNotFound);
+                        bail!(Error::new(
+                            format!(
+                                "cannot set preferred domain for site '{}' (ID {}) to '{}', because this is not a known custom domain",
+                                site.slug, site.site_id, domain,
+                            ),
+                            ErrorType::CustomDomainNotFound,
+                        ));
                     }
                 }
             }
@@ -295,18 +343,20 @@ impl SiteService {
 
         // Update site
         model.updated_at = Set(Some(now()));
-        let new_site = model.update(txn).await?;
+        let new_site = model.update(txn).await.or_raise(make_error)?;
 
         // Update site user
         UserService::update(ctx, Reference::Id(site_user_id), ip_address, site_user_body)
-            .await?;
+            .await
+            .or_raise(make_error)?;
 
         // Run verification afterwards if the slug changed
         if site.slug != new_site.slug {
-            try_join!(
+            let (result1, result2) = join!(
                 AliasService::verify(ctx, AliasType::Site, &site.slug),
                 AliasService::verify(ctx, AliasType::Site, &new_site.slug),
-            )?;
+            );
+            raise_multiple!(result1, result2; make_error);
         }
 
         // Return
@@ -325,15 +375,30 @@ impl SiteService {
         user_id: i64,
     ) -> Result<()> {
         info!("Updating slug for site {}, adding alias", site.site_id);
-
         let old_slug = &site.slug;
-        match AliasService::get_optional(ctx, AliasType::Site, new_slug).await? {
+
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to update slug from '{}' -> '{}' for site ID {}, done by user ID {}",
+                    old_slug, new_slug, site.site_id, user_id,
+                ),
+                ErrorType::Site,
+            )
+        };
+
+        match AliasService::get_optional(ctx, AliasType::Site, new_slug)
+            .await
+            .or_raise(make_error)?
+        {
             // Swap alias with site's current slug
             //
             // Don't return a future, nothing to do after
             Some(alias) => {
                 debug!("Swapping slug between site and alias");
-                AliasService::swap(ctx, alias.alias_id, old_slug).await?;
+                AliasService::swap(ctx, alias.alias_id, old_slug)
+                    .await
+                    .or_raise(make_error)?;
             }
 
             // Return future that creates new alias at the old location
@@ -356,7 +421,8 @@ impl SiteService {
                     },
                     false,
                 )
-                .await?;
+                .await
+                .or_raise(make_error)?;
             }
         }
 
@@ -379,13 +445,16 @@ impl SiteService {
     ) -> Result<Option<SiteModel>> {
         let txn = ctx.transaction();
 
+        let make_error = || Error::new("failed to get site", ErrorType::Site);
+
         // If slug, determine if this is a site alias.
         //
         // This uses separate queries rather than a join.
         // See UserService::get_optional() for more information.
         if let Reference::Slug(ref slug) = reference
-            && let Some(alias) =
-                AliasService::get_optional(ctx, AliasType::Site, slug).await?
+            && let Some(alias) = AliasService::get_optional(ctx, AliasType::Site, slug)
+                .await
+                .or_raise(make_error)?
         {
             // If present, this is the actual site. Proceed with SELECT by id.
             // Rewrite reference so in the "real" site search
@@ -394,17 +463,18 @@ impl SiteService {
         }
 
         let site = match reference {
-            Reference::Id(id) => Site::find_by_id(id).one(txn).await?,
-            Reference::Slug(slug) => {
-                Site::find()
-                    .filter(
-                        Condition::all()
-                            .add(site::Column::Slug.eq(slug))
-                            .add(site::Column::DeletedAt.is_null()),
-                    )
-                    .one(txn)
-                    .await?
+            Reference::Id(id) => {
+                Site::find_by_id(id).one(txn).await.or_raise(make_error)?
             }
+            Reference::Slug(slug) => Site::find()
+                .filter(
+                    Condition::all()
+                        .add(site::Column::Slug.eq(slug))
+                        .add(site::Column::DeletedAt.is_null()),
+                )
+                .one(txn)
+                .await
+                .or_raise(make_error)?,
         };
 
         Ok(site)
@@ -415,7 +485,7 @@ impl SiteService {
         ctx: &ServiceContext<'_>,
         reference: Reference<'_>,
     ) -> Result<SiteModel> {
-        find_or_error!(Self::get_optional(ctx, reference), Site)
+        find_or_error!(Self::get_optional(ctx, reference), "site", Site)
     }
 
     /// Gets the site ID from a reference, looking up if necessary.
@@ -427,12 +497,14 @@ impl SiteService {
         ctx: &ServiceContext<'_>,
         reference: Reference<'_>,
     ) -> Result<i64> {
+        let make_error = || Error::new("failed to get ID for site", ErrorType::File);
         match reference {
             Reference::Id(id) => Ok(id),
             Reference::Slug(slug) => {
                 // For slugs we pass-through the call so that alias handling is done.
-                let SiteModel { site_id, .. } =
-                    Self::get(ctx, Reference::Slug(slug)).await?;
+                let SiteModel { site_id, .. } = Self::get(ctx, Reference::Slug(slug))
+                    .await
+                    .or_raise(make_error)?;
 
                 Ok(site_id)
             }
@@ -441,17 +513,29 @@ impl SiteService {
 
     /// Checks to see if a site already exists at the slug specified.
     ///
-    /// If so, this method fails with `Error::SiteExists`. Otherwise it returns nothing.
+    /// If so, this method fails with `ErrorType::SiteExists`. Otherwise it returns nothing.
     async fn check_conflicts(
         ctx: &ServiceContext<'_>,
         slug: &str,
         action: &str,
     ) -> Result<()> {
         let txn = ctx.transaction();
+        let make_error = || {
+            Error::new(
+                format!(
+                    "cannot {}, failed to conflict checks for '{}'",
+                    action, slug,
+                ),
+                ErrorType::Site,
+            )
+        };
 
         if slug.is_empty() {
             error!("Cannot create site with empty slug");
-            return Err(Error::SiteSlugEmpty);
+            bail!(Error::new(
+                "empty site slugs are not allowed",
+                ErrorType::SiteSlugEmpty
+            ));
         }
 
         let result = Site::find()
@@ -461,13 +545,20 @@ impl SiteService {
                     .add(site::Column::DeletedAt.is_null()),
             )
             .one(txn)
-            .await?;
+            .await
+            .or_raise(make_error)?;
 
         match result {
             None => Ok(()),
             Some(_) => {
                 error!("Site with slug '{slug}' already exists, cannot {action}");
-                Err(Error::SiteExists)
+                bail!(Error::new(
+                    format!(
+                        "cannot {}, a site with slug '{}' already exists",
+                        action, slug
+                    ),
+                    ErrorType::SiteExists
+                ));
             }
         }
     }

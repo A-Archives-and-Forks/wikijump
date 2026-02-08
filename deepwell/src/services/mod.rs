@@ -38,10 +38,12 @@
 
 mod prelude {
     pub use super::context::ServiceContext;
-    pub use super::error::*;
     pub use crate::config::Config;
+    pub use crate::error::prelude::*;
     pub use crate::types::{Maybe, Reference};
-    pub use crate::utils::now;
+    pub use crate::utils::{
+        ConvertToI16, ConvertToI32, ConvertToI64, ConvertToU64, ConvertToUsize, now,
+    };
     pub use paste::paste;
     pub use sea_orm::{
         ActiveModelTrait, ColumnTrait, Condition, ConnectionTrait, DeleteResult,
@@ -54,7 +56,6 @@ mod prelude {
 mod macros;
 
 mod context;
-mod error;
 
 pub mod alias;
 pub mod audit;
@@ -102,7 +103,6 @@ pub use self::caddy::CaddyService;
 pub use self::category::CategoryService;
 pub use self::context::ServiceContext;
 pub use self::domain::DomainService;
-pub use self::error::*;
 pub use self::file::FileService;
 pub use self::file_revision::FileRevisionService;
 pub use self::filter::FilterService;

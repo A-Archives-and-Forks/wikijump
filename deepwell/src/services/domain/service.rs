@@ -42,11 +42,21 @@ impl DomainService {
     ) -> Result<()> {
         info!("Creating custom domain '{domain}' (site ID {site_id})");
 
+        let make_error = || {
+            Error::new(
+                format!("failed to create new custom domain for site ID {}", site_id),
+                ErrorType::CustomDomain,
+            )
+        };
+
         // Correctness checks
 
         if Self::custom_domain_exists(ctx, &domain).await? {
             error!("Custom domain '{domain}' already exists, cannot create");
-            return Err(Error::CustomDomainExists);
+            bail!(Error::new(
+                format!("cannot create domain '{}', already exists", domain),
+                ErrorType::CustomDomainExists,
+            ));
         }
 
         let config = ctx.config();
@@ -55,7 +65,13 @@ impl DomainService {
             error!(
                 "Custom domains cannot be subdomains of the Wikijump main or files domain: {domain}"
             );
-            return Err(Error::CustomDomainSubdomain);
+            bail!(Error::new(
+                format!(
+                    "cannot create domain '{}', must not be subdomain of the Wikijump main ('{}') or files domains ('{}')",
+                    domain, config.main_domain, config.files_domain
+                ),
+                ErrorType::CustomDomainSubdomain,
+            ));
         }
 
         // Seems good, insert data
@@ -66,24 +82,37 @@ impl DomainService {
             site_id: Set(site_id),
             created_at: Set(now()),
         };
-        model.insert(txn).await?;
+        model.insert(txn).await.or_raise(make_error)?;
         Ok(())
     }
 
     /// Delete the given custom domain.
     ///
-    /// Yields `Error::CustomDomainNotFound` if it's missing.
+    /// Yields `ErrorType::CustomDomainNotFound` if it's missing.
     pub async fn remove_custom(ctx: &ServiceContext<'_>, domain: String) -> Result<()> {
         info!("Deleting custom domain '{domain}'");
 
+        let make_error = || {
+            Error::new(
+                format!("failed to remove custom domain '{}'", domain),
+                ErrorType::CustomDomain,
+            )
+        };
+
         let txn = ctx.transaction();
-        let DeleteResult { rows_affected, .. } =
-            SiteDomain::delete_by_id(domain).exec(txn).await?;
+
+        let DeleteResult { rows_affected, .. } = SiteDomain::delete_by_id(&domain)
+            .exec(txn)
+            .await
+            .or_raise(make_error)?;
 
         if rows_affected == 1 {
             Ok(())
         } else {
-            Err(Error::CustomDomainNotFound)
+            bail!(Error::new(
+                format!("cannot remove custom domain '{}', not found", domain),
+                ErrorType::CustomDomainNotFound,
+            ));
         }
     }
 
@@ -93,13 +122,21 @@ impl DomainService {
     ) -> Result<Option<SiteModel>> {
         info!("Getting site for custom domain {domain:?}");
 
+        let make_error = || {
+            Error::new(
+                format!("failed to get site model from custom domain '{}'", domain),
+                ErrorType::CustomDomain,
+            )
+        };
+
         // Join with the site table so we can get that data, rather than just the ID.
         let txn = ctx.transaction();
         let model = Site::find()
             .join(JoinType::Join, site::Relation::SiteDomain.def())
             .filter(site_domain::Column::Domain.eq(domain))
             .one(txn)
-            .await?;
+            .await
+            .or_raise(make_error)?;
 
         Ok(model)
     }
@@ -158,11 +195,19 @@ impl DomainService {
     ) -> Result<Vec<SiteDomainModel>> {
         info!("Getting domains for site ID {site_id}");
 
+        let make_error = || {
+            Error::new(
+                format!("failed to list all custom domains for site ID {}", site_id),
+                ErrorType::CustomDomain,
+            )
+        };
+
         let txn = ctx.transaction();
         let models = SiteDomain::find()
             .filter(site_domain::Column::SiteId.eq(site_id))
             .all(txn)
-            .await?;
+            .await
+            .or_raise(make_error)?;
 
         Ok(models)
     }

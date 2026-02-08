@@ -122,12 +122,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "anyhow"
-version = "1.0.100"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a23eb6b1614318a8071c9b2521f36b424b2c83db5eb3a0fead4a6c0809af6e61"
-
-[[package]]
 name = "arc-swap"
 version = "1.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -825,9 +819,8 @@ dependencies = [
 
 [[package]]
 name = "deepwell"
-version = "2026.1.18"
+version = "2026.2.7"
 dependencies = [
- "anyhow",
  "argon2",
  "arraystring",
  "async-trait",
@@ -839,6 +832,7 @@ dependencies = [
  "cuid2",
  "data-encoding",
  "dotenvy",
+ "exn",
  "femme",
  "filemagic",
  "fluent",
@@ -871,7 +865,6 @@ dependencies = [
  "strum 0.27.2",
  "strum_macros",
  "subtle",
- "thiserror 2.0.18",
  "time",
  "tiny-keccak",
  "tokio",
@@ -1088,6 +1081,12 @@ dependencies = [
  "parking",
  "pin-project-lite",
 ]
+
+[[package]]
+name = "exn"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bad13781b9dd97d4489a74e38bb913254d2877840b0b8dece279193761f1d50f"
 
 [[package]]
 name = "fastrand"

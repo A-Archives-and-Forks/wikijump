@@ -230,6 +230,11 @@ macro_rules! impl_relation {
                         metadata,
                     }: [<Create $relation_type>],
                 ) -> Result<()> {
+                    let make_error = || Error::new(
+                        concat!("failed to create ", stringify!($relation_type)),
+                        ErrorType::[<$relation_type Relation>],
+                    );
+
                     create_operation!(
                         ctx,
                         $relation_type,
@@ -239,6 +244,7 @@ macro_rules! impl_relation {
                         $from_name,
                         created_by,
                         &metadata,
+                        make_error,
                     )
                 }
             }
@@ -257,7 +263,8 @@ macro_rules! create_operation {
         $from_type:ident,
         $from_name:ident,
         $created_by:expr,
-        $metadata:expr $(,)?
+        $metadata:expr,
+        $make_error:expr $(,)?
     ) => {{
         Self::create(
             $ctx,
@@ -267,7 +274,8 @@ macro_rules! create_operation {
             $created_by,
             $metadata,
         )
-        .await?;
+        .await
+        .or_raise($make_error)?;
         Ok(())
     }};
 
@@ -278,7 +286,8 @@ macro_rules! create_operation {
         $dest_name:ident,
         $from_type:ident,
         $from_name:ident,
-        $created_by:expr $(,)?
+        $created_by:expr,
+        $make_error:expr $(,)?
     ) => {
         create_operation!(
             $ctx,
@@ -289,6 +298,7 @@ macro_rules! create_operation {
             $from_name,
             $created_by,
             &(),
+            $make_error,
         )
     };
 }

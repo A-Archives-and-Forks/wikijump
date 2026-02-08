@@ -35,12 +35,24 @@ impl AuthenticationService {
             password,
         }: AuthenticateUser,
     ) -> Result<AuthenticateUserOutput> {
-        let auth = Self::get_user_auth(ctx, &name_or_email).await?;
-        PasswordService::verify(ctx, &password, &auth.password_hash).await?;
+        let make_error = || {
+            Error::new(
+                "failed to authenticate user",
+                ErrorType::InvalidAuthentication,
+            )
+        };
+
+        let auth = Self::get_user_auth(ctx, &name_or_email)
+            .await
+            .or_raise(make_error)?;
+
+        PasswordService::verify(ctx, &password, &auth.password_hash)
+            .await
+            .or_raise(make_error)?;
 
         // User not found, return authentication failure
         if !auth.valid {
-            return Err(Error::InvalidAuthentication);
+            bail!(make_error());
         }
 
         Ok(AuthenticateUserOutput {
@@ -60,22 +72,35 @@ impl AuthenticationService {
             totp_or_code,
         }: MultiFactorAuthenticateUser<'_>,
     ) -> Result<UserModel> {
+        let make_error = || {
+            Error::new(
+                "failed to authenticate MFA code",
+                ErrorType::InvalidAuthentication,
+            )
+        };
+
         // Get associated user model from the session
         //
         // Requires the session is restricted, meaning they are
         // in the middle of logging in still
-        let user = SessionService::get_user(ctx, session_token, true).await?;
+        let user = SessionService::get_user(ctx, session_token, true)
+            .await
+            .or_raise(make_error)?;
 
         // Process input, verifying depending on type
         match totp_or_code.parse() {
             // If the value is a positive integer, treat it as a TOTP
-            Ok(totp) => MfaService::verify(ctx, &user, totp).await?,
+            Ok(totp) => MfaService::verify(ctx, &user, totp)
+                .await
+                .or_raise(make_error)?,
 
             // Otherwise treat it as a recovery code string
             //
             // We don't need to validate it for length because
             // we want consistent time checks on recovery codes anyways.
-            Err(_) => MfaService::verify_recovery(ctx, &user, totp_or_code).await?,
+            Err(_) => MfaService::verify_recovery(ctx, &user, totp_or_code)
+                .await
+                .or_raise(make_error)?,
         }
 
         Ok(user)
@@ -107,7 +132,13 @@ impl AuthenticationService {
                     .add(user::Column::Email.eq(name_or_email)),
             )
             .one(txn)
-            .await?;
+            .await
+            .or_raise(|| {
+                Error::new(
+                    format!("unable to get user auth information for '{name_or_email}'"),
+                    ErrorType::DatabaseQuery,
+                )
+            })?;
 
         match result {
             // Found user, return real auth information

@@ -21,6 +21,7 @@
 // TODO replace ParentService with a new relation type
 
 use super::prelude::*;
+use crate::models::page::Model as PageModel;
 use crate::models::page_parent::{self, Entity as PageParent, Model as PageParentModel};
 use crate::services::PageService;
 
@@ -45,25 +46,52 @@ impl ParentService {
     ) -> Result<Option<PageParentModel>> {
         let txn = ctx.transaction();
 
-        let (parent_page, child_page) = try_join!(
-            PageService::get(ctx, site_id, parent_reference),
-            PageService::get(ctx, site_id, child_reference),
-        )?;
+        let ParentAndChild {
+            parent_page,
+            child_page,
+        } = Self::get_parent_child(ctx, site_id, parent_reference, child_reference)
+            .await
+            .or_raise(|| {
+                Error::new("failed to create page parents", ErrorType::PageParent)
+            })?;
+
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to create page parents for parent '{}' (ID {}) to child '{}' (ID {})",
+                    parent_page.slug,
+                    parent_page.page_id,
+                    child_page.slug,
+                    child_page.page_id,
+                ),
+                ErrorType::PageParent,
+            )
+        };
 
         // Check if the two pages are the same
+        //
+        // When we move to relations, this check can be REMOVED,
+        // as this will be verified for us by RelationService itself.
         if parent_page.page_id == child_page.page_id {
             error!(
                 "Cannot parent a page to itself (ID {})",
                 parent_page.page_id,
             );
-            return Err(Error::PageParentExists);
+            bail!(Error::new(
+                format!(
+                    "cannot parent a page to itself (page '{}', ID {})",
+                    parent_page.slug, parent_page.page_id
+                ),
+                ErrorType::BadRequest
+            ));
         }
 
         // Check if this relationship already exists
         let relationship =
             PageParent::find_by_id((parent_page.page_id, child_page.page_id))
                 .one(txn)
-                .await?;
+                .await
+                .or_raise(make_error)?;
 
         match relationship {
             // Create new parent relationship
@@ -74,7 +102,7 @@ impl ParentService {
                     ..Default::default()
                 };
 
-                let parent = model.insert(txn).await?;
+                let parent = model.insert(txn).await.or_raise(make_error)?;
                 Ok(Some(parent))
             }
 
@@ -98,15 +126,33 @@ impl ParentService {
     ) -> Result<RemoveParentOutput> {
         let txn = ctx.transaction();
 
-        let (parent_page, child_page) = try_join!(
-            PageService::get(ctx, site_id, parent_reference),
-            PageService::get(ctx, site_id, child_reference),
-        )?;
+        let ParentAndChild {
+            parent_page,
+            child_page,
+        } = Self::get_parent_child(ctx, site_id, parent_reference, child_reference)
+            .await
+            .or_raise(|| {
+                Error::new("failed to remove page parents", ErrorType::PageParent)
+            })?;
+
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to remove page parents for parent '{}' (ID {}) to child '{}' (ID {})",
+                    parent_page.slug,
+                    parent_page.page_id,
+                    child_page.slug,
+                    child_page.page_id,
+                ),
+                ErrorType::PageParent,
+            )
+        };
 
         let DeleteResult { rows_affected } =
             PageParent::delete_by_id((parent_page.page_id, child_page.page_id))
                 .exec(txn)
-                .await?;
+                .await
+                .or_raise(make_error)?;
 
         debug_assert!(
             rows_affected <= 1,
@@ -127,14 +173,32 @@ impl ParentService {
     ) -> Result<Option<PageParentModel>> {
         let txn = ctx.transaction();
 
-        let (parent_page, child_page) = try_join!(
-            PageService::get(ctx, site_id, parent_reference),
-            PageService::get(ctx, site_id, child_reference),
-        )?;
+        let ParentAndChild {
+            parent_page,
+            child_page,
+        } = Self::get_parent_child(ctx, site_id, parent_reference, child_reference)
+            .await
+            .or_raise(|| {
+                Error::new("failed to get page parents", ErrorType::PageParent)
+            })?;
+
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to get page parents for parent '{}' (ID {}) to child '{}' (ID {})",
+                    parent_page.slug,
+                    parent_page.page_id,
+                    child_page.slug,
+                    child_page.page_id,
+                ),
+                ErrorType::PageParent,
+            )
+        };
 
         let model = PageParent::find_by_id((parent_page.page_id, child_page.page_id))
             .one(txn)
-            .await?;
+            .await
+            .or_raise(make_error)?;
 
         Ok(model)
     }
@@ -145,10 +209,15 @@ impl ParentService {
         ctx: &ServiceContext<'_>,
         description: ParentDescription<'_>,
     ) -> Result<PageParentModel> {
-        find_or_error!(Self::get_optional(ctx, description), PageParent)
+        find_or_error!(
+            Self::get_optional(ctx, description),
+            "page parent",
+            PageParent,
+        )
     }
 
     /// Gets all relationships of the given type.
+    // NOTE: This will need renaming when we migrate this to a relation.
     pub async fn get_relationships(
         ctx: &ServiceContext<'_>,
         site_id: i64,
@@ -156,7 +225,21 @@ impl ParentService {
         relationship_type: ParentalRelationshipType,
     ) -> Result<Vec<PageParentModel>> {
         let txn = ctx.transaction();
-        let page_id = PageService::get_id(ctx, site_id, reference).await?;
+
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to get page parents relations in site ID {} for {:?} {:?}",
+                    site_id, reference, relationship_type,
+                ),
+                ErrorType::PageParent,
+            )
+        };
+
+        let page_id = PageService::get_id(ctx, site_id, reference.borrow())
+            .await
+            .or_raise(make_error)?;
+
         let column = match relationship_type {
             ParentalRelationshipType::Parent => page_parent::Column::ChildPageId,
             ParentalRelationshipType::Child => page_parent::Column::ParentPageId,
@@ -165,7 +248,8 @@ impl ParentService {
         let models = PageParent::find()
             .filter(column.eq(page_id))
             .all(txn)
-            .await?;
+            .await
+            .or_raise(make_error)?;
 
         Ok(models)
     }
@@ -177,8 +261,22 @@ impl ParentService {
         site_id: i64,
         reference: Reference<'_>,
     ) -> Result<Vec<PageParentModel>> {
-        Self::get_relationships(ctx, site_id, reference, ParentalRelationshipType::Child)
-            .await
+        Self::get_relationships(
+            ctx,
+            site_id,
+            reference.borrow(),
+            ParentalRelationshipType::Child,
+        )
+        .await
+        .or_raise(|| {
+            Error::new(
+                format!(
+                    "failed to get children of page {:?} in site ID {}",
+                    reference, site_id,
+                ),
+                ErrorType::PageParent,
+            )
+        })
     }
 
     /// Gets all parents of the given page.
@@ -187,8 +285,22 @@ impl ParentService {
         site_id: i64,
         reference: Reference<'_>,
     ) -> Result<Vec<PageParentModel>> {
-        Self::get_relationships(ctx, site_id, reference, ParentalRelationshipType::Parent)
-            .await
+        Self::get_relationships(
+            ctx,
+            site_id,
+            reference.borrow(),
+            ParentalRelationshipType::Parent,
+        )
+        .await
+        .or_raise(|| {
+            Error::new(
+                format!(
+                    "failed to get parents of page {:?} in site ID {}",
+                    reference, site_id,
+                ),
+                ErrorType::PageParent,
+            )
+        })
     }
 
     /// Removes all parent relationships involving this page.
@@ -201,6 +313,16 @@ impl ParentService {
     pub async fn remove_all(ctx: &ServiceContext<'_>, page_id: i64) -> Result<u64> {
         let txn = ctx.transaction();
 
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to remove all parent/child relationships for page ID {}",
+                    page_id,
+                ),
+                ErrorType::PageParent,
+            )
+        };
+
         let rows_deleted = PageParent::delete_many()
             .filter(
                 Condition::any()
@@ -208,9 +330,45 @@ impl ParentService {
                     .add(page_parent::Column::ChildPageId.eq(page_id)),
             )
             .exec(txn)
-            .await?
+            .await
+            .or_raise(make_error)?
             .rows_affected;
 
         Ok(rows_deleted)
+    }
+}
+
+#[derive(Debug)]
+struct ParentAndChild {
+    parent_page: PageModel,
+    child_page: PageModel,
+}
+
+impl ParentService {
+    async fn get_parent_child(
+        ctx: &ServiceContext<'_>,
+        site_id: i64,
+        parent_reference: Reference<'_>,
+        child_reference: Reference<'_>,
+    ) -> Result<ParentAndChild> {
+        let make_error = || {
+            Error::new(
+                "failed to get parent and child from reference",
+                ErrorType::PageParent,
+            )
+        };
+
+        let (parent_page_result, child_page_result) = join!(
+            PageService::get(ctx, site_id, parent_reference),
+            PageService::get(ctx, site_id, child_reference),
+        );
+
+        let (parent_page, child_page) =
+            raise_multiple!(parent_page_result, child_page_result; make_error);
+
+        Ok(ParentAndChild {
+            parent_page,
+            child_page,
+        })
     }
 }

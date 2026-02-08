@@ -55,11 +55,24 @@ impl RelationService {
             created_by,
         }: CreateSiteMember,
     ) -> Result<()> {
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to add user ID {} as member of site ID {}, created by user ID {}",
+                    user_id, site_id, created_by,
+                ),
+                ErrorType::SiteMemberRelation,
+            )
+        };
+
         // Cannot join if banned
-        Self::check_site_ban(ctx, GetSiteBan { site_id, user_id }, "join").await?;
+        Self::check_site_ban(ctx, GetSiteBan { site_id, user_id }, "join")
+            .await
+            .or_raise(make_error)?;
 
         create_operation!(
             ctx, SiteMember, Site, site_id, User, user_id, created_by, &metadata,
+            make_error,
         )
     }
 }

@@ -19,7 +19,7 @@
  */
 
 use super::Config;
-use anyhow::Result;
+use crate::error::prelude::*;
 use femme::LevelFilter;
 use ftml::layout::Layout;
 use std::convert::TryFrom;
@@ -205,13 +205,20 @@ struct Message {
 
 impl ConfigFile {
     pub fn load(path: PathBuf) -> Result<(Self, ExtraConfig)> {
+        let make_error = || {
+            Error::new(
+                format!("failed to read configuation file '{}'", path.display()),
+                ErrorType::ConfigSetup,
+            )
+        };
+
         // Read TOML
-        let mut file = File::open(&path)?;
+        let mut file = File::open(&path).or_raise(make_error)?;
         let mut contents = String::new();
-        file.read_to_string(&mut contents)?;
+        file.read_to_string(&mut contents).or_raise(make_error)?;
 
         // Parse and build objects
-        let config = toml::from_str(&contents)?;
+        let config = toml::from_str(&contents).or_raise(make_error)?;
         let extra = ExtraConfig {
             raw_toml: contents,
             raw_toml_path: path,

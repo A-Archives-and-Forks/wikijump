@@ -37,7 +37,17 @@ pub async fn text_block_get_index(
         page_id,
         block_type,
         name,
-    } = params.parse()?;
+    } = parse!(params);
 
-    TextBlockService::get_block_index(ctx, page_id, block_type, &name).await
+    TextBlockService::get_block_index(ctx, page_id, block_type, &name)
+        .await
+        .or_raise(|| {
+            Error::new(
+                format!(
+                    "failed to get text block {:?} '{}' for page ID {}",
+                    block_type, name, page_id,
+                ),
+                ErrorType::Request,
+            )
+        })
 }

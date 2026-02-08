@@ -42,6 +42,19 @@ pub enum Reference<'a> {
     Slug(Cow<'a, str>),
 }
 
+impl<'b, 'a: 'b> Reference<'a> {
+    /// Make a borrowed version of this `Reference` backed by it.
+    ///
+    /// For `Copy` cases, this is the same as a clone. For owned cases,
+    /// this makes a new borrowed case backed by `self` here.
+    pub fn borrow(&'a self) -> Reference<'b> {
+        match self {
+            Reference::Id(id) => Reference::Id(*id),
+            Reference::Slug(slug) => Reference::Slug(cow!(slug)),
+        }
+    }
+}
+
 impl From<i64> for Reference<'static> {
     #[inline]
     fn from(id: i64) -> Reference<'static> {

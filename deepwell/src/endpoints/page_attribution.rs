@@ -28,21 +28,28 @@ pub async fn page_attribution_get_page(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
 ) -> Result<Vec<PageAttribution>> {
-    let input: GetPageAttributions<'_> = params.parse()?;
+    let input: GetPageAttributions<'_> = parse!(params, PageAttribution);
 
     info!(
-        "Getting page attributions for page {:?} on site {}",
+        "Getting page attributions for page {:?} on site ID {}",
         input.page, input.site_id,
     );
 
-    RelationService::get_page_attributions(ctx, input).await
+    RelationService::get_page_attributions(ctx, input)
+        .await
+        .or_raise(|| {
+            Error::new(
+                "failed to get page attributions",
+                ErrorType::PageAttribution,
+            )
+        })
 }
 
 pub async fn page_attribution_update(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
 ) -> Result<Vec<PageAttribution>> {
-    let input: SetPageAttributions<'_> = params.parse()?;
+    let input: SetPageAttributions<'_> = parse!(params, PageAttribution);
 
     info!(
         "Setting {} page attributions for page {:?} on site {} (requested by {})",
@@ -52,19 +59,33 @@ pub async fn page_attribution_update(
         input.updated_by,
     );
 
-    RelationService::set_page_attributions(ctx, input).await
+    RelationService::set_page_attributions(ctx, input)
+        .await
+        .or_raise(|| {
+            Error::new(
+                "failed to update page attributions",
+                ErrorType::PageAttribution,
+            )
+        })
 }
 
 pub async fn page_attribution_delete(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
 ) -> Result<()> {
-    let input: ClearPageAttributions<'_> = params.parse()?;
+    let input: ClearPageAttributions<'_> = parse!(params, PageAttribution);
 
     info!(
         "Clearing page attributions for page {:?} on site {} (requested by {})",
         input.page, input.site_id, input.removed_by,
     );
 
-    RelationService::clear_page_attributions(ctx, input).await
+    RelationService::clear_page_attributions(ctx, input)
+        .await
+        .or_raise(|| {
+            Error::new(
+                "failed to delete page attributions",
+                ErrorType::PageAttribution,
+            )
+        })
 }

@@ -22,6 +22,21 @@ use super::prelude::*;
 use crate::services::basic_error::{BasicErrorOutput, BasicErrorService};
 use crate::utils::parse_locales;
 
+/// Generates a closure that can be used to make errors for `.or_raise()`.
+macro_rules! make_make_error {
+    ($method:ident) => {
+        || {
+            Error::new(
+                format!(
+                    "failed to generate basic error message for {}",
+                    stringify!($method),
+                ),
+                ErrorType::BasicError,
+            )
+        }
+    };
+}
+
 pub async fn basic_error_missing_site_slug(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
@@ -32,9 +47,14 @@ pub async fn basic_error_missing_site_slug(
         site_slug: String,
     }
 
-    let Input { locales, site_slug } = params.parse()?;
-    let locales = parse_locales(&locales)?;
-    BasicErrorService::missing_site_slug(ctx, &locales, &site_slug).await
+    let Input { locales, site_slug } = parse!(params, BasicError);
+    let make_error = make_make_error!(missing_site_slug);
+
+    let locales = parse_locales(&locales).or_raise(make_error)?;
+
+    BasicErrorService::missing_site_slug(ctx, &locales, &site_slug)
+        .await
+        .or_raise(make_error)
 }
 
 pub async fn basic_error_missing_custom_domain(
@@ -47,9 +67,14 @@ pub async fn basic_error_missing_custom_domain(
         domain: String,
     }
 
-    let Input { locales, domain } = params.parse()?;
-    let locales = parse_locales(&locales)?;
-    BasicErrorService::missing_custom_domain(ctx, &locales, &domain).await
+    let Input { locales, domain } = parse!(params, BasicError);
+    let make_error = make_make_error!(missing_custom_domain);
+
+    let locales = parse_locales(&locales).or_raise(make_error)?;
+
+    BasicErrorService::missing_custom_domain(ctx, &locales, &domain)
+        .await
+        .or_raise(make_error)
 }
 
 pub async fn basic_error_missing_page_slug(
@@ -67,10 +92,14 @@ pub async fn basic_error_missing_page_slug(
         locales,
         site_id,
         page_slug,
-    } = params.parse()?;
+    } = parse!(params, BasicError);
 
-    let locales = parse_locales(&locales)?;
-    BasicErrorService::missing_page_slug(ctx, &locales, site_id, &page_slug).await
+    let make_error = make_make_error!(missing_page_slug);
+    let locales = parse_locales(&locales).or_raise(make_error)?;
+
+    BasicErrorService::missing_page_slug(ctx, &locales, site_id, &page_slug)
+        .await
+        .or_raise(make_error)
 }
 
 pub async fn basic_error_page_fetch(
@@ -88,10 +117,14 @@ pub async fn basic_error_page_fetch(
         locales,
         site_id,
         page_slug,
-    } = params.parse()?;
+    } = parse!(params, BasicError);
 
-    let locales = parse_locales(&locales)?;
-    BasicErrorService::page_fetch(ctx, &locales, site_id, &page_slug).await
+    let make_error = make_make_error!(page_fetch);
+    let locales = parse_locales(&locales).or_raise(make_error)?;
+
+    BasicErrorService::page_fetch(ctx, &locales, site_id, &page_slug)
+        .await
+        .or_raise(make_error)
 }
 
 pub async fn basic_error_missing_file_name(
@@ -111,11 +144,14 @@ pub async fn basic_error_missing_file_name(
         site_id,
         page_slug,
         filename,
-    } = params.parse()?;
+    } = parse!(params, BasicError);
 
-    let locales = parse_locales(&locales)?;
+    let make_error = make_make_error!(missing_file_name);
+    let locales = parse_locales(&locales).or_raise(make_error)?;
+
     BasicErrorService::missing_file_name(ctx, &locales, site_id, &page_slug, &filename)
         .await
+        .or_raise(make_error)
 }
 
 pub async fn basic_error_file_fetch(
@@ -135,10 +171,14 @@ pub async fn basic_error_file_fetch(
         site_id,
         page_slug,
         filename,
-    } = params.parse()?;
+    } = parse!(params, BasicError);
 
-    let locales = parse_locales(&locales)?;
-    BasicErrorService::file_fetch(ctx, &locales, site_id, &page_slug, &filename).await
+    let make_error = make_make_error!(file_fetch);
+    let locales = parse_locales(&locales).or_raise(make_error)?;
+
+    BasicErrorService::file_fetch(ctx, &locales, site_id, &page_slug, &filename)
+        .await
+        .or_raise(make_error)
 }
 
 pub async fn basic_error_text_block(
@@ -160,12 +200,14 @@ pub async fn basic_error_text_block(
         index,
         block_type,
         reason,
-    } = params.parse()?;
+    } = parse!(params, BasicError);
 
-    let locales = parse_locales(&locales)?;
+    let make_error = make_make_error!(text_block);
+    let locales = parse_locales(&locales).or_raise(make_error)?;
 
     BasicErrorService::text_block(ctx, &locales, site_id, &index, &block_type, &reason)
         .await
+        .or_raise(make_error)
 }
 
 pub async fn basic_error_file_root(
@@ -177,7 +219,11 @@ pub async fn basic_error_file_root(
         locales: Vec<String>,
     }
 
-    let Input { locales } = params.parse()?;
-    let locales = parse_locales(&locales)?;
-    BasicErrorService::file_root(ctx, &locales).await
+    let Input { locales } = parse!(params, BasicError);
+    let make_error = make_make_error!(file_root);
+    let locales = parse_locales(&locales).or_raise(make_error)?;
+
+    BasicErrorService::file_root(ctx, &locales)
+        .await
+        .or_raise(make_error)
 }

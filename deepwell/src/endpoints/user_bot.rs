@@ -82,9 +82,16 @@ pub async fn bot_user_create(
         bypass_filter,
         bypass_email_verification,
         ip_address,
-    } = params.parse()?;
+    } = parse!(params, UserBotOwner);
 
     info!("Creating new bot user with name '{name}'");
+
+    let make_error = || {
+        Error::new(
+            "failed to create a bot user account",
+            ErrorType::UserBotOwner,
+        )
+    };
 
     // TODO verify auth token
     // TODO add authorization token service
@@ -109,7 +116,8 @@ pub async fn bot_user_create(
             ip_address,
         },
     )
-    .await?;
+    .await
+    .or_raise(make_error)?;
 
     // Set description, get bot user
     let bot_user_id = output.user_id;
@@ -122,7 +130,8 @@ pub async fn bot_user_create(
             ..Default::default()
         },
     )
-    .await?;
+    .await
+    .or_raise(make_error)?;
 
     // Normalize metadata field
     RelationService::normalize_user_bot_metadata(&mut metadata);
@@ -133,7 +142,10 @@ pub async fn bot_user_create(
         bot_user.name, bot_user_id,
     );
     for owner_user_id in owners {
-        let owner_user = UserService::get(ctx, Reference::Id(owner_user_id)).await?;
+        let owner_user = UserService::get(ctx, Reference::Id(owner_user_id))
+            .await
+            .or_raise(make_error)?;
+
         debug!(
             "Adding human user '{}' (ID {}) as bot owner",
             owner_user.name, owner_user_id,
@@ -147,7 +159,8 @@ pub async fn bot_user_create(
                 metadata: &metadata,
             },
         )
-        .await?;
+        .await
+        .or_raise(make_error)?;
     }
 
     Ok(output)
@@ -157,9 +170,21 @@ pub async fn bot_user_get_owners(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
 ) -> Result<Option<Vec<UserBotOwner>>> {
-    let GetUser { user: reference } = params.parse()?;
+    let GetUser { user: reference } = parse!(params, UserBotOwner);
+
+    let make_error = || {
+        Error::new(
+            "failed to get owners for a bot user",
+            ErrorType::UserBotOwner,
+        )
+    };
+
     info!("Getting bot user {reference:?}");
-    match UserService::get_optional(ctx, reference).await? {
+    let user_bot = UserService::get_optional(ctx, reference)
+        .await
+        .or_raise(make_error)?;
+
+    match user_bot {
         None => Ok(None),
         Some(bot_user) => {
             if bot_user.user_type != UserType::Bot {
@@ -167,11 +192,15 @@ pub async fn bot_user_get_owners(
                     "Tried to get owners for non-bot user: '{}' (type {:?})",
                     bot_user.name, bot_user.user_type,
                 );
-                return Err(ServiceError::UserWrongType);
+                bail!(Error::new(
+                    "can only operate on bot users",
+                    ErrorType::UserWrongType
+                ));
             }
 
-            let owners =
-                RelationService::get_owners_for_bot(ctx, bot_user.user_id).await?;
+            let owners = RelationService::get_owners_for_bot(ctx, bot_user.user_id)
+                .await
+                .or_raise(make_error)?;
 
             Ok(Some(owners))
         }
@@ -182,19 +211,35 @@ pub async fn bot_user_get_bots(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
 ) -> Result<Vec<UserBotOwner>> {
-    let GetUser { user: reference } = params.parse()?;
+    let GetUser { user: reference } = parse!(params, UserBotOwner);
     info!("Getting bot users owned by user {reference:?}");
 
-    let owner_user = UserService::get(ctx, reference).await?;
+    let make_error = || {
+        Error::new(
+            "failed to get bots for a owner user",
+            ErrorType::UserBotOwner,
+        )
+    };
+
+    let owner_user = UserService::get(ctx, reference)
+        .await
+        .or_raise(make_error)?;
+
     if owner_user.user_type != UserType::Regular {
         error!(
             "Tried to get bots for non-regular user: '{}' (type {:?})",
             owner_user.name, owner_user.user_type,
         );
-        return Err(ServiceError::UserWrongType);
+        bail!(Error::new(
+            "can only operate on regular users",
+            ErrorType::UserWrongType,
+        ));
     }
 
-    let owners = RelationService::get_bots_owned_by_user(ctx, owner_user.user_id).await?;
+    let owners = RelationService::get_bots_owned_by_user(ctx, owner_user.user_id)
+        .await
+        .or_raise(make_error)?;
+
     Ok(owners)
 }
 
@@ -202,16 +247,25 @@ pub async fn bot_user_owner_set(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
 ) -> Result<()> {
-    let input: CreateBotUserOwners = params.parse()?;
+    let input: CreateBotUserOwners = parse!(params, UserBotOwner);
     info!(
         "Adding or updating bot owners for {} ({} new owners)",
         input.bot_user_id,
         input.owners.len(),
     );
 
-    let bot_user = UserService::get(ctx, Reference::Id(input.bot_user_id)).await?;
+    let make_error =
+        || Error::new("failed to add owners for bot user", ErrorType::UserBotOwner);
+
+    let bot_user = UserService::get(ctx, Reference::Id(input.bot_user_id))
+        .await
+        .or_raise(make_error)?;
+
     for owner_user_id in input.owners {
-        let owner_user = UserService::get(ctx, Reference::Id(owner_user_id)).await?;
+        let owner_user = UserService::get(ctx, Reference::Id(owner_user_id))
+            .await
+            .or_raise(make_error)?;
+
         RelationService::create_user_bot_owner(
             ctx,
             CreateSingleUserBotOwner {
@@ -221,7 +275,8 @@ pub async fn bot_user_owner_set(
                 metadata: &input.metadata,
             },
         )
-        .await?;
+        .await
+        .or_raise(make_error)?;
     }
 
     Ok(())
@@ -231,11 +286,21 @@ pub async fn bot_user_owner_remove(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
 ) -> Result<()> {
-    let input: RemoveUserBotOwner = params.parse()?;
+    let input: RemoveUserBotOwner = parse!(params, UserBotOwner);
+
     info!(
         "Remove bot owner ({} <- {})",
-        input.bot_user, input.owner_user
+        input.bot_user, input.owner_user,
     );
-    RelationService::remove_user_bot_owner(ctx, input).await?;
+
+    RelationService::remove_user_bot_owner(ctx, input)
+        .await
+        .or_raise(|| {
+            Error::new(
+                "failed to remove owner for bot user",
+                ErrorType::UserBotOwner,
+            )
+        })?;
+
     Ok(())
 }

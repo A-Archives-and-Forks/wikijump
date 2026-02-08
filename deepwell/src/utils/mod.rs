@@ -23,6 +23,7 @@
 mod category;
 mod crypto;
 mod debug;
+mod int;
 mod locale;
 mod slug;
 mod string;
@@ -31,6 +32,7 @@ mod time;
 pub use self::category::*;
 pub use self::crypto::*;
 pub use self::debug::*;
+pub use self::int::*;
 pub use self::locale::*;
 pub use self::slug::*;
 pub use self::string::*;

@@ -39,6 +39,16 @@ impl CategoryService {
         site_id: i64,
         slug: &str,
     ) -> Result<PageCategoryModel> {
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to create new page category '{}' in site ID {}",
+                    slug, site_id,
+                ),
+                ErrorType::PageCategory,
+            )
+        };
+
         let txn = ctx.transaction();
         let model = page_category::ActiveModel {
             site_id: Set(site_id),
@@ -46,7 +56,7 @@ impl CategoryService {
             ..Default::default()
         };
 
-        let category = model.insert(txn).await?;
+        let category = model.insert(txn).await.or_raise(make_error)?;
         Ok(category)
     }
 
@@ -55,8 +65,18 @@ impl CategoryService {
         site_id: i64,
         reference: Reference<'_>,
     ) -> Result<Option<PageCategoryModel>> {
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to get page category {:?} in site ID {}",
+                    reference, site_id,
+                ),
+                ErrorType::PageCategory,
+            )
+        };
+
         let txn = ctx.transaction();
-        let condition = match reference {
+        let condition = match reference.borrow() {
             Reference::Id(id) => page_category::Column::CategoryId.eq(id),
             Reference::Slug(slug) => page_category::Column::Slug.eq(slug),
         };
@@ -68,7 +88,8 @@ impl CategoryService {
                     .add(condition),
             )
             .one(txn)
-            .await?;
+            .await
+            .or_raise(make_error)?;
 
         Ok(category)
     }
@@ -79,7 +100,11 @@ impl CategoryService {
         site_id: i64,
         reference: Reference<'_>,
     ) -> Result<PageCategoryModel> {
-        find_or_error!(Self::get_optional(ctx, site_id, reference), PageCategory)
+        find_or_error!(
+            Self::get_optional(ctx, site_id, reference),
+            "page category",
+            PageCategory,
+        )
     }
 
     pub async fn get_or_create(
@@ -87,11 +112,25 @@ impl CategoryService {
         site_id: i64,
         slug: &str,
     ) -> Result<PageCategoryModel> {
-        let category =
-            match Self::get_optional(ctx, site_id, Reference::from(slug)).await? {
-                Some(category) => category,
-                None => Self::create(ctx, site_id, slug).await?,
-            };
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to get-or-create page category '{}' in site ID {}",
+                    slug, site_id,
+                ),
+                ErrorType::PageCategory,
+            )
+        };
+
+        let category = match Self::get_optional(ctx, site_id, Reference::from(slug))
+            .await
+            .or_raise(make_error)?
+        {
+            Some(category) => category,
+            None => Self::create(ctx, site_id, slug)
+                .await
+                .or_raise(make_error)?,
+        };
 
         Ok(category)
     }
@@ -100,12 +139,20 @@ impl CategoryService {
         ctx: &ServiceContext<'_>,
         site_id: i64,
     ) -> Result<Vec<PageCategoryModel>> {
+        let make_error = || {
+            Error::new(
+                format!("failed to get all categories in site ID {}", site_id),
+                ErrorType::PageCategory,
+            )
+        };
+
         let txn = ctx.transaction();
         let categories = PageCategory::find()
             .filter(page_category::Column::SiteId.eq(site_id))
             .order_by_asc(page_category::Column::Slug)
             .all(txn)
-            .await?;
+            .await
+            .or_raise(make_error)?;
 
         Ok(categories)
     }
@@ -115,6 +162,13 @@ impl CategoryService {
         ctx: &ServiceContext<'_>,
         site_id: i64,
     ) -> Result<Vec<PageCategoryModel>> {
+        let make_error = || {
+            Error::new(
+                format!("failed to get all active categories in site ID {}", site_id),
+                ErrorType::PageCategory,
+            )
+        };
+
         // Raw SQL query
         //
         // SELECT * FROM page_category
@@ -146,7 +200,8 @@ impl CategoryService {
                 ),
             )
             .all(txn)
-            .await?;
+            .await
+            .or_raise(make_error)?;
 
         Ok(categories)
     }

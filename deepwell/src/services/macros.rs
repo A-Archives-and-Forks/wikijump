@@ -19,9 +19,16 @@
  */
 
 macro_rules! find_or_error {
-    ($future:expr, $error:ident $(,)?) => {
+    ($future:expr, $noun:expr, $error:ident $(,)?) => {
         paste! {
-            $future.await?.ok_or(Error::[<$error NotFound>])
+            match $future.await {
+                Ok(Some(result)) => Ok(result),
+                Ok(None) => bail!(Error::new(
+                    format!("{} does not exist", $noun),
+                    ErrorType::[<$error NotFound>],
+                )),
+                Err(error) => bail!(error),
+            }
         }
     };
 }

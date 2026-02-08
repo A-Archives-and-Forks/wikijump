@@ -19,7 +19,7 @@
  */
 
 use super::file::ConfigFile;
-use anyhow::Result;
+use crate::error::prelude::*;
 use femme::LevelFilter;
 use ftml::layout::Layout;
 use std::env;
@@ -232,7 +232,10 @@ pub struct Config {
 impl Config {
     #[inline]
     pub fn load(path: PathBuf) -> Result<Self> {
-        let (config_file, extra) = ConfigFile::load(path)?;
+        let (config_file, extra) = ConfigFile::load(path).or_raise(|| {
+            Error::new("failed to load configuration data", ErrorType::ConfigSetup)
+        })?;
+
         let config = ConfigFile::into_config(config_file, extra);
         Ok(config)
     }

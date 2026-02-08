@@ -25,8 +25,10 @@ pub async fn validate_email(
     _ctx: &ServiceContext<'_>,
     params: Params<'static>,
 ) -> Result<EmailValidationOutput> {
-    let email: String = params.one()?;
+    let email: String = parse_one!(params);
     info!("Validating user email: {email}");
-    let output = EmailService::validate(&email).await?;
-    Ok(output)
+
+    EmailService::validate(&email)
+        .await
+        .or_raise(|| Error::new("failed to validate email", ErrorType::Request))
 }

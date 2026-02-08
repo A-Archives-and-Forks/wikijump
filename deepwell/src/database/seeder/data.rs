@@ -18,8 +18,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+use crate::error::prelude::*;
 use crate::models::sea_orm_active_enums::{License, UserType};
-use anyhow::Result;
 use ftml::layout::Layout;
 use serde::Deserialize;
 use std::collections::HashMap;
@@ -38,17 +38,22 @@ pub struct SeedData {
 
 impl SeedData {
     pub fn load(directory: &Path) -> Result<Self> {
+        let make_error =
+            || Error::new("failed to load seed data", ErrorType::DatabaseSeeder);
+
         let mut path: PathBuf = directory.join("filename");
 
         // Load user data
-        let users: Vec<User> = Self::load_json(&mut path, "users")?;
+        let users: Vec<User> =
+            Self::load_json(&mut path, "users").or_raise(make_error)?;
 
         // Load site data
-        let sites: Vec<Site> = Self::load_json(&mut path, "sites")?;
+        let sites: Vec<Site> =
+            Self::load_json(&mut path, "sites").or_raise(make_error)?;
 
         // Load page data
         let mut site_pages: HashMap<String, Vec<Page>> =
-            Self::load_json(&mut path, "pages")?;
+            Self::load_json(&mut path, "pages").or_raise(make_error)?;
 
         for (site, pages) in &mut site_pages {
             // Verify that the site exists
@@ -59,16 +64,18 @@ impl SeedData {
 
             // Fetch wikitext from file
             for page in pages {
-                page.wikitext = Self::load_wikitext(&mut path, &page.wikitext_filename)?;
+                page.wikitext = Self::load_wikitext(&mut path, &page.wikitext_filename)
+                    .or_raise(make_error)?;
             }
         }
 
         // Load file data
         let files: HashMap<String, HashMap<String, Vec<File>>> =
-            Self::load_json(&mut path, "files")?;
+            Self::load_json(&mut path, "files").or_raise(make_error)?;
 
         // Load filter data
-        let filters: Vec<Filter> = Self::load_json(&mut path, "filters")?;
+        let filters: Vec<Filter> =
+            Self::load_json(&mut path, "filters").or_raise(make_error)?;
 
         // Build and return
         Ok(SeedData {
@@ -84,21 +91,26 @@ impl SeedData {
     where
         T: for<'de> Deserialize<'de>,
     {
+        let make_error = || Error::new("failed to load JSON", ErrorType::DatabaseSeeder);
+
         path.set_file_name(filename);
         path.set_extension("json");
         debug!("Loading JSON from {}", path.display());
 
-        let mut file = fs::File::open(path)?;
-        let data = serde_json::from_reader(&mut file)?;
+        let mut file = fs::File::open(path).or_raise(make_error)?;
+        let data = serde_json::from_reader(&mut file).or_raise(make_error)?;
         Ok(data)
     }
 
     fn load_wikitext(path: &mut PathBuf, filename: &Path) -> Result<String> {
+        let make_error =
+            || Error::new("failed to load wikitext", ErrorType::DatabaseSeeder);
+
         path.set_file_name(filename);
         path.set_extension("ftml");
         debug!("Loading wikitext from {}", path.display());
 
-        let wikitext = fs::read_to_string(path)?;
+        let wikitext = fs::read_to_string(path).or_raise(make_error)?;
         Ok(wikitext)
     }
 }

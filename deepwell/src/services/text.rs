@@ -46,14 +46,24 @@ impl TextService {
                 TEXT_HASH_LENGTH,
                 hash.len(),
             );
-            return Err(Error::BadRequest);
+            bail!(Error::new(
+                format!(
+                    "failed to get text entry, hash should be {} bytes, but is {} bytes",
+                    TEXT_HASH_LENGTH,
+                    hash.len(),
+                ),
+                ErrorType::BadRequest,
+            ));
         }
 
         let txn = ctx.transaction();
         let contents = Text::find()
             .filter(text::Column::Hash.eq(hash))
             .one(txn)
-            .await?
+            .await
+            .or_raise(|| {
+                Error::new("failed to get optional text entry", ErrorType::Text)
+            })?
             .map(|model| model.contents);
 
         Ok(contents)
@@ -61,7 +71,7 @@ impl TextService {
 
     #[inline]
     pub async fn get(ctx: &ServiceContext<'_>, hash: &[u8]) -> Result<String> {
-        find_or_error!(Self::get_optional(ctx, hash), Text)
+        find_or_error!(Self::get_optional(ctx, hash), "text entry", Text)
     }
 
     #[inline]
@@ -83,7 +93,9 @@ impl TextService {
         hash: &[u8],
     ) -> Result<Option<String>> {
         if should_fetch {
-            let text = Self::get(ctx, hash).await?;
+            let text = Self::get(ctx, hash).await.or_raise(|| {
+                Error::new("failed to conditionally get text entry", ErrorType::Text)
+            })?;
             Ok(Some(text))
         } else {
             Ok(None)
@@ -122,7 +134,10 @@ impl TextService {
             None => Ok(None),
             Some(hash) => {
                 let hash = hash.as_ref();
-                let text = Self::get(ctx, hash).await?;
+                let text = Self::get(ctx, hash).await.or_raise(|| {
+                    Error::new("failed to get optional text entry", ErrorType::Text)
+                })?;
+
                 Ok(Some(text))
             }
         }
@@ -150,16 +165,20 @@ impl TextService {
 
     /// Creates a text entry with this data, if it does not already exist.
     pub async fn create(ctx: &ServiceContext<'_>, contents: String) -> Result<TextHash> {
+        let make_error =
+            || Error::new("failed to create new text entry", ErrorType::Text);
+
         let txn = ctx.transaction();
         let hash = k12_hash(contents.as_bytes());
+        let exists = Self::exists(ctx, &hash).await.or_raise(make_error)?;
 
-        if !Self::exists(ctx, &hash).await? {
+        if !exists {
             let model = text::ActiveModel {
                 hash: Set(hash.to_vec()),
                 contents: Set(contents),
             };
 
-            Text::insert(model).exec(txn).await?;
+            Text::insert(model).exec(txn).await.or_raise(make_error)?;
         }
 
         Ok(hash)
@@ -220,7 +239,10 @@ impl TextService {
                 // TODO add forum_post_revision
             )
             .exec(txn)
-            .await?;
+            .await
+            .or_raise(|| {
+                Error::new("failed to prune unused text entries", ErrorType::Text)
+            })?;
 
         debug!("Pruned {rows_affected} unused text rows");
         Ok(())

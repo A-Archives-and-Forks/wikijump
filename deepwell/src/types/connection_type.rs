@@ -18,7 +18,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use crate::services::Error as ServiceError;
+use crate::error::prelude::*;
 use std::str::FromStr;
 use strum_macros::EnumIter;
 
@@ -45,16 +45,16 @@ impl ConnectionType {
 }
 
 impl FromStr for ConnectionType {
-    type Err = ServiceError;
+    type Err = EnumConversionError;
 
-    fn from_str(value: &str) -> Result<ConnectionType, ServiceError> {
+    fn from_str(value: &str) -> StdResult<ConnectionType, EnumConversionError> {
         match value {
             "include-messy" => Ok(ConnectionType::IncludeMessy),
             "include-elements" => Ok(ConnectionType::IncludeElements),
             "component" => Ok(ConnectionType::Component),
             "link" => Ok(ConnectionType::Link),
             "redirect" => Ok(ConnectionType::Redirect),
-            _ => Err(ServiceError::InvalidEnumValue),
+            _ => Err(EnumConversionError::new("ConnectionType", value)),
         }
     }
 }

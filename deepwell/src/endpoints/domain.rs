@@ -27,9 +27,13 @@ pub async fn site_get_domain(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
 ) -> Result<String> {
+    let site_id: i64 = parse!(params, SiteSettings);
     let config = ctx.config();
-    let site_id: i64 = params.one()?;
-    let site = SiteService::get(ctx, Reference::Id(site_id)).await?;
+
+    let site = SiteService::get(ctx, Reference::Id(site_id))
+        .await
+        .or_raise(|| Error::new("failed to get site domain", ErrorType::SiteSettings))?;
+
     let domain = DomainService::preferred_domain(config, &site);
     Ok(domain.into_owned())
 }
@@ -38,17 +42,29 @@ pub async fn site_custom_domain_create(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
 ) -> Result<()> {
-    let input: CreateCustomDomain = params.parse()?;
-    DomainService::create_custom(ctx, input).await
+    let input: CreateCustomDomain = parse!(params, SiteSettings);
+
+    DomainService::create_custom(ctx, input).await.or_raise(|| {
+        Error::new(
+            "failed to add a new customm domain",
+            ErrorType::SiteSettings,
+        )
+    })
 }
 
 // TODO rename
+
 pub async fn site_custom_domain_remove(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
 ) -> Result<()> {
-    let domain: String = params.one()?;
-    DomainService::remove_custom(ctx, domain).await
+    let domain: String = parse_one!(params, SiteSettings);
+
+    DomainService::remove_custom(ctx, domain)
+        .await
+        .or_raise(|| {
+            Error::new("failed to remove a custom domain", ErrorType::SiteSettings)
+        })
 }
 
 pub async fn site_custom_domain_list(
@@ -60,6 +76,12 @@ pub async fn site_custom_domain_list(
         site_id: i64,
     }
 
-    let Input { site_id } = params.parse()?;
-    DomainService::list_custom(ctx, site_id).await
+    let Input { site_id } = parse!(params, SiteSettings);
+
+    DomainService::list_custom(ctx, site_id).await.or_raise(|| {
+        Error::new(
+            format!("failed to list custom domains for site ID {site_id}"),
+            ErrorType::SiteSettings,
+        )
+    })
 }
