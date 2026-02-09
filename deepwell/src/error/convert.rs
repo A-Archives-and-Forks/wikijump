@@ -25,7 +25,7 @@
 //! the stack of `exn::Frame`s and convert it.
 
 use super::{Error, ErrorType};
-use exn::{Error as ExnErrorTrait, Exn, Frame};
+use exn::{ErrorExt, Exn, Frame};
 use jsonrpsee::types::error::ErrorObjectOwned;
 use sea_orm::TransactionError;
 use serde_json::json;
@@ -61,7 +61,7 @@ pub fn exn_error_to_rpc_error(exn_error: Exn<Error>) -> ErrorObjectOwned {
     }
 
     fn walk<'e>(frame: &'e Frame, code_trace: &mut Vec<i32>) -> Option<TopError<'e>> {
-        let crate_error = frame.as_any().downcast_ref::<Error>();
+        let crate_error = frame.error().downcast_ref::<Error>();
         if let Some(error) = crate_error {
             // Log error code for trace
             code_trace.push(error.code());
@@ -72,7 +72,7 @@ pub fn exn_error_to_rpc_error(exn_error: Exn<Error>) -> ErrorObjectOwned {
             }
         }
 
-        let jsonrpc_error = frame.as_any().downcast_ref::<ErrorObjectOwned>();
+        let jsonrpc_error = frame.error().downcast_ref::<ErrorObjectOwned>();
         match jsonrpc_error {
             Some(error) => Some(TopError::JsonrpcError(error)),
             _ => frame
@@ -83,7 +83,7 @@ pub fn exn_error_to_rpc_error(exn_error: Exn<Error>) -> ErrorObjectOwned {
     }
 
     let mut code_trace = Vec::new();
-    let top_error = walk(exn_error.as_frame(), &mut code_trace);
+    let top_error = walk(exn_error.frame(), &mut code_trace);
     match top_error {
         // Get the top non-request crate error
         Some(TopError::CrateError(error)) => {
