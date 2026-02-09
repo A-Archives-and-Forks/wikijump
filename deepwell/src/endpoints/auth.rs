@@ -70,7 +70,7 @@ pub async fn auth_login(
     let result = AuthenticationService::auth_password(ctx, authenticate).await;
     let AuthenticateUserOutput { needs_mfa, user_id } = match result {
         Ok(output) => output,
-        Err(error) => match error.as_error().error_type {
+        Err(error) => match error.error_type {
             ErrorType::InvalidAuthentication => bail!(error),
             _ => bail!(error.raise(make_error())),
         },

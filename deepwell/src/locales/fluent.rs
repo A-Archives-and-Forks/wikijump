@@ -345,7 +345,7 @@ impl Localizations {
     {
         match self.translate(locales, key, args) {
             Ok(translation) => Ok(Some(translation)),
-            Err(error) => match error.as_error().error_type {
+            Err(error) => match error.error_type {
                 ErrorType::LocaleMissing { .. }
                 | ErrorType::LocaleMessageMissing { .. }
                 | ErrorType::LocaleMessageValueMissing { .. }

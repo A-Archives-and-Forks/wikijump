@@ -80,7 +80,7 @@ impl PasswordService {
         match result {
             Ok(()) => Ok(()),
             Err(error) => {
-                match error.as_error().error_type {
+                match error.error_type {
                     // Simply the wrong password
                     // This is converted in services/error.rs
                     ErrorType::InvalidAuthentication => {
