@@ -12,9 +12,27 @@ export async function loadUser(username?: string, request, cookies) {
   const sessionToken = cookies.get("wikijump_token")
   let locales = parseAcceptLangHeader(request)
 
-  if (!locales.includes(defaults.fallbackLocale)) locales.push(defaults.fallbackLocale)
+  const response = await userView(
+    siteId,
+    [...locales, defaults.fallbackLocale],
+    sessionToken,
+    username
+  )
 
-  const response = await userView(siteId, locales, sessionToken, username)
+  if (response.data?.user_session?.user?.locales) {
+    locales = [
+      ...response.data.user_session.user.locales,
+      ...locales.filter(
+        (locale) => !response.data.user_session.user.locales.includes(locale)
+      )
+    ]
+  }
+
+  if (response.data?.site?.locale && !locales.includes(response.data.site.locale)) {
+    locales.push(response.data.site.locale)
+  }
+
+  if (!locales.includes(defaults.fallbackLocale)) locales.push(defaults.fallbackLocale)
 
   let translateKeys: TranslateKeys = {
     ...defaults.translateKeys
