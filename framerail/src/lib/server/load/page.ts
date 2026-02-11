@@ -135,10 +135,10 @@ export async function loadPage(
 
       // Page vote
       "wiki-page-vote": {},
-      "wiki-page-vote-list": {},
-      "wiki-page-vote-set": {},
-      "wiki-page-vote-remove": {},
-      "wiki-page-vote-score": {},
+      "wiki-page-vote.list": {},
+      "wiki-page-vote.set": {},
+      "wiki-page-vote.remove": {},
+      "wiki-page-vote.score": {},
 
       // Page files
       "files": {},

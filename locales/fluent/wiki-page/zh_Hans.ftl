@@ -38,14 +38,10 @@ wiki-page-revision-type = 类型
 ### 维基页面评分
 
 wiki-page-vote = 页面评分
-
-wiki-page-vote-set = 进行评分
-
-wiki-page-vote-remove = 取消评分
-
-wiki-page-vote-list = 查看评分列表
-
-wiki-page-vote-score = 现时评分
+  .set = 进行评分
+  .remove = 取消评分
+  .list = 查看评分列表
+  .score = 现时评分
 
 ### 维基页面编辑
 
