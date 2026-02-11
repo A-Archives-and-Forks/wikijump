@@ -446,7 +446,7 @@
     >
       <div class="file-form-field">
         <label for="file"
-          >{$page.data.internationalization?.["wiki-page-file-select"]}</label
+          >{$page.data.internationalization?.["wiki-page-file-upload.select"]}</label
         >
         <input
           name="file"
@@ -457,7 +457,7 @@
       </div>
       <div class="file-form-field">
         <label for="name"
-          >{$page.data.internationalization?.["wiki-page-file-name"]}</label
+          >{$page.data.internationalization?.["wiki-page-file-upload.name"]}</label
         >
         <input
           name="name"
@@ -522,7 +522,7 @@
     >
       <div class="file-form-field">
         <label for="file"
-          >{$page.data.internationalization?.["wiki-page-file-select"]}</label
+          >{$page.data.internationalization?.["wiki-page-file-upload.select"]}</label
         >
         <input
           bind:this={filesEditElem}
@@ -533,7 +533,7 @@
       </div>
       <div class="file-form-field">
         <label for="name"
-          >{$page.data.internationalization?.["wiki-page-file-name"]}</label
+          >{$page.data.internationalization?.["wiki-page-file-upload.name"]}</label
         >
         <input
           name="name"
