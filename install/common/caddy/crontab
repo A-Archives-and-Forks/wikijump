@@ -1,2 +1,2 @@
-# Hourly regeneration of Caddyfile from DEEPWELL
-0 * * * * /usr/local/bin/wikijump-update-caddyfile
+# Regeneration of Caddyfile from DEEPWELL every 5 minutes
+*/5 * * * * /usr/local/bin/wikijump-update-caddyfile
