@@ -279,7 +279,7 @@ CREATE TABLE page (
     latest_revision_id BIGINT, -- nullable to avoid an initial page_revision dependency cycle
     page_category_id BIGINT NOT NULL REFERENCES page_category(category_id),
     slug TEXT NOT NULL,
-    discussion_thread_id BIGINT, -- TODO: add REFERENCES to forum threads
+    discussion_thread_id BIGINT, -- FK added after forum_thread is declared
     layout TEXT, -- page-specific override for DOM layout
 
     UNIQUE (site_id, slug, deleted_at)
@@ -794,6 +794,7 @@ CREATE TABLE forum_category (
     layout TEXT,
 
     UNIQUE (forum_group_id, sort_index),
+    -- Required for (forum_category_id, site_id) composite FKs from denormalized child rows.
     UNIQUE (forum_category_id, site_id),
     CHECK ((updated_by IS NULL) = (updated_at IS NULL)),
     CHECK ((deleted_by IS NULL) = (deleted_at IS NULL)),
@@ -820,6 +821,7 @@ CREATE TABLE forum_thread (
 
     CHECK ((updated_by IS NULL) = (updated_at IS NULL)),
     CHECK ((deleted_by IS NULL) = (deleted_at IS NULL)),
+    -- Required for (forum_thread_id, site_id) composite FKs from denormalized child rows.
     UNIQUE (forum_thread_id, site_id),
     FOREIGN KEY (forum_category_id, site_id) REFERENCES forum_category(forum_category_id, site_id),
     FOREIGN KEY (forum_group_id, site_id) REFERENCES forum_group(forum_group_id, site_id)
@@ -861,6 +863,7 @@ CREATE TABLE forum_post (
     latest_revision_id BIGINT,
 
     CHECK ((deleted_by IS NULL) = (deleted_at IS NULL)),
+    -- Required for (forum_post_id, site_id) composite FKs from denormalized child rows.
     UNIQUE (forum_post_id, site_id),
     FOREIGN KEY (forum_thread_id, site_id) REFERENCES forum_thread(forum_thread_id, site_id),
     FOREIGN KEY (forum_category_id, site_id) REFERENCES forum_category(forum_category_id, site_id),
@@ -874,13 +877,13 @@ CREATE TABLE forum_post_lock (
     updated_at TIMESTAMP WITH TIME ZONE,
     deleted_at TIMESTAMP WITH TIME ZONE,
     expires_at TIMESTAMP WITH TIME ZONE,
-    forum_thread_id BIGINT NOT NULL REFERENCES forum_thread(forum_thread_id),
+    forum_post_id BIGINT NOT NULL REFERENCES forum_post(forum_post_id),
     user_id BIGINT NOT NULL REFERENCES "user"(user_id),
     reason TEXT NOT NULL,
     lock_type TEXT NOT NULL,
     cascading BOOLEAN NOT NULL,
 
-    UNIQUE (forum_thread_id, deleted_at)
+    UNIQUE (forum_post_id, deleted_at)
 );
 
 -- Revisions of posts.
@@ -914,6 +917,11 @@ CREATE TABLE forum_post_revision (
 ALTER TABLE forum_post
     ADD CONSTRAINT forum_post_latest_revision_fk
         FOREIGN KEY (latest_revision_id) REFERENCES forum_post_revision(forum_post_revision_id);
+
+-- Pages can point to their dedicated discussion threads.
+ALTER TABLE page
+    ADD CONSTRAINT page_discussion_thread_fk
+        FOREIGN KEY (discussion_thread_id) REFERENCES forum_thread(forum_thread_id);
 
 -- Forum indexes
 CREATE INDEX forum_group_sort_idx ON forum_group (site_id, sort_index);

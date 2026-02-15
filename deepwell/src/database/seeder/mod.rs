@@ -511,12 +511,17 @@ pub async fn seed(state: &ServerState) -> Result<()> {
         .await
         .or_raise(make_error)?;
 
-    /*
-     * TODO: tables which don't exist yet:
-     * restart_sequence_with(&txn, < forum category seq >, 9000000).await.or_raise(make_error)?;
-     * restart_sequence_with(&txn, < forum thread seq >, 30000000).await.or_raise(make_error)?;
-     * restart_sequence_with(&txn, < forum post seq >, 7000000).await.or_raise(make_error)?;
-     */
+    restart_sequence_with(&txn, "forum_category_forum_category_id_seq", 9000000)
+        .await
+        .or_raise(make_error)?;
+
+    restart_sequence_with(&txn, "forum_thread_forum_thread_id_seq", 30000000)
+        .await
+        .or_raise(make_error)?;
+
+    restart_sequence_with(&txn, "forum_post_forum_post_id_seq", 7000000)
+        .await
+        .or_raise(make_error)?;
 
     txn.commit().await.or_raise(make_error)?;
     info!("Finished running seeder.");
