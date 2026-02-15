@@ -880,7 +880,7 @@ CREATE TABLE forum_post_revision (
     user_id BIGINT NOT NULL REFERENCES "user"(user_id),
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
     updated_at TIMESTAMP WITH TIME ZONE,
-    revision_number INT NOT NULL,
+    revision_number INTEGER NOT NULL CHECK (revision_number >= 0),
     from_wikidot BOOLEAN NOT NULL DEFAULT false,
     title TEXT NOT NULL,
     wikitext_hash BYTEA NOT NULL REFERENCES text(hash),
