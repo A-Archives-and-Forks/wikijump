@@ -853,7 +853,7 @@ CREATE TABLE forum_post (
     FOREIGN KEY (forum_group_id, site_id) REFERENCES forum_group(forum_group_id, site_id)
 );
 
--- Locks on posts (one active lock per thread at a time).
+-- Locks on posts (one active lock per post at a time).
 CREATE TABLE forum_post_lock (
     forum_post_lock_id BIGSERIAL PRIMARY KEY,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
