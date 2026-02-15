@@ -792,7 +792,7 @@ CREATE TABLE forum_thread (
     forum_category_id BIGINT NOT NULL REFERENCES forum_category(forum_category_id),
     forum_group_id BIGINT NOT NULL REFERENCES forum_group(forum_group_id),
     site_id BIGINT NOT NULL REFERENCES site(site_id),
-    page_id BIGINT REFERENCES page(page_id) UNIQUE,
+    page_id BIGINT REFERENCES page(page_id) UNIQUE,  -- For page discussion threads (NULL = regular thread)
     created_by BIGINT NOT NULL REFERENCES "user"(user_id),
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
     updated_by BIGINT REFERENCES "user"(user_id),
