@@ -786,7 +786,7 @@ CREATE TABLE forum_category (
     FOREIGN KEY (forum_group_id, site_id) REFERENCES forum_group(forum_group_id, site_id)
 );
 
--- Threads live under a category.
+-- Threads live in a category (but can be moved between them).
 CREATE TABLE forum_thread (
     forum_thread_id BIGSERIAL PRIMARY KEY,
     forum_category_id BIGINT NOT NULL REFERENCES forum_category(forum_category_id),
