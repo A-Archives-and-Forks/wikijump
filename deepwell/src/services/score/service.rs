@@ -2,7 +2,7 @@
  * services/score/service.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
- * Copyright (C) 2019-2025 Wikijump Team
+ * Copyright (C) 2019-2026 Wikijump Team
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -27,9 +27,16 @@ pub struct ScoreService;
 impl ScoreService {
     pub async fn score(ctx: &ServiceContext<'_>, page_id: i64) -> Result<ScoreValue> {
         let txn = ctx.transaction();
+        let make_error = || {
+            Error::new(
+                format!("failed to evaluate score for page ID {}", page_id),
+                ErrorType::PageVote,
+            )
+        };
+
         let condition = Self::build_condition(page_id);
-        let scorer = Self::get_scorer(ctx, page_id).await?;
-        let score = scorer.score(txn, condition).await?;
+        let scorer = Self::get_scorer(ctx, page_id).await.or_raise(make_error)?;
+        let score = scorer.score(txn, condition).await.or_raise(make_error)?;
         Ok(score)
     }
 
@@ -76,7 +83,8 @@ impl ScoreService {
             .group_by(page_vote::Column::Value)
             .into_model::<VoteCountRow>()
             .all(txn)
-            .await?;
+            .await
+            .or_raise(|| Error::new("failed to collect votes", ErrorType::PageVote))?;
 
         // Gather results into map
         let mut map = VoteMap::new();

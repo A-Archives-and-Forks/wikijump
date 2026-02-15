@@ -2,7 +2,7 @@
  * handler/fallback_error.rs
  *
  * Wilson's Web Server - Serves a zoo of user-generated content
- * Copyright (C) 2019-2025 Wikijump Team
+ * Copyright (C) 2019-2026 Wikijump Team
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -31,6 +31,16 @@
 //! whenever `FallbackError::into_response()` is used, enabling
 //! future debuggers to simply grep for the code and find where
 //! the error is occurring.
+//!
+//! This is distinct from the concept of the basic error, which is
+//! part of DEEPWELL and also used here, which refers to localized error
+//! messages built-in to Wikijump which are used when no better error
+//! message can be used.
+//!
+//! As opposed to fallback errors which are specific to WWS, and occur
+//! when no better error code can be returned due to unexpected issues.
+//! In this sense, fallback errors are "more primordial" than basic errors,
+//! since one cause is WWS failing to look up a basic error from DEEPWELL.
 
 use axum::{
     http::StatusCode,
@@ -39,15 +49,15 @@ use axum::{
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum FallbackError {
-    /// No such special error code.
-    SpecialErrorCode,
+    /// No such basic error code.
+    BasicErrorCode,
 
-    /// Attempting to access the special error route directly.
-    /// Or with a missing `X-Wikijump-Special-Error` internal header.
-    SpecialErrorDirect,
+    /// Attempting to access the basic error route directly.
+    /// Or with a missing `X-Wikijump-Basic-Error` internal header.
+    BasicErrorDirect,
 
-    /// Unable to retrieve a special error response from DEEPWELL.
-    SpecialErrorFetch,
+    /// Unable to retrieve a basic error response from DEEPWELL.
+    BasicErrorFetch,
 
     /// Unable to determine the preferred domain to redirect to for a site.
     RedirectMain,
@@ -63,9 +73,9 @@ impl FallbackError {
     /// We should generally avoid reusing prior error codes.
     pub fn error_code(self) -> u32 {
         match self {
-            FallbackError::SpecialErrorCode => 1000,
-            FallbackError::SpecialErrorFetch => 1001,
-            FallbackError::SpecialErrorDirect => 1002,
+            FallbackError::BasicErrorCode => 1000,
+            FallbackError::BasicErrorFetch => 1001,
+            FallbackError::BasicErrorDirect => 1002,
             FallbackError::RedirectMain => 1003,
             FallbackError::TextBlockS3Fetch => 1004,
         }
@@ -73,9 +83,9 @@ impl FallbackError {
 
     pub fn status_code(self) -> StatusCode {
         match self {
-            FallbackError::SpecialErrorCode => StatusCode::BAD_REQUEST,
-            FallbackError::SpecialErrorDirect => StatusCode::FORBIDDEN,
-            FallbackError::SpecialErrorFetch | FallbackError::RedirectMain => {
+            FallbackError::BasicErrorCode => StatusCode::BAD_REQUEST,
+            FallbackError::BasicErrorDirect => StatusCode::FORBIDDEN,
+            FallbackError::BasicErrorFetch | FallbackError::RedirectMain => {
                 StatusCode::GATEWAY_TIMEOUT
             }
             FallbackError::TextBlockS3Fetch => StatusCode::INTERNAL_SERVER_ERROR,

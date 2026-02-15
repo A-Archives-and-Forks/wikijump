@@ -2,7 +2,7 @@
  * services/parent/structs.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
- * Copyright (C) 2019-2025 Wikijump Team
+ * Copyright (C) 2019-2026 Wikijump Team
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -18,7 +18,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use crate::services::Error;
+use crate::error::prelude::*;
 use crate::types::Reference;
 use std::str::FromStr;
 
@@ -56,13 +56,13 @@ impl ParentalRelationshipType {
 }
 
 impl FromStr for ParentalRelationshipType {
-    type Err = Error;
+    type Err = EnumConversionError;
 
-    fn from_str(value: &str) -> Result<ParentalRelationshipType, Error> {
+    fn from_str(value: &str) -> StdResult<ParentalRelationshipType, EnumConversionError> {
         match value {
             "parents" => Ok(ParentalRelationshipType::Parent),
             "children" => Ok(ParentalRelationshipType::Child),
-            _ => Err(Error::InvalidEnumValue),
+            _ => Err(EnumConversionError::new("ParentalRelationshipType", value)),
         }
     }
 }

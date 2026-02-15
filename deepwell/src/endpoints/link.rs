@@ -2,7 +2,7 @@
  * endpoints/link.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
- * Copyright (C) 2019-2025 Wikijump Team
+ * Copyright (C) 2019-2026 Wikijump Team
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -32,11 +32,19 @@ pub async fn page_links_from_get(
     let GetLinksFrom {
         site_id,
         page: reference,
-    } = params.parse()?;
+    } = parse!(params, Page);
 
     info!("Getting page links for page {reference:?} in site ID {site_id}");
-    let page_id = PageService::get_id(ctx, site_id, reference).await?;
-    LinkService::get_from(ctx, page_id).await
+
+    let make_error = || Error::new("failed to get page links from page", ErrorType::Page);
+
+    let page_id = PageService::get_id(ctx, site_id, reference)
+        .await
+        .or_raise(make_error)?;
+
+    LinkService::get_from(ctx, page_id)
+        .await
+        .or_raise(make_error)
 }
 
 pub async fn page_links_to_get(
@@ -46,21 +54,32 @@ pub async fn page_links_to_get(
     let GetLinksTo {
         site_id,
         page: reference,
-    } = params.parse()?;
+    } = parse!(params, Page);
 
     info!("Getting page links from page {reference:?} in site ID {site_id}");
-    let page_id = PageService::get_id(ctx, site_id, reference).await?;
-    LinkService::get_to(ctx, page_id, None).await
+
+    let make_error = || Error::new("failed to get page links to page", ErrorType::Page);
+
+    let page_id = PageService::get_id(ctx, site_id, reference)
+        .await
+        .or_raise(make_error)?;
+
+    LinkService::get_to(ctx, page_id, None)
+        .await
+        .or_raise(make_error)
 }
 
 pub async fn page_links_to_missing_get(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
 ) -> Result<GetLinksToMissingOutput> {
-    let GetLinksToMissing { site_id, page_slug } = params.parse()?;
+    let GetLinksToMissing { site_id, page_slug } = parse!(params, Page);
+
     info!("Getting missing page links from page slug {page_slug} in site ID {site_id}");
 
-    LinkService::get_to_missing(ctx, site_id, &page_slug, None).await
+    LinkService::get_to_missing(ctx, site_id, &page_slug, None)
+        .await
+        .or_raise(|| Error::new("failed to get links to missing page", ErrorType::Page))
 }
 
 pub async fn page_links_external_from(
@@ -70,19 +89,30 @@ pub async fn page_links_external_from(
     let GetLinksExternalFrom {
         site_id,
         page: reference,
-    } = params.parse()?;
+    } = parse!(params);
 
     info!("Getting external links from page {reference:?} in site ID {site_id}");
 
-    let page_id = PageService::get_id(ctx, site_id, reference).await?;
-    LinkService::get_external_from(ctx, page_id).await
+    let make_error =
+        || Error::new("failed to get external links from page", ErrorType::Page);
+
+    let page_id = PageService::get_id(ctx, site_id, reference)
+        .await
+        .or_raise(make_error)?;
+
+    LinkService::get_external_from(ctx, page_id)
+        .await
+        .or_raise(make_error)
 }
 
 pub async fn page_links_external_to(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
 ) -> Result<GetLinksExternalToOutput> {
-    let GetLinksExternalTo { site_id, url } = params.parse()?;
+    let GetLinksExternalTo { site_id, url } = parse!(params);
     info!("Getting external links to URL {url} in site ID {site_id}");
-    LinkService::get_external_to(ctx, site_id, &url).await
+
+    LinkService::get_external_to(ctx, site_id, &url)
+        .await
+        .or_raise(|| Error::new("failed to get external links to URL", ErrorType::Page))
 }

@@ -2,7 +2,7 @@
  * services/filter/matcher.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
- * Copyright (C) 2019-2025 Wikijump Team
+ * Copyright (C) 2019-2026 Wikijump Team
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -50,7 +50,12 @@ impl FilterMatcher {
     /// Verifies that the given string does not trip any filters of this type.
     ///
     /// For any filter violations, they are logged and an error is returned.
-    pub async fn verify(&self, ctx: &ServiceContext<'_>, text: &str) -> Result<()> {
+    pub async fn verify(
+        &self,
+        ctx: &ServiceContext<'_>,
+        field: &'static str,
+        text: &str,
+    ) -> Result<()> {
         let matches = self.regex_set.matches(text);
         if !matches.matched_any() {
             info!("String passed all filters, is clear");
@@ -69,6 +74,12 @@ impl FilterMatcher {
             let _ = ctx;
         }
 
-        Err(Error::FilterViolation)
+        bail!(Error::new(
+            format!("filter failure for field '{field}'"),
+            ErrorType::FilterViolation {
+                field: str!(field),
+                value: str!(text),
+            },
+        ));
     }
 }

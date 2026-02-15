@@ -2,7 +2,7 @@
  * endpoints/routing.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
- * Copyright (C) 2019-2025 Wikijump Team
+ * Copyright (C) 2019-2026 Wikijump Team
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -47,6 +47,12 @@ pub async fn generate_caddyfile(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
 ) -> Result<String> {
-    let options: CaddyfileOptions<'static> = params.parse()?;
-    CaddyService::generate(ctx, &options).await
+    let options: CaddyfileOptions<'static> = parse!(params, Caddyfile);
+
+    CaddyService::generate(ctx, &options).await.or_raise(|| {
+        Error::new(
+            format!("unable to generate Caddyfile with options: {options:?}"),
+            ErrorType::Caddyfile,
+        )
+    })
 }

@@ -265,8 +265,10 @@ preprocess-timeout-ms = 500
 # the rerendering to be skipped.
 
 [[ftml.rerender-skip]]
-# If a page was rerendered in the last 100 milliseconds, and this isn't a top-level job.
-job-depth = 1
+# If a page was rerendered in the last 100 milliseconds, and this isn't nearly a top-level job.
+# We allow some depth since, for page A -> B, it's possible B was updated before A and so
+# we should be rerendering B to account for changes in A.
+job-depth = 3
 last-update-ms = 100
 
 [[ftml.rerender-skip]]
@@ -283,7 +285,7 @@ last-update-ms = 0
 
 # Alternate, more compact representation of the above:
 # rerender-skip = [
-#     { job-depth = 1, last-update-ms = 100 },
+#     { job-depth = 5, last-update-ms = 100 },
 #     { job-depth = 10, last-update-ms = 1500 },
 #     { job-depth = 50, last-update-ms = 0 },
 # ]
@@ -307,18 +309,18 @@ messages = "wikijump"
 # Layout used by default when there is not a layout set for a page or the site.
 default-page = "wikidot"
 
-[special-pages]
+[blueprint]
 
-# List of special pages, by slug.
+# List of blueprint pages, by slug.
 # These are used as templates in certain cases.
 
 # Any pages whose slug begin with this prefix are
-# treated as "special".
+# handled in a special way.
 #
 # This means that regular users cannot create these pages,
 # and that normal template processing does not apply
 # (to avoid infinite regress and other issues).
-special-prefix = "_"
+page-prefix = "_"
 
 # This is included in all pages within this category,
 # or for _default, all pages in all categories without

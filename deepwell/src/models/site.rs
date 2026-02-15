@@ -28,6 +28,10 @@ pub struct Model {
     pub locale: String,
     #[sea_orm(column_type = "Text")]
     pub default_page: String,
+    #[sea_orm(column_type = "Text")]
+    pub top_bar_page: String,
+    #[sea_orm(column_type = "Text")]
+    pub side_bar_page: String,
     #[sea_orm(column_type = "Text", nullable)]
     pub preferred_domain: Option<String>,
     #[sea_orm(column_type = "Text", nullable)]

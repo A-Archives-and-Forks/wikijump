@@ -2,7 +2,7 @@
  * services/file_revision/service.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
- * Copyright (C) 2019-2025 Wikijump Team
+ * Copyright (C) 2019-2026 Wikijump Team
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -26,7 +26,7 @@ use crate::models::file_revision::{
 use crate::models::{file, page, site};
 use crate::services::blob::{EMPTY_BLOB_HASH, EMPTY_BLOB_MIME, FinalizeBlobUploadOutput};
 use crate::services::{BlobService, OutdateService, PageService};
-use crate::types::{Bytes, FetchDirection};
+use crate::types::{Bytes, FetchDirection, RerenderDepth};
 use sea_orm::{FromQueryResult, prelude::*};
 use std::num::NonZeroI32;
 use std::sync::LazyLock;
@@ -63,6 +63,17 @@ impl FileRevisionService {
     ) -> Result<Option<CreateFileRevisionOutput>> {
         let txn = ctx.transaction();
         let revision_number = next_revision_number(&previous, page_id, file_id);
+
+        let original_page_id = page_id;
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to create new file revision on file ID {} on page ID {} in site ID {} by user ID {}",
+                    file_id, original_page_id, site_id, user_id,
+                ),
+                ErrorType::FileRevision,
+            )
+        };
 
         // Replace with debug_assert_matches! when stablized.
         // This should correspond to each use of FileRevisionService::create() in FileService.
@@ -130,12 +141,26 @@ impl FileRevisionService {
 
         if mime.is_empty() {
             error!("MIME type is empty");
-            return Err(Error::FileMimeEmpty);
+            bail!(Error::new(
+                "cannot create file revision, no MIME type specified",
+                ErrorType::FileMimeEmpty
+            ));
         }
 
         // Run outdater
-        let page_slug = Self::get_page_slug(ctx, site_id, page_id).await?;
-        OutdateService::process_page_edit(ctx, site_id, page_id, &page_slug, 0).await?;
+        let page_slug = Self::get_page_slug(ctx, site_id, page_id)
+            .await
+            .or_raise(make_error)?;
+
+        OutdateService::process_page_edit(
+            ctx,
+            site_id,
+            page_id,
+            &page_slug,
+            RerenderDepth::default(),
+        )
+        .await
+        .or_raise(make_error)?;
 
         // Insert the new revision into the table
         let model = file_revision::ActiveModel {
@@ -155,7 +180,8 @@ impl FileRevisionService {
             ..Default::default()
         };
 
-        let FileRevisionModel { revision_id, .. } = model.insert(txn).await?;
+        let FileRevisionModel { revision_id, .. } =
+            model.insert(txn).await.or_raise(make_error)?;
         Ok(Some(CreateFileRevisionOutput {
             file_revision_id: revision_id,
             file_revision_number: revision_number,
@@ -183,10 +209,30 @@ impl FileRevisionService {
     ) -> Result<CreateFirstFileRevisionOutput> {
         let txn = ctx.transaction();
 
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to create first file revision on file ID {} on page ID {} in site ID {} by user ID {}",
+                    file_id, page_id, site_id, user_id,
+                ),
+                ErrorType::FileRevision,
+            )
+        };
+
         // Run outdater
-        let page_slug = Self::get_page_slug(ctx, site_id, page_id).await?;
-        OutdateService::process_page_displace(ctx, site_id, page_id, &page_slug, 0)
-            .await?;
+        let page_slug = Self::get_page_slug(ctx, site_id, page_id)
+            .await
+            .or_raise(make_error)?;
+
+        OutdateService::process_page_displace(
+            ctx,
+            site_id,
+            page_id,
+            &page_slug,
+            RerenderDepth::default(),
+        )
+        .await
+        .or_raise(make_error)?;
 
         // Insert the first revision into the table
         let model = file_revision::ActiveModel {
@@ -206,7 +252,9 @@ impl FileRevisionService {
             ..Default::default()
         };
 
-        let FileRevisionModel { revision_id, .. } = model.insert(txn).await?;
+        let FileRevisionModel { revision_id, .. } =
+            model.insert(txn).await.or_raise(make_error)?;
+
         Ok(CreateFirstFileRevisionOutput {
             file_id,
             file_revision_id: revision_id,
@@ -238,6 +286,16 @@ impl FileRevisionService {
         let txn = ctx.transaction();
         let revision_number = next_revision_number(&previous, page_id, file_id);
 
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to create tombstone file revision on file ID {} on page ID {} in site ID {} by user ID {} (erase S3 hash {})",
+                    file_id, page_id, site_id, user_id, erase_s3_hash,
+                ),
+                ErrorType::FileRevision,
+            )
+        };
+
         let mut hidden = Vec::new();
         let FileRevisionModel {
             name,
@@ -256,8 +314,19 @@ impl FileRevisionService {
         }
 
         // Run outdater
-        let page_slug = Self::get_page_slug(ctx, site_id, page_id).await?;
-        OutdateService::process_page_edit(ctx, site_id, page_id, &page_slug, 0).await?;
+        let page_slug = Self::get_page_slug(ctx, site_id, page_id)
+            .await
+            .or_raise(make_error)?;
+
+        OutdateService::process_page_edit(
+            ctx,
+            site_id,
+            page_id,
+            &page_slug,
+            RerenderDepth::default(),
+        )
+        .await
+        .or_raise(make_error)?;
 
         // Insert the tombstone revision into the table
         let model = file_revision::ActiveModel {
@@ -277,7 +346,9 @@ impl FileRevisionService {
             ..Default::default()
         };
 
-        let FileRevisionModel { revision_id, .. } = model.insert(txn).await?;
+        let FileRevisionModel { revision_id, .. } =
+            model.insert(txn).await.or_raise(make_error)?;
+
         Ok(CreateFileRevisionOutput {
             file_revision_id: revision_id,
             file_revision_number: revision_number,
@@ -318,6 +389,16 @@ impl FileRevisionService {
         let txn = ctx.transaction();
         let revision_number = next_revision_number(&previous, old_page_id, file_id);
 
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to create resurrection file revision on file ID {} on old page ID {} in site ID {} to new page ID {} by user ID {}",
+                    file_id, old_page_id, site_id, new_page_id, user_id,
+                ),
+                ErrorType::FileRevision,
+            )
+        };
+
         let FileRevisionModel {
             name: old_name,
             s3_hash,
@@ -341,9 +422,19 @@ impl FileRevisionService {
         };
 
         // Run outdater
-        let new_page_slug = Self::get_page_slug(ctx, site_id, new_page_id).await?;
-        OutdateService::process_page_edit(ctx, site_id, new_page_id, &new_page_slug, 0)
-            .await?;
+        let new_page_slug = Self::get_page_slug(ctx, site_id, new_page_id)
+            .await
+            .or_raise(make_error)?;
+
+        OutdateService::process_page_edit(
+            ctx,
+            site_id,
+            new_page_id,
+            &new_page_slug,
+            RerenderDepth::default(),
+        )
+        .await
+        .or_raise(make_error)?;
 
         // Insert the resurrection revision into the table
         let model = file_revision::ActiveModel {
@@ -363,7 +454,9 @@ impl FileRevisionService {
             ..Default::default()
         };
 
-        let FileRevisionModel { revision_id, .. } = model.insert(txn).await?;
+        let FileRevisionModel { revision_id, .. } =
+            model.insert(txn).await.or_raise(make_error)?;
+
         Ok(CreateFileRevisionOutput {
             file_revision_id: revision_id,
             file_revision_number: revision_number,
@@ -391,11 +484,27 @@ impl FileRevisionService {
         // the file, its name, contents, etc are exposed.
         // It should be reverted first, and then it can be hidden.
 
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to update file revision ID {} on file ID {} on page ID {} in site ID {} by user ID {}",
+                    revision_id, file_id, page_id, site_id, user_id,
+                ),
+                ErrorType::FileRevision,
+            )
+        };
+
         let txn = ctx.transaction();
-        let latest = Self::get_latest(ctx, site_id, page_id, file_id).await?;
+        let latest = Self::get_latest(ctx, site_id, page_id, file_id)
+            .await
+            .or_raise(make_error)?;
+
         if revision_id == latest.revision_id {
             warn!("Attempting to edit latest revision, denying request");
-            return Err(Error::CannotHideLatestRevision);
+            bail!(Error::new(
+                "cannot edit latest file revision",
+                ErrorType::CannotHideLatestRevision,
+            ));
         }
 
         // TODO: record revision edit in audit log
@@ -410,7 +519,7 @@ impl FileRevisionService {
         };
 
         // Update and return
-        let revision = model.update(txn).await?;
+        let revision = model.update(txn).await.or_raise(make_error)?;
         Ok(revision)
     }
 
@@ -426,8 +535,18 @@ impl FileRevisionService {
         // NOTE: There is no optional variant of this method,
         //       since all extant files must have at least one revision.
 
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to get latest file revision for file ID {} on page ID {} in site ID {}",
+                    file_id, page_id, site_id,
+                ),
+                ErrorType::FileRevision,
+            )
+        };
+
         let txn = ctx.transaction();
-        let revision = FileRevision::find()
+        let revision_opt = FileRevision::find()
             .filter(
                 Condition::all()
                     .add(file_revision::Column::SiteId.eq(site_id))
@@ -436,10 +555,19 @@ impl FileRevisionService {
             )
             .order_by_desc(file_revision::Column::RevisionNumber)
             .one(txn)
-            .await?
-            .ok_or(Error::FileRevisionNotFound)?;
+            .await
+            .or_raise(make_error)?;
 
-        Ok(revision)
+        match revision_opt {
+            Some(revision) => Ok(revision),
+            None => bail!(Error::new(
+                format!(
+                    "no latest file revision for file ID {} on page ID {} in site ID {}",
+                    file_id, page_id, site_id,
+                ),
+                ErrorType::FileRevisionNotFound,
+            )),
+        }
     }
 
     /// Get the given revision for a file.
@@ -454,6 +582,16 @@ impl FileRevisionService {
             revision_number,
         }: GetFileRevision,
     ) -> Result<Option<FileRevisionModel>> {
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to get file revision number {} on file ID {} in page ID {} on site ID {}",
+                    revision_number, file_id, page_id, site_id,
+                ),
+                ErrorType::FileRevision,
+            )
+        };
+
         let txn = ctx.transaction();
         let revision = FileRevision::find()
             .filter(
@@ -464,7 +602,8 @@ impl FileRevisionService {
                     .add(file_revision::Column::RevisionNumber.eq(revision_number)),
             )
             .one(txn)
-            .await?;
+            .await
+            .or_raise(make_error)?;
 
         Ok(revision)
     }
@@ -478,7 +617,11 @@ impl FileRevisionService {
         ctx: &ServiceContext<'_>,
         input: GetFileRevision,
     ) -> Result<FileRevisionModel> {
-        find_or_error!(Self::get_optional(ctx, input), FileRevision)
+        find_or_error!(
+            Self::get_optional(ctx, input),
+            "file revision",
+            FileRevision
+        )
     }
 
     /// Counts the number of revisions for a file.
@@ -489,6 +632,16 @@ impl FileRevisionService {
         page_id: i64,
         file_id: i64,
     ) -> Result<NonZeroI32> {
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to get file revision count on file ID {} in page ID {}",
+                    file_id, page_id,
+                ),
+                ErrorType::FileRevision,
+            )
+        };
+
         let txn = ctx.transaction();
         let row_count = FileRevision::find()
             .filter(
@@ -497,7 +650,8 @@ impl FileRevisionService {
                     .add(file_revision::Column::FileId.eq(file_id)),
             )
             .count(txn)
-            .await?;
+            .await
+            .or_raise(make_error)?;
 
         // We store revision_number in INT, which is i32.
         // So even though this row count is usize, it
@@ -509,7 +663,13 @@ impl FileRevisionService {
         // that means this page does not exist, and we should return an error.
         match NonZeroI32::new(row_count) {
             Some(count) => Ok(count),
-            None => Err(Error::FileNotFound),
+            None => bail!(Error::new(
+                format!(
+                    "cannot get file revision count for file ID {} in page ID {}",
+                    file_id, page_id
+                ),
+                ErrorType::FileNotFound
+            )),
         }
     }
 
@@ -525,6 +685,19 @@ impl FileRevisionService {
             limit,
         }: GetFileRevisionRange,
     ) -> Result<Vec<FileRevisionModel>> {
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to get {} file revisions from number {} in file ID {} (max {})",
+                    revision_direction.name(),
+                    revision_number,
+                    file_id,
+                    limit,
+                ),
+                ErrorType::FileRevision,
+            )
+        };
+
         let revision_condition = {
             use file_revision::Column::RevisionNumber;
 
@@ -553,7 +726,8 @@ impl FileRevisionService {
             .order_by_asc(file_revision::Column::RevisionNumber)
             .limit(limit)
             .all(txn)
-            .await?;
+            .await
+            .or_raise(make_error)?;
 
         Ok(revisions)
     }
@@ -563,7 +737,18 @@ impl FileRevisionService {
         site_id: i64,
         page_id: i64,
     ) -> Result<String> {
-        let page = PageService::get(ctx, site_id, Reference::Id(page_id)).await?;
+        let page = PageService::get(ctx, site_id, Reference::Id(page_id))
+            .await
+            .or_raise(|| {
+                Error::new(
+                    format!(
+                        "failed to get page slug for page ID {} in site ID {}",
+                        page_id, site_id,
+                    ),
+                    ErrorType::FileRevision,
+                )
+            })?;
+
         Ok(page.slug)
     }
 }

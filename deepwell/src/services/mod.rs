@@ -2,7 +2,7 @@
  * services/mod.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
- * Copyright (C) 2019-2025 Wikijump Team
+ * Copyright (C) 2019-2026 Wikijump Team
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -38,10 +38,12 @@
 
 mod prelude {
     pub use super::context::ServiceContext;
-    pub use super::error::*;
     pub use crate::config::Config;
+    pub use crate::error::prelude::*;
     pub use crate::types::{Maybe, Reference};
-    pub use crate::utils::now;
+    pub use crate::utils::{
+        ConvertToI16, ConvertToI32, ConvertToI64, ConvertToU64, ConvertToUsize, now,
+    };
     pub use paste::paste;
     pub use sea_orm::{
         ActiveModelTrait, ColumnTrait, Condition, ConnectionTrait, DeleteResult,
@@ -54,12 +56,13 @@ mod prelude {
 mod macros;
 
 mod context;
-mod error;
 
 pub mod alias;
 pub mod audit;
 pub mod authentication;
+pub mod basic_error;
 pub mod blob;
+pub mod blueprint;
 pub mod caddy;
 pub mod category;
 pub mod domain;
@@ -85,8 +88,6 @@ pub mod score;
 pub mod session;
 pub mod settings;
 pub mod site;
-pub mod special_error;
-pub mod special_page;
 pub mod text;
 pub mod text_block;
 pub mod user;
@@ -95,12 +96,13 @@ pub mod vote;
 
 pub use self::alias::AliasService;
 pub use self::authentication::AuthenticationService;
+pub use self::basic_error::BasicErrorService;
 pub use self::blob::BlobService;
+pub use self::blueprint::BlueprintPageService;
 pub use self::caddy::CaddyService;
 pub use self::category::CategoryService;
 pub use self::context::ServiceContext;
 pub use self::domain::DomainService;
-pub use self::error::*;
 pub use self::file::FileService;
 pub use self::file_revision::FileRevisionService;
 pub use self::filter::FilterService;
@@ -121,8 +123,6 @@ pub use self::score::ScoreService;
 pub use self::session::SessionService;
 pub use self::settings::SettingsService;
 pub use self::site::SiteService;
-pub use self::special_error::SpecialErrorService;
-pub use self::special_page::SpecialPageService;
 pub use self::text::TextService;
 pub use self::text_block::TextBlockService;
 pub use self::user::UserService;

@@ -2,7 +2,7 @@
  * route.rs
  *
  * Wilson's Web Server - Serves a zoo of user-generated content
- * Copyright (C) 2019-2025 Wikijump Team
+ * Copyright (C) 2019-2026 Wikijump Team
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -76,8 +76,8 @@ pub fn build_router(state: ServerState) -> Router {
         .route("/-/html/{page_slug}/{id}", any(handle_invalid_method))
         // System routes
         .route("/-/health-check", any(handle_health_check))
-        .route("/-/special-error/{error_code}", get(handle_special_error))
-        .route("/-/special-error/{error_code}", any(handle_invalid_method))
+        .route("/-/basic-error/{error_code}", get(handle_basic_error))
+        .route("/-/basic-error/{error_code}", any(handle_invalid_method))
         // General routes
         .route("/robots.txt", get(handle_robots_txt)) // TODO
         .route("/.well-known", any(handle_well_known)) // TODO

@@ -2,7 +2,7 @@
  * services/score/impls/percent.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
- * Copyright (C) 2019-2025 Wikijump Team
+ * Copyright (C) 2019-2026 Wikijump Team
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -45,7 +45,9 @@ impl Scorer for PercentScorer {
     ) -> Result<ScoreValue> {
         // We need to do a GROUP BY either way here,
         // may as well use the helper method.
-        let votes = ScoreService::collect_votes(txn, condition).await?;
+        let votes = ScoreService::collect_votes(txn, condition)
+            .await
+            .or_raise(|| make_error("percent"))?;
 
         let upvotes = votes.get(1) as f64;
         let total = votes.count() as f64;

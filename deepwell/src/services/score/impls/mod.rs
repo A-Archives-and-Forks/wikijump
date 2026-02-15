@@ -2,7 +2,7 @@
  * services/score/impls/mod.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
- * Copyright (C) 2019-2025 Wikijump Team
+ * Copyright (C) 2019-2026 Wikijump Team
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -21,7 +21,16 @@
 // TEMP
 #![allow(dead_code)]
 
-use super::prelude;
+pub mod prelude {
+    pub use super::super::prelude::*;
+
+    pub fn make_error(method: &str) -> Error {
+        Error::new(
+            format!("failed to calculate {} score for page", method),
+            ErrorType::PageVote,
+        )
+    }
+}
 
 mod mean;
 mod null;

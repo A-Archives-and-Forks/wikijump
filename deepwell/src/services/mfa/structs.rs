@@ -2,7 +2,7 @@
  * services/mfa/structs.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
- * Copyright (C) 2019-2025 Wikijump Team
+ * Copyright (C) 2019-2026 Wikijump Team
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -47,6 +47,16 @@ pub struct RecoveryCodes {
 
 impl RecoveryCodes {
     pub fn generate(config: &Config) -> Result<Self> {
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to generate new MFA recovery codes ({} codes each {} bytes long each)",
+                    config.recovery_code_count, config.recovery_code_length,
+                ),
+                ErrorType::UserMfa,
+            )
+        };
+
         let mut rng = thread_rng();
         assert_is_csprng(&rng);
 
@@ -70,7 +80,7 @@ impl RecoveryCodes {
 
             for code in &recovery_codes {
                 debug!("Hashing recovery code");
-                let hash = PasswordService::new_hash(code)?;
+                let hash = PasswordService::new_hash(code).or_raise(make_error)?;
                 hashes.push(hash);
             }
 

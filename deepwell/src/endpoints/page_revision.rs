@@ -2,7 +2,7 @@
  * endpoints/page_revision.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
- * Copyright (C) 2019-2025 Wikijump Team
+ * Copyright (C) 2019-2026 Wikijump Team
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -20,12 +20,12 @@
 
 use super::prelude::*;
 use crate::models::page_revision::Model as PageRevisionModel;
+use crate::services::TextService;
 use crate::services::page::GetPageReference;
 use crate::services::page_revision::{
     GetPageRevision, GetPageRevisionDetails, GetPageRevisionRangeDetails,
     PageRevisionCountOutput, PageRevisionModelFiltered, UpdatePageRevisionDetails,
 };
-use crate::services::{Result, TextService};
 use crate::types::PageDetails;
 
 pub async fn page_revision_count(
@@ -35,12 +35,21 @@ pub async fn page_revision_count(
     let GetPageReference {
         site_id,
         page: reference,
-    } = params.parse()?;
+    } = parse!(params, PageRevision);
 
     info!("Getting latest revision for page {reference:?} in site ID {site_id}");
 
-    let page_id = PageService::get_id(ctx, site_id, reference).await?;
-    let revision_count = PageRevisionService::count(ctx, site_id, page_id).await?;
+    let make_error =
+        || Error::new("failed to get page revision count", ErrorType::PageRevision);
+
+    let page_id = PageService::get_id(ctx, site_id, reference)
+        .await
+        .or_raise(make_error)?;
+
+    let revision_count = PageRevisionService::count(ctx, site_id, page_id)
+        .await
+        .or_raise(make_error)?;
+
     Ok(PageRevisionCountOutput {
         revision_count,
         first_revision: 0,
@@ -60,19 +69,28 @@ pub async fn page_revision_get(
                 revision_number,
             },
         details,
-    } = params.parse()?;
+    } = parse!(params, PageRevision);
 
     info!(
-        "Getting revision {revision_number} for page ID {page_id} in site ID {site_id}",
+        "Getting revision {} for page ID {} in site ID {}",
+        revision_number, page_id, site_id,
     );
 
+    let make_error =
+        || Error::new("failed to get a page revision", ErrorType::PageRevision);
+
     let revision =
-        PageRevisionService::get_optional(ctx, site_id, page_id, revision_number).await?;
+        PageRevisionService::get_optional(ctx, site_id, page_id, revision_number)
+            .await
+            .or_raise(make_error)?;
 
     match revision {
         None => Ok(None),
         Some(revision) => {
-            let revision = filter_and_populate_revision(ctx, revision, details).await?;
+            let revision = filter_and_populate_revision(ctx, revision, details)
+                .await
+                .or_raise(make_error)?;
+
             Ok(Some(revision))
         }
     }
@@ -82,29 +100,48 @@ pub async fn page_revision_edit(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
 ) -> Result<PageRevisionModelFiltered> {
-    let UpdatePageRevisionDetails { input, details } = params.parse()?;
+    let UpdatePageRevisionDetails { input, details } = parse!(params, PageRevision);
 
     info!(
         "Editing revision ID {} for page ID {} in site ID {}",
         input.revision_id, input.page_id, input.site_id,
     );
 
+    let make_error =
+        || Error::new("failed to edit a page revision", ErrorType::PageRevision);
+
     let revision_id = input.revision_id;
-    let (_, revision) = try_join!(
+    let (_, revision) = join!(
         PageRevisionService::update(ctx, input),
         PageRevisionService::get_direct(ctx, revision_id),
-    )?;
+    );
+    let revision = raise_multiple!(revision; make_error);
 
-    filter_and_populate_revision(ctx, revision, details).await
+    filter_and_populate_revision(ctx, revision, details)
+        .await
+        .or_raise(make_error)
 }
 
 pub async fn page_revision_range(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
 ) -> Result<Vec<PageRevisionModelFiltered>> {
-    let GetPageRevisionRangeDetails { input, details } = params.parse()?;
-    let revisions = PageRevisionService::get_range(ctx, input).await?;
-    filter_and_populate_revisions(ctx, revisions, details).await
+    let GetPageRevisionRangeDetails { input, details } = parse!(params, PageRevision);
+
+    let make_error = || {
+        Error::new(
+            "failed to get a range of page revisions",
+            ErrorType::PageRevision,
+        )
+    };
+
+    let revisions = PageRevisionService::get_range(ctx, input)
+        .await
+        .or_raise(make_error)?;
+
+    filter_and_populate_revisions(ctx, revisions, details)
+        .await
+        .or_raise(make_error)
 }
 
 // Helper functions
@@ -126,7 +163,9 @@ async fn filter_and_populate_revision(
         user_id,
         changes,
         wikitext_hash,
-        compiled_hash,
+        compiled_body_html_hash,
+        compiled_top_bar_html_hash,
+        compiled_side_bar_html_hash,
         compiled_at,
         compiled_generator,
         comments,
@@ -136,6 +175,13 @@ async fn filter_and_populate_revision(
         slug,
         tags,
     } = model;
+
+    let make_error = || {
+        Error::new(
+            "failed to filter and populate revision data",
+            ErrorType::PageRevision,
+        )
+    };
 
     // Strip hidden fields
     let mut comments = Some(comments);
@@ -159,10 +205,29 @@ async fn filter_and_populate_revision(
     }
 
     // Get text data, if requested
-    let (wikitext, compiled_html) = try_join!(
-        TextService::get_maybe(ctx, details.wikitext, &wikitext_hash),
-        TextService::get_maybe(ctx, details.compiled_html, &compiled_hash),
-    )?;
+    let (wikitext, compiled_body_html, compiled_top_bar_html, compiled_side_bar_html) = join!(
+        TextService::get_conditional(ctx, details.wikitext, &wikitext_hash),
+        TextService::get_conditional(
+            ctx,
+            details.compiled_html,
+            &compiled_body_html_hash,
+        ),
+        TextService::get_conditional_option(
+            ctx,
+            details.compiled_html,
+            &compiled_top_bar_html_hash,
+        ),
+        TextService::get_conditional_option(
+            ctx,
+            details.compiled_html,
+            &compiled_side_bar_html_hash,
+        ),
+    );
+
+    let wikitext = wikitext.or_raise(make_error)?;
+    let compiled_body_html = compiled_body_html.or_raise(make_error)?;
+    let compiled_top_bar_html = compiled_top_bar_html.or_raise(make_error)?;
+    let compiled_side_bar_html = compiled_side_bar_html.or_raise(make_error)?;
 
     Ok(PageRevisionModelFiltered {
         revision_id,
@@ -176,7 +241,9 @@ async fn filter_and_populate_revision(
         user_id,
         changes,
         wikitext,
-        compiled_html,
+        compiled_body_html,
+        compiled_top_bar_html,
+        compiled_side_bar_html,
         compiled_at,
         compiled_generator,
         comments,
@@ -195,8 +262,18 @@ async fn filter_and_populate_revisions(
 ) -> Result<Vec<PageRevisionModelFiltered>> {
     let mut f_revisions = Vec::new();
 
+    let make_error = || {
+        Error::new(
+            "failed to populate a list of revisions",
+            ErrorType::PageRevision,
+        )
+    };
+
     for revision in revisions {
-        let f_revision = filter_and_populate_revision(ctx, revision, details).await?;
+        let f_revision = filter_and_populate_revision(ctx, revision, details)
+            .await
+            .or_raise(make_error)?;
+
         f_revisions.push(f_revision)
     }
 

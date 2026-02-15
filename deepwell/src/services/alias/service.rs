@@ -2,7 +2,7 @@
  * services/alias/service.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
- * Copyright (C) 2019-2025 Wikijump Team
+ * Copyright (C) 2019-2026 Wikijump Team
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -63,9 +63,21 @@ impl AliasService {
 
         info!("Creating {alias_type:?} alias with slug '{slug}'");
 
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to create {:?} alias '{}' to target ID {}, created by user ID {}",
+                    alias_type, slug, target_id, created_by,
+                ),
+                ErrorType::Alias,
+            )
+        };
+
         // Perform filter validation
         if !bypass_filter {
-            Self::run_filter(ctx, alias_type, &slug).await?;
+            Self::run_filter(ctx, alias_type, &slug)
+                .await
+                .or_raise(make_error)?;
         }
 
         // Check for existence and conflicts
@@ -81,54 +93,110 @@ impl AliasService {
         // the minimum name length in bytes and chars.
         match alias_type {
             AliasType::Site => {
-                if !SiteService::exists(ctx, Reference::Id(target_id)).await? {
-                    error!(
-                        "No target site with ID {target_id} exists, cannot create alias",
-                    );
-                    return Err(Error::SiteNotFound);
-                }
-
-                if verify && SiteService::exists(ctx, Reference::Slug(cow!(slug))).await?
+                if !SiteService::exists(ctx, Reference::Id(target_id))
+                    .await
+                    .or_raise(make_error)?
                 {
                     error!(
-                        "Site with conflicting slug '{slug}' already exists, cannot create alias",
+                        "No target site with ID {} exists, cannot create alias",
+                        target_id,
                     );
-                    return Err(Error::SiteExists);
+                    bail!(Error::new(
+                        format!(
+                            "cannot create alias '{}' to site ID {}, since that site does not exist",
+                            slug, target_id,
+                        ),
+                        ErrorType::SiteNotFound
+                    ));
+                }
+
+                if verify
+                    && SiteService::exists(ctx, Reference::Slug(cow!(slug)))
+                        .await
+                        .or_raise(make_error)?
+                {
+                    error!(
+                        "Site with conflicting slug '{}' already exists, cannot create alias",
+                        slug,
+                    );
+                    bail!(Error::new(
+                        format!(
+                            "cannot create site alias '{}', as another site with that slug already exists",
+                            target_id,
+                        ),
+                        ErrorType::SiteExists
+                    ));
                 }
             }
             AliasType::User => {
-                if !UserService::exists(ctx, Reference::Id(target_id)).await? {
-                    error!(
-                        "No target user with ID {target_id} exists, cannot create alias",
-                    );
-                    return Err(Error::UserNotFound);
-                }
-
-                if verify && UserService::exists(ctx, Reference::Slug(cow!(slug))).await?
+                if !UserService::exists(ctx, Reference::Id(target_id))
+                    .await
+                    .or_raise(make_error)?
                 {
                     error!(
-                        "User with conflicting slug '{slug}' already exists, cannot create alias",
+                        "No target user with ID {} exists, cannot create alias",
+                        target_id,
                     );
-                    return Err(Error::UserExists);
+                    bail!(Error::new(
+                        format!(
+                            "cannot create alias '{}' to user ID {}, since that user does not exist",
+                            slug, target_id,
+                        ),
+                        ErrorType::UserNotFound,
+                    ));
                 }
+
+                if verify
+                    && UserService::exists(ctx, Reference::Slug(cow!(slug)))
+                        .await
+                        .or_raise(make_error)?
+                {
+                    error!(
+                        "User with conflicting slug '{}' already exists, cannot create alias",
+                        slug,
+                    );
+                    bail!(Error::new(
+                        format!(
+                            "cannot create suser alias '{}', as another user with that slug already exists",
+                            target_id,
+                        ),
+                        ErrorType::SiteExists,
+                    ));
+                }
+
+                // Do user name checks
 
                 let config = ctx.config();
                 if slug.len() < config.minimum_name_bytes {
                     error!(
                         "User's name is not long enough ({} < {} bytes)",
                         slug.len(),
-                        ctx.config().minimum_name_bytes,
+                        config.minimum_name_bytes,
                     );
-                    return Err(Error::UserNameTooShort);
+                    bail!(Error::new(
+                        format!(
+                            "cannot create user alias '{}', name is not long enough ({} < {} bytes)",
+                            slug,
+                            slug.len(),
+                            config.minimum_name_bytes,
+                        ),
+                        ErrorType::UserNameTooShort
+                    ));
                 }
 
-                if slug.chars().count() < config.minimum_name_chars {
+                let slug_chars = slug.chars().count();
+                if slug_chars < config.minimum_name_chars {
                     error!(
                         "User's name is not long enough ({} < {} chars)",
-                        slug.len(),
-                        ctx.config().minimum_name_chars,
+                        slug_chars, config.minimum_name_chars,
                     );
-                    return Err(Error::UserNameTooShort);
+                    bail!(Error::new(
+                        format!(
+                            "cannot create user alias '{}', name is not long enough ({} < {} chars)",
+                            slug, slug_chars, config.minimum_name_chars
+                        ),
+                        ErrorType::UserNameTooShort,
+                    ));
                 }
             }
         }
@@ -142,11 +210,17 @@ impl AliasService {
             ..Default::default()
         };
 
-        let alias_id = Alias::insert(alias).exec(txn).await?.last_insert_id;
+        let alias_id = Alias::insert(alias)
+            .exec(txn)
+            .await
+            .or_raise(make_error)?
+            .last_insert_id;
 
         // Perform verification
         if verify {
-            Self::verify(ctx, alias_type, &slug).await?;
+            Self::verify(ctx, alias_type, &slug)
+                .await
+                .or_raise(make_error)?;
         }
 
         // Return
@@ -160,6 +234,13 @@ impl AliasService {
     ) -> Result<Option<AliasModel>> {
         let txn = ctx.transaction();
 
+        let make_error = || {
+            Error::new(
+                format!("failed to get {:?} alias '{}'", alias_type, slug),
+                ErrorType::Alias,
+            )
+        };
+
         let alias = Alias::find()
             .filter(
                 Condition::all()
@@ -167,7 +248,8 @@ impl AliasService {
                     .add(alias::Column::Slug.eq(slug)),
             )
             .one(txn)
-            .await?;
+            .await
+            .or_raise(make_error)?;
 
         Ok(alias)
     }
@@ -179,7 +261,7 @@ impl AliasService {
         alias_type: AliasType,
         slug: &str,
     ) -> Result<AliasModel> {
-        find_or_error!(Self::get_optional(ctx, alias_type, slug), Alias)
+        find_or_error!(Self::get_optional(ctx, alias_type, slug), "alias", Alias)
     }
 
     #[inline]
@@ -200,6 +282,16 @@ impl AliasService {
     ) -> Result<Vec<AliasModel>> {
         info!("Finding all {alias_type:?} aliases for ID {target_id}");
 
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to get all {:?} aliases for ID {}",
+                    alias_type, target_id,
+                ),
+                ErrorType::Alias,
+            )
+        };
+
         let txn = ctx.transaction();
         let aliases = Alias::find()
             .filter(
@@ -208,12 +300,13 @@ impl AliasService {
                     .add(alias::Column::TargetId.eq(target_id)),
             )
             .all(txn)
-            .await?;
+            .await
+            .or_raise(make_error)?;
 
         Ok(aliases)
     }
 
-    /// Used for when a user renames to an old slug.
+    /// Used for when a site or user renames to an old slug.
     ///
     /// This takes the old user alias and renames the slug in-place, without having to do
     /// `create()` / `delete()` (which runs into a dependency issue as `create()` checks
@@ -227,7 +320,17 @@ impl AliasService {
         alias_id: i64,
         new_slug: &str,
     ) -> Result<()> {
-        info!("Swapping user alias ID {alias_id} to use slug '{new_slug}'");
+        info!("Swapping alias ID {alias_id} to use new slug '{new_slug}'");
+
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to swap alias ID {} with new slug '{}'",
+                    alias_id, new_slug,
+                ),
+                ErrorType::Alias,
+            )
+        };
 
         let txn = ctx.transaction();
         let model = alias::ActiveModel {
@@ -237,7 +340,7 @@ impl AliasService {
             ..Default::default()
         };
 
-        model.update(txn).await?;
+        model.update(txn).await.or_raise(make_error)?;
         Ok(())
     }
 
@@ -250,10 +353,19 @@ impl AliasService {
         alias_type: AliasType,
         target_id: i64,
     ) -> Result<u64> {
-        let txn = ctx.transaction();
-
         info!("Removing all {alias_type:?} aliases for target ID {target_id}");
 
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to remove all {:?} aliases pointing to ID {}",
+                    alias_type, target_id,
+                ),
+                ErrorType::Alias,
+            )
+        };
+
+        let txn = ctx.transaction();
         let DeleteResult { rows_affected } = Alias::delete_many()
             .filter(
                 Condition::all()
@@ -261,16 +373,18 @@ impl AliasService {
                     .add(alias::Column::TargetId.eq(target_id)),
             )
             .exec(txn)
-            .await?;
+            .await
+            .or_raise(make_error)?;
 
         debug!(
-            "{rows_affected} {alias_type:?} aliases for target ID {target_id} were removed",
+            "{} {:?} aliases for target ID {} were removed",
+            rows_affected, alias_type, target_id,
         );
 
         Ok(rows_affected)
     }
 
-    /// Verifies that the `user` and `user_alias` tables are consistent.
+    /// Verifies that the main and alias tables are consistent.
     ///
     /// These tables have a uniqueness invariant wherein a slug is only
     /// present in at most one of these two tables, but not both.
@@ -279,16 +393,30 @@ impl AliasService {
         alias_type: AliasType,
         slug: &str,
     ) -> Result<()> {
-        info!("Verifying target and alias table consistency for slug '{slug}'");
+        info!(
+            "Verifying {alias_type:?} alias and target table consistency for slug '{slug}'"
+        );
+
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to verify {:?} alias and target table are consistent for slug '{}'",
+                    alias_type, slug,
+                ),
+                ErrorType::Alias,
+            )
+        };
 
         let txn = ctx.transaction();
-        let alias_fut = Alias::find()
+        let alias_opt = Alias::find()
             .filter(
                 Condition::all()
                     .add(alias::Column::AliasType.eq(alias_type))
                     .add(alias::Column::Slug.eq(slug)),
             )
-            .one(txn);
+            .one(txn)
+            .await
+            .or_raise(make_error)?;
 
         // Check the target and alias result.
         //
@@ -296,18 +424,17 @@ impl AliasService {
         // since the invariant is not being upheld, so we panic.
         match alias_type {
             AliasType::Site => {
-                let (site_result, alias_result) = try_join!(
-                    Site::find()
-                        .filter(
-                            Condition::all()
-                                .add(site::Column::Slug.eq(slug))
-                                .add(site::Column::DeletedAt.is_null())
-                        )
-                        .one(txn),
-                    alias_fut,
-                )?;
+                let site_opt = Site::find()
+                    .filter(
+                        Condition::all()
+                            .add(site::Column::Slug.eq(slug))
+                            .add(site::Column::DeletedAt.is_null()),
+                    )
+                    .one(txn)
+                    .await
+                    .or_raise(make_error)?;
 
-                if let (Some(site), Some(alias)) = (site_result, alias_result) {
+                if let (Some(site), Some(alias)) = (site_opt, alias_opt) {
                     error!(
                         "Consistency error! Both site and alias tables have the slug '{slug}'"
                     );
@@ -318,18 +445,17 @@ impl AliasService {
                 }
             }
             AliasType::User => {
-                let (user_result, alias_result) = try_join!(
-                    User::find()
-                        .filter(
-                            Condition::all()
-                                .add(user::Column::Slug.eq(slug))
-                                .add(user::Column::DeletedAt.is_null())
-                        )
-                        .one(txn),
-                    alias_fut,
-                )?;
+                let user_opt = User::find()
+                    .filter(
+                        Condition::all()
+                            .add(user::Column::Slug.eq(slug))
+                            .add(user::Column::DeletedAt.is_null()),
+                    )
+                    .one(txn)
+                    .await
+                    .or_raise(make_error)?;
 
-                if let (Some(user), Some(alias)) = (user_result, alias_result) {
+                if let (Some(user), Some(alias)) = (user_opt, alias_opt) {
                     error!(
                         "Consistency error! Both user and alias tables have the slug '{slug}'"
                     );
@@ -349,7 +475,9 @@ impl AliasService {
         alias_type: AliasType,
         slug: &str,
     ) -> Result<()> {
-        info!("Checking user alias data against filters...");
+        info!("Checking alias name against filters...");
+
+        let make_error = || Error::new("failed to run filters", ErrorType::Alias);
 
         let filter_type = match alias_type {
             AliasType::User => FilterType::User,
@@ -361,9 +489,15 @@ impl AliasService {
         };
 
         let filter_matcher =
-            FilterService::get_matcher(ctx, FilterClass::Platform, filter_type).await?;
+            FilterService::get_matcher(ctx, FilterClass::Platform, filter_type)
+                .await
+                .or_raise(make_error)?;
 
-        filter_matcher.verify(ctx, slug).await?;
+        filter_matcher
+            .verify(ctx, "slug", slug)
+            .await
+            .or_raise(make_error)?;
+
         Ok(())
     }
 }

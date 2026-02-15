@@ -2,7 +2,7 @@
  * api.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
- * Copyright (C) 2019-2025 Wikijump Team
+ * Copyright (C) 2019-2026 Wikijump Team
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -28,19 +28,19 @@
 
 use crate::config::{Config, Secrets};
 use crate::endpoints::{
-    auth::*, blob::*, category::*, domain::*, email::*, file::*, file_revision::*,
-    info::*, link::*, locale::*, message::*, misc::*, page::*, page_attribution::*,
-    page_revision::*, parent::*, routing::*, site::*, site_member::*, special_error::*,
-    text::*, text_block::*, user::*, user_bot::*, view::*, vote::*,
+    auth::*, basic_error::*, blob::*, category::*, domain::*, email::*, file::*,
+    file_revision::*, info::*, link::*, locale::*, message::*, misc::*, page::*,
+    page_attribution::*, page_revision::*, parent::*, routing::*, site::*,
+    site_member::*, text::*, text_block::*, user::*, user_bot::*, view::*, vote::*,
 };
+use crate::error::prelude::*;
 use crate::locales::Localizations;
+use crate::services::ServiceContext;
 use crate::services::blob::MimeAnalyzer;
 use crate::services::job::JobWorker;
-use crate::services::{ServiceContext, into_rpc_error};
 use crate::utils::debug_pointer;
 use crate::{database, redis as redis_db};
 use jsonrpsee::server::{RpcModule, Server, ServerHandle};
-use jsonrpsee::types::error::ErrorObjectOwned;
 use redis::aio::MultiplexedConnection as RedisMultiplexedConnection;
 use rsmq_async::Rsmq;
 use s3::bucket::Bucket;
@@ -90,17 +90,24 @@ pub async fn build_server_state(
         s3_path_style,
         s3_credentials,
     }: Secrets,
-) -> anyhow::Result<ServerState> {
+) -> Result<ServerState> {
+    let make_error =
+        || Error::new("failed to build server state", ErrorType::ServerSetup);
+
     // Connect to databases
     info!("Connecting to PostgreSQL database");
-    let database = database::connect(&database_url).await?;
+    let database = database::connect(&database_url)
+        .await
+        .or_raise(make_error)?;
 
     info!("Connecting to Redis");
-    let (redis, rsmq) = redis_db::connect(&redis_url).await?;
+    let (redis, rsmq) = redis_db::connect(&redis_url).await.or_raise(make_error)?;
 
     // Load localization data
     info!("Loading localization data");
-    let localizations = Localizations::open(&config.localization_path).await?;
+    let localizations = Localizations::open(&config.localization_path)
+        .await
+        .or_raise(make_error)?;
 
     // Load magic data and start MIME thread
     let mime_analyzer = MimeAnalyzer::spawn();
@@ -110,13 +117,15 @@ pub async fn build_server_state(
 
     let (s3_files_bucket, s3_tblocks_bucket) = {
         let mut files_bucket =
-            Bucket::new(&s3_files_bucket, s3_region.clone(), s3_credentials.clone())?;
+            Bucket::new(&s3_files_bucket, s3_region.clone(), s3_credentials.clone())
+                .or_raise(make_error)?;
 
         let mut tblocks_bucket = Bucket::new(
             &s3_tblocks_bucket,
             s3_region.clone(),
             s3_credentials.clone(),
-        )?;
+        )
+        .or_raise(make_error)?;
 
         if s3_path_style {
             files_bucket = files_bucket.with_path_style();
@@ -147,15 +156,22 @@ pub async fn build_server_state(
     Ok(state)
 }
 
-pub async fn build_server(app_state: ServerState) -> anyhow::Result<ServerHandle> {
+pub async fn build_server(app_state: ServerState) -> Result<ServerHandle> {
+    let make_error = || Error::new("failed to build server", ErrorType::ServerSetup);
     let socket_address = app_state.config.address;
-    let server = Server::builder().build(socket_address).await?;
-    let module = build_module(app_state).await?;
+    let server = Server::builder()
+        .build(socket_address)
+        .await
+        .or_raise(make_error)?;
+
+    let module = build_module(app_state).await.or_raise(make_error)?;
     let handle = server.start(module);
     Ok(handle)
 }
 
-async fn build_module(app_state: ServerState) -> anyhow::Result<RpcModule<ServerState>> {
+async fn build_module(app_state: ServerState) -> Result<RpcModule<ServerState>> {
+    use crate::error::{exn_error_to_rpc_error, unwrap_transaction_error};
+
     let mut module = RpcModule::new(app_state);
 
     macro_rules! register {
@@ -181,14 +197,25 @@ async fn build_module(app_state: ServerState) -> anyhow::Result<RpcModule<Server
                     .transaction(move |txn| {
                         Box::pin(async move {
                             // Run the endpoint's implementation, and convert from
-                            // ServiceError to an RPC error.
+                            // the crate's error type to an RPC error.
                             let ctx = ServiceContext::new(&state, &txn);
-                            $method(&ctx, params).await.map_err(ErrorObjectOwned::from)
+                            $method(&ctx, params)
+                                .await
+                                .or_raise(|| Error::new(
+                                    format!("method '{}' failed", $name),
+                                    ErrorType::Request,
+                                ))
                         })
                     })
                     .await
-                    .map_err(into_rpc_error)
-            })?;
+                    .map_err(unwrap_transaction_error)
+                    .inspect_err(|error| error!("JSONRPC method {} failed: {}", $name, error))
+                    .map_err(exn_error_to_rpc_error)
+            })
+            .or_raise(|| Error::new(
+                format!("failed to register JSONRPC method '{}'", $name),
+                ErrorType::ServerSetup,
+            ))?;
         }};
     }
 
@@ -215,27 +242,27 @@ async fn build_module(app_state: ServerState) -> anyhow::Result<RpcModule<Server
     register!("user_view", user_view);
     register!("admin_view", admin_view);
 
-    // Special errors
+    // Basic errors
     register!(
-        "special_error_missing_site_slug",
-        special_error_missing_site_slug,
+        "basic_error_missing_site_slug",
+        basic_error_missing_site_slug,
     );
     register!(
-        "special_error_missing_custom_domain",
-        special_error_missing_custom_domain,
+        "basic_error_missing_custom_domain",
+        basic_error_missing_custom_domain,
     );
     register!(
-        "special_error_missing_page_slug",
-        special_error_missing_page_slug,
+        "basic_error_missing_page_slug",
+        basic_error_missing_page_slug,
     );
-    register!("special_error_page_fetch", special_error_page_fetch);
+    register!("basic_error_page_fetch", basic_error_page_fetch);
     register!(
-        "special_error_missing_file_name",
-        special_error_missing_file_name,
+        "basic_error_missing_file_name",
+        basic_error_missing_file_name,
     );
-    register!("special_error_file_fetch", special_error_file_fetch);
-    register!("special_error_text_block", special_error_text_block);
-    register!("special_error_file_root", special_error_file_root);
+    register!("basic_error_file_fetch", basic_error_file_fetch);
+    register!("basic_error_text_block", basic_error_text_block);
+    register!("basic_error_file_root", basic_error_file_root);
 
     // Authentication
     register!("login", auth_login);
@@ -268,6 +295,7 @@ async fn build_module(app_state: ServerState) -> anyhow::Result<RpcModule<Server
     // Category
     register!("category_get", category_get);
     register!("category_get_all", category_get_all);
+    register!("category_get_all_active", category_get_all_active);
 
     // Page
     register!("page_create", page_create);

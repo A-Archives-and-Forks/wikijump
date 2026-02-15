@@ -2,7 +2,7 @@
  * error/mod.rs
  *
  * Wilson's Web Server - Serves a zoo of user-generated content
- * Copyright (C) 2019-2025 Wikijump Team
+ * Copyright (C) 2019-2026 Wikijump Team
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -24,10 +24,10 @@
 //! fallback errors (the error to return when no better HTTP response
 //! is available).
 
+mod basic;
 mod fallback;
-mod special;
 mod wws;
 
+pub use self::basic::*;
 pub use self::fallback::FallbackError;
-pub use self::special::*;
 pub use self::wws::*;

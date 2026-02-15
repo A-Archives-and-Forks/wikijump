@@ -2,7 +2,7 @@
  * services/email/service.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
- * Copyright (C) 2019-2025 Wikijump Team
+ * Copyright (C) 2019-2026 Wikijump Team
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -26,11 +26,20 @@ pub struct EmailService;
 impl EmailService {
     /// Validates an email through the MailCheck API.
     pub async fn validate(email: &str) -> Result<EmailValidationOutput> {
+        let make_error = || {
+            Error::new(
+                format!("failed to validate email '{email}'"),
+                ErrorType::EmailVerification,
+            )
+        };
+
         // Sends a GET request to the MailCheck API and deserializes the response.
         let mailcheck = reqwest::get(format!("https://api.mailcheck.ai/email/{email}"))
-            .await?
+            .await
+            .or_raise(make_error)?
             .json::<MailCheckResponse>()
-            .await?;
+            .await
+            .or_raise(make_error)?;
 
         // Create the output with default parameters.
         let mut output = EmailValidationOutput::default();
@@ -46,13 +55,22 @@ impl EmailService {
                     "MailCheck API request failed with bad response: {:?}",
                     mailcheck.error,
                 );
-                return Err(Error::EmailVerification(mailcheck.error));
+
+                let mut message =
+                    str!("failed to validate email, MailCheck API returned an error");
+                if let Some(remote_error) = &mailcheck.error {
+                    str_write!(&mut message, ": {remote_error}");
+                }
+                bail!(Error::new(message, ErrorType::EmailVerification));
             }
 
             // Exceeded rate limit.
             429 => {
                 error!("MailCheck API hit ratelimit: {:?}", mailcheck.error);
-                return Err(Error::RateLimited);
+                bail!(Error::new(
+                    "failed to validate email, MailCheck API hit ratelimit",
+                    ErrorType::RateLimited,
+                ));
             }
 
             // Other statuses.

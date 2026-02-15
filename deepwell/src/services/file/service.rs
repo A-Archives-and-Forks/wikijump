@@ -2,7 +2,7 @@
  * services/file/service.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
- * Copyright (C) 2019-2025 Wikijump Team
+ * Copyright (C) 2019-2026 Wikijump Team
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -63,17 +63,33 @@ impl FileService {
         }: CreateFile,
     ) -> Result<CreateFileOutput> {
         info!("Creating file with name '{name}'");
+
         let txn = ctx.transaction();
+        let name2 = name.clone();
+        let is_direct_upload = direct_upload.is_some();
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to create file '{}' on page ID {} on site ID {} by user ID {} (direct upload {}, bypass filter {})",
+                    name2, page_id, site_id, user_id, is_direct_upload, bypass_filter,
+                ),
+                ErrorType::File,
+            )
+        };
 
         // Verify filename is valid
-        check_file_name(&mut name)?;
+        check_file_name(&mut name).or_raise(make_error)?;
 
         // Ensure row consistency
-        Self::check_conflicts(ctx, page_id, &name, "create").await?;
+        Self::check_conflicts(ctx, page_id, &name, "create")
+            .await
+            .or_raise(make_error)?;
 
         // Perform filter validation
         if !bypass_filter {
-            Self::run_filter(ctx, site_id, Some(&name)).await?;
+            Self::run_filter(ctx, site_id, Some(&name))
+                .await
+                .or_raise(make_error)?;
         }
 
         // Finish blob upload
@@ -85,14 +101,18 @@ impl FileService {
         } = match direct_upload {
             None => {
                 // Normal path, finish upload of blob from user
-                BlobService::finish_upload(ctx, user_id, &uploaded_blob_id).await?
+                BlobService::finish_upload(ctx, user_id, &uploaded_blob_id)
+                    .await
+                    .or_raise(make_error)?
             }
             Some(data) => {
                 // Special path, used only internally to directly upload a blob,
                 // for instance in the seeder
                 //
                 // This should always be None when called from API users
-                BlobService::direct_upload(ctx, data).await?
+                BlobService::direct_upload(ctx, data)
+                    .await
+                    .or_raise(make_error)?
             }
         };
 
@@ -103,9 +123,9 @@ impl FileService {
             page_id: Set(page_id),
             ..Default::default()
         };
-        let file = model.insert(txn).await?;
+        let file = model.insert(txn).await.or_raise(make_error)?;
 
-        FileRevisionService::create_first(
+        let output = FileRevisionService::create_first(
             ctx,
             CreateFirstFileRevision {
                 page_id,
@@ -121,6 +141,9 @@ impl FileService {
             },
         )
         .await
+        .or_raise(make_error)?;
+
+        Ok(output)
     }
 
     /// Edits a file, creating a new revision.
@@ -139,11 +162,23 @@ impl FileService {
     ) -> Result<Option<EditFileOutput>> {
         info!("Editing file with ID {file_id}");
 
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to edit file ID {} on page ID {} in site ID {} by user ID {}",
+                    file_id, page_id, site_id, user_id,
+                ),
+                ErrorType::File,
+            )
+        };
+
         let txn = ctx.transaction();
         let last_revision =
-            FileRevisionService::get_latest(ctx, site_id, page_id, file_id).await?;
+            FileRevisionService::get_latest(ctx, site_id, page_id, file_id)
+                .await
+                .or_raise(make_error)?;
 
-        check_last_revision(&last_revision, last_revision_id)?;
+        check_last_revision(&last_revision, last_revision_id).or_raise(make_error)?;
 
         let EditFileBody {
             mut name,
@@ -155,15 +190,21 @@ impl FileService {
 
         // Verify name change
         //
-        // If the name isn't changing, then we already verified this
+        // If the name isn't changing, then we already verified thigreens
         // when the file was originally created.
         if let Maybe::Set(ref mut name) = name {
-            check_file_name(name)?;
-            Self::check_conflicts(ctx, page_id, name, "update").await?;
             new_name = ActiveValue::Set(name.clone());
 
+            check_file_name(name).or_raise(make_error)?;
+
+            Self::check_conflicts(ctx, page_id, name, "update")
+                .await
+                .or_raise(make_error)?;
+
             if !bypass_filter {
-                Self::run_filter(ctx, site_id, Some(name)).await?;
+                Self::run_filter(ctx, site_id, Some(name))
+                    .await
+                    .or_raise(make_error)?;
             }
         }
 
@@ -182,12 +223,16 @@ impl FileService {
                 } = match direct_upload {
                     Maybe::Unset => {
                         // Normal path, finish upload of blob from user
-                        BlobService::finish_upload(ctx, user_id, id).await?
+                        BlobService::finish_upload(ctx, user_id, id)
+                            .await
+                            .or_raise(make_error)?
                     }
                     Maybe::Set(data) => {
                         // Special path, used only internally to directly upload a blob
                         // See FileService::create()
-                        BlobService::direct_upload(ctx, data).await?
+                        BlobService::direct_upload(ctx, data)
+                            .await
+                            .or_raise(make_error)?
                     }
                 };
 
@@ -207,7 +252,7 @@ impl FileService {
             updated_at: Set(Some(now())),
             ..Default::default()
         };
-        model.update(txn).await?;
+        model.update(txn).await.or_raise(make_error)?;
 
         // Add new file revision
         let revision_output = FileRevisionService::create(
@@ -227,7 +272,8 @@ impl FileService {
             },
             last_revision,
         )
-        .await?;
+        .await
+        .or_raise(make_error)?;
 
         Ok(revision_output)
     }
@@ -246,29 +292,45 @@ impl FileService {
             revision_comments,
         }: MoveFile<'_>,
     ) -> Result<Option<MoveFileOutput>> {
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to move file ID {} on page ID {} in site ID {} to new page {:?} by user ID {}",
+                    file_id, current_page_id, site_id, destination_page, user_id,
+                ),
+                ErrorType::File,
+            )
+        };
+
         let txn = ctx.transaction();
         let last_revision =
             FileRevisionService::get_latest(ctx, site_id, current_page_id, file_id)
-                .await?;
+                .await
+                .or_raise(make_error)?;
 
-        check_last_revision(&last_revision, last_revision_id)?;
+        check_last_revision(&last_revision, last_revision_id).or_raise(make_error)?;
 
         // Get destination page id
         let destination_page_id =
-            PageService::get_id(ctx, site_id, destination_page).await?;
+            PageService::get_id(ctx, site_id, destination_page.borrow())
+                .await
+                .or_raise(make_error)?;
 
         // Get destination filename
         let mut name = name.unwrap_or_else(|| last_revision.name.clone());
 
         info!(
-            "Moving file with ID {file_id} from page ID {current_page_id} to {destination_page_id}"
+            "Moving file with ID {} from page ID {} to {}",
+            file_id, current_page_id, destination_page_id,
         );
 
         // Verify filename is valid
-        check_file_name(&mut name)?;
+        check_file_name(&mut name).or_raise(make_error)?;
 
         // Ensure there isn't a file with this name on the destination page
-        Self::check_conflicts(ctx, destination_page_id, &name, "move").await?;
+        Self::check_conflicts(ctx, destination_page_id, &name, "move")
+            .await
+            .or_raise(make_error)?;
 
         // Update file metadata
         let model = file::ActiveModel {
@@ -278,7 +340,7 @@ impl FileService {
             page_id: Set(destination_page_id),
             ..Default::default()
         };
-        model.update(txn).await?;
+        model.update(txn).await.or_raise(make_error)?;
 
         // Add new file revision
         let revision_output = FileRevisionService::create(
@@ -297,7 +359,8 @@ impl FileService {
             },
             last_revision,
         )
-        .await?;
+        .await
+        .or_raise(make_error)?;
 
         Ok(revision_output)
     }
@@ -352,12 +415,25 @@ impl FileService {
                 file: reference,
             },
         )
-        .await?;
+        .await
+        .or_raise(|| Error::new("failed to delete file", ErrorType::File))?;
+
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to delete file ID {} on page ID {} in site ID {} by user ID {} (erase S3 hash {})",
+                    file_id, page_id, site_id, user_id, erase_s3_hash,
+                ),
+                ErrorType::File,
+            )
+        };
 
         let last_revision =
-            FileRevisionService::get_latest(ctx, site_id, page_id, file_id).await?;
+            FileRevisionService::get_latest(ctx, site_id, page_id, file_id)
+                .await
+                .or_raise(make_error)?;
 
-        check_last_revision(&last_revision, last_revision_id)?;
+        check_last_revision(&last_revision, last_revision_id).or_raise(make_error)?;
 
         // Create tombstone revision
         // This outdates the page, etc
@@ -373,7 +449,8 @@ impl FileService {
             },
             last_revision,
         )
-        .await?;
+        .await
+        .or_raise(make_error)?;
 
         // Set deletion flag
         let model = file::ActiveModel {
@@ -381,7 +458,7 @@ impl FileService {
             deleted_at: Set(Some(now())),
             ..Default::default()
         };
-        model.update(txn).await?;
+        model.update(txn).await.or_raise(make_error)?;
 
         Ok(DeleteFileOutput {
             file_id,
@@ -406,10 +483,25 @@ impl FileService {
         }: RestoreFile<'_>,
     ) -> Result<RestoreFileOutput> {
         let txn = ctx.transaction();
-        let file = Self::get_direct(ctx, file_id, true).await?;
+        let file = Self::get_direct(ctx, file_id, true)
+            .await
+            .or_raise(|| Error::new("failed to restore file", ErrorType::File))?;
+
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to restore (undelete) file ID {} originally on page ID {} in site ID {}, done by user ID {}",
+                    file_id, page_id, site_id, user_id,
+                ),
+                ErrorType::File,
+            )
+        };
+
         let new_page_id =
             PageService::get_id(ctx, site_id, new_page.unwrap_or(Reference::Id(page_id)))
-                .await?;
+                .await
+                .or_raise(make_error)?;
+
         let new_name = new_name.unwrap_or(file.name);
 
         // Do page checks:
@@ -418,19 +510,35 @@ impl FileService {
         // - Name doesn't already exist
 
         if file.page_id != page_id {
-            warn!("File's page ID and passed page ID do not match");
-            return Err(Error::FileNotFound);
+            warn!(
+                "File's page ID ({}) and passed page ID ({}) do not match",
+                file.page_id, page_id,
+            );
+            bail!(Error::new(
+                format!(
+                    "cannot restore file, file's page ID ({}) and passed page ID ({}) do not match",
+                    file.page_id, page_id,
+                ),
+                ErrorType::FileNotFound
+            ));
         }
 
         if file.deleted_at.is_none() {
             warn!("File requested to be restored is not currently deleted");
-            return Err(Error::FileNotDeleted);
+            bail!(Error::new(
+                "cannot restore file, it is not currently deleted",
+                ErrorType::FileNotDeleted
+            ));
         }
 
-        Self::check_conflicts(ctx, page_id, &new_name, "restore").await?;
+        Self::check_conflicts(ctx, page_id, &new_name, "restore")
+            .await
+            .or_raise(make_error)?;
 
         let last_revision =
-            FileRevisionService::get_latest(ctx, site_id, page_id, file_id).await?;
+            FileRevisionService::get_latest(ctx, site_id, page_id, file_id)
+                .await
+                .or_raise(make_error)?;
 
         // Create resurrection revision
         // This outdates the page, etc
@@ -447,7 +555,8 @@ impl FileService {
             },
             last_revision,
         )
-        .await?;
+        .await
+        .or_raise(make_error)?;
 
         // Set deletion flag
         let model = file::ActiveModel {
@@ -455,7 +564,7 @@ impl FileService {
             deleted_at: Set(None),
             ..Default::default()
         };
-        model.update(txn).await?;
+        model.update(txn).await.or_raise(make_error)?;
 
         Ok(RestoreFileOutput {
             page_id,
@@ -493,7 +602,18 @@ impl FileService {
                 file: reference,
             },
         )
-        .await?;
+        .await
+        .or_raise(|| Error::new("failed to rollback file", ErrorType::File))?;
+
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to rollback file ID {} on page ID {} in site ID {} to revision {} by user ID {}",
+                    file_id, page_id, site_id, revision_number, user_id,
+                ),
+                ErrorType::File,
+            )
+        };
 
         // Get target revision and latest revision
         let get_revision_input = GetFileRevision {
@@ -503,13 +623,15 @@ impl FileService {
             revision_number,
         };
 
-        let (target_revision, last_revision) = try_join!(
+        let (target_revision_result, last_revision_result) = join!(
             FileRevisionService::get(ctx, get_revision_input),
             FileRevisionService::get_latest(ctx, site_id, page_id, file_id),
-        )?;
+        );
+        let (target_revision, last_revision) =
+            raise_multiple!(target_revision_result, last_revision_result; make_error);
 
         // Check last revision ID
-        check_last_revision(&last_revision, last_revision_id)?;
+        check_last_revision(&last_revision, last_revision_id).or_raise(make_error)?;
 
         // Extract fields from target revision
         let FileRevisionModel {
@@ -530,11 +652,16 @@ impl FileService {
 
         // Check name change
         if !hide_name && last_revision.name != name {
-            Self::check_conflicts(ctx, page_id, &name, "rollback").await?;
             new_name = ActiveValue::Set(name.clone());
 
+            Self::check_conflicts(ctx, page_id, &name, "rollback")
+                .await
+                .or_raise(make_error)?;
+
             if !bypass_filter {
-                Self::run_filter(ctx, site_id, Some(&name)).await?;
+                Self::run_filter(ctx, site_id, Some(&name))
+                    .await
+                    .or_raise(make_error)?;
             }
         }
 
@@ -576,7 +703,9 @@ impl FileService {
 
         // Add new file revision
         let revision_output =
-            FileRevisionService::create(ctx, revision_input, last_revision).await?;
+            FileRevisionService::create(ctx, revision_input, last_revision)
+                .await
+                .or_raise(make_error)?;
 
         // Update file metadata
         let model = file::ActiveModel {
@@ -585,7 +714,7 @@ impl FileService {
             updated_at: Set(Some(now())),
             ..Default::default()
         };
-        model.update(txn).await?;
+        model.update(txn).await.or_raise(make_error)?;
 
         Ok(revision_output)
     }
@@ -602,7 +731,7 @@ impl FileService {
         let file = {
             let condition = match reference {
                 Reference::Id(id) => file::Column::FileId.eq(id),
-                Reference::Slug(name) => file::Column::Name.eq(name),
+                Reference::Slug(ref name) => file::Column::Name.eq(name.as_ref()),
             };
 
             File::find()
@@ -614,7 +743,16 @@ impl FileService {
                         .add(file::Column::DeletedAt.is_null()),
                 )
                 .one(txn)
-                .await?
+                .await
+                .or_raise(|| {
+                    Error::new(
+                        format!(
+                            "failed to get file {:?} from page ID {} on site ID {}",
+                            reference, page_id, site_id,
+                        ),
+                        ErrorType::File,
+                    )
+                })?
         };
 
         Ok(file)
@@ -622,7 +760,7 @@ impl FileService {
 
     #[inline]
     pub async fn get(ctx: &ServiceContext<'_>, input: GetFile<'_>) -> Result<FileModel> {
-        find_or_error!(Self::get_optional(ctx, input), File)
+        find_or_error!(Self::get_optional(ctx, input), "file", File)
     }
 
     /// Gets all files on a page, with potential conditions.
@@ -639,6 +777,22 @@ impl FileService {
         deleted: Option<bool>,
         order: FileOrder,
     ) -> Result<Vec<FileModel>> {
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to get all {}files on page ID {} on site ID {}",
+                    match deleted {
+                        Some(true) => "deleted ",
+                        Some(false) => "active ",
+                        None => "",
+                    },
+                    page_id,
+                    site_id,
+                ),
+                ErrorType::File,
+            )
+        };
+
         let txn = ctx.transaction();
         let deleted_condition = match deleted {
             Some(true) => Some(file::Column::DeletedAt.is_not_null()),
@@ -655,7 +809,8 @@ impl FileService {
             )
             .order_by(order.column.into_column(), order.direction)
             .all(txn)
-            .await?;
+            .await
+            .or_raise(make_error)?;
 
         Ok(files)
     }
@@ -670,9 +825,16 @@ impl FileService {
         page_id: i64,
         reference: Reference<'_>,
     ) -> Result<i64> {
+        let make_error = || {
+            Error::new(
+                format!("failed to get ID for file on page ID {}", page_id),
+                ErrorType::File,
+            )
+        };
+
         match reference {
             Reference::Id(id) => Ok(id),
-            Reference::Slug(name) => {
+            Reference::Slug(ref name) => {
                 let txn = ctx.transaction();
                 let result: Option<(i64,)> = File::find()
                     .select_only()
@@ -680,16 +842,20 @@ impl FileService {
                     .filter(
                         Condition::all()
                             .add(file::Column::PageId.eq(page_id))
-                            .add(file::Column::Name.eq(name))
+                            .add(file::Column::Name.eq(name.as_ref()))
                             .add(file::Column::DeletedAt.is_null()),
                     )
                     .into_tuple()
                     .one(txn)
-                    .await?;
+                    .await
+                    .or_raise(make_error)?;
 
                 match result {
                     Some(tuple) => Ok(tuple.0),
-                    None => Err(Error::FileNotFound),
+                    None => bail!(Error::new(
+                        format!("cannot get ID for file '{}', does not exist", name),
+                        ErrorType::FileNotFound
+                    )),
                 }
             }
         }
@@ -700,11 +866,23 @@ impl FileService {
         file_id: i64,
         allow_deleted: bool,
     ) -> Result<Option<FileModel>> {
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to get file ID {} directly ({} deleted)",
+                    file_id,
+                    if allow_deleted { "allow" } else { "disallow" },
+                ),
+                ErrorType::File,
+            )
+        };
+
         let txn = ctx.transaction();
         let file = File::find()
             .filter(file::Column::FileId.eq(file_id))
             .one(txn)
-            .await?;
+            .await
+            .or_raise(make_error)?;
 
         if let Some(ref file) = file
             && !allow_deleted
@@ -723,20 +901,33 @@ impl FileService {
         file_id: i64,
         allow_deleted: bool,
     ) -> Result<FileModel> {
-        find_or_error!(Self::get_direct_optional(ctx, file_id, allow_deleted), File)
+        find_or_error!(
+            Self::get_direct_optional(ctx, file_id, allow_deleted),
+            "file",
+            File
+        )
     }
 
     /// Checks to see if a file already exists at the name specified.
     ///
-    /// If so, this method fails with `Error::FileExists`. Otherwise it returns nothing.
+    /// If so, this method fails with `ErrorType::FileExists`. Otherwise it returns nothing.
     async fn check_conflicts(
         ctx: &ServiceContext<'_>,
         page_id: i64,
         name: &str,
         action: &str,
     ) -> Result<()> {
-        let txn = ctx.transaction();
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to check file {} conflicts for file '{}' on page ID {}",
+                    action, name, page_id,
+                ),
+                ErrorType::File,
+            )
+        };
 
+        let txn = ctx.transaction();
         let result = File::find()
             .filter(
                 Condition::all()
@@ -745,17 +936,23 @@ impl FileService {
                     .add(file::Column::DeletedAt.is_null()),
             )
             .one(txn)
-            .await?;
+            .await
+            .or_raise(make_error)?;
 
         match result {
             None => Ok(()),
             Some(file) => {
                 error!(
-                    "File {} with name {} already exists on page ID {}, cannot {}",
+                    "File ID {} with name {} already exists on page ID {}, cannot {}",
                     file.file_id, name, page_id, action,
                 );
-
-                Err(Error::FileExists)
+                bail!(Error::new(
+                    format!(
+                        "cannot {} file, one with name '{}' on page ID {} since one already exists (file ID {})",
+                        action, name, page_id, file.file_id
+                    ),
+                    ErrorType::FileExists
+                ));
             }
         }
     }
@@ -771,15 +968,29 @@ impl FileService {
     ) -> Result<()> {
         info!("Checking file data against filters...");
 
-        let filter_matcher = FilterService::get_matcher(
-            ctx,
-            FilterClass::PlatformAndSite(site_id),
-            FilterType::Forum,
-        )
-        .await?;
-
         if let Some(name) = name {
-            filter_matcher.verify(ctx, name).await?;
+            let make_error = || {
+                Error::new(
+                    format!(
+                        "failed to run filters for '{}' in site ID {}",
+                        name, site_id,
+                    ),
+                    ErrorType::File,
+                )
+            };
+
+            let filter_matcher = FilterService::get_matcher(
+                ctx,
+                FilterClass::PlatformAndSite(site_id),
+                FilterType::Forum,
+            )
+            .await
+            .or_raise(make_error)?;
+
+            filter_matcher
+                .verify(ctx, "filename", name)
+                .await
+                .or_raise(make_error)?;
         }
 
         Ok(())
@@ -799,7 +1010,10 @@ fn check_file_name(name: &mut String) -> Result<()> {
     // Disallow empty filenames
     if name.is_empty() {
         error!("File name is empty");
-        return Err(Error::FileNameEmpty);
+        bail!(Error::new(
+            "empty file names are not allowed",
+            ErrorType::FileNameEmpty,
+        ));
     }
 
     // Limit filename length
@@ -809,10 +1023,18 @@ fn check_file_name(name: &mut String) -> Result<()> {
             name.len(),
             MAXIMUM_FILE_NAME_LENGTH,
         );
-        return Err(Error::FileNameTooLong {
-            length: name.len(),
-            maximum: MAXIMUM_FILE_NAME_LENGTH,
-        });
+        bail!(Error::new(
+            format!(
+                "file name is too long ({} > {} bytes): {}",
+                name.len(),
+                MAXIMUM_FILE_NAME_LENGTH,
+                name,
+            ),
+            ErrorType::FileNameTooLong {
+                length: name.len(),
+                maximum: MAXIMUM_FILE_NAME_LENGTH,
+            }
+        ));
     }
 
     // Makes sure there aren't any control characters or slashes.
@@ -824,7 +1046,13 @@ fn check_file_name(name: &mut String) -> Result<()> {
         .any(|c| c.is_control() || c == '/' || c == '\\')
     {
         error!("File name contains control characters or slashes");
-        return Err(Error::FileNameInvalidCharacters);
+        bail!(Error::new(
+            format!(
+                "file name contains invalid characters (control chars or slashes): {}",
+                name,
+            ),
+            ErrorType::FileNameInvalidCharacters
+        ));
     }
 
     // Looks good
@@ -843,8 +1071,13 @@ fn check_last_revision(
             "Latest revision ID in file table is {}, but user argument has ID {}",
             last_revision_model.revision_id, arg_last_revision_id,
         );
-
-        return Err(Error::NotLatestRevisionId);
+        bail!(Error::new(
+            format!(
+                "latest file revision ID in table is {}, but user is out-of-date as they passed in {}",
+                last_revision_model.revision_id, arg_last_revision_id,
+            ),
+            ErrorType::NotLatestRevisionId,
+        ));
     }
 
     Ok(())

@@ -2,7 +2,7 @@
  * endpoints/text.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
- * Copyright (C) 2019-2025 Wikijump Team
+ * Copyright (C) 2019-2026 Wikijump Team
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -25,9 +25,17 @@ pub async fn text_create(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
 ) -> Result<Bytes<'static>> {
-    let contents: String = params.one()?;
-    info!("Inserting new stored text (bytes {})", contents.len());
-    let hash = TextService::create(ctx, contents).await?;
+    let contents: String = parse_one!(params, Text);
+    let content_len = contents.len();
+    info!("Inserting new stored text (bytes {content_len})");
+
+    let hash = TextService::create(ctx, contents).await.or_raise(|| {
+        Error::new(
+            format!("failed to insert text entry (bytes {content_len})"),
+            ErrorType::Text,
+        )
+    })?;
+
     Ok(Bytes::from(hash))
 }
 
@@ -36,6 +44,9 @@ pub async fn text_get(
     params: Params<'static>,
 ) -> Result<String> {
     info!("Getting stored text");
-    let hash: Bytes = params.one()?;
-    TextService::get(ctx, hash.as_ref()).await
+    let hash: Bytes = parse_one!(params, Text);
+
+    TextService::get(ctx, hash.as_ref())
+        .await
+        .or_raise(|| Error::new("failed to get text entry", ErrorType::Text))
 }

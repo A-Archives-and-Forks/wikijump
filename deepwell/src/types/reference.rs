@@ -2,7 +2,7 @@
  * types/reference/id.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
- * Copyright (C) 2019-2025 Wikijump Team
+ * Copyright (C) 2019-2026 Wikijump Team
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -40,6 +40,19 @@ pub enum Reference<'a> {
     /// This enum is effectively just allowing either a string or an integer
     /// to be passed in, and should be conceived of as such.
     Slug(Cow<'a, str>),
+}
+
+impl<'b, 'a: 'b> Reference<'a> {
+    /// Make a borrowed version of this `Reference` backed by it.
+    ///
+    /// For `Copy` cases, this is the same as a clone. For owned cases,
+    /// this makes a new borrowed case backed by `self` here.
+    pub fn borrow(&'a self) -> Reference<'b> {
+        match self {
+            Reference::Id(id) => Reference::Id(*id),
+            Reference::Slug(slug) => Reference::Slug(cow!(slug)),
+        }
+    }
 }
 
 impl From<i64> for Reference<'static> {

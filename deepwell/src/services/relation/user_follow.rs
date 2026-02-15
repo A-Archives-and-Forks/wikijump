@@ -2,7 +2,7 @@
  * services/relation/user_follow.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
- * Copyright (C) 2019-2025 Wikijump Team
+ * Copyright (C) 2019-2026 Wikijump Team
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -41,8 +41,20 @@ impl RelationService {
             metadata: (),
         }: CreateUserFollow,
     ) -> Result<()> {
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to create user follow ({} is following {}), as created by {}",
+                    following_user, followed_user, created_by,
+                ),
+                ErrorType::UserFollowRelation,
+            )
+        };
+
         // Cannot follow if blocked
-        Self::check_user_block(ctx, followed_user, following_user, "follow").await?;
+        Self::check_user_block(ctx, followed_user, following_user, "follow")
+            .await
+            .or_raise(make_error)?;
 
         create_operation!(
             ctx,
@@ -52,6 +64,7 @@ impl RelationService {
             User,
             following_user,
             created_by,
+            make_error,
         )
     }
 }

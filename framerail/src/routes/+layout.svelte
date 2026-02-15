@@ -18,7 +18,7 @@
   let pageLayout = usePageLayoutState()
   function setLayout() {
     if ($page.route.id.startsWith("/[x+2d]/")) {
-      // this is a special page, use Wikijump layout
+      // this is an blueprint page, use Wikijump layout
       $pageLayout = Layout.WIKIJUMP
     } else {
       $pageLayout =
@@ -55,9 +55,17 @@
       </h2>
     </svelte:fragment>
 
-    <svelte:fragment slot="top-bar">UNTRANSLATED: Top bar</svelte:fragment>
+    <svelte:fragment slot="top-bar"
+      >{@html $page.data?.compiled_top_bar_html ??
+        $page.error?.compiled_top_bar_html ??
+        ""}</svelte:fragment
+    >
 
-    <svelte:fragment slot="side-bar">UNTRANSLATED: Side bar</svelte:fragment>
+    <svelte:fragment slot="side-bar"
+      >{@html $page.data?.compiled_side_bar_html ??
+        $page.error?.compiled_side_bar_html ??
+        ""}</svelte:fragment
+    >
 
     <svelte:fragment slot="content">
       <slot />
@@ -103,7 +111,11 @@
       </div>
     </svelte:fragment>
 
-    <svelte:fragment slot="top-bar">UNTRANSLATED: Top bar</svelte:fragment>
+    <svelte:fragment slot="top-bar"
+      >{@html $page.data?.compiled_top_bar_html ??
+        $page.error?.compiled_top_bar_html ??
+        ""}</svelte:fragment
+    >
 
     <svelte:fragment slot="content">
       <slot />

@@ -2,7 +2,7 @@
  * database/seeder/mod.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
- * Copyright (C) 2019-2025 Wikijump Team
+ * Copyright (C) 2019-2026 Wikijump Team
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -23,6 +23,7 @@ mod data;
 use self::data::SeedData;
 use crate::api::ServerState;
 use crate::constants::{ADMIN_USER_ID, SYSTEM_USER_ID};
+use crate::error::prelude::*;
 use crate::models::sea_orm_active_enums::AliasType;
 use crate::services::ServiceContext;
 use crate::services::alias::{AliasService, CreateAlias};
@@ -40,7 +41,6 @@ use crate::services::site::{CreateSite, CreateSiteOutput, SiteService, UpdateSit
 use crate::services::user::{CreateUser, CreateUserOutput, UpdateUserBody, UserService};
 use crate::types::{Maybe, Reference};
 use crate::utils::now;
-use anyhow::Result;
 use sea_orm::{
     ConnectionTrait, DatabaseBackend, DatabaseTransaction, Statement, TransactionTrait,
 };
@@ -58,20 +58,32 @@ pub const SEED_IP_ADDRESS: IpAddr = IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0
 pub async fn seed(state: &ServerState) -> Result<()> {
     info!("Running seeder...");
 
+    let make_error = || Error::new("failed to seed database", ErrorType::DatabaseSeeder);
+
     // Set up context
-    let txn = state.database.begin().await?;
+    let txn = state.database.begin().await.or_raise(make_error)?;
     let ctx = ServiceContext::new(state, &txn);
 
     // Ensure seeding has not already been done
-    if UserService::exists(&ctx, Reference::from(ADMIN_USER_ID)).await? {
+    let user_exists = UserService::exists(&ctx, Reference::from(ADMIN_USER_ID))
+        .await
+        .or_raise(make_error)?;
+
+    if user_exists {
         info!("Seeding has already been done");
         return Ok(());
     }
 
     // Reset sequences so IDs are consistent
-    restart_sequence(&txn, "user_user_id_seq").await?;
-    restart_sequence(&txn, "page_page_id_seq").await?;
-    restart_sequence(&txn, "site_site_id_seq").await?;
+    restart_sequence(&txn, "user_user_id_seq")
+        .await
+        .or_raise(make_error)?;
+    restart_sequence(&txn, "page_page_id_seq")
+        .await
+        .or_raise(make_error)?;
+    restart_sequence(&txn, "site_site_id_seq")
+        .await
+        .or_raise(make_error)?;
 
     // Load seed data
     info!(
@@ -85,7 +97,7 @@ pub async fn seed(state: &ServerState) -> Result<()> {
         pages,
         files,
         filters,
-    } = SeedData::load(&state.config.seeder_path)?;
+    } = SeedData::load(&state.config.seeder_path).or_raise(make_error)?;
 
     let mut user_aliases = Vec::new();
 
@@ -107,7 +119,8 @@ pub async fn seed(state: &ServerState) -> Result<()> {
                 ip_address: SEED_IP_ADDRESS,
             },
         )
-        .await?;
+        .await
+        .or_raise(make_error)?;
 
         UserService::update(
             &ctx,
@@ -124,7 +137,8 @@ pub async fn seed(state: &ServerState) -> Result<()> {
                 ..Default::default()
             },
         )
-        .await?;
+        .await
+        .or_raise(make_error)?;
 
         // Queue up aliases to add
         //
@@ -154,7 +168,8 @@ pub async fn seed(state: &ServerState) -> Result<()> {
                     bypass_filter: true,
                 },
             )
-            .await?;
+            .await
+            .or_raise(make_error)?;
         }
     }
 
@@ -177,7 +192,8 @@ pub async fn seed(state: &ServerState) -> Result<()> {
                 ip_address: SEED_IP_ADDRESS,
             },
         )
-        .await?;
+        .await
+        .or_raise(make_error)?;
 
         for site_alias in site.aliases {
             info!("Creating site alias '{site_alias}'");
@@ -192,7 +208,8 @@ pub async fn seed(state: &ServerState) -> Result<()> {
                     bypass_filter: true,
                 },
             )
-            .await?;
+            .await
+            .or_raise(make_error)?;
         }
 
         if let Some(preferred_domain) = &site.preferred_domain {
@@ -206,7 +223,8 @@ pub async fn seed(state: &ServerState) -> Result<()> {
             info!("Creating site domain '{domain}'");
 
             DomainService::create_custom(&ctx, CreateCustomDomain { site_id, domain })
-                .await?;
+                .await
+                .or_raise(make_error)?;
         }
 
         SiteService::update(
@@ -219,7 +237,8 @@ pub async fn seed(state: &ServerState) -> Result<()> {
             SYSTEM_USER_ID,
             SEED_IP_ADDRESS,
         )
-        .await?;
+        .await
+        .or_raise(make_error)?;
 
         site_ids.insert(slug, site_id);
     }
@@ -229,8 +248,9 @@ pub async fn seed(state: &ServerState) -> Result<()> {
     for (site_slug, pages) in pages {
         info!("Creating pages in site {site_slug}");
         let site_id = site_ids[&site_slug];
-        let site_user_id =
-            RelationService::get_site_user_id_for_site(&ctx, site_id).await?;
+        let site_user_id = RelationService::get_site_user_id_for_site(&ctx, site_id)
+            .await
+            .or_raise(make_error)?;
 
         for page in pages {
             info!("Creating page '{}' (slug {})", page.title, page.slug);
@@ -250,7 +270,8 @@ pub async fn seed(state: &ServerState) -> Result<()> {
                     ip_address: SEED_IP_ADDRESS,
                 },
             )
-            .await?;
+            .await
+            .or_raise(make_error)?;
 
             RelationService::set_page_attributions(
                 &ctx,
@@ -267,7 +288,8 @@ pub async fn seed(state: &ServerState) -> Result<()> {
                     }],
                 },
             )
-            .await?;
+            .await
+            .or_raise(make_error)?;
 
             page_ids.insert((site_id, model.slug), model.page_id);
         }
@@ -279,6 +301,9 @@ pub async fn seed(state: &ServerState) -> Result<()> {
         let mut path_buffer = state.config.seeder_path.clone();
 
         async fn load_file(buffer: &mut PathBuf, file_path: &Path) -> Result<Vec<u8>> {
+            let make_error =
+                || Error::new("failed to load seeder file", ErrorType::DatabaseSeeder);
+
             // Make sure that paths are only in the local seeder/ directory,
             // to avoid pulling random files from the filesystem.
             assert_eq!(
@@ -294,15 +319,16 @@ pub async fn seed(state: &ServerState) -> Result<()> {
             buffer.push(file_path);
 
             let file_path = &buffer;
-            let stat = fs::metadata(file_path)?;
+            let stat = fs::metadata(file_path).or_raise(make_error)?;
+
             assert!(
                 stat.file_type().is_file(),
                 "Only regular files are allowed as file input",
             );
 
             let mut data = Vec::new();
-            let mut file = fs::File::open(file_path)?;
-            file.read_to_end(&mut data)?;
+            let mut file = fs::File::open(file_path).or_raise(make_error)?;
+            file.read_to_end(&mut data).or_raise(make_error)?;
 
             // Clean up
             buffer.pop();
@@ -325,7 +351,9 @@ pub async fn seed(state: &ServerState) -> Result<()> {
                         file.path.display()
                     );
 
-                    let data = load_file(&mut path_buffer, &file.path).await?;
+                    let data = load_file(&mut path_buffer, &file.path)
+                        .await
+                        .or_raise(make_error)?;
 
                     // Create the file entry
                     let CreateFileOutput {
@@ -345,14 +373,17 @@ pub async fn seed(state: &ServerState) -> Result<()> {
                             bypass_filter: true,
                         },
                     )
-                    .await?;
+                    .await
+                    .or_raise(make_error)?;
 
                     let mut last_revision_id = file_revision_id;
 
                     // If we are uploading an extra revision, do so now.
                     // We can use our helper function to handle the file upload.
                     if let Some(path) = file.overwrite {
-                        let data = load_file(&mut path_buffer, &path).await?;
+                        let data = load_file(&mut path_buffer, &path)
+                            .await
+                            .or_raise(make_error)?;
                         let output = FileService::edit(
                             &ctx,
                             EditFile {
@@ -370,7 +401,8 @@ pub async fn seed(state: &ServerState) -> Result<()> {
                                 },
                             },
                         )
-                        .await?;
+                        .await
+                        .or_raise(make_error)?;
 
                         if let Some(output) = output {
                             last_revision_id = output.file_revision_id;
@@ -390,7 +422,8 @@ pub async fn seed(state: &ServerState) -> Result<()> {
                                 revision_comments: str!(),
                             },
                         )
-                        .await?;
+                        .await
+                        .or_raise(make_error)?;
                     }
                 }
             }
@@ -405,7 +438,9 @@ pub async fn seed(state: &ServerState) -> Result<()> {
             Some(slug) => {
                 let site = {
                     let slug: Cow<str> = Cow::Borrowed(&slug);
-                    SiteService::get(&ctx, Reference::Slug(slug)).await?
+                    SiteService::get(&ctx, Reference::Slug(slug))
+                        .await
+                        .or_raise(make_error)?
                 };
 
                 info!(
@@ -439,7 +474,8 @@ pub async fn seed(state: &ServerState) -> Result<()> {
                 description: filter.description,
             },
         )
-        .await?;
+        .await
+        .or_raise(make_error)?;
     }
 
     // After all seeding, modify ID sequences so that they exhibit Wikidot compatibility.
@@ -455,21 +491,34 @@ pub async fn seed(state: &ServerState) -> Result<()> {
     //
     // See https://scuttle.atlassian.net/browse/WJ-964
 
-    restart_sequence_with(&txn, "user_user_id_seq", 20000000).await?;
-    restart_sequence_with(&txn, "site_site_id_seq", 6000000).await?;
-    restart_sequence_with(&txn, "page_page_id_seq", 3000000000).await?;
-    restart_sequence_with(&txn, "page_revision_revision_id_seq", 3000000000).await?;
-    restart_sequence_with(&txn, "page_category_category_id_seq", 100000000).await?;
-    restart_sequence_with(&txn, "forum_group_forum_group_id_seq", 8000000).await?;
-    restart_sequence_with(&txn, "forum_category_forum_category_id_seq", 9000000).await?;
-    restart_sequence_with(&txn, "forum_thread_forum_thread_id_seq", 30000000).await?;
-    restart_sequence_with(&txn, "forum_post_forum_post_id_seq", 7000000).await?;
-    restart_sequence_with(&txn, "forum_post_revision_forum_post_revision_id_seq", 3000000000)
-        .await?;
-    restart_sequence_with(&txn, "forum_thread_lock_forum_thread_lock_id_seq", 20000000).await?;
-    restart_sequence_with(&txn, "forum_post_lock_forum_post_lock_id_seq", 20000000).await?;
+    restart_sequence_with(&txn, "user_user_id_seq", 20000000)
+        .await
+        .or_raise(make_error)?;
 
-    txn.commit().await?;
+    restart_sequence_with(&txn, "site_site_id_seq", 6000000)
+        .await
+        .or_raise(make_error)?;
+
+    restart_sequence_with(&txn, "page_page_id_seq", 3000000000)
+        .await
+        .or_raise(make_error)?;
+
+    restart_sequence_with(&txn, "page_revision_revision_id_seq", 3000000000)
+        .await
+        .or_raise(make_error)?;
+
+    restart_sequence_with(&txn, "page_category_category_id_seq", 100000000)
+        .await
+        .or_raise(make_error)?;
+
+    /*
+     * TODO: tables which don't exist yet:
+     * restart_sequence_with(&txn, < forum category seq >, 9000000).await.or_raise(make_error)?;
+     * restart_sequence_with(&txn, < forum thread seq >, 30000000).await.or_raise(make_error)?;
+     * restart_sequence_with(&txn, < forum post seq >, 7000000).await.or_raise(make_error)?;
+     */
+
+    txn.commit().await.or_raise(make_error)?;
     info!("Finished running seeder.");
     Ok(())
 }
@@ -484,7 +533,14 @@ async fn restart_sequence(
     //         However, by requiring that sequence_name be &'static str, we ensure that it
     //         is only applied to hardcoded values and never used for runtime values
     //         (such as ones entered by an external, untrusted user).
-    run_query(txn, format!("ALTER SEQUENCE {sequence_name} RESTART")).await
+    run_query(txn, format!("ALTER SEQUENCE {sequence_name} RESTART"))
+        .await
+        .or_raise(|| {
+            Error::new(
+                format!("failed to restart ID sequence '{sequence_name}'"),
+                ErrorType::DatabaseSeeder,
+            )
+        })
 }
 
 async fn restart_sequence_with(
@@ -508,11 +564,23 @@ async fn restart_sequence_with(
         format!("ALTER SEQUENCE {sequence_name} RESTART WITH {new_start_value}"),
     )
     .await
+    .or_raise(|| {
+        Error::new(
+            format!("failed to set new start for ID sequence '{sequence_name}' to {new_start_value}"),
+            ErrorType::DatabaseSeeder,
+        )
+    })
 }
 
 async fn run_query(txn: &DatabaseTransaction, sql: String) -> Result<()> {
-    txn.execute(Statement::from_string(DatabaseBackend::Postgres, sql))
-        .await?;
+    txn.execute(Statement::from_string(DatabaseBackend::Postgres, &sql))
+        .await
+        .or_raise(|| {
+            Error::new(
+                format!("failed to run query: {sql}"),
+                ErrorType::DatabaseSeeder,
+            )
+        })?;
 
     Ok(())
 }

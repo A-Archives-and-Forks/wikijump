@@ -2,7 +2,7 @@
  * services/blob/mime.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
- * Copyright (C) 2019-2025 Wikijump Team
+ * Copyright (C) 2019-2026 Wikijump Team
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -74,9 +74,11 @@ impl MimeAnalyzer {
         const MAGIC_FLAGS: MagicFlags = MagicFlags::MIME;
         const MAGIC_PATHS: &[&str] = &[]; // Empty indicates using the default magic database
 
+        let make_error = || Error::new("failed to open magic database", ErrorType::Blob);
+
         info!("Loading magic database data");
-        let magic = Magic::open(MAGIC_FLAGS)?;
-        magic.load(MAGIC_PATHS)?;
+        let magic = Magic::open(MAGIC_FLAGS).or_raise(make_error)?;
+        magic.load(MAGIC_PATHS).or_raise(make_error)?;
         Ok(magic)
     }
 
@@ -84,16 +86,16 @@ impl MimeAnalyzer {
     ///
     /// Runs in a dedicated thread due to borrow checker issues, taking in
     /// requests via a mpsc channel.
+    ///
+    /// When this loop ends, it means the channel has closed.
+    /// This should only happen when the application as a whole is shutting
+    /// down (whether from crash or normal exit).
     fn main_loop(magic: Magic, mut source: RequestReceiver) {
         while let Some((bytes, sender)) = source.blocking_recv() {
             debug!("Received MIME request ({} bytes)", bytes.len());
             let result = magic.buffer(&bytes);
             sender.send(result).expect("Response channel is closed");
         }
-
-        panic!(
-            "MIME magic channel closed (this usually happens when the main application crashes)"
-        );
     }
 
     /// Requests that libmagic analyze the buffer to determine its MIME type.
@@ -102,7 +104,8 @@ impl MimeAnalyzer {
     /// and then waiting for the response, we need to send both the input
     /// and a oneshot channel to get the response.
     pub async fn get_mime_type(&self, buffer: Vec<u8>) -> Result<String> {
-        info!("Sending MIME request ({} bytes)", buffer.len());
+        let buffer_len = buffer.len();
+        info!("Sending MIME request ({} bytes)", buffer_len);
 
         // Channel for getting the result
         let (resp_send, resp_recv): (ResponseSender, ResponseReceiver) =
@@ -118,7 +121,16 @@ impl MimeAnalyzer {
         //
         // Two layers of result for channel failure and MIME request failure
         let resp = resp_recv.await.expect("Response channel is closed");
-        let mime = resp?;
+        let mime = resp.or_raise(|| {
+            Error::new(
+                format!(
+                    "failed to get MIME type from buffer of length {}",
+                    buffer_len,
+                ),
+                ErrorType::Blob,
+            )
+        })?;
+
         Ok(mime)
     }
 }

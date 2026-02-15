@@ -2,7 +2,7 @@
  * types/fetch_direction.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
- * Copyright (C) 2019-2025 Wikijump Team
+ * Copyright (C) 2019-2026 Wikijump Team
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -18,7 +18,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use crate::services::Error as ServiceError;
+use crate::error::prelude::*;
 use std::str::FromStr;
 use strum_macros::EnumIter;
 
@@ -45,7 +45,6 @@ pub enum FetchDirection {
 }
 
 impl FetchDirection {
-    #[cfg(test)]
     pub fn name(self) -> &'static str {
         match self {
             FetchDirection::Before => "before",
@@ -55,13 +54,13 @@ impl FetchDirection {
 }
 
 impl FromStr for FetchDirection {
-    type Err = ServiceError;
+    type Err = EnumConversionError;
 
-    fn from_str(value: &str) -> Result<FetchDirection, ServiceError> {
+    fn from_str(value: &str) -> StdResult<FetchDirection, EnumConversionError> {
         match value {
             "before" => Ok(FetchDirection::Before),
             "after" => Ok(FetchDirection::After),
-            _ => Err(ServiceError::InvalidEnumValue),
+            _ => Err(EnumConversionError::new("FetchDirection", value)),
         }
     }
 }

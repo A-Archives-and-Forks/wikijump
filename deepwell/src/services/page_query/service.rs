@@ -2,7 +2,7 @@
  * services/page_query/service.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
- * Copyright (C) 2019-2025 Wikijump Team
+ * Copyright (C) 2019-2026 Wikijump Team
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -70,6 +70,9 @@ impl PageQueryService {
         }: PageQuery<'_>,
     ) -> Result<Infallible> {
         info!("Building ListPages query from specification");
+
+        let make_error =
+            || Error::new("failed to create ListPages query", ErrorType::PageQuery);
 
         let txn = ctx.transaction();
         let mut condition = Condition::all();
@@ -182,7 +185,8 @@ impl PageQueryService {
                     current_site_id,
                     Reference::Id(current_page_id),
                 )
-                .await?
+                .await
+                .or_raise(make_error)?
                 .into_iter()
                 .map(|parent| parent.parent_page_id)
             };
@@ -229,7 +233,8 @@ impl PageQueryService {
                     current_site_id,
                     Reference::Id(current_page_id),
                 )
-                .await?
+                .await
+                .or_raise(make_error)?
                 .into_iter()
                 .map(|parent| parent.parent_page_id);
 
@@ -264,7 +269,8 @@ impl PageQueryService {
                 debug!("Selecting on pages which have one of the given as parents");
 
                 let parent_ids = PageService::get_pages(ctx, queried_site_id, parents)
-                    .await?
+                    .await
+                    .or_raise(make_error)?
                     .into_iter()
                     .map(|page| page.page_id);
 
@@ -301,7 +307,8 @@ impl PageQueryService {
                             queried_site_id,
                             contains_outgoing_links,
                         )
-                        .await?
+                        .await
+                        .or_raise(make_error)?
                         .into_iter()
                         .map(|page| page.page_id);
 
@@ -432,7 +439,7 @@ impl PageQueryService {
         //      3. [14, 13, 12, 11, 10]
 
         // Execute it!
-        let result = query.all(txn).await?;
+        let result = query.all(txn).await.or_raise(make_error)?;
 
         // TODO implement query construction
         todo!()

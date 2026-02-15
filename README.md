@@ -55,7 +55,7 @@ Wikijump is available under the same license as Wikidot, the [GNU Affero General
 
 ```
 Wikijump - FOSS Wiki Software for Writing Communities
-Copyright (c) 2019-2025, Wikijump Team
+Copyright (c) 2019-2026, Wikijump Team
 
 Based on Wikidot - free wiki collaboration software
 Copyright (c) 2008, Wikidot Inc.

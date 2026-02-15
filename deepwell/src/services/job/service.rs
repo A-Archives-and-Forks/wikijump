@@ -2,7 +2,7 @@
  * services/job/service.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
- * Copyright (C) 2019-2025 Wikijump Team
+ * Copyright (C) 2019-2026 Wikijump Team
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -19,6 +19,8 @@
  */
 
 use super::prelude::*;
+use crate::services::page_revision::RerenderType;
+use crate::types::{PageId, RerenderDepth};
 use rsmq_async::{Rsmq, RsmqConnection};
 use std::time::Duration;
 
@@ -68,8 +70,22 @@ impl JobService {
         delay: Option<Duration>,
     ) -> Result<()> {
         info!("Queuing job {job:?} (delay {delay:?})");
-        let payload = serde_json::to_vec(job)?;
-        rsmq.send_message(JOB_QUEUE_NAME, payload, delay).await?;
+
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to queue job to RSMQ: {:#?} (delay {:?})",
+                    job, delay,
+                ),
+                ErrorType::Job,
+            )
+        };
+
+        let payload = serde_json::to_vec(job).or_raise(make_error)?;
+        rsmq.send_message(JOB_QUEUE_NAME, payload, delay)
+            .await
+            .or_raise(make_error)?;
+
         Ok(())
     }
 
@@ -83,17 +99,44 @@ impl JobService {
     /// | `depth` | If rerendering a page causes more pages to be rerendered due to outdating, then this value should be incremented with each layer of job depth. This way we can avoid infinite loop conditions where jobs endlessly pile onto the queue, rerendering each other. |
     pub async fn queue_rerender_page(
         ctx: &ServiceContext<'_>,
-        site_id: i64,
-        page_id: i64,
-        depth: u32,
+        id: PageId,
+        depth: RerenderDepth,
     ) -> Result<()> {
-        debug!("Queuing page rerender for page ID {page_id} and site ID {site_id}");
+        debug!(
+            "Queuing page rerender for page ID {} and site ID {}",
+            id.page_id, id.site_id,
+        );
         Self::queue_job(
             ctx,
             &Job::RerenderPage {
-                site_id,
-                page_id,
+                id,
                 depth,
+                r#type: RerenderType::Full,
+            },
+            None,
+        )
+        .await
+    }
+
+    /// Queues a page's navigation page data for rerendering soon.
+    ///
+    /// # Arguments
+    /// Same as `queue_rerender_page()`.
+    pub async fn queue_rerender_nav_page(
+        ctx: &ServiceContext<'_>,
+        id: PageId,
+        depth: RerenderDepth,
+    ) -> Result<()> {
+        debug!(
+            "Queuing page rerender for page ID {} and site ID {}",
+            id.page_id, id.site_id,
+        );
+        Self::queue_job(
+            ctx,
+            &Job::RerenderPage {
+                id,
+                depth,
+                r#type: RerenderType::NavigationOnly,
             },
             None,
         )

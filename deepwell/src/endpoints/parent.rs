@@ -2,7 +2,7 @@
  * endpoints/parent.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
- * Copyright (C) 2019-2025 Wikijump Team
+ * Copyright (C) 2019-2026 Wikijump Team
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -36,7 +36,7 @@ pub async fn parent_relationships_get(
         site_id,
         page: reference,
         relationship_type,
-    } = params.parse()?;
+    } = parse!(params, PageParent);
 
     info!(
         "Getting all {} pages from {:?} in site ID {}",
@@ -45,67 +45,98 @@ pub async fn parent_relationships_get(
         site_id,
     );
 
-    ParentService::get_relationships(ctx, site_id, reference, relationship_type).await
+    ParentService::get_relationships(ctx, site_id, reference, relationship_type)
+        .await
+        .or_raise(|| {
+            Error::new(
+                "failed to get page parent relationships",
+                ErrorType::PageParent,
+            )
+        })
 }
 
 pub async fn parent_get(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
 ) -> Result<Option<PageParentModel>> {
-    let input: ParentDescription = params.parse()?;
+    let input: ParentDescription = parse!(params, PageParent);
 
     info!(
         "Getting parental relationship {:?} -> {:?} in site ID {}",
         input.parent, input.child, input.site_id,
     );
 
-    ParentService::get_optional(ctx, input).await
+    ParentService::get_optional(ctx, input).await.or_raise(|| {
+        Error::new(
+            "failed to get info on one page parent relationship",
+            ErrorType::PageParent,
+        )
+    })
 }
 
 pub async fn parent_set(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
 ) -> Result<Option<PageParentModel>> {
-    let input: ParentDescription = params.parse()?;
+    let input: ParentDescription = parse!(params, PageParent);
 
     info!(
         "Creating parental relationship {:?} -> {:?} in site ID {}",
         input.parent, input.child, input.site_id,
     );
 
-    ParentService::create(ctx, input).await
+    ParentService::create(ctx, input).await.or_raise(|| {
+        Error::new(
+            "failed to create page parent relationship",
+            ErrorType::PageParent,
+        )
+    })
 }
 
 pub async fn parent_remove(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
 ) -> Result<RemoveParentOutput> {
-    let input: ParentDescription = params.parse()?;
+    let input: ParentDescription = parse!(params, PageParent);
 
     info!(
         "Removing parental relationship {:?} -> {:?} in site ID {}",
         input.parent, input.child, input.site_id,
     );
 
-    ParentService::remove(ctx, input).await
+    ParentService::remove(ctx, input).await.or_raise(|| {
+        Error::new(
+            "failed to remove page parent relationship",
+            ErrorType::PageParent,
+        )
+    })
 }
 
 pub async fn parent_get_all(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
 ) -> Result<Vec<String>> {
-    let GetPageReference { site_id, page } = params.parse()?;
+    let GetPageReference { site_id, page } = parse!(params, PageParent);
 
     info!("Getting parents for child {page:?} in site ID {site_id}");
 
+    let make_error = || {
+        Error::new(
+            "failed to get all page parents for a child page",
+            ErrorType::PageParent,
+        )
+    };
+
     let parents: Vec<Reference<'_>> = ParentService::get_parents(ctx, site_id, page)
-        .await?
+        .await
+        .or_raise(make_error)?
         .iter()
         .map(|p| Reference::from(p.parent_page_id))
         .collect();
 
     let pages: Vec<String> = PageService::get_pages(ctx, site_id, parents.as_slice())
-        .await?
+        .await
+        .or_raise(make_error)?
         .into_iter()
         .map(|p| p.slug)
         .collect();
@@ -117,12 +148,19 @@ pub async fn parent_update(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
 ) -> Result<UpdateParentsOutput> {
-    let input: UpdateParents = params.parse()?;
+    let input: UpdateParents = parse!(params, PageParent);
 
     info!(
         "Updating multiple parental relationships for child {:?} in site ID {}",
         input.child, input.site_id,
     );
+
+    let make_error = || {
+        Error::new(
+            "failed to update multiple page parent relationships",
+            ErrorType::PageParent,
+        )
+    };
 
     let creation = match input.add {
         Some(parents) => {
@@ -138,7 +176,8 @@ pub async fn parent_update(
             });
             Some(
                 try_join_all(creation)
-                    .await?
+                    .await
+                    .or_raise(make_error)?
                     .iter()
                     .flatten()
                     .map(|p| p.parent_page_id)
@@ -162,7 +201,8 @@ pub async fn parent_update(
             });
             Some(
                 try_join_all(removal)
-                    .await?
+                    .await
+                    .or_raise(make_error)?
                     .iter()
                     .map(|p| p.was_deleted)
                     .collect(),

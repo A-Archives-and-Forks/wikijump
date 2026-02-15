@@ -2,7 +2,7 @@
  * license.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
- * Copyright (C) 2019-2025 Wikijump Team
+ * Copyright (C) 2019-2026 Wikijump Team
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -20,8 +20,8 @@
 
 //! Constant data for licenses usable by Wikijump sites.
 
+use crate::error::prelude::*;
 use crate::locales::Localizations;
-use crate::services::Result;
 use fluent::FluentArgs;
 use unic_langid::LanguageIdentifier;
 
@@ -98,7 +98,12 @@ impl License {
     ) -> Result<String> {
         assert!(!locales.is_empty(), "No languages specified");
         let args = FluentArgs::new();
-        let name = localization.translate(locales, self.fluent_key(), &args)?;
+        let name = localization
+            .translate(locales, self.fluent_key(), &args)
+            .or_raise(|| {
+                Error::new("failed to translate license name", ErrorType::License)
+            })?;
+
         Ok(name.to_string())
     }
 }

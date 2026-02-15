@@ -2,7 +2,7 @@
  * services/text.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
- * Copyright (C) 2019-2025 Wikijump Team
+ * Copyright (C) 2019-2026 Wikijump Team
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -46,14 +46,24 @@ impl TextService {
                 TEXT_HASH_LENGTH,
                 hash.len(),
             );
-            return Err(Error::BadRequest);
+            bail!(Error::new(
+                format!(
+                    "failed to get text entry, hash should be {} bytes, but is {} bytes",
+                    TEXT_HASH_LENGTH,
+                    hash.len(),
+                ),
+                ErrorType::BadRequest,
+            ));
         }
 
         let txn = ctx.transaction();
         let contents = Text::find()
             .filter(text::Column::Hash.eq(hash))
             .one(txn)
-            .await?
+            .await
+            .or_raise(|| {
+                Error::new("failed to get optional text entry", ErrorType::Text)
+            })?
             .map(|model| model.contents);
 
         Ok(contents)
@@ -61,7 +71,7 @@ impl TextService {
 
     #[inline]
     pub async fn get(ctx: &ServiceContext<'_>, hash: &[u8]) -> Result<String> {
-        find_or_error!(Self::get_optional(ctx, hash), Text)
+        find_or_error!(Self::get_optional(ctx, hash), "text entry", Text)
     }
 
     #[inline]
@@ -77,14 +87,77 @@ impl TextService {
     /// text given by the specified hash only
     /// if the flag `should_fetch` is true.
     /// Otherwise, it does no action, returning `None`.
-    pub async fn get_maybe(
+    pub async fn get_conditional(
         ctx: &ServiceContext<'_>,
         should_fetch: bool,
         hash: &[u8],
     ) -> Result<Option<String>> {
         if should_fetch {
-            let text = Self::get(ctx, hash).await?;
+            let text = Self::get(ctx, hash).await.or_raise(|| {
+                Error::new("failed to conditionally get text entry", ErrorType::Text)
+            })?;
             Ok(Some(text))
+        } else {
+            Ok(None)
+        }
+    }
+
+    /// Syntactic sugar for `Option<[u8]>` → `Option<String>`.
+    ///
+    /// This is effectively equivalent to `Option::map()` for `TextService::get()`,
+    /// but because it is `async` and returns `Result`, the actual equivalent code
+    /// would be:
+    /// ```rs
+    /// # fn get_option(ctx: &ServiceContext<'_>, hash: Option<&[u8]>) -> Result<Option<String>> {
+    /// match hash {
+    ///     None => Ok(None),
+    ///     Some(hash) => {
+    ///         let text = TextService::get(ctx, hash).await?;
+    ///         Ok(Some(text))
+    ///     }
+    /// }
+    /// # }
+    /// ```
+    ///
+    /// Put another way, if `hash` is `Some(_)` then the result will always be `Some(_)`,
+    /// and if `hash` is `None` then the result will always be `None`.
+    ///
+    /// Not to be confused with the following methods:
+    /// * `get_optional()` &mdash; Returns `None` if the text doesn't exist instead of an error.
+    /// * `get_conditional()` &mdash; Doesn't accept an `Option` hash reference.
+    /// * `get_conditional_option()` &mdash; Combination of `get_conditional()` and `get_option()`.
+    pub async fn get_option<B: AsRef<[u8]>>(
+        ctx: &ServiceContext<'_>,
+        hash: &Option<B>,
+    ) -> Result<Option<String>> {
+        match hash {
+            None => Ok(None),
+            Some(hash) => {
+                let hash = hash.as_ref();
+                let text = Self::get(ctx, hash).await.or_raise(|| {
+                    Error::new("failed to get optional text entry", ErrorType::Text)
+                })?;
+
+                Ok(Some(text))
+            }
+        }
+    }
+
+    /// A combination of `get_conditional()` and `get_option()`.
+    ///
+    /// That is, it will fetch a text if and only if:
+    /// * `should_fetch` is true
+    /// * `hash` is `Some(_)`
+    ///
+    /// If both conditions are met, then it is identical to returning
+    /// the results of `TextService::get()` in a `Some(_)`.
+    pub async fn get_conditional_option<B: AsRef<[u8]>>(
+        ctx: &ServiceContext<'_>,
+        should_fetch: bool,
+        hash: &Option<B>,
+    ) -> Result<Option<String>> {
+        if should_fetch {
+            Self::get_option(ctx, hash).await
         } else {
             Ok(None)
         }
@@ -92,16 +165,20 @@ impl TextService {
 
     /// Creates a text entry with this data, if it does not already exist.
     pub async fn create(ctx: &ServiceContext<'_>, contents: String) -> Result<TextHash> {
+        let make_error =
+            || Error::new("failed to create new text entry", ErrorType::Text);
+
         let txn = ctx.transaction();
         let hash = k12_hash(contents.as_bytes());
+        let exists = Self::exists(ctx, &hash).await.or_raise(make_error)?;
 
-        if !Self::exists(ctx, &hash).await? {
+        if !exists {
             let model = text::ActiveModel {
                 hash: Set(hash.to_vec()),
                 contents: Set(contents),
             };
 
-            Text::insert(model).exec(txn).await?;
+            Text::insert(model).exec(txn).await.or_raise(make_error)?;
         }
 
         Ok(hash)
@@ -133,7 +210,15 @@ impl TextService {
                     ))
                     .add(not_in_column!(
                         PageRevision,
-                        page_revision::Column::CompiledHash,
+                        page_revision::Column::CompiledBodyHtmlHash,
+                    ))
+                    .add(not_in_column!(
+                        PageRevision,
+                        page_revision::Column::CompiledTopBarHtmlHash,
+                    ))
+                    .add(not_in_column!(
+                        PageRevision,
+                        page_revision::Column::CompiledSideBarHtmlHash,
                     ))
                     .add(not_in_column!(
                         MessageDraft,
@@ -161,7 +246,10 @@ impl TextService {
                     )),
             )
             .exec(txn)
-            .await?;
+            .await
+            .or_raise(|| {
+                Error::new("failed to prune unused text entries", ErrorType::Text)
+            })?;
 
         debug!("Pruned {rows_affected} unused text rows");
         Ok(())

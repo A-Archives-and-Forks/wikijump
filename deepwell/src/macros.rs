@@ -2,7 +2,7 @@
  * macros.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
- * Copyright (C) 2019-2025 Wikijump Team
+ * Copyright (C) 2019-2026 Wikijump Team
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -67,4 +67,19 @@ macro_rules! fluent_str {
     ($value:expr) => {
         FluentValue::String(cow!(&$value))
     };
+}
+
+/// Performs `.or_raise()?` on a number of `Result`s.
+/// Intended for use in conjunction with `join!()`.
+macro_rules! raise_multiple {
+    // Singular case
+    ($result:ident; $raise:expr $(,)?) => {
+        $result.or_raise($raise)?
+    };
+
+    // Multiple case
+    ($($result:ident),+ ; $raise:expr $(,)?) => {{
+        $(let $result = $result.or_raise($raise)?;)+
+        ($($result,)+)
+    }};
 }

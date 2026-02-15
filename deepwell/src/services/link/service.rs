@@ -2,7 +2,7 @@
  * services/link/service.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
- * Copyright (C) 2019-2025 Wikijump Team
+ * Copyright (C) 2019-2026 Wikijump Team
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -23,6 +23,7 @@ use crate::models::page;
 use crate::models::page_connection::{self, Entity as PageConnection};
 use crate::models::page_connection_missing::{self, Entity as PageConnectionMissing};
 use crate::models::page_link::{self, Entity as PageLink, Model as PageLinkModel};
+use crate::models::site::Model as SiteModel;
 use crate::services::{PageService, SiteService};
 use crate::types::ConnectionType;
 use ftml::data::{Backlinks, PageRef};
@@ -56,7 +57,14 @@ impl LinkService {
     ) -> Result<GetLinksFromOutput> {
         let txn = ctx.transaction();
 
-        let (present, absent, external) = try_join!(
+        let make_error = || {
+            Error::new(
+                format!("failed to get links from page ID {}", page_id),
+                ErrorType::PageLink,
+            )
+        };
+
+        let (present_result, absent_result, external_result) = join!(
             PageConnection::find()
                 .filter(page_connection::Column::FromPageId.eq(page_id))
                 .all(txn),
@@ -66,7 +74,10 @@ impl LinkService {
             PageLink::find()
                 .filter(page_link::Column::PageId.eq(page_id))
                 .all(txn),
-        )?;
+        );
+
+        let (present, absent, external) =
+            raise_multiple!(present_result, absent_result, external_result; make_error);
 
         Ok(GetLinksFromOutput {
             present,
@@ -84,7 +95,23 @@ impl LinkService {
     ) -> Result<GetConnectionsFromOutput> {
         let txn = ctx.transaction();
 
-        let (present, absent) = try_join!(
+        let make_error = || {
+            Error::new(
+                match connection_types {
+                    Some(ctypes) => format!(
+                        "failed to get connections from page ID {} (connection types {:?}",
+                        page_id, ctypes,
+                    ),
+                    None => format!(
+                        "failed to get connections from page ID {} (all connection types)",
+                        page_id,
+                    ),
+                },
+                ErrorType::PageLink,
+            )
+        };
+
+        let (present_result, absent_result) = join!(
             PageConnection::find()
                 .filter(
                     Condition::all()
@@ -105,8 +132,10 @@ impl LinkService {
                         )),
                 )
                 .all(txn),
-        )?;
+        );
 
+        let (present, absent) =
+            raise_multiple!(present_result, absent_result; make_error);
         Ok(GetConnectionsFromOutput { present, absent })
     }
 
@@ -116,6 +145,13 @@ impl LinkService {
         connection_types: Option<&[ConnectionType]>,
     ) -> Result<GetLinksToOutput> {
         let txn = ctx.transaction();
+
+        let make_error = || {
+            Error::new(
+                format!("failed to get links to page ID {}", page_id),
+                ErrorType::PageLink,
+            )
+        };
 
         let connections = PageConnection::find()
             .filter(
@@ -127,7 +163,8 @@ impl LinkService {
                     )),
             )
             .all(txn)
-            .await?;
+            .await
+            .or_raise(make_error)?;
 
         Ok(GetLinksToOutput { connections })
     }
@@ -140,16 +177,39 @@ impl LinkService {
     ) -> Result<GetLinksToMissingOutput> {
         let txn = ctx.transaction();
 
+        let make_error = || {
+            Error::new(
+                match connection_types {
+                    Some(ctypes) => format!(
+                        "failed to get connections to missing site ID {} page '{}' (connection types {:?}",
+                        site_id, page_slug, ctypes,
+                    ),
+                    None => format!(
+                        "failed to get connections to missing site ID {} page '{}'  (all connection types)",
+                        site_id, page_slug,
+                    ),
+                },
+                ErrorType::PageLink,
+            )
+        };
+
         // Ensure the page doesn't actually exist
         if let Some(page) =
-            PageService::get_optional(ctx, site_id, Reference::from(page_slug)).await?
+            PageService::get_optional(ctx, site_id, Reference::from(page_slug))
+                .await
+                .or_raise(make_error)?
         {
             warn!(
                 "Requesting missing page connections for page that exists (site id {}, page id {})",
                 site_id, page.page_id,
             );
-
-            return Err(Error::PageExists);
+            bail!(Error::new(
+                format!(
+                    "cannot get missing page connections for page '{}' that exists (site ID {}, page ID {})",
+                    page_slug, site_id, page.page_id
+                ),
+                ErrorType::PageLink
+            ));
         }
 
         // Retrieve connections for this slot
@@ -164,7 +224,8 @@ impl LinkService {
                     )),
             )
             .all(txn)
-            .await?;
+            .await
+            .or_raise(make_error)?;
 
         Ok(GetLinksToMissingOutput { connections })
     }
@@ -175,10 +236,18 @@ impl LinkService {
     ) -> Result<GetLinksExternalFromOutput> {
         let txn = ctx.transaction();
 
+        let make_error = || {
+            Error::new(
+                format!("failed to get links from page ID {}", page_id),
+                ErrorType::PageLink,
+            )
+        };
+
         let links = PageLink::find()
             .filter(page_link::Column::PageId.eq(page_id))
             .all(txn)
-            .await?;
+            .await
+            .or_raise(make_error)?;
 
         Ok(GetLinksExternalFromOutput { links })
     }
@@ -190,6 +259,16 @@ impl LinkService {
     ) -> Result<GetLinksExternalToOutput> {
         let txn = ctx.transaction();
 
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to get links to external URL {} on site ID {}",
+                    url, site_id
+                ),
+                ErrorType::PageLink,
+            )
+        };
+
         // Perform join so we don't leak data from other sites.
         let links = PageLink::find()
             .join(JoinType::InnerJoin, page_link::Relation::Page.def())
@@ -199,7 +278,8 @@ impl LinkService {
                     .add(page::Column::SiteId.eq(site_id)),
             )
             .all(txn)
-            .await?
+            .await
+            .or_raise(make_error)?
             .into_iter()
             .map(
                 // Filter out unneeded fields, notably 'url'
@@ -232,6 +312,16 @@ impl LinkService {
         let mut connections_missing = HashMap::new();
         let mut external_links = HashMap::new();
 
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to update links for site ID {} page ID {}",
+                    site_id, page_id
+                ),
+                ErrorType::PageLink,
+            )
+        };
+
         // Get include stats
         for include in &backlinks.included_pages {
             count_connections(
@@ -243,7 +333,8 @@ impl LinkService {
                 &mut connections,
                 &mut connections_missing,
             )
-            .await?;
+            .await
+            .or_raise(make_error)?;
         }
 
         // Get internal page link stats
@@ -256,7 +347,8 @@ impl LinkService {
                 &mut connections,
                 &mut connections_missing,
             )
-            .await?;
+            .await
+            .or_raise(make_error)?;
         }
 
         // Gather external URL link stats
@@ -266,11 +358,12 @@ impl LinkService {
         }
 
         // Update records
-        try_join!(
+        let (result1, result2, result3) = join!(
             update_connections(ctx, page_id, &mut connections),
             update_connections_missing(ctx, page_id, &mut connections_missing),
             update_external_links(ctx, page_id, &mut external_links),
-        )?;
+        );
+        raise_multiple!(result1, result2, result3; make_error);
 
         Ok(())
     }
@@ -285,6 +378,17 @@ async fn update_connections(
 ) -> Result<()> {
     let txn = ctx.transaction();
 
+    let counts_len = counts.len();
+    let make_error = || {
+        Error::new(
+            format!(
+                "failed to update connections from page ID {} to {} values",
+                from_page_id, counts_len,
+            ),
+            ErrorType::PageLink,
+        )
+    };
+
     // Get existing connections
     let mut connection_chunks = PageConnection::find()
         .filter(page_connection::Column::FromPageId.eq(from_page_id))
@@ -292,10 +396,14 @@ async fn update_connections(
         .paginate(txn, 100);
 
     // Update and delete connections
-    while let Some(connections) = connection_chunks.fetch_and_next().await? {
+    while let Some(connections) = connection_chunks
+        .fetch_and_next()
+        .await
+        .or_raise(make_error)?
+    {
         for connection in connections {
             let to_page_id = connection.to_page_id;
-            let connection_type = parse_connection_type!(connection);
+            let connection_type = parse_connection_type!(connection, make_error);
 
             match counts.remove(&(to_page_id, connection_type)) {
                 // Connection exists, count is the same. Do nothing.
@@ -306,13 +414,13 @@ async fn update_connections(
                     let mut model: page_connection::ActiveModel = connection.into();
                     model.count = Set(count);
                     model.updated_at = Set(Some(now()));
-                    model.update(txn).await?;
+                    model.update(txn).await.or_raise(make_error)?;
                 }
 
                 // Connection existed, but has no further counts. Remove it.
                 None => {
                     let model: page_connection::ActiveModel = connection.into();
-                    model.delete(txn).await?;
+                    model.delete(txn).await.or_raise(make_error)?;
                 }
             }
         }
@@ -334,7 +442,10 @@ async fn update_connections(
         .collect::<Vec<_>>();
 
     if !to_insert.is_empty() {
-        PageConnection::insert_many(to_insert).exec(txn).await?;
+        PageConnection::insert_many(to_insert)
+            .exec(txn)
+            .await
+            .or_raise(make_error)?;
     }
 
     Ok(())
@@ -347,6 +458,17 @@ async fn update_connections_missing(
 ) -> Result<()> {
     let txn = ctx.transaction();
 
+    let counts_len = counts.len();
+    let make_error = || {
+        Error::new(
+            format!(
+                "failed to update missing connections from page ID {} to {} values",
+                from_page_id, counts_len,
+            ),
+            ErrorType::PageLink,
+        )
+    };
+
     // Get existing connections
     let mut connection_chunks = PageConnectionMissing::find()
         .filter(page_connection_missing::Column::FromPageId.eq(from_page_id))
@@ -354,11 +476,15 @@ async fn update_connections_missing(
         .paginate(txn, 100);
 
     // Update and delete connections
-    while let Some(connections) = connection_chunks.fetch_and_next().await? {
+    while let Some(connections) = connection_chunks
+        .fetch_and_next()
+        .await
+        .or_raise(make_error)?
+    {
         for connection in connections {
             let to_site_id = connection.to_site_id;
             let to_page_slug = connection.to_page_slug.clone();
-            let connection_type = parse_connection_type!(connection);
+            let connection_type = parse_connection_type!(connection, make_error);
 
             match counts.remove(&(to_site_id, to_page_slug.clone(), connection_type)) {
                 // Connection exists, count is the same. Do nothing.
@@ -370,13 +496,13 @@ async fn update_connections_missing(
                         connection.into();
                     model.count = Set(count);
                     model.updated_at = Set(Some(now()));
-                    model.update(txn).await?;
+                    model.update(txn).await.or_raise(make_error)?;
                 }
 
                 // Connection existed, but has no further counts. Remove it.
                 None => {
                     let model: page_connection_missing::ActiveModel = connection.into();
-                    model.delete(txn).await?;
+                    model.delete(txn).await.or_raise(make_error)?;
                 }
             }
         }
@@ -403,7 +529,8 @@ async fn update_connections_missing(
     if !to_insert.is_empty() {
         PageConnectionMissing::insert_many(to_insert)
             .exec(txn)
-            .await?;
+            .await
+            .or_raise(make_error)?;
     }
 
     Ok(())
@@ -416,6 +543,16 @@ async fn update_external_links(
 ) -> Result<()> {
     let txn = ctx.transaction();
 
+    let make_error = || {
+        Error::new(
+            format!(
+                "failed to update external links from page ID {}",
+                from_page_id
+            ),
+            ErrorType::PageLink,
+        )
+    };
+
     // Get existing links
     let mut link_chunks = PageLink::find()
         .filter(page_link::Column::PageId.eq(from_page_id))
@@ -423,7 +560,7 @@ async fn update_external_links(
         .paginate(txn, 100);
 
     // Update and delete connections
-    while let Some(links) = link_chunks.fetch_and_next().await? {
+    while let Some(links) = link_chunks.fetch_and_next().await.or_raise(make_error)? {
         for link in links {
             match counts.remove(&link.url) {
                 // Link exists, count is the same. Do nothing.
@@ -434,13 +571,13 @@ async fn update_external_links(
                     let mut model: page_link::ActiveModel = link.into();
                     model.count = Set(count);
                     model.updated_at = Set(Some(now()));
-                    model.update(txn).await?;
+                    model.update(txn).await.or_raise(make_error)?;
                 }
 
                 // Link existed, but has no further counts. Remove it.
                 None => {
                     let model: page_link::ActiveModel = link.into();
-                    model.delete(txn).await?;
+                    model.delete(txn).await.or_raise(make_error)?;
                 }
             }
         }
@@ -459,7 +596,10 @@ async fn update_external_links(
         .collect::<Vec<_>>();
 
     if !to_insert.is_empty() {
-        PageLink::insert_many(to_insert).exec(txn).await?;
+        PageLink::insert_many(to_insert)
+            .exec(txn)
+            .await
+            .or_raise(make_error)?;
     }
 
     Ok(())
@@ -477,17 +617,39 @@ async fn count_connections(
     connections: &mut HashMap<(i64, ConnectionType), i32>,
     connections_missing: &mut HashMap<(i64, String, ConnectionType), i32>,
 ) -> Result<()> {
+    let make_error = || {
+        Error::new(
+            format!(
+                "failed to count {} connections from site '{}' page '{}' for site ID {}",
+                connection_type.name(),
+                match site_slug {
+                    Some(s) => s.as_str(),
+                    None => "<current>",
+                },
+                page_slug,
+                site_id,
+            ),
+            ErrorType::PageLink,
+        )
+    };
+
     let to_site_id = match site_slug {
         None => site_id,
         Some(slug) => {
             let reference = Reference::Slug(cow!(slug));
-            SiteService::get(ctx, reference).await?.site_id
+            let SiteModel { site_id, .. } = SiteService::get(ctx, reference)
+                .await
+                .or_raise(make_error)?;
+
+            site_id
         }
     };
 
     let page = {
         let reference = Reference::Slug(cow!(page_slug));
-        PageService::get_optional(ctx, to_site_id, reference).await?
+        PageService::get_optional(ctx, to_site_id, reference)
+            .await
+            .or_raise(make_error)?
     };
 
     match page {

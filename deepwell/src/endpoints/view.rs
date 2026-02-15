@@ -2,7 +2,7 @@
  * endpoints/view.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
- * Copyright (C) 2019-2025 Wikijump Team
+ * Copyright (C) 2019-2026 Wikijump Team
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -21,7 +21,7 @@
 use super::prelude::*;
 use crate::services::view::{
     GetAdminView, GetAdminViewOutput, GetPageView, GetPageViewOutput, GetUserView,
-    GetUserViewOutput,
+    GetUserViewOutput, ViewType,
 };
 
 /// Returns relevant context for rendering a page from a processed web request.
@@ -29,8 +29,14 @@ pub async fn page_view(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
 ) -> Result<GetPageViewOutput> {
-    let input: GetPageView = params.parse()?;
-    ViewService::page(ctx, input).await
+    let input: GetPageView = parse!(params => ErrorType::GetView(ViewType::Page));
+
+    ViewService::page(ctx, input).await.or_raise(|| {
+        Error::new(
+            "failed to get page view",
+            ErrorType::GetView(ViewType::Page),
+        )
+    })
 }
 
 /// Returns relevant context for rendering a user profile from a processed web request.
@@ -38,8 +44,14 @@ pub async fn user_view(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
 ) -> Result<GetUserViewOutput> {
-    let input: GetUserView = params.parse()?;
-    ViewService::user(ctx, input).await
+    let input: GetUserView = parse!(params => ErrorType::GetView(ViewType::User));
+
+    ViewService::user(ctx, input).await.or_raise(|| {
+        Error::new(
+            "failed to get user view",
+            ErrorType::GetView(ViewType::User),
+        )
+    })
 }
 
 /// Returns relevant context for rendering admin panel from a processed web request.
@@ -47,6 +59,12 @@ pub async fn admin_view(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
 ) -> Result<GetAdminViewOutput> {
-    let input: GetAdminView = params.parse()?;
-    ViewService::admin(ctx, input).await
+    let input: GetAdminView = parse!(params => ErrorType::GetView(ViewType::Admin));
+
+    ViewService::admin(ctx, input).await.or_raise(|| {
+        Error::new(
+            "failed to get admin view",
+            ErrorType::GetView(ViewType::Admin),
+        )
+    })
 }

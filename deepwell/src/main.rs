@@ -2,7 +2,7 @@
  * main.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
- * Copyright (C) 2019-2025 Wikijump Team
+ * Copyright (C) 2019-2026 Wikijump Team
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -19,6 +19,9 @@
  */
 
 //! A server to expose Wikijump operations via an internal JSON RPC API.
+
+#[macro_use]
+extern crate exn;
 
 #[macro_use]
 extern crate log;
@@ -47,6 +50,7 @@ mod config;
 mod constants;
 mod database;
 mod endpoints;
+mod error;
 mod hash;
 mod info;
 mod license;
@@ -60,7 +64,7 @@ mod utils;
 use self::watch::setup_autorestart;
 
 use self::config::SetupConfig;
-use anyhow::Result;
+use self::error::prelude::*;
 use cfg_if::cfg_if;
 use std::fs::File;
 use std::io::Write;
@@ -72,6 +76,14 @@ async fn main() -> Result<()> {
     let SetupConfig { secrets, config } = SetupConfig::load();
     let address = config.address;
     let run_seeder = config.run_seeder;
+
+    // Contextual error
+    let make_error = || {
+        Error::new(
+            format!("failed to start deepwell server on {address} (seeder {run_seeder})"),
+            ErrorType::ApplicationStart,
+        )
+    };
 
     // Configure the logger
     if config.logger {
@@ -90,8 +102,8 @@ async fn main() -> Result<()> {
             path.display(),
         );
 
-        let mut file = File::create(path)?;
-        writeln!(&mut file, "{}", process::id())?;
+        let mut file = File::create(path).or_raise(make_error)?;
+        writeln!(&mut file, "{}", process::id()).or_raise(make_error)?;
     }
 
     // Set up restart-on-config change (if feature enabled)
@@ -101,7 +113,7 @@ async fn main() -> Result<()> {
     if config.watch_files {
         cfg_if! {
             if #[cfg(feature = "watch")] {
-                _watcher = setup_autorestart(&config)?;
+                _watcher = setup_autorestart(&config).or_raise(make_error)?;
             } else {
                 error!("The --watch-files option requires the 'watch' feature");
                 process::exit(1);
@@ -110,16 +122,18 @@ async fn main() -> Result<()> {
     }
 
     // Set up server state
-    let app_state = api::build_server_state(config, secrets).await?;
+    let app_state = api::build_server_state(config, secrets)
+        .await
+        .or_raise(make_error)?;
 
     // Run seeder, if enabled
     if run_seeder {
-        database::seed(&app_state).await?;
+        database::seed(&app_state).await.or_raise(make_error)?;
     }
 
     // Build and run server
     info!("Building server...");
-    let server = api::build_server(app_state).await?;
+    let server = api::build_server(app_state).await.or_raise(make_error)?;
 
     info!("Listening to connections on {address}...");
     server.stopped().await; // block until end

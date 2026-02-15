@@ -2,7 +2,7 @@
  * services/score/impls/mean.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
- * Copyright (C) 2019-2025 Wikijump Team
+ * Copyright (C) 2019-2026 Wikijump Team
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -65,7 +65,8 @@ impl Scorer for MeanScorer {
             .filter(condition)
             .into_model::<MeanRow>()
             .one(txn)
-            .await?
+            .await
+            .or_raise(|| make_error("mean"))?
             .expect("No results in aggregate query");
 
         let score = if count == 0 {

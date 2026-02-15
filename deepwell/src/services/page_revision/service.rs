@@ -2,7 +2,7 @@
  * services/page_revision/service.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
- * Copyright (C) 2019-2025 Wikijump Team
+ * Copyright (C) 2019-2026 Wikijump Team
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -23,18 +23,20 @@ use crate::models::page_revision::{
     self, Entity as PageRevision, Model as PageRevisionModel,
 };
 use crate::models::sea_orm_active_enums::PageRevisionType;
-use crate::services::render::RenderOutput;
+use crate::models::text::{self, Entity as Text, Model as TextModel};
+use crate::services::render::RenderPageOutput;
 use crate::services::score::ScoreValue;
 use crate::services::{
     LinkService, OutdateService, PageService, ParentService, RenderService, ScoreService,
     SettingsService, SiteService, TextService,
 };
-use crate::types::FetchDirection;
-use crate::utils::{split_category, split_category_name};
+use crate::types::{FetchDirection, PageId, RerenderDepth};
+use crate::utils::{split_category, split_category_name, trim_default};
 use ftml::data::PageInfo;
 use ftml::layout::Layout;
 use ftml::settings::{WikitextMode, WikitextSettings};
 use ref_map::*;
+use sea_query::{Order, Query};
 use std::num::NonZeroI32;
 use std::sync::LazyLock;
 
@@ -89,8 +91,7 @@ impl PageRevisionService {
     /// If the given previous revision is for a different page or site, this method will panic.
     pub async fn create(
         ctx: &ServiceContext<'_>,
-        site_id: i64,
-        page_id: i64,
+        id: PageId,
         CreatePageRevision {
             user_id,
             comments,
@@ -99,8 +100,24 @@ impl PageRevisionService {
         }: CreatePageRevision,
         previous: PageRevisionModel,
     ) -> Result<Option<CreatePageRevisionOutput>> {
+        let PageId {
+            site_id,
+            category_id,
+            page_id,
+        } = id;
+
         let txn = ctx.transaction();
         let revision_number = next_revision_number(&previous, site_id, page_id);
+
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to create new page revision on page ID {} in category ID {} on site ID {} by user ID {}",
+                    page_id, category_id, site_id, user_id,
+                ),
+                ErrorType::PageRevision,
+            )
+        };
 
         // Replace with debug_assert_matches! when stablized
         debug_assert!(
@@ -120,7 +137,9 @@ impl PageRevisionService {
         let mut changes = Vec::new();
         let PageRevisionModel {
             mut wikitext_hash,
-            mut compiled_hash,
+            mut compiled_body_html_hash,
+            mut compiled_top_bar_html_hash,
+            mut compiled_side_bar_html_hash,
             mut compiled_at,
             mut compiled_generator,
             hidden,
@@ -172,7 +191,9 @@ impl PageRevisionService {
         let wikitext = match body.wikitext {
             // Insert new wikitext and update hash
             Maybe::Set(new_wikitext) => {
-                let new_hash = TextService::create(ctx, new_wikitext.clone()).await?;
+                let new_hash = TextService::create(ctx, new_wikitext.clone())
+                    .await
+                    .or_raise(make_error)?;
 
                 if wikitext_hash != new_hash {
                     changes.push(str!("wikitext"));
@@ -183,21 +204,27 @@ impl PageRevisionService {
             }
 
             // Use previous revision's wikitext
-            Maybe::Unset => TextService::get(ctx, &wikitext_hash).await?,
+            Maybe::Unset => TextService::get(ctx, &wikitext_hash)
+                .await
+                .or_raise(make_error)?,
         };
 
         // If nothing has changed, then don't create a new revision
         if changes.is_empty() {
             debug!("No changes in edit, only rerendering the page");
-            Self::rerender(ctx, site_id, page_id, 0).await?;
+            Self::rerender(ctx, id, RerenderDepth::default(), RerenderType::Full)
+                .await
+                .or_raise(make_error)?;
+
             return Ok(None);
         }
 
         // Get ancillary page data
-        let (score, layout) = try_join!(
+        let (score_result, layout_result) = join!(
             ScoreService::score(ctx, page_id),
             SettingsService::get_layout(ctx, site_id, Some(page_id)),
-        )?;
+        );
+        let (score, layout) = raise_multiple!(score_result, layout_result; make_error);
 
         // Run tasks based on changes:
         // See PageRevisionTasks struct for more information.
@@ -219,22 +246,24 @@ impl PageRevisionService {
             //
             // Since outdating depends on scope (see PageRevisionTasks),
             // we don't do that right after here.
-            //
-            // TODO: use html_output
-            let render_output = Self::render_and_update_links(
-                ctx,
-                site_id,
-                page_id,
-                wikitext,
-                render_input,
-            )
-            .await?;
+            let RenderPageOutput {
+                // TODO: use html_output
+                html_output: _,
+                errors,
+                compiled_body_html_hash: new_body_html_hash,
+                compiled_top_bar_html_hash: new_top_bar_html_hash,
+                compiled_side_bar_html_hash: new_side_bar_html_hash,
+                compiled_at: new_compiled_at,
+                compiled_generator: new_compiled_generator,
+            } = Self::render_and_update_links(ctx, id, wikitext, render_input).await?;
 
             // Update fields
-            parser_errors = Some(render_output.errors);
-            replace_hash(&mut compiled_hash, &render_output.compiled_hash);
-            compiled_generator = render_output.compiled_generator;
-            compiled_at = now();
+            parser_errors = Some(errors);
+            replace_hash(&mut compiled_body_html_hash, &new_body_html_hash);
+            replace_hash_opt(&mut compiled_top_bar_html_hash, new_top_bar_html_hash);
+            replace_hash_opt(&mut compiled_side_bar_html_hash, new_side_bar_html_hash);
+            compiled_generator = new_compiled_generator;
+            compiled_at = new_compiled_at;
         }
 
         // Perform outdating based on changes made.
@@ -252,9 +281,15 @@ impl PageRevisionService {
                 // also run those again.
 
                 OutdateService::process_page_move(
-                    ctx, site_id, page_id, old_slug, &slug, 0,
+                    ctx,
+                    site_id,
+                    page_id,
+                    old_slug,
+                    &slug,
+                    RerenderDepth::default(),
                 )
-                .await?;
+                .await
+                .or_raise(make_error)?;
 
                 assert_eq!(
                     revision_type,
@@ -271,11 +306,19 @@ impl PageRevisionService {
                 try_join!(
                     conditional_future!(
                         tasks.rerender_incoming_links,
-                        OutdateService::outdate_incoming_links(ctx, page_id, 0),
+                        OutdateService::outdate_incoming_links(
+                            ctx,
+                            page_id,
+                            RerenderDepth::default()
+                        ),
                     ),
                     conditional_future!(
                         tasks.rerender_outgoing_includes,
-                        OutdateService::outdate_outgoing_includes(ctx, page_id, 0),
+                        OutdateService::outdate_outgoing_includes(
+                            ctx,
+                            page_id,
+                            RerenderDepth::default()
+                        ),
                     ),
                     conditional_future!(
                         tasks.rerender_templates,
@@ -284,7 +327,7 @@ impl PageRevisionService {
                             site_id,
                             category_slug,
                             page_slug,
-                            0,
+                            RerenderDepth::default(),
                         ),
                     ),
                 )?;
@@ -311,7 +354,9 @@ impl PageRevisionService {
             user_id: Set(user_id),
             changes: Set(changes),
             wikitext_hash: Set(wikitext_hash),
-            compiled_hash: Set(compiled_hash),
+            compiled_body_html_hash: Set(compiled_body_html_hash),
+            compiled_top_bar_html_hash: Set(compiled_top_bar_html_hash),
+            compiled_side_bar_html_hash: Set(compiled_side_bar_html_hash),
             compiled_at: Set(compiled_at),
             compiled_generator: Set(compiled_generator),
             comments: Set(comments),
@@ -323,7 +368,9 @@ impl PageRevisionService {
             ..Default::default()
         };
 
-        let PageRevisionModel { revision_id, .. } = model.insert(txn).await?;
+        let PageRevisionModel { revision_id, .. } =
+            model.insert(txn).await.or_raise(make_error)?;
+
         Ok(Some(CreatePageRevisionOutput {
             revision_id,
             revision_number,
@@ -340,8 +387,7 @@ impl PageRevisionService {
     /// (since there's no prior revision for it to be equal to).
     pub async fn create_first(
         ctx: &ServiceContext<'_>,
-        site_id: i64,
-        page_id: i64,
+        id: PageId,
         CreateFirstPageRevision {
             user_id,
             comments,
@@ -353,19 +399,38 @@ impl PageRevisionService {
         }: CreateFirstPageRevision,
     ) -> Result<CreateFirstPageRevisionOutput> {
         let txn = ctx.transaction();
+        let PageId {
+            site_id,
+            category_id,
+            page_id,
+        } = id;
+
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to create first page revision for page ID {} in category ID {} on site ID {} by user ID {}",
+                    page_id, category_id, site_id, user_id,
+                ),
+                ErrorType::PageRevision,
+            )
+        };
 
         // If the page creation doesn't specify a preferred layout,
         // use the default for the site.
         let layout = match layout {
-            None => SettingsService::get_layout(ctx, site_id, None).await?,
             Some(layout) => layout,
+            None => SettingsService::get_layout(ctx, site_id, None)
+                .await
+                .or_raise(make_error)?,
         };
 
         // Get ancillary page data
-        let (wikitext_hash, score) = try_join!(
+        let (wikitext_hash_result, score_result) = join!(
             TextService::create(ctx, wikitext.clone()),
             ScoreService::score(ctx, page_id),
-        )?;
+        );
+        let (wikitext_hash, score) =
+            raise_multiple!(wikitext_hash_result, score_result; make_error);
 
         // Render first revision
         let render_input = RenderPageInfo {
@@ -377,18 +442,29 @@ impl PageRevisionService {
             tags: &[], // Initial revision always has empty tags
         };
 
-        let RenderOutput {
+        let RenderPageOutput {
             // TODO: use html_output
             html_output: _,
             errors,
-            compiled_hash,
+            compiled_body_html_hash,
+            compiled_top_bar_html_hash,
+            compiled_side_bar_html_hash,
             compiled_at,
             compiled_generator,
-        } = Self::render_and_update_links(ctx, site_id, page_id, wikitext, render_input)
-            .await?;
+        } = Self::render_and_update_links(ctx, id, wikitext, render_input)
+            .await
+            .or_raise(make_error)?;
 
         // Run outdater
-        OutdateService::process_page_displace(ctx, site_id, page_id, &slug, 0).await?;
+        OutdateService::process_page_displace(
+            ctx,
+            site_id,
+            page_id,
+            &slug,
+            RerenderDepth::default(),
+        )
+        .await
+        .or_raise(make_error)?;
 
         // Insert the first revision into the table
         let model = page_revision::ActiveModel {
@@ -399,7 +475,9 @@ impl PageRevisionService {
             user_id: Set(user_id),
             changes: Set(ALL_CHANGES.clone()),
             wikitext_hash: Set(wikitext_hash.to_vec()),
-            compiled_hash: Set(compiled_hash.to_vec()),
+            compiled_body_html_hash: Set(compiled_body_html_hash.to_vec()),
+            compiled_top_bar_html_hash: Set(compiled_top_bar_html_hash.map(Vec::from)),
+            compiled_side_bar_html_hash: Set(compiled_side_bar_html_hash.map(Vec::from)),
             compiled_at: Set(compiled_at),
             compiled_generator: Set(compiled_generator),
             comments: Set(comments),
@@ -411,7 +489,9 @@ impl PageRevisionService {
             ..Default::default()
         };
 
-        let PageRevisionModel { revision_id, .. } = model.insert(txn).await?;
+        let PageRevisionModel { revision_id, .. } =
+            model.insert(txn).await.or_raise(make_error)?;
+
         Ok(CreateFirstPageRevisionOutput {
             revision_id,
             parser_errors: errors,
@@ -438,9 +518,21 @@ impl PageRevisionService {
         let txn = ctx.transaction();
         let revision_number = next_revision_number(&previous, site_id, page_id);
 
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to create tombstone page revision on page ID {} in site ID {} by user ID {}",
+                    page_id, site_id, user_id,
+                ),
+                ErrorType::PageRevision,
+            )
+        };
+
         let PageRevisionModel {
             wikitext_hash,
-            compiled_hash,
+            compiled_body_html_hash,
+            compiled_top_bar_html_hash,
+            compiled_side_bar_html_hash,
             compiled_at,
             compiled_generator,
             title,
@@ -451,10 +543,20 @@ impl PageRevisionService {
         } = previous;
 
         // Run outdater
-        OutdateService::process_page_displace(ctx, site_id, page_id, &slug, 0).await?;
+        OutdateService::process_page_displace(
+            ctx,
+            site_id,
+            page_id,
+            &slug,
+            RerenderDepth::default(),
+        )
+        .await
+        .or_raise(make_error)?;
 
         // Delete parent-child relationships, if any
-        ParentService::remove_all(ctx, page_id).await?;
+        ParentService::remove_all(ctx, page_id)
+            .await
+            .or_raise(make_error)?;
 
         // Insert the tombstone revision into the table
         let model = page_revision::ActiveModel {
@@ -464,8 +566,10 @@ impl PageRevisionService {
             site_id: Set(site_id),
             user_id: Set(user_id),
             changes: Set(vec![]),
-            wikitext_hash: Set(wikitext_hash),
-            compiled_hash: Set(compiled_hash),
+            wikitext_hash: Set(wikitext_hash.to_vec()),
+            compiled_body_html_hash: Set(compiled_body_html_hash.to_vec()),
+            compiled_top_bar_html_hash: Set(compiled_top_bar_html_hash),
+            compiled_side_bar_html_hash: Set(compiled_side_bar_html_hash),
             compiled_at: Set(compiled_at),
             compiled_generator: Set(compiled_generator),
             comments: Set(comments),
@@ -477,7 +581,9 @@ impl PageRevisionService {
             ..Default::default()
         };
 
-        let PageRevisionModel { revision_id, .. } = model.insert(txn).await?;
+        let PageRevisionModel { revision_id, .. } =
+            model.insert(txn).await.or_raise(make_error)?;
+
         Ok(CreatePageRevisionOutput {
             revision_id,
             revision_number,
@@ -503,8 +609,7 @@ impl PageRevisionService {
     pub async fn create_resurrection(
         ctx: &ServiceContext<'_>,
         CreateResurrectionPageRevision {
-            site_id,
-            page_id,
+            id,
             user_id,
             comments,
             new_slug,
@@ -512,11 +617,29 @@ impl PageRevisionService {
         previous: PageRevisionModel,
     ) -> Result<CreatePageRevisionOutput> {
         let txn = ctx.transaction();
+        let PageId {
+            site_id,
+            category_id,
+            page_id,
+        } = id;
+
         let revision_number = next_revision_number(&previous, site_id, page_id);
+
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to create resurrection page revision on page ID {} in category ID {} on site ID {} by user ID {}",
+                    page_id, category_id, site_id, user_id,
+                ),
+                ErrorType::PageRevision,
+            )
+        };
 
         let PageRevisionModel {
             wikitext_hash,
-            mut compiled_hash,
+            mut compiled_body_html_hash,
+            mut compiled_top_bar_html_hash,
+            mut compiled_side_bar_html_hash,
             hidden,
             title,
             alt_title,
@@ -532,10 +655,11 @@ impl PageRevisionService {
         };
 
         // Get ancillary page data
-        let (score, layout) = try_join!(
+        let (score_result, layout_result) = join!(
             ScoreService::score(ctx, page_id),
             SettingsService::get_layout(ctx, site_id, Some(page_id)),
-        )?;
+        );
+        let (score, layout) = raise_multiple!(score_result, layout_result; make_error);
 
         // Re-render page
         let render_input = RenderPageInfo {
@@ -547,22 +671,45 @@ impl PageRevisionService {
             tags: &tags,
         };
 
-        let wikitext = TextService::get(ctx, &wikitext_hash).await?;
-        let RenderOutput {
+        let wikitext = TextService::get(ctx, &wikitext_hash)
+            .await
+            .or_raise(make_error)?;
+        let RenderPageOutput {
             // TODO: use html_output
             html_output: _,
             errors,
-            compiled_hash: new_compiled_hash,
+            compiled_body_html_hash: new_body_html_hash,
+            compiled_top_bar_html_hash: new_top_bar_html_hash,
+            compiled_side_bar_html_hash: new_side_bar_html_hash,
             compiled_at,
             compiled_generator,
-        } = Self::render_and_update_links(ctx, site_id, page_id, wikitext, render_input)
-            .await?;
+        } = Self::render_and_update_links(
+            ctx,
+            PageId {
+                site_id,
+                category_id,
+                page_id,
+            },
+            wikitext,
+            render_input,
+        )
+        .await
+        .or_raise(make_error)?;
 
-        replace_hash(&mut compiled_hash, &new_compiled_hash);
+        replace_hash(&mut compiled_body_html_hash, &new_body_html_hash);
+        replace_hash_opt(&mut compiled_top_bar_html_hash, new_top_bar_html_hash);
+        replace_hash_opt(&mut compiled_side_bar_html_hash, new_side_bar_html_hash);
 
         // Run outdater
-        OutdateService::process_page_displace(ctx, site_id, page_id, &new_slug, 0)
-            .await?;
+        OutdateService::process_page_displace(
+            ctx,
+            site_id,
+            page_id,
+            &new_slug,
+            RerenderDepth::default(),
+        )
+        .await
+        .or_raise(make_error)?;
 
         // Insert the resurrection revision into the table
         let model = page_revision::ActiveModel {
@@ -573,7 +720,9 @@ impl PageRevisionService {
             user_id: Set(user_id),
             changes: Set(changes),
             wikitext_hash: Set(wikitext_hash),
-            compiled_hash: Set(compiled_hash),
+            compiled_body_html_hash: Set(compiled_body_html_hash.to_vec()),
+            compiled_top_bar_html_hash: Set(compiled_top_bar_html_hash),
+            compiled_side_bar_html_hash: Set(compiled_side_bar_html_hash),
             compiled_at: Set(compiled_at),
             compiled_generator: Set(compiled_generator),
             comments: Set(comments),
@@ -585,7 +734,9 @@ impl PageRevisionService {
             ..Default::default()
         };
 
-        let PageRevisionModel { revision_id, .. } = model.insert(txn).await?;
+        let PageRevisionModel { revision_id, .. } =
+            model.insert(txn).await.or_raise(make_error)?;
+
         Ok(CreatePageRevisionOutput {
             revision_id,
             revision_number,
@@ -600,8 +751,7 @@ impl PageRevisionService {
     /// backlinks.
     async fn render_and_update_links(
         ctx: &ServiceContext<'_>,
-        site_id: i64,
-        page_id: i64,
+        id: PageId,
         wikitext: String,
         RenderPageInfo {
             layout,
@@ -611,9 +761,27 @@ impl PageRevisionService {
             score,
             tags,
         }: RenderPageInfo<'_>,
-    ) -> Result<RenderOutput> {
+    ) -> Result<RenderPageOutput> {
         // Get site
-        let site = SiteService::get(ctx, Reference::from(site_id)).await?;
+        let PageId {
+            site_id,
+            category_id,
+            page_id,
+        } = id;
+
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to render and update page links for page ID {} in category ID {} on site ID {}",
+                    page_id, category_id, site_id,
+                ),
+                ErrorType::PageRevision,
+            )
+        };
+
+        let site = SiteService::get(ctx, Reference::from(site_id))
+            .await
+            .or_raise(make_error)?;
 
         // Set up parse context
         let (category_slug, page_slug) = split_category(slug);
@@ -629,12 +797,14 @@ impl PageRevisionService {
         };
 
         // Parse and render
-        let output =
-            RenderService::render_page(ctx, wikitext, &page_info, layout, page_id)
-                .await?;
+        let output = RenderService::render_page(ctx, wikitext, &page_info, layout, id)
+            .await
+            .or_raise(make_error)?;
 
         // Update backlinks
-        LinkService::update(ctx, site_id, page_id, &output.html_output.backlinks).await?;
+        LinkService::update(ctx, site_id, page_id, &output.html_output.backlinks)
+            .await
+            .or_raise(make_error)?;
 
         Ok(output)
     }
@@ -648,12 +818,31 @@ impl PageRevisionService {
     /// should be 0.
     pub async fn rerender(
         ctx: &ServiceContext<'_>,
-        site_id: i64,
-        page_id: i64,
-        depth: u32,
+        id: PageId,
+        depth: RerenderDepth,
+        rerender_type: RerenderType,
     ) -> Result<()> {
         let txn = ctx.transaction();
-        let revision = Self::get_latest(ctx, site_id, page_id).await?;
+        let PageId {
+            site_id,
+            category_id,
+            page_id,
+        } = id;
+
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to rerender ({:?}) page ID {} in category ID {} on site ID {}",
+                    rerender_type, page_id, category_id, site_id,
+                ),
+                ErrorType::PageRevision,
+            )
+        };
+
+        let revision = Self::get_latest(ctx, site_id, page_id)
+            .await
+            .or_raise(make_error)?;
+
         info!(
             "Re-rendering revision: site ID {} page ID {} revision ID {} (depth {})",
             site_id, page_id, revision.revision_id, depth,
@@ -679,7 +868,7 @@ impl PageRevisionService {
             debug!(
                 "Checking rerender-skip rule: depth {check_depth}, updated offset {update_offset:?}"
             );
-            if depth >= check_depth && updated_recently!(update_offset) {
+            if depth.0 >= check_depth && updated_recently!(update_offset) {
                 warn!("Skipping rerender job, too deep and updated too recently");
                 return Ok(());
             }
@@ -704,26 +893,63 @@ impl PageRevisionService {
         };
 
         // TODO use html_output
-        let RenderOutput {
-            compiled_hash,
+        let RenderPageOutput {
+            html_output: _,
+            compiled_body_html_hash,
+            compiled_top_bar_html_hash,
+            compiled_side_bar_html_hash,
             compiled_generator,
             ..
-        } = Self::render_and_update_links(ctx, site_id, page_id, wikitext, render_input)
-            .await?;
+        } = Self::render_and_update_links(ctx, id, wikitext, render_input)
+            .await
+            .or_raise(make_error)?;
 
-        // Update descendents
-        OutdateService::process_page_edit(ctx, site_id, page_id, &revision.slug, depth)
-            .await?;
+        let model = match rerender_type {
+            RerenderType::Full => {
+                // Outdate all descendent pages and update body and nav pages
 
-        let model = page_revision::ActiveModel {
-            updated_at: Set(Some(now())),
-            revision_id: Set(revision.revision_id),
-            compiled_hash: Set(compiled_hash.to_vec()),
-            compiled_generator: Set(compiled_generator),
-            ..Default::default()
+                OutdateService::process_page_edit(
+                    ctx,
+                    site_id,
+                    page_id,
+                    &revision.slug,
+                    depth,
+                )
+                .await
+                .or_raise(make_error)?;
+
+                page_revision::ActiveModel {
+                    revision_id: Set(revision.revision_id),
+                    updated_at: Set(Some(now())),
+                    compiled_body_html_hash: Set(compiled_body_html_hash.to_vec()),
+                    compiled_top_bar_html_hash: Set(
+                        compiled_top_bar_html_hash.map(Vec::from)
+                    ),
+                    compiled_side_bar_html_hash: Set(
+                        compiled_side_bar_html_hash.map(Vec::from)
+                    ),
+                    compiled_generator: Set(compiled_generator),
+                    ..Default::default()
+                }
+            }
+            RerenderType::NavigationOnly => {
+                // Update nav pages only
+                page_revision::ActiveModel {
+                    revision_id: Set(revision.revision_id),
+                    updated_at: Set(Some(now())),
+                    compiled_top_bar_html_hash: Set(
+                        compiled_top_bar_html_hash.map(Vec::from)
+                    ),
+                    compiled_side_bar_html_hash: Set(
+                        compiled_side_bar_html_hash.map(Vec::from)
+                    ),
+                    compiled_generator: Set(compiled_generator),
+                    ..Default::default()
+                }
+            }
         };
 
-        model.update(txn).await?;
+        model.update(txn).await.or_raise(make_error)?;
         Ok(())
     }
 
@@ -759,14 +985,30 @@ impl PageRevisionService {
             false
         }
 
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to update page revision ID {} on page ID {} on site ID {} by user ID {}",
+                    revision_id, page_id, site_id, user_id,
+                ),
+                ErrorType::PageRevision,
+            )
+        };
+
         // The wikitext changes to a page are visible even if that part
         // of the revision is hidden, so current revisions are not allowed
         // to have that field hidden. It should be reverted first, and then
         // the diff can be hidden like any other.
 
-        let latest = Self::get_latest(ctx, site_id, page_id).await?;
+        let latest = Self::get_latest(ctx, site_id, page_id)
+            .await
+            .or_raise(make_error)?;
+
         if revision_id == latest.revision_id && contains(&hidden, "wikitext") {
-            return Err(Error::CannotHideLatestRevision);
+            bail!(Error::new(
+                "cannot hide latest page revision",
+                ErrorType::CannotHideLatestRevision
+            ));
         }
 
         // TODO: record revision edit in audit log
@@ -782,10 +1024,11 @@ impl PageRevisionService {
         };
 
         // Update and return
-        model.update(txn).await?;
+        model.update(txn).await.or_raise(make_error)?;
         Ok(())
     }
 
+    /// Get the latest revision of this page.
     pub async fn get_latest(
         ctx: &ServiceContext<'_>,
         site_id: i64,
@@ -794,8 +1037,18 @@ impl PageRevisionService {
         // NOTE: There is no optional variant of this method,
         //       since all extant pages must have at least one revision.
 
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to get latest revision of page ID {} on site ID {}",
+                    page_id, site_id,
+                ),
+                ErrorType::PageRevision,
+            )
+        };
+
         let txn = ctx.transaction();
-        let revision = PageRevision::find()
+        let revision_opt = PageRevision::find()
             .filter(
                 Condition::all()
                     .add(page_revision::Column::SiteId.eq(site_id))
@@ -803,10 +1056,136 @@ impl PageRevisionService {
             )
             .order_by_desc(page_revision::Column::RevisionNumber)
             .one(txn)
-            .await?
-            .ok_or(Error::PageRevisionNotFound)?;
+            .await
+            .or_raise(make_error)?;
 
-        Ok(revision)
+        match revision_opt {
+            Some(revision) => Ok(revision),
+            None => bail!(Error::new(
+                format!(
+                    "failed to get latest revision of page ID {} on site ID {}, page does not exist",
+                    page_id, site_id,
+                ),
+                ErrorType::PageRevisionNotFound,
+            )),
+        }
+    }
+
+    /// Internal method for getting a text column for the latest revision of a page.
+    async fn get_latest_text_optional(
+        ctx: &ServiceContext<'_>,
+        site_id: i64,
+        reference: Reference<'_>,
+        text_column: page_revision::Column,
+    ) -> Result<Option<String>> {
+        let page_condition = match reference {
+            Reference::Id(page_id) => page_revision::Column::PageId.eq(page_id),
+            Reference::Slug(page_slug) => {
+                page_revision::Column::Slug.eq(trim_default(page_slug.as_ref()))
+            }
+        };
+
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to get latest '{:?}' text data for revision in site ID {}",
+                    text_column, site_id,
+                ),
+                ErrorType::PageRevision,
+            )
+        };
+
+        let txn = ctx.transaction();
+        let text = Text::find()
+            .select_only()
+            .column(text::Column::Contents)
+            .filter(
+                text::Column::Hash.in_subquery(
+                    Query::select()
+                        .column(text_column)
+                        .from(page_revision::Entity)
+                        .and_where(page_revision::Column::SiteId.eq(site_id))
+                        .and_where(page_condition)
+                        .order_by(page_revision::Column::RevisionNumber, Order::Desc)
+                        .to_owned(),
+                ),
+            )
+            .into_tuple()
+            .one(txn)
+            .await
+            .or_raise(make_error)?;
+
+        Ok(text)
+    }
+
+    /// Gets the wikitext from the latest revision of a page or null if it doesn't exist.
+    /// This is a specific helper method since it requires a join.
+    ///
+    /// NOTE: This accepts page slugs with an explicit `_default:` category, but
+    ///       does *not* handle non-normalized page slugs. In such a case, it
+    ///       won't find the appropriate page!
+    pub async fn get_wikitext_optional(
+        ctx: &ServiceContext<'_>,
+        site_id: i64,
+        reference: Reference<'_>,
+    ) -> Result<Option<String>> {
+        Self::get_latest_text_optional(
+            ctx,
+            site_id,
+            reference,
+            page_revision::Column::WikitextHash,
+        )
+        .await
+    }
+
+    /// Gets the wikitext from the latest revision of a page.
+    ///
+    /// This is the non-optional version of `get_wikitext()`.
+    #[allow(dead_code)] // TODO
+    pub async fn get_wikitext(
+        ctx: &ServiceContext<'_>,
+        site_id: i64,
+        reference: Reference<'_>,
+    ) -> Result<String> {
+        find_or_error!(
+            Self::get_wikitext_optional(ctx, site_id, reference),
+            "page revision",
+            PageRevision,
+        )
+    }
+
+    /// Gets the compiled body HTML from the latest revision of a page.
+    /// This is a specific helper method since it requires a join.
+    ///
+    /// NOTE: The same caveats apply to this method as `get_wikitext_optional()`.
+    pub async fn get_compiled_html_optional(
+        ctx: &ServiceContext<'_>,
+        site_id: i64,
+        reference: Reference<'_>,
+    ) -> Result<Option<String>> {
+        Self::get_latest_text_optional(
+            ctx,
+            site_id,
+            reference,
+            page_revision::Column::CompiledBodyHtmlHash,
+        )
+        .await
+    }
+
+    /// Gets the compiled HTML from the latest revision of a page.
+    ///
+    /// This is the non-optional version of `get_compiled_html_optional()`.
+    #[allow(dead_code)] // TODO
+    pub async fn get_compiled_html(
+        ctx: &ServiceContext<'_>,
+        site_id: i64,
+        reference: Reference<'_>,
+    ) -> Result<String> {
+        find_or_error!(
+            Self::get_compiled_html_optional(ctx, site_id, reference),
+            "page revision",
+            PageRevision,
+        )
     }
 
     pub async fn get_optional(
@@ -815,6 +1194,16 @@ impl PageRevisionService {
         page_id: i64,
         revision_number: i32,
     ) -> Result<Option<PageRevisionModel>> {
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to get page revision from page ID {} on site ID {}",
+                    page_id, site_id,
+                ),
+                ErrorType::PageRevision,
+            )
+        };
+
         let txn = ctx.transaction();
         let revision = PageRevision::find()
             .filter(
@@ -824,7 +1213,8 @@ impl PageRevisionService {
                     .add(page_revision::Column::RevisionNumber.eq(revision_number)),
             )
             .one(txn)
-            .await?;
+            .await
+            .or_raise(make_error)?;
 
         Ok(revision)
     }
@@ -838,6 +1228,7 @@ impl PageRevisionService {
     ) -> Result<PageRevisionModel> {
         find_or_error!(
             Self::get_optional(ctx, site_id, page_id, revision_number),
+            "page revision",
             PageRevision,
         )
     }
@@ -846,7 +1237,11 @@ impl PageRevisionService {
         ctx: &ServiceContext<'_>,
         revision_id: i64,
     ) -> Result<PageRevisionModel> {
-        find_or_error!(Self::get_direct_optional(ctx, revision_id), PageRevision)
+        find_or_error!(
+            Self::get_direct_optional(ctx, revision_id),
+            "page revision",
+            PageRevision
+        )
     }
 
     pub async fn get_direct_optional(
@@ -854,7 +1249,16 @@ impl PageRevisionService {
         revision_id: i64,
     ) -> Result<Option<PageRevisionModel>> {
         let txn = ctx.transaction();
-        let revision = PageRevision::find_by_id(revision_id).one(txn).await?;
+        let revision = PageRevision::find_by_id(revision_id)
+            .one(txn)
+            .await
+            .or_raise(|| {
+                Error::new(
+                    format!("failed to get page revision ID {} directly", revision_id),
+                    ErrorType::PageRevision,
+                )
+            })?;
+
         Ok(revision)
     }
 
@@ -863,6 +1267,16 @@ impl PageRevisionService {
         site_id: i64,
         page_id: i64,
     ) -> Result<NonZeroI32> {
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to get page revision count for page ID {} on site ID {}",
+                    page_id, site_id,
+                ),
+                ErrorType::PageRevision,
+            )
+        };
+
         let txn = ctx.transaction();
         let row_count = PageRevision::find()
             .filter(
@@ -871,19 +1285,22 @@ impl PageRevisionService {
                     .add(page_revision::Column::PageId.eq(page_id)),
             )
             .count(txn)
-            .await?;
-
-        // We store revision_number in INT, which is i32.
-        // So even though this row count is usize, it
-        // should always fit inside an i32.
-        let row_count = i32::try_from(row_count)
-            .expect("Revision row count greater than revision_number integer size");
+            .await
+            .or_raise(make_error)?
+            .try_into_i32()
+            .or_raise(make_error)?;
 
         // All pages have at least one revision, so if there are none
         // that means this page does not exist, and we should return an error.
         match NonZeroI32::new(row_count) {
             Some(count) => Ok(count),
-            None => Err(Error::PageNotFound),
+            None => bail!(Error::new(
+                format!(
+                    "cannot count page revisions, page ID {} does not exist on site ID {}",
+                    page_id, site_id,
+                ),
+                ErrorType::PageRevision
+            )),
         }
     }
 
@@ -897,6 +1314,20 @@ impl PageRevisionService {
             limit,
         }: GetPageRevisionRange,
     ) -> Result<Vec<PageRevisionModel>> {
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to get {} page revisions from number {} on page ID {} in site ID {} (max {})",
+                    revision_direction.name(),
+                    revision_number,
+                    page_id,
+                    site_id,
+                    limit,
+                ),
+                ErrorType::PageRevision,
+            )
+        };
+
         let revision_condition = {
             use page_revision::Column::RevisionNumber;
 
@@ -926,7 +1357,8 @@ impl PageRevisionService {
             .order_by_asc(page_revision::Column::RevisionNumber)
             .limit(limit)
             .all(txn)
-            .await?;
+            .await
+            .or_raise(make_error)?;
 
         Ok(revisions)
     }
@@ -953,6 +1385,32 @@ fn replace_hash(dest: &mut Vec<u8>, src: &[u8]) {
     dest.as_mut_slice().copy_from_slice(src);
 }
 
+fn replace_hash_opt<B: AsRef<[u8]>>(dest: &mut Option<Vec<u8>>, src: Option<B>) {
+    // NOTE: We aren't using "match (dest, src)" here because of
+    //       borrow checker issues.
+
+    let src = match src {
+        // We only need to overwrite and we're done
+        None => {
+            *dest = None;
+            return;
+        }
+
+        // Otherwise, extract the data to be written
+        Some(ref bytes) => bytes.as_ref(),
+    };
+
+    // We can borrow the buffer and overwrite it
+    if let Some(dest) = dest {
+        replace_hash(dest, src);
+        return;
+    }
+
+    // It's empty, we have to allocate a new buffer
+    debug_assert!(dest.is_none(), "Destination not None after check");
+    *dest = Some(src.to_vec());
+}
+
 fn next_revision_number(previous: &PageRevisionModel, site_id: i64, page_id: i64) -> i32 {
     // Check for basic consistency
     assert_eq!(
@@ -966,4 +1424,31 @@ fn next_revision_number(previous: &PageRevisionModel, site_id: i64, page_id: i64
 
     // Get the new revision number
     previous.revision_number + 1
+}
+
+#[test]
+fn test_replace_hash_opt() {
+    macro_rules! test {
+        ($dest:expr, $src:expr => $expected:expr $(,)?) => {{
+            let dest_raw: Option<&[u8]> = $dest;
+            let mut dest = dest_raw.map(Vec::from);
+
+            let expected_raw: Option<&[u8]> = $expected;
+            let expected = expected_raw.map(Vec::from);
+
+            let src: Option<&[u8]> = $src;
+
+            replace_hash_opt(&mut dest, src);
+
+            assert_eq!(
+                dest, expected,
+                "Actual optional buffer doesn't match expected",
+            );
+        }};
+    }
+
+    test!(None, None => None);
+    test!(None, Some(b"bar") => Some(b"bar"));
+    test!(Some(b"foo"), None => None);
+    test!(Some(b"foo"), Some(b"bar") => Some(b"bar"));
 }

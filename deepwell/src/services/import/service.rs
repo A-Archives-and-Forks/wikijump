@@ -2,7 +2,7 @@
  * services/import/service.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
- * Copyright (C) 2019-2025 Wikijump Team
+ * Copyright (C) 2019-2026 Wikijump Team
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -62,6 +62,16 @@ impl ImportService {
     ) -> Result<()> {
         info!("Importing user (name '{name}', slug '{slug}')");
 
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to import user (name '{}', slug '{}', ID {})",
+                    name, slug, user_id,
+                ),
+                ErrorType::DatabaseImport,
+            )
+        };
+
         let txn = ctx.transaction();
 
         // Upload avatar to S3
@@ -84,8 +94,8 @@ impl ImportService {
             user_type: Set(UserType::Regular),
             created_at: Set(created_at),
             from_wikidot: Set(true),
-            name: Set(name),
-            slug: Set(slug),
+            name: Set(name.clone()),
+            slug: Set(slug.clone()),
             email: Set(email),
             locales: Set(vec![locale]),
             avatar_s3_hash: Set(avatar_s3_hash),
@@ -98,7 +108,7 @@ impl ImportService {
             ..Default::default()
         };
 
-        User::insert(user).exec(txn).await?;
+        User::insert(user).exec(txn).await.or_raise(make_error)?;
         Ok(())
     }
 
@@ -114,18 +124,28 @@ impl ImportService {
     ) -> Result<()> {
         info!("Importing site (name '{name}', slug '{slug}', locale '{locale}')");
 
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to import site (name '{}', slug '{}', ID {})",
+                    name, slug, site_id,
+                ),
+                ErrorType::DatabaseImport,
+            )
+        };
+
         let txn = ctx.transaction();
         let site = site::ActiveModel {
             site_id: Set(site_id),
             created_at: Set(created_at),
             from_wikidot: Set(true),
-            name: Set(name),
-            slug: Set(slug),
+            name: Set(name.clone()),
+            slug: Set(slug.clone()),
             locale: Set(locale),
             ..Default::default()
         };
 
-        Site::insert(site).exec(txn).await?;
+        Site::insert(site).exec(txn).await.or_raise(make_error)?;
         Ok(())
     }
 
@@ -142,12 +162,23 @@ impl ImportService {
     ) -> Result<()> {
         info!("Creating page '{slug}' in site ID {site_id}");
 
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to import page (slug '{}', ID {} in site ID {})",
+                    slug, page_id, site_id,
+                ),
+                ErrorType::DatabaseImport,
+            )
+        };
+
         let txn = ctx.transaction();
 
         // Create category if not already present
         let PageCategoryModel { category_id, .. } =
             CategoryService::get_or_create(ctx, site_id, get_category_name(&slug))
-                .await?;
+                .await
+                .or_raise(make_error)?;
 
         // Insert page row into table
         let page = page::ActiveModel {
@@ -155,7 +186,7 @@ impl ImportService {
             site_id: Set(site_id),
             created_at: Set(created_at),
             from_wikidot: Set(true),
-            slug: Set(slug),
+            slug: Set(slug.clone()),
             page_category_id: Set(category_id),
             discussion_thread_id: Set(discussion_thread_id),
             ..Default::default()
@@ -166,7 +197,7 @@ impl ImportService {
             // TODO
         }
 
-        Page::insert(page).exec(txn).await?;
+        Page::insert(page).exec(txn).await.or_raise(make_error)?;
         Ok(())
     }
 

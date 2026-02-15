@@ -25,10 +25,10 @@ jobs:
       RUSTFLAGS: -D warnings
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v6
 
       - name: Cargo Cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.cargo/registry
@@ -46,9 +46,9 @@ jobs:
         run: cd deepwell && cargo build --all-features
 
       - name: Check Configuration
-        run: cd deepwell && cargo run -- config.example.toml ../install/local/deepwell/deepwell.toml ../install/dev/deepwell/deepwell.toml ../install/prod/deepwell/deepwell.toml
+        run: cd deepwell && cargo run -- config.example.toml ../install/local/deepwell/config.toml ../install/dev/deepwell/config.toml ../install/prod/deepwell/config.toml
         env:
-          DEEPWELL_SPECIAL_ACTION: validate-config
+          DEEPWELL_RUNTIME_ACTION: validate-config
 
       - name: Test
         run: cd deepwell && cargo test --all-features -- --nocapture --test-threads 1
@@ -64,10 +64,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v6
 
       - name: Cargo Cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.cargo/registry
@@ -97,10 +97,10 @@ jobs:
       RUSTFLAGS: -D warnings
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v6
 
       - name: Cargo Cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.cargo/registry

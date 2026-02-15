@@ -2,7 +2,7 @@
  * services/caddy/service.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
- * Copyright (C) 2019-2025 Wikijump Team
+ * Copyright (C) 2019-2026 Wikijump Team
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -52,6 +52,13 @@ impl CaddyService {
         let config = ctx.config();
         let txn = ctx.transaction();
 
+        let make_error = || {
+            Error::new(
+                format!("failed to generate Caddyfile with options {:#?}", options),
+                ErrorType::Caddyfile,
+            )
+        };
+
         let sites: Vec<(i64, String, Option<String>)> = Site::find()
             .select_only()
             .column(site::Column::SiteId)
@@ -60,14 +67,16 @@ impl CaddyService {
             .order_by_asc(site::Column::SiteId)
             .into_tuple()
             .all(txn)
-            .await?;
+            .await
+            .or_raise(make_error)?;
 
         let domains = {
             let mut domains = HashMap::with_capacity(sites.len());
 
             for &(site_id, _, _) in &sites {
                 let aliases = AliasService::get_all(ctx, AliasType::Site, site_id)
-                    .await?
+                    .await
+                    .or_raise(make_error)?
                     .into_iter()
                     .map(|AliasModel { slug, .. }| slug)
                     .collect();
@@ -79,7 +88,8 @@ impl CaddyService {
                     .filter(site_domain::Column::SiteId.eq(site_id))
                     .into_tuple()
                     .all(txn)
-                    .await?;
+                    .await
+                    .or_raise(make_error)?;
 
                 domains.insert(
                     site_id,
@@ -300,8 +310,8 @@ www.{domain} {{
 
 {files_domain_no_dot} {{
 	import strip_headers
-	request_header X-Wikijump-Special-Error 1
-	rewrite * /-/special-error/file-root
+	request_header X-Wikijump-Basic-Error 1
+	rewrite * /-/basic-error/file-root
 	reverse_proxy {wws_host}
 }}
 
@@ -342,17 +352,17 @@ www.{domain} {{
 # Missing canonical domain
 *{main_domain} {{
 	import strip_headers
-	request_header X-Wikijump-Special-Error 1
+	request_header X-Wikijump-Basic-Error 1
 	request_header X-Wikijump-Site-Slug {{labels.{}}}
-	rewrite * /-/special-error/site-slug
+	rewrite * /-/basic-error/site-slug
 	reverse_proxy {wws_host}
 }}
 
 # Missing custom domain
 {} {{
 	import strip_headers
-	request_header X-Wikijump-Special-Error 1
-	rewrite * /-/special-error/site-custom
+	request_header X-Wikijump-Basic-Error 1
+	rewrite * /-/basic-error/site-custom
 	reverse_proxy {wws_host}
 }}",
             site_slug_split_index(main_domain),

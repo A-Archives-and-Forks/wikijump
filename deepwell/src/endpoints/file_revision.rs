@@ -2,7 +2,7 @@
  * endpoints/file_revision.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
- * Copyright (C) 2019-2025 Wikijump Team
+ * Copyright (C) 2019-2026 Wikijump Team
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -33,12 +33,24 @@ pub async fn file_revision_count(
         site_id,
         page_id,
         file: file_reference,
-    } = params.parse()?;
+    } = parse!(params, FileRevision);
 
     info!("Getting latest revision for file ID {page_id} in site ID {site_id}");
 
-    let file_id = FileService::get_id(ctx, site_id, file_reference).await?;
-    let revision_count = FileRevisionService::count(ctx, page_id, file_id).await?;
+    let make_error = || {
+        Error::new(
+            "failed to get count of file revisions",
+            ErrorType::FileRevision,
+        )
+    };
+
+    let file_id = FileService::get_id(ctx, site_id, file_reference)
+        .await
+        .or_raise(make_error)?;
+
+    let revision_count = FileRevisionService::count(ctx, page_id, file_id)
+        .await
+        .or_raise(make_error)?;
 
     Ok(FileRevisionCountOutput {
         revision_count,
@@ -51,34 +63,46 @@ pub async fn file_revision_get(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
 ) -> Result<Option<FileRevisionModel>> {
-    let input: GetFileRevision = params.parse()?;
+    let input: GetFileRevision = parse!(params, FileRevision);
 
     info!(
         "Getting file revision {} for file ID {} on page ID {}",
         input.revision_number, input.file_id, input.page_id,
     );
 
-    FileRevisionService::get_optional(ctx, input).await
+    FileRevisionService::get_optional(ctx, input)
+        .await
+        .or_raise(|| Error::new("failed to get file revision", ErrorType::FileRevision))
 }
 
 pub async fn file_revision_range(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
 ) -> Result<Vec<FileRevisionModel>> {
-    let input: GetFileRevisionRange = params.parse()?;
-    FileRevisionService::get_range(ctx, input).await
+    let input: GetFileRevisionRange = parse!(params, FileRevision);
+
+    FileRevisionService::get_range(ctx, input)
+        .await
+        .or_raise(|| {
+            Error::new(
+                "failed to get range of file revisions",
+                ErrorType::FileRevision,
+            )
+        })
 }
 
 pub async fn file_revision_edit(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
 ) -> Result<FileRevisionModel> {
-    let input: UpdateFileRevision = params.parse()?;
+    let input: UpdateFileRevision = parse!(params, FileRevision);
 
     info!(
         "Editing file revision ID {} for file ID {} on page {}",
         input.revision_id, input.file_id, input.page_id,
     );
 
-    FileRevisionService::update(ctx, input).await
+    FileRevisionService::update(ctx, input)
+        .await
+        .or_raise(|| Error::new("failed to edit file revision", ErrorType::FileRevision))
 }

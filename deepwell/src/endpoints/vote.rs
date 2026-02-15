@@ -2,7 +2,7 @@
  * endpoints/vote.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
- * Copyright (C) 2019-2025 Wikijump Team
+ * Copyright (C) 2019-2026 Wikijump Team
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -28,42 +28,66 @@ pub async fn vote_get(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
 ) -> Result<Option<PageVoteModel>> {
-    let input: GetVote = params.parse()?;
+    let input: GetVote = parse!(params, PageVote);
+    let page_id = input.page_id;
+    let user_id = input.user_id;
 
     info!(
-        "Getting vote cast by {} on page {}",
-        input.user_id, input.page_id,
+        "Getting vote cast by user ID {} on page ID {}",
+        user_id, page_id,
     );
 
-    VoteService::get_optional(ctx, input).await
+    VoteService::get_optional(ctx, input).await.or_raise(|| {
+        Error::new(
+            format!(
+                "failed to get vote cast by user ID {} on page ID {}",
+                user_id, page_id,
+            ),
+            ErrorType::PageVote,
+        )
+    })
 }
 
 pub async fn vote_set(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
 ) -> Result<Option<PageVoteModel>> {
-    let input: CreateVote = params.parse()?;
+    let input: CreateVote = parse!(params, PageVote);
+    let page_id = input.page_id;
+    let user_id = input.user_id;
 
-    info!(
-        "Casting vote cast by {} on page {}",
-        input.user_id, input.page_id,
-    );
+    info!("Casting vote cast by {} on page {}", user_id, page_id,);
 
-    VoteService::add(ctx, input).await
+    VoteService::add(ctx, input).await.or_raise(|| {
+        Error::new(
+            format!(
+                "failed to set vote on page ID {} from user ID {}",
+                page_id, user_id,
+            ),
+            ErrorType::PageVote,
+        )
+    })
 }
 
 pub async fn vote_remove(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
 ) -> Result<PageVoteModel> {
-    let input: GetVote = params.parse()?;
+    let input: GetVote = parse!(params, PageVote);
+    let page_id = input.page_id;
+    let user_id = input.user_id;
 
-    info!(
-        "Removing vote cast by {} on page {}",
-        input.user_id, input.page_id,
-    );
+    info!("Removing vote cast by {} on page {}", user_id, page_id,);
 
-    VoteService::remove(ctx, input).await
+    VoteService::remove(ctx, input).await.or_raise(|| {
+        Error::new(
+            format!(
+                "failed to remove vote on page ID {} from user ID {}",
+                page_id, user_id,
+            ),
+            ErrorType::PageVote,
+        )
+    })
 }
 
 pub async fn vote_action(
@@ -75,24 +99,43 @@ pub async fn vote_action(
         user_id,
         enable,
         acting_user_id,
-    } = params.parse()?;
+    } = parse!(params, PageVote);
 
+    // e.g. enable or disable a vote
     let key = GetVote { page_id, user_id };
-    VoteService::action(ctx, key, enable, acting_user_id).await
+    VoteService::action(ctx, key, enable, acting_user_id)
+        .await
+        .or_raise(|| Error::new(
+            format!(
+                "failed to {} vote on page ID {} for user ID {} (performed by user ID {})",
+                if enable { "enable" } else { "disable" },
+                page_id,
+                user_id,
+                acting_user_id,
+            ),
+            ErrorType::PageVote,
+        )
+    )
 }
 
 pub async fn vote_list_get(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
 ) -> Result<Vec<PageVoteModel>> {
-    let input: GetVoteHistory = params.parse()?;
-    VoteService::get_history(ctx, input).await
+    let input: GetVoteHistory = parse!(params);
+
+    VoteService::get_history(ctx, input)
+        .await
+        .or_raise(|| Error::new("failed to list votes", ErrorType::PageVote))
 }
 
 pub async fn vote_list_count(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
 ) -> Result<u64> {
-    let input: CountVoteHistory = params.parse()?;
-    VoteService::count_history(ctx, input).await
+    let input: CountVoteHistory = parse!(params);
+
+    VoteService::count_history(ctx, input)
+        .await
+        .or_raise(|| Error::new("failed to get vote count", ErrorType::PageVote))
 }

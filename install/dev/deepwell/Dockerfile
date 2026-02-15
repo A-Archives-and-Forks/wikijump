@@ -43,7 +43,7 @@ COPY --from=rust /usr/local/cargo/bin/sqlx /usr/local/cargo/bin/sqlx
 COPY --from=rust /src/deepwell/target/release/deepwell /usr/local/bin/deepwell
 COPY --from=rust /src/deepwell/migrations /opt/database/migrations
 COPY --from=rust /src/deepwell/seeder /opt/database/seeder
-COPY ./install/dev/deepwell/deepwell.toml /etc/deepwell.toml
+COPY ./install/dev/deepwell/config.toml /etc/deepwell.toml
 COPY ./install/dev/deepwell/deepwell-start /usr/local/bin/wikijump-deepwell-start
 COPY ./install/dev/deepwell/health-check.sh /usr/local/bin/wikijump-health-check
 COPY ./locales/fluent /opt/locales/fluent

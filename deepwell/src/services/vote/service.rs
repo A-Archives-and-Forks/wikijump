@@ -3,7 +3,7 @@
  * services/vote/service.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
- * Copyright (C) 2019-2025 Wikijump Team
+ * Copyright (C) 2019-2026 Wikijump Team
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -42,12 +42,23 @@ impl VoteService {
     ) -> Result<Option<PageVoteModel>> {
         let txn = ctx.transaction();
         info!(
-            "Casting new vote by user ID {user_id} on page ID {page_id} (value {value})"
+            "Casting new vote by user ID {} on page ID {} (value {})",
+            user_id, page_id, value,
         );
+
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to add new vote by user ID {} on page ID {} (value {})",
+                    user_id, page_id, value,
+                ),
+                ErrorType::PageVote,
+            )
+        };
 
         // Get previous vote, if any
         let key = GetVote { page_id, user_id };
-        if let Some(vote) = Self::get_optional(ctx, key).await? {
+        if let Some(vote) = Self::get_optional(ctx, key).await.or_raise(make_error)? {
             // If it's the same value, no new vote is needed
             if vote.value == value {
                 return Ok(None);
@@ -56,7 +67,7 @@ impl VoteService {
             // Otherwise, delete so we can insert the new one
             let mut model = vote.into_active_model();
             model.deleted_at = Set(Some(now()));
-            model.update(txn).await?;
+            model.update(txn).await.or_raise(make_error)?;
         }
 
         // Insert the new vote
@@ -67,13 +78,13 @@ impl VoteService {
             ..Default::default()
         };
 
-        let vote = model.insert(txn).await?;
+        let vote = model.insert(txn).await.or_raise(make_error)?;
         Ok(Some(vote))
     }
 
     #[inline]
     pub async fn get(ctx: &ServiceContext<'_>, key: GetVote) -> Result<PageVoteModel> {
-        find_or_error!(Self::get_optional(ctx, key), Vote)
+        find_or_error!(Self::get_optional(ctx, key), "vote", Vote)
     }
 
     /// Gets any current vote for the current page and user.
@@ -90,7 +101,17 @@ impl VoteService {
                     .add(page_vote::Column::DeletedAt.is_null()),
             )
             .one(txn)
-            .await?;
+            .await
+            .or_raise(|| {
+                Error::new(
+                    format!(
+                        "failed to get individual vote by user ID {} on page ID {}",
+                        user_id, page_id,
+                    ),
+                    ErrorType::PageVote,
+                )
+            })?;
+
         Ok(vote)
     }
 
@@ -102,14 +123,29 @@ impl VoteService {
         acting_user_id: i64,
     ) -> Result<PageVoteModel> {
         info!(
-            "{} vote on {:?} (being done by {})",
+            "{} vote on {:?} (performed by user ID {})",
             if enable { "Enabling" } else { "Disabling" },
             key,
             acting_user_id,
         );
 
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to {} vote on {:?} (performed by user ID {})",
+                    if enable { "enable" } else { "disable" },
+                    key,
+                    acting_user_id,
+                ),
+                ErrorType::PageVote,
+            )
+        };
+
         let txn = ctx.transaction();
-        let mut vote = Self::get(ctx, key).await?.into_active_model();
+        let mut vote = Self::get(ctx, key)
+            .await
+            .or_raise(make_error)?
+            .into_active_model();
 
         if enable {
             // Clear "disabled" field.
@@ -121,7 +157,7 @@ impl VoteService {
             vote.disabled_by = Set(Some(acting_user_id));
         }
 
-        let model = vote.update(txn).await?;
+        let model = vote.update(txn).await.or_raise(make_error)?;
         Ok(model)
     }
 
@@ -129,11 +165,25 @@ impl VoteService {
     pub async fn remove(ctx: &ServiceContext<'_>, key: GetVote) -> Result<PageVoteModel> {
         info!("Removing vote {key:?}");
 
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to remove vote by user ID {} on page ID {}",
+                    key.user_id, key.page_id,
+                ),
+                ErrorType::PageVote,
+            )
+        };
+
         let txn = ctx.transaction();
-        let mut vote = Self::get(ctx, key).await?.into_active_model();
+        let mut vote = Self::get(ctx, key)
+            .await
+            .or_raise(make_error)?
+            .into_active_model();
+
         vote.deleted_at = Set(Some(now()));
 
-        let model = vote.update(txn).await?;
+        let model = vote.update(txn).await.or_raise(make_error)?;
         Ok(model)
     }
 
@@ -164,7 +214,8 @@ impl VoteService {
             .order_by_asc(page_vote::Column::PageVoteId)
             .limit(limit)
             .all(txn)
-            .await?;
+            .await
+            .or_raise(|| Self::build_history_error(kind, start_id, deleted, disabled))?;
 
         Ok(votes)
     }
@@ -184,7 +235,12 @@ impl VoteService {
         let txn = ctx.transaction();
         let condition = Self::build_history_condition(kind, start_id, deleted, disabled);
 
-        let vote_count = PageVote::find().filter(condition).count(txn).await?;
+        let vote_count = PageVote::find()
+            .filter(condition)
+            .count(txn)
+            .await
+            .or_raise(|| Self::build_history_error(kind, start_id, deleted, disabled))?;
+
         Ok(vote_count)
     }
 
@@ -216,5 +272,39 @@ impl VoteService {
             .add(kind_condition)
             .add_option(deleted_condition)
             .add_option(disabled_condition)
+    }
+
+    fn build_history_error(
+        kind: VoteHistoryKind,
+        start_id: i64,
+        deleted: Option<bool>,
+        disabled: Option<bool>,
+    ) -> Error {
+        let mut message = str!("failed to get vote history for ");
+
+        match deleted {
+            Some(true) => message.push_str("deleted "),
+            Some(false) => message.push_str("current "),
+            None => (),
+        }
+
+        match disabled {
+            Some(true) => message.push_str("disabled "),
+            Some(false) => message.push_str("enabled "),
+            None => (),
+        }
+
+        match kind {
+            VoteHistoryKind::Page(page_id) => {
+                str_write!(&mut message, "votes on page ID {}", page_id)
+            }
+            VoteHistoryKind::User(user_id) => {
+                str_write!(&mut message, "votes cast by user ID {}", user_id)
+            }
+        }
+
+        str_write!(&mut message, ", starting at vote ID {}", start_id);
+
+        Error::new(message, ErrorType::PageVote)
     }
 }

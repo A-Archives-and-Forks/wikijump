@@ -2,7 +2,7 @@
  * config/file.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
- * Copyright (C) 2019-2025 Wikijump Team
+ * Copyright (C) 2019-2026 Wikijump Team
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -19,7 +19,7 @@
  */
 
 use super::Config;
-use anyhow::Result;
+use crate::error::prelude::*;
 use femme::LevelFilter;
 use ftml::layout::Layout;
 use std::convert::TryFrom;
@@ -51,7 +51,7 @@ pub struct ConfigFile {
     domain: Domain,
     job: Job,
     ftml: Ftml,
-    special_pages: SpecialPages,
+    blueprint: Blueprint,
     user: User,
     file: FileSection,
     message: Message,
@@ -167,8 +167,8 @@ struct RerenderSkip {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "kebab-case")]
-struct SpecialPages {
-    special_prefix: String,
+struct Blueprint {
+    page_prefix: String,
     template: String,
     missing: String,
     private: String,
@@ -205,13 +205,20 @@ struct Message {
 
 impl ConfigFile {
     pub fn load(path: PathBuf) -> Result<(Self, ExtraConfig)> {
+        let make_error = || {
+            Error::new(
+                format!("failed to read configuation file '{}'", path.display()),
+                ErrorType::ConfigSetup,
+            )
+        };
+
         // Read TOML
-        let mut file = File::open(&path)?;
+        let mut file = File::open(&path).or_raise(make_error)?;
         let mut contents = String::new();
-        file.read_to_string(&mut contents)?;
+        file.read_to_string(&mut contents).or_raise(make_error)?;
 
         // Parse and build objects
-        let config = toml::from_str(&contents)?;
+        let config = toml::from_str(&contents).or_raise(make_error)?;
         let extra = ExtraConfig {
             raw_toml: contents,
             raw_toml_path: path,
@@ -304,13 +311,13 @@ impl ConfigFile {
                             default_page: default_page_layout,
                         },
                 },
-            special_pages:
-                SpecialPages {
-                    special_prefix: special_page_prefix,
-                    template: special_page_template,
-                    missing: special_page_missing,
-                    private: special_page_private,
-                    banned: special_page_banned,
+            blueprint:
+                Blueprint {
+                    page_prefix: blueprint_page_prefix,
+                    template: blueprint_page_template,
+                    missing: blueprint_page_missing,
+                    private: blueprint_page_private,
+                    banned: blueprint_page_banned,
                 },
             user:
                 User {
@@ -439,11 +446,11 @@ impl ConfigFile {
                 .collect(),
             message_layout,
             default_page_layout,
-            special_page_prefix,
-            special_page_template,
-            special_page_missing,
-            special_page_private,
-            special_page_banned,
+            blueprint_page_prefix,
+            blueprint_page_template,
+            blueprint_page_missing,
+            blueprint_page_private,
+            blueprint_page_banned,
             default_name_changes: i16::from(default_name_changes),
             maximum_name_changes: i16::from(maximum_name_changes),
             refill_name_change: if refill_name_change_days == 0 {

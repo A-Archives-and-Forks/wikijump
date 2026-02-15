@@ -2,7 +2,7 @@
  * endpoints/mod.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
- * Copyright (C) 2019-2025 Wikijump Team
+ * Copyright (C) 2019-2026 Wikijump Team
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -27,22 +27,27 @@
 //! instead live in `services`. Endpoint definitions should ideally be wrappers
 //! around service calls, or possibly perform modest data conversion for HTTP.
 
+#[macro_use]
+mod macros;
+
 #[allow(unused_imports)]
 mod prelude {
     pub use crate::api::ServerState;
+    pub use crate::error::prelude::*;
     pub use crate::services::{
         AliasService, BlobService, CaddyService, CategoryService, DomainService,
-        Error as ServiceError, FileRevisionService, FileService, LinkService,
-        MessageReportService, MessageService, MfaService, PageRevisionService,
-        PageService, ParentService, RelationService, RenderService, Result, ScoreService,
-        ServiceContext, SessionService, SettingsService, SiteService, StdResult,
-        TextBlockService, TextService, UserService, ViewService, VoteService,
+        FileRevisionService, FileService, LinkService, MessageReportService,
+        MessageService, MfaService, PageRevisionService, PageService, ParentService,
+        RelationService, RenderService, ScoreService, ServiceContext, SessionService,
+        SettingsService, SiteService, TextBlockService, TextService, UserService,
+        ViewService, VoteService,
     };
     pub use jsonrpsee::types::params::Params;
     pub use std::convert::TryFrom;
 }
 
 pub mod auth;
+pub mod basic_error;
 pub mod blob;
 pub mod category;
 pub mod domain;
@@ -61,7 +66,6 @@ pub mod parent;
 pub mod routing;
 pub mod site;
 pub mod site_member;
-pub mod special_error;
 pub mod text;
 pub mod text_block;
 pub mod user;

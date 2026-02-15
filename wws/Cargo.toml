@@ -8,7 +8,7 @@ keywords = ["wikijump", "api", "backend", "wiki"]
 categories = ["asynchronous", "caching", "web-programming::http-server"]
 exclude = [".gitignore"]
 
-version = "2025.5.5"
+version = "2026.1.8"
 authors = ["Emmie Smith <emmie.maeda@gmail.com>"]
 edition = "2024"
 
@@ -16,10 +16,11 @@ edition = "2024"
 accept-language = "3"
 anyhow = "1"
 axum = { version = "0.8", features = ["http1", "http2", "macros", "tokio", "tower-log", "tracing"], default-features = false }
-axum-extra = { version = "0.12", features = ["attachment"] }
+axum-extra = { version = "0.12", features = ["attachment", "typed-header"] }
 clap = "4"
 color-backtrace = "0.7"
 dotenvy = "0.15"
+headers = "0.4"
 jsonrpsee = { version = "0.26", features = ["async-client", "jsonrpsee-http-client"] }
 paste = "1"
 redis = { version = "0.32", features = ["aio", "connection-manager", "keep-alive", "r2d2", "tokio-comp", "tokio-rustls-comp"], default-features = false }
@@ -29,7 +30,7 @@ serde = { version = "1", features = ["derive"] }
 str-macro = "1"
 thiserror = "2"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
-tower-http = { version = "0.6.7", features = ["add-extension", "compression-br", "compression-deflate", "compression-gzip", "compression-zstd", "normalize-path", "set-header", "trace"] }
+tower-http = { version = "0.6.8", features = ["add-extension", "compression-br", "compression-deflate", "compression-gzip", "compression-zstd", "normalize-path", "set-header", "trace"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 wikidot-normalize = "0.12"

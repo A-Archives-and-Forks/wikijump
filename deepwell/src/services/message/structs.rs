@@ -2,7 +2,7 @@
  * services/message/structs.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
- * Copyright (C) 2019-2025 Wikijump Team
+ * Copyright (C) 2019-2026 Wikijump Team
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -66,7 +66,6 @@ impl DraftRecipients {
         let i1 = self.regular.iter().copied();
         let i2 = self.carbon_copy.iter().copied();
         let i3 = self.blind_carbon_copy.iter().copied();
-
         i1.chain(i2).chain(i3)
     }
 

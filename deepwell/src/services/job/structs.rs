@@ -2,7 +2,7 @@
  * services/job/structs.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
- * Copyright (C) 2019-2025 Wikijump Team
+ * Copyright (C) 2019-2026 Wikijump Team
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -18,13 +18,16 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+use crate::services::page_revision::RerenderType;
+use crate::types::{PageId, RerenderDepth};
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "snake_case", tag = "job", content = "data")]
 pub enum Job {
     RerenderPage {
-        site_id: i64,
-        page_id: i64,
-        depth: u32,
+        id: PageId,
+        depth: RerenderDepth,
+        r#type: RerenderType,
     },
     PruneSessions,
     PrunePendingUploads,

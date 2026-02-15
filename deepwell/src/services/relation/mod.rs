@@ -2,7 +2,7 @@
  * services/relation/mod.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
- * Copyright (C) 2019-2025 Wikijump Team
+ * Copyright (C) 2019-2026 Wikijump Team
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -90,6 +90,31 @@ impl RelationService {
     ) -> Result<RelationModel> {
         debug!("Create relation for {dest:?} ← {relation_type:?} ← {from:?}");
 
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to create relation {:?} ← {:?} ← {:?}",
+                    dest, relation_type, from,
+                ),
+                ErrorType::Relation,
+            )
+        };
+
+        // Relations are not permitted to point to themselves
+        if dest == from {
+            error!(
+                "Source and destination are the same: {:?}, cannot create relation",
+                dest,
+            );
+            bail!(Error::new(
+                format!(
+                    "cannot create relation, source and destination are the same: {:?}",
+                    dest
+                ),
+                ErrorType::BadRequest
+            ));
+        }
+
         // Get previous relation, if present
         let txn = ctx.transaction();
         if let Some(relation) = Self::get_optional(
@@ -100,7 +125,8 @@ impl RelationService {
                 from,
             },
         )
-        .await?
+        .await
+        .or_raise(make_error)?
         {
             debug!("Relation already exists, marking old item overwritten");
             let model = relation::ActiveModel {
@@ -110,7 +136,7 @@ impl RelationService {
                 ..Default::default()
             };
 
-            model.update(txn).await?;
+            model.update(txn).await.or_raise(make_error)?;
         }
 
         // Insert new relation
@@ -118,7 +144,7 @@ impl RelationService {
         let (from_type, from_id) = from.into();
         relation_type.types().check(dest_type, from_type);
 
-        let metadata = serde_json::to_value(metadata)?;
+        let metadata = serde_json::to_value(metadata).or_raise(make_error)?;
         let model = relation::ActiveModel {
             relation_type: Set(str!(relation_type.value())),
             dest_type: Set(dest_type),
@@ -130,7 +156,7 @@ impl RelationService {
             ..Default::default()
         };
 
-        let relation = model.insert(txn).await?;
+        let relation = model.insert(txn).await.or_raise(make_error)?;
         Ok(relation)
     }
 
@@ -142,7 +168,20 @@ impl RelationService {
         debug!("Removing relation for {reference:?}");
 
         let txn = ctx.transaction();
-        let relation_id = Self::get_id(ctx, reference).await?;
+        let relation_id = Self::get_id(ctx, reference)
+            .await
+            .or_raise(|| Error::new("failed to remove relation", ErrorType::Relation))?;
+
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to remove relation ID {}, done by user ID {}",
+                    relation_id, deleted_by,
+                ),
+                ErrorType::Relation,
+            )
+        };
+
         let model = relation::ActiveModel {
             relation_id: Set(relation_id),
             deleted_at: Set(Some(now())),
@@ -150,7 +189,7 @@ impl RelationService {
             ..Default::default()
         };
 
-        let output = model.update(txn).await?;
+        let output = model.update(txn).await.or_raise(make_error)?;
         Ok(output)
     }
 
@@ -159,6 +198,13 @@ impl RelationService {
         reference: RelationReference,
     ) -> Result<Option<RelationModel>> {
         debug!("Getting relation for {reference:?}");
+
+        let make_error = || {
+            Error::new(
+                format!("failed to get relation {:?}", reference),
+                ErrorType::Relation,
+            )
+        };
 
         let txn = ctx.transaction();
         let relation = Relation::find()
@@ -169,7 +215,8 @@ impl RelationService {
                     .add(relation::Column::DeletedAt.is_null()),
             )
             .one(txn)
-            .await?;
+            .await
+            .or_raise(make_error)?;
 
         Ok(relation)
     }
@@ -182,7 +229,11 @@ impl RelationService {
         match reference {
             RelationReference::Id(relation_id) => Ok(relation_id),
             RelationReference::Relationship { .. } => {
-                let RelationModel { relation_id, .. } = Self::get(ctx, reference).await?;
+                let RelationModel { relation_id, .. } = Self::get(ctx, reference)
+                    .await
+                    .or_raise(|| {
+                    Error::new("failed to get relation for its ID", ErrorType::Relation)
+                })?;
 
                 Ok(relation_id)
             }
@@ -193,7 +244,7 @@ impl RelationService {
         ctx: &ServiceContext<'_>,
         reference: RelationReference,
     ) -> Result<RelationModel> {
-        find_or_error!(Self::get_optional(ctx, reference), Relation)
+        find_or_error!(Self::get_optional(ctx, reference), "relation", Relation)
     }
 
     pub async fn exists(
@@ -216,14 +267,25 @@ impl RelationService {
         dest: RelationObject,
         from: RelationObject,
     ) -> Result<Vec<RelationModel>> {
-        info!("Getting history of relations for {dest:?} / {relation_type:?} / {from:?}");
+        info!("Getting history of relations for {dest:?} ← {relation_type:?} ← {from:?}");
+
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to get history of relation {:?} ← {:?} ← {:?}",
+                    dest, relation_type, from,
+                ),
+                ErrorType::Relation,
+            )
+        };
 
         let txn = ctx.transaction();
         let relations = Relation::find()
             .filter(relation_condition(relation_type, dest, from))
             .order_by_asc(relation::Column::CreatedAt)
             .all(txn)
-            .await?;
+            .await
+            .or_raise(make_error)?;
 
         Ok(relations)
     }
@@ -240,6 +302,16 @@ impl RelationService {
         direction: RelationDirection,
     ) -> Result<Vec<RelationModel>> {
         info!("Getting {direction:?} relations for {object:?} / {relation_type:?}");
+
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to get history of relation {:?} / {:?}",
+                    object, relation_type,
+                ),
+                ErrorType::Relation,
+            )
+        };
 
         let (object_type, object_id) = object.into();
         let (object_type_column, object_id_column) = match direction {
@@ -262,7 +334,8 @@ impl RelationService {
             )
             .order_by_asc(relation::Column::CreatedAt)
             .all(txn)
-            .await?;
+            .await
+            .or_raise(make_error)?;
 
         Ok(relations)
     }

@@ -2,7 +2,7 @@
  * endpoints/misc.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
- * Copyright (C) 2019-2025 Wikijump Team
+ * Copyright (C) 2019-2026 Wikijump Team
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -29,7 +29,8 @@ async fn postgres_check(ctx: &ServiceContext<'_>) -> Result<()> {
             DatabaseBackend::Postgres,
             str!("SELECT 1"),
         ))
-        .await?;
+        .await
+        .or_raise(|| Error::new("failed to ping PostgreSQL", ErrorType::DatabaseQuery))?;
 
     debug!("Successfully pinged Postgres");
     Ok(())
@@ -40,7 +41,8 @@ async fn redis_check(ctx: &ServiceContext<'_>) -> Result<()> {
 
     redis
         .send_packed_command(redis::Cmd::new().arg("PING"))
-        .await?;
+        .await
+        .or_raise(|| Error::new("failed to ping Redis", ErrorType::RedisQuery))?;
 
     debug!("Successfully pinged Redis");
     Ok(())
@@ -52,7 +54,10 @@ pub async fn ping(
 ) -> Result<&'static str> {
     // Ensure the database and cache are connected, and only then return.
     info!("Ping request");
-    try_join!(postgres_check(ctx), redis_check(ctx))?;
+
+    try_join!(postgres_check(ctx), redis_check(ctx))
+        .or_raise(|| Error::new("ping failed", ErrorType::HealthCheck))?;
+
     Ok("Pong!")
 }
 
@@ -61,7 +66,7 @@ pub async fn echo(
     params: Params<'static>,
 ) -> Result<JsonValue> {
     // Just write out whatever JSON value they put in
-    let data: JsonValue = params.parse()?;
+    let data: JsonValue = parse!(params);
     info!("Got echo request, sending back to caller");
     Ok(data)
 }
@@ -73,7 +78,10 @@ pub async fn yield_error(
     _params: Params<'static>,
 ) -> Result<()> {
     info!("Returning DEEPWELL error for testing");
-    Err(ServiceError::BadRequest)
+    bail!(Error::new(
+        "this method type always fails",
+        ErrorType::BadRequest
+    ));
 }
 
 pub async fn config_dump(
@@ -88,7 +96,7 @@ pub async fn normalize_method(
     _ctx: &ServiceContext<'_>,
     params: Params<'static>,
 ) -> Result<String> {
-    let mut value: String = params.one()?;
+    let mut value: String = parse_one!(params);
     info!("Running normalize on string: {value:?}");
     normalize(&mut value);
     Ok(value)

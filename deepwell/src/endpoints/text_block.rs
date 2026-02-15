@@ -2,7 +2,7 @@
  * endpoints/text.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
- * Copyright (C) 2019-2025 Wikijump Team
+ * Copyright (C) 2019-2026 Wikijump Team
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -37,7 +37,17 @@ pub async fn text_block_get_index(
         page_id,
         block_type,
         name,
-    } = params.parse()?;
+    } = parse!(params);
 
-    TextBlockService::get_block_index(ctx, page_id, block_type, &name).await
+    TextBlockService::get_block_index(ctx, page_id, block_type, &name)
+        .await
+        .or_raise(|| {
+            Error::new(
+                format!(
+                    "failed to get text block {:?} '{}' for page ID {}",
+                    block_type, name, page_id,
+                ),
+                ErrorType::Request,
+            )
+        })
 }

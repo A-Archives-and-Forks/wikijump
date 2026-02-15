@@ -2,7 +2,7 @@
  * deepwell.rs
  *
  * Wilson's Web Server - Serves a zoo of user-generated content
- * Copyright (C) 2019-2025 Wikijump Team
+ * Copyright (C) 2019-2026 Wikijump Team
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -129,91 +129,91 @@ impl Deepwell {
         Ok(block_info)
     }
 
-    // Special errors
+    // Basic errors
 
-    pub async fn special_error_missing_site_slug(
+    pub async fn basic_error_missing_site_slug(
         &self,
         locales: &[String],
         site_slug: &str,
-    ) -> Result<SpecialErrorHtml> {
+    ) -> Result<BasicErrorHtml> {
         let params = rpc_object! {
             "locales" => locales,
             "site_slug" => site_slug,
         };
 
-        let html: SpecialErrorHtml = self
+        let html: BasicErrorHtml = self
             .client
-            .request("special_error_missing_site_slug", params)
+            .request("basic_error_missing_site_slug", params)
             .await?;
 
         Ok(html)
     }
 
-    pub async fn special_error_missing_custom_domain(
+    pub async fn basic_error_missing_custom_domain(
         &self,
         locales: &[String],
         domain: &str,
-    ) -> Result<SpecialErrorHtml> {
+    ) -> Result<BasicErrorHtml> {
         let params = rpc_object! {
             "locales" => locales,
             "domain" => domain,
         };
 
-        let html: SpecialErrorHtml = self
+        let html: BasicErrorHtml = self
             .client
-            .request("special_error_missing_custom_domain", params)
+            .request("basic_error_missing_custom_domain", params)
             .await?;
 
         Ok(html)
     }
 
-    pub async fn special_error_missing_page_slug(
+    pub async fn basic_error_missing_page_slug(
         &self,
         locales: &[String],
         site_id: i64,
         page_slug: &str,
-    ) -> Result<SpecialErrorHtml> {
+    ) -> Result<BasicErrorHtml> {
         let params = rpc_object! {
             "locales" => locales,
             "site_id" => site_id,
             "page_slug" => page_slug,
         };
 
-        let html: SpecialErrorHtml = self
+        let html: BasicErrorHtml = self
             .client
-            .request("special_error_missing_page_slug", params)
+            .request("basic_error_missing_page_slug", params)
             .await?;
 
         Ok(html)
     }
 
-    pub async fn special_error_page_fetch(
+    pub async fn basic_error_page_fetch(
         &self,
         locales: &[String],
         site_id: i64,
         page_slug: &str,
-    ) -> Result<SpecialErrorHtml> {
+    ) -> Result<BasicErrorHtml> {
         let params = rpc_object! {
             "locales" => locales,
             "site_id" => site_id,
             "page_slug" => page_slug,
         };
 
-        let html: SpecialErrorHtml = self
+        let html: BasicErrorHtml = self
             .client
-            .request("special_error_page_fetch", params)
+            .request("basic_error_page_fetch", params)
             .await?;
 
         Ok(html)
     }
 
-    pub async fn special_error_missing_file_name(
+    pub async fn basic_error_missing_file_name(
         &self,
         locales: &[String],
         site_id: i64,
         page_slug: &str,
         filename: &str,
-    ) -> Result<SpecialErrorHtml> {
+    ) -> Result<BasicErrorHtml> {
         let params = rpc_object! {
             "locales" => locales,
             "site_id" => site_id,
@@ -221,21 +221,21 @@ impl Deepwell {
             "filename" => filename,
         };
 
-        let html: SpecialErrorHtml = self
+        let html: BasicErrorHtml = self
             .client
-            .request("special_error_missing_file_name", params)
+            .request("basic_error_missing_file_name", params)
             .await?;
 
         Ok(html)
     }
 
-    pub async fn special_error_file_fetch(
+    pub async fn basic_error_file_fetch(
         &self,
         locales: &[String],
         site_id: i64,
         page_slug: &str,
         filename: &str,
-    ) -> Result<SpecialErrorHtml> {
+    ) -> Result<BasicErrorHtml> {
         let params = rpc_object! {
             "locales" => locales,
             "site_id" => site_id,
@@ -243,22 +243,22 @@ impl Deepwell {
             "filename" => filename,
         };
 
-        let html: SpecialErrorHtml = self
+        let html: BasicErrorHtml = self
             .client
-            .request("special_error_file_fetch", params)
+            .request("basic_error_file_fetch", params)
             .await?;
 
         Ok(html)
     }
 
-    pub async fn special_error_text_block(
+    pub async fn basic_error_text_block(
         &self,
         locales: &[String],
         site_id: i64,
         index: &str,
         block_type: TextBlockType,
         reason: TextBlockErrorReason,
-    ) -> Result<SpecialErrorHtml> {
+    ) -> Result<BasicErrorHtml> {
         let params = rpc_object! {
             "locales" => locales,
             "site_id" => site_id,
@@ -267,26 +267,24 @@ impl Deepwell {
             "reason" => reason.value(),
         };
 
-        let html: SpecialErrorHtml = self
+        let html: BasicErrorHtml = self
             .client
-            .request("special_error_text_block", params)
+            .request("basic_error_text_block", params)
             .await?;
 
         Ok(html)
     }
 
-    pub async fn special_error_file_root(
+    pub async fn basic_error_file_root(
         &self,
         locales: &[String],
-    ) -> Result<SpecialErrorHtml> {
+    ) -> Result<BasicErrorHtml> {
         let params = rpc_object! {
             "locales" => locales,
         };
 
-        let html: SpecialErrorHtml = self
-            .client
-            .request("special_error_file_root", params)
-            .await?;
+        let html: BasicErrorHtml =
+            self.client.request("basic_error_file_root", params).await?;
 
         Ok(html)
     }
@@ -312,7 +310,7 @@ pub struct TextBlockIndex {
 }
 
 #[derive(Deserialize, Debug, Clone)]
-pub struct SpecialErrorHtml {
+pub struct BasicErrorHtml {
     pub title: String,
     pub body: String,
 }

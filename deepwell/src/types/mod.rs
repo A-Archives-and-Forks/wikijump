@@ -2,7 +2,7 @@
  * types/mod.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
- * Copyright (C) 2019-2025 Wikijump Team
+ * Copyright (C) 2019-2026 Wikijump Team
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -22,20 +22,26 @@
 
 mod bytes;
 mod connection_type;
+mod conversion_error;
 mod fetch_direction;
 mod file_details;
 mod file_order;
 mod maybe;
 mod page_details;
+mod page_id;
 mod page_order;
 mod reference;
+mod rerender_depth;
 
 pub use self::bytes::Bytes;
 pub use self::connection_type::ConnectionType;
+pub use self::conversion_error::{EnumConversionError, parse_layout};
 pub use self::fetch_direction::FetchDirection;
 pub use self::file_details::FileDetails;
 pub use self::file_order::{FileOrder, FileOrderColumn};
 pub use self::maybe::Maybe;
 pub use self::page_details::PageDetails;
+pub use self::page_id::PageId;
 pub use self::page_order::{PageOrder, PageOrderColumn};
 pub use self::reference::Reference;
+pub use self::rerender_depth::RerenderDepth;

@@ -23,7 +23,11 @@ pub struct Model {
     #[sea_orm(column_type = "VarBinary(StringLen::None)")]
     pub wikitext_hash: Vec<u8>,
     #[sea_orm(column_type = "VarBinary(StringLen::None)")]
-    pub compiled_hash: Vec<u8>,
+    pub compiled_body_html_hash: Vec<u8>,
+    #[sea_orm(column_type = "VarBinary(StringLen::None)", nullable)]
+    pub compiled_top_bar_html_hash: Option<Vec<u8>>,
+    #[sea_orm(column_type = "VarBinary(StringLen::None)", nullable)]
+    pub compiled_side_bar_html_hash: Option<Vec<u8>>,
     #[serde(with = "time::serde::rfc3339")]
     pub compiled_at: TimeDateTimeWithTimeZone,
     #[sea_orm(column_type = "Text")]
@@ -60,7 +64,23 @@ pub enum Relation {
     Site,
     #[sea_orm(
         belongs_to = "super::text::Entity",
-        from = "Column::CompiledHash",
+        from = "Column::CompiledBodyHtmlHash",
+        to = "super::text::Column::Hash",
+        on_update = "NoAction",
+        on_delete = "NoAction"
+    )]
+    Text4,
+    #[sea_orm(
+        belongs_to = "super::text::Entity",
+        from = "Column::CompiledTopBarHtmlHash",
+        to = "super::text::Column::Hash",
+        on_update = "NoAction",
+        on_delete = "NoAction"
+    )]
+    Text3,
+    #[sea_orm(
+        belongs_to = "super::text::Entity",
+        from = "Column::CompiledSideBarHtmlHash",
         to = "super::text::Column::Hash",
         on_update = "NoAction",
         on_delete = "NoAction"

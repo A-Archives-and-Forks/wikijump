@@ -2,7 +2,7 @@
  * services/audit/structs.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
- * Copyright (C) 2019-2025 Wikijump Team
+ * Copyright (C) 2019-2026 Wikijump Team
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -106,6 +106,13 @@ pub enum AuditEvent<'a> {
 
 impl<'a> AuditEvent<'a> {
     pub fn extract(&self, ip_address: IpAddr) -> Result<RawAuditEvent<'a>> {
+        let make_error = || {
+            Error::new(
+                format!("failed to extract raw audit event from {:#?}", self),
+                ErrorType::AuditLog,
+            )
+        };
+
         let raw_event = match *self {
             AuditEvent::UserCreate { user_id } => RawAuditEvent {
                 event_type: "user.create",
@@ -124,8 +131,11 @@ impl<'a> AuditEvent<'a> {
                 ref previous_fields,
                 ref changed_fields,
             } => {
-                let previous_fields_json = serde_json::to_string(previous_fields)?;
-                let changed_fields_json = serde_json::to_string(changed_fields)?;
+                let previous_fields_json =
+                    serde_json::to_string(previous_fields).or_raise(make_error)?;
+
+                let changed_fields_json =
+                    serde_json::to_string(changed_fields).or_raise(make_error)?;
 
                 RawAuditEvent {
                     event_type: "user.update",
@@ -170,8 +180,11 @@ impl<'a> AuditEvent<'a> {
                 ref previous_fields,
                 ref changed_fields,
             } => {
-                let previous_fields_json = serde_json::to_string(previous_fields)?;
-                let changed_fields_json = serde_json::to_string(changed_fields)?;
+                let previous_fields_json =
+                    serde_json::to_string(previous_fields).or_raise(make_error)?;
+
+                let changed_fields_json =
+                    serde_json::to_string(changed_fields).or_raise(make_error)?;
 
                 RawAuditEvent {
                     event_type: "site.update",
@@ -385,6 +398,10 @@ pub struct SiteFields<'a> {
     pub locale: Maybe<&'a str>,
     #[serde(skip_serializing_if = "Maybe::is_unset")]
     pub default_page: Maybe<&'a str>,
+    #[serde(skip_serializing_if = "Maybe::is_unset")]
+    pub top_bar_page: Maybe<&'a str>,
+    #[serde(skip_serializing_if = "Maybe::is_unset")]
+    pub side_bar_page: Maybe<&'a str>,
     #[serde(skip_serializing_if = "Maybe::is_unset")]
     pub preferred_domain: Maybe<Option<&'a str>>,
     #[serde(skip_serializing_if = "Maybe::is_unset")]

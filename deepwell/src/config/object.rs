@@ -2,7 +2,7 @@
  * config/object.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
- * Copyright (C) 2019-2025 Wikijump Team
+ * Copyright (C) 2019-2026 Wikijump Team
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -19,7 +19,7 @@
  */
 
 use super::file::ConfigFile;
-use anyhow::Result;
+use crate::error::prelude::*;
 use femme::LevelFilter;
 use ftml::layout::Layout;
 use std::env;
@@ -175,21 +175,21 @@ pub struct Config {
     /// have a different layout set.
     pub default_page_layout: Layout,
 
-    /// Prefix for "special pages". Default: `_`
+    /// Prefix for bluprint pages. Default: `_`
     #[allow(dead_code)] // TEMP
-    pub special_page_prefix: String,
+    pub blueprint_page_prefix: String,
 
     /// Page slug for the template page. Default: `_template`
-    pub special_page_template: String,
+    pub blueprint_page_template: String,
 
     /// Page slug for pages that don't exist. Default: `_404`
-    pub special_page_missing: String,
+    pub blueprint_page_missing: String,
 
     /// Page slug for pages you don't have permission to see. Default: `_public`
-    pub special_page_private: String,
+    pub blueprint_page_private: String,
 
     /// Page slug for when the user is banned, and the site disallows banned viewing. Default: `_ban`
-    pub special_page_banned: String,
+    pub blueprint_page_banned: String,
 
     /// Default name changes per user.
     pub default_name_changes: i16,
@@ -232,7 +232,10 @@ pub struct Config {
 impl Config {
     #[inline]
     pub fn load(path: PathBuf) -> Result<Self> {
-        let (config_file, extra) = ConfigFile::load(path)?;
+        let (config_file, extra) = ConfigFile::load(path).or_raise(|| {
+            Error::new("failed to load configuration data", ErrorType::ConfigSetup)
+        })?;
+
         let config = ConfigFile::into_config(config_file, extra);
         Ok(config)
     }
