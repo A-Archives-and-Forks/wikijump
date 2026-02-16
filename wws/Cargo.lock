@@ -1740,9 +1740,9 @@ dependencies = [
 
 [[package]]
 name = "ref-map"
-version = "0.1.4"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8747dc217cdb6932c38d1a59bcf2a4887046a4e21e313fe91eba5c4d68b4ab63"
+checksum = "d8a92abd1f321b3080afe8e61cdeac34d868e91b0932061ea67429f5f48cba2e"
 
 [[package]]
 name = "regex"
