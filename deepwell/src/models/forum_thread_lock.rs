@@ -4,60 +4,59 @@ use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, Serialize, Deserialize)]
-#[sea_orm(table_name = "file")]
+#[sea_orm(table_name = "forum_thread_lock")]
 pub struct Model {
     #[sea_orm(primary_key)]
-    pub file_id: i64,
+    pub forum_thread_lock_id: i64,
     #[serde(with = "time::serde::rfc3339")]
     pub created_at: TimeDateTimeWithTimeZone,
     #[serde(with = "time::serde::rfc3339::option")]
     pub updated_at: Option<TimeDateTimeWithTimeZone>,
     #[serde(with = "time::serde::rfc3339::option")]
     pub deleted_at: Option<TimeDateTimeWithTimeZone>,
+    #[serde(with = "time::serde::rfc3339::option")]
+    pub expires_at: Option<TimeDateTimeWithTimeZone>,
     pub from_wikidot: bool,
+    pub forum_thread_id: i64,
+    pub user_id: i64,
     #[sea_orm(column_type = "Text")]
-    pub name: String,
-    pub page_id: i64,
-    pub site_id: i64,
+    pub reason: String,
+    #[sea_orm(column_type = "Text")]
+    pub lock_type: String,
+    pub allow_new_posts: bool,
+    pub allow_post_edits: bool,
+    pub allow_post_deletions: bool,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
-    #[sea_orm(has_many = "super::file_revision::Entity")]
-    FileRevision,
     #[sea_orm(
-        belongs_to = "super::page::Entity",
-        from = "Column::PageId",
-        to = "super::page::Column::PageId",
+        belongs_to = "super::forum_thread::Entity",
+        from = "Column::ForumThreadId",
+        to = "super::forum_thread::Column::ForumThreadId",
         on_update = "NoAction",
         on_delete = "NoAction"
     )]
-    Page,
+    ForumThread,
     #[sea_orm(
-        belongs_to = "super::site::Entity",
-        from = "Column::SiteId",
-        to = "super::site::Column::SiteId",
+        belongs_to = "super::user::Entity",
+        from = "Column::UserId",
+        to = "super::user::Column::UserId",
         on_update = "NoAction",
         on_delete = "NoAction"
     )]
-    Site,
+    User,
 }
 
-impl Related<super::file_revision::Entity> for Entity {
+impl Related<super::forum_thread::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::FileRevision.def()
+        Relation::ForumThread.def()
     }
 }
 
-impl Related<super::page::Entity> for Entity {
+impl Related<super::user::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::Page.def()
-    }
-}
-
-impl Related<super::site::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::Site.def()
+        Relation::User.def()
     }
 }
 
