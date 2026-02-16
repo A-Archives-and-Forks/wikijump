@@ -850,7 +850,7 @@ dependencies = [
  "pretty_assertions",
  "rand 0.8.5",
  "redis",
- "ref-map",
+ "ref-map 0.2.0",
  "regex",
  "reqwest",
  "rsmq_async",
@@ -1238,7 +1238,7 @@ dependencies = [
  "pest",
  "pest_derive",
  "rand 0.9.2",
- "ref-map",
+ "ref-map 0.1.4",
  "regex",
  "self_cell",
  "serde",
@@ -3078,6 +3078,12 @@ name = "ref-map"
 version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8747dc217cdb6932c38d1a59bcf2a4887046a4e21e313fe91eba5c4d68b4ab63"
+
+[[package]]
+name = "ref-map"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d8a92abd1f321b3080afe8e61cdeac34d868e91b0932061ea67429f5f48cba2e"
 
 [[package]]
 name = "regex"
