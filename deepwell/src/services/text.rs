@@ -30,7 +30,7 @@ use crate::models::message_draft::{self, Entity as MessageDraft};
 use crate::models::message_record::{self, Entity as MessageRecord};
 use crate::models::page_revision::{self, Entity as PageRevision};
 use crate::models::text::{self, Entity as Text};
-use sea_query::Query;
+use sea_query::{Alias, Query};
 
 #[derive(Debug)]
 pub struct TextService;
@@ -235,8 +235,15 @@ impl TextService {
                     .add(not_in_column!(
                         MessageRecord,
                         message_record::Column::CompiledHash,
+                    ))
+                    .add(not_in_column!(
+                        Alias::new("forum_post_revision"),
+                        Alias::new("wikitext_hash"),
+                    ))
+                    .add(not_in_column!(
+                        Alias::new("forum_post_revision"),
+                        Alias::new("compiled_html_hash"),
                     )),
-                // TODO add forum_post_revision
             )
             .exec(txn)
             .await
