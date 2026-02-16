@@ -59,7 +59,7 @@ strum_macros = "0.27"
 subtle = "2.6"
 time = { version = "0.3", features = ["parsing", "serde"], default-features = false }
 tiny-keccak = { version = "2", features = ["k12"] }
-toml = { version = "0.9", features = ["parse"] }
+toml = { version = "1.0", features = ["parse"] }
 tokio = { version = "1", features = ["full"] }
 typenum = "1"
 unic-langid = "0.9"
