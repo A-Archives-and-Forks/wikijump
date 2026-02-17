@@ -190,6 +190,34 @@
     },
     {
         "site": null,
+        "regex": "^host$",
+        "description": "Reserved name (host)",
+        "case-sensitive": false,
+        "user": true
+    },
+    {
+        "site": null,
+        "regex": "^deploy$",
+        "description": "Reserved name (deploy)",
+        "case-sensitive": false,
+        "user": true
+    },
+    {
+        "site": null,
+        "regex": "^status$",
+        "description": "Reserved name (status)",
+        "case-sensitive": false,
+        "user": true
+    },
+    {
+        "site": null,
+        "regex": "^dashboard$",
+        "description": "Reserved name (dashboard)",
+        "case-sensitive": false,
+        "user": true
+    },
+    {
+        "site": null,
         "regex": "^guru$",
         "description": "Reserved name (guru)",
         "case-sensitive": false,
