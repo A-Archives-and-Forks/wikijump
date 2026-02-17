@@ -10,6 +10,7 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: wikijump/wws
+  DESCRIPTION: Wilson's Web Server, file and static routing for Wikijump
   NAME: wws
   TIER: prod
 
@@ -44,6 +45,9 @@ jobs:
             type=raw,value=${{ env.TIER }},enable=${{ github.ref == format('refs/heads/{0}', 'prod') }}
             # extract version from git tags
             type=match,pattern=${{ env.NAME }}-(.+),group=1
+          labels: |
+            org.opencontainers.image.title=${{ env.NAME }}
+            org.opencontainers.image.description=${{ env.DESCRIPTION }}
 
       - name: Build and push image
         id: push
