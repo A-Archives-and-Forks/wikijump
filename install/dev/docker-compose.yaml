@@ -1,27 +1,10 @@
 services:
-  cache:
-    build: valkey
-    restart: always
-    # You can add a volume for /data if you wish
-    healthcheck:
-      test: ["CMD", "valkey-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-    ports:
-      - "6379:6379"
-
   deepwell:
     build:
       context: ../..
       dockerfile: install/dev/deepwell/Dockerfile
     ports:
       - "2747:2747"
-    links:
-      - cache
-      - database
-    environment:
-      - "REDIS_URL=redis://cache"
     restart: always
     healthcheck:
       test: ["CMD", "wikijump-health-check"]
@@ -30,11 +13,6 @@ services:
       retries: 3
       start_period: 600s
       start_interval: 10s
-    depends_on:
-      cache:
-        condition: service_healthy
-      database:
-        condition: service_healthy
 
   framerail:
     build:
@@ -64,11 +42,9 @@ services:
       - "7000:7000"
     links:
       - deepwell
-      - cache
     environment:
       - "ADDRESS=[::]:7000"
       - "DEEPWELL_URL=http://deepwell:2747"
-      - "REDIS_URL=redis://cache"
     restart: always
     healthcheck:
       test: ["CMD", "wikijump-health-check"]
@@ -77,8 +53,6 @@ services:
       retries: 3
     depends_on:
       deepwell:
-        condition: service_healthy
-      cache:
         condition: service_healthy
 
   caddy:
