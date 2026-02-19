@@ -28,7 +28,11 @@ export async function POST(event) {
       location,
       biography,
       user_page: userPage,
-      locales: locales?.split(" ").filter((v) => v.trim()),
+      locales: locales
+        ?.replaceAll("_", "-")
+        .replaceAll(",", " ")
+        .split(" ")
+        .filter((v) => v.trim()),
       avatar
     }
 

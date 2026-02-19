@@ -80,7 +80,7 @@
     </div>
   {/if}
 
-  {#if $page.data.user.locales}
+  {#if $page.data.user.locales?.length}
     <div class="user-attribute locales">
       <span class="user-attribute-label"
         >{$page.data.internationalization?.["user-profile-info.locales"]}</span
