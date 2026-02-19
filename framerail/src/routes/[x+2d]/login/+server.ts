@@ -1,3 +1,4 @@
+import { authGetSession } from "$lib/server/auth/getSession"
 import { authLogin } from "$lib/server/auth/login"
 
 export async function POST(event) {
@@ -13,13 +14,13 @@ export async function POST(event) {
     let res = await authLogin(nameOrEmail, password, ipAddress, userAgent)
 
     if (res.session_token) {
+      let session = await authGetSession(res.session_token)
       event.cookies.set("wikijump_token", res.session_token, {
         path: "/",
         httpOnly: true,
         secure: true,
-        sameSite: "lax"
-        // TODO made deepwell return the cookie expiration for setting maxAge
-        // maxAge: someValue
+        sameSite: "lax",
+        expires: new Date(session.expires_at)
       })
     }
 
