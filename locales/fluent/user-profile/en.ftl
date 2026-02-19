@@ -13,3 +13,5 @@ user-profile-info =
   .locales = Locales:
 
 user-not-exist = This user does not exist.
+
+user-not-logged-in = You are not logged in.

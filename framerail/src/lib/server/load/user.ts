@@ -71,7 +71,8 @@ export async function loadUser(username?: string, request, cookies) {
   if (errorStatus !== null) {
     translateKeys = {
       ...translateKeys,
-      "user-not-exist": {}
+      "user-not-exist": {},
+      "user-not-logged-in": {}
     }
   } else {
     // Remove sensitive information
