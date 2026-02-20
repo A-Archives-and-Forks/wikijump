@@ -324,12 +324,12 @@ impl ForumThreadService {
         ctx: &ServiceContext<'_>,
         key: GetForumThread,
     ) -> Result<ForumThreadModel> {
-        Self::get_optional(ctx, key).await?.ok_or_else(|| {
+        Ok(Self::get_optional(ctx, key).await?.ok_or_else(|| {
             Error::new(
                 format!("forum thread ID {} does not exist", key.forum_thread_id),
                 ErrorType::BadRequest,
             )
-        })
+        })?)
     }
 
     pub async fn list(

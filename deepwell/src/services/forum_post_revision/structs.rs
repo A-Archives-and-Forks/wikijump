@@ -65,7 +65,7 @@ pub struct GetForumPostRevision {
     pub revision_number: i32,
 }
 
-#[derive(Deserialize, Debug, Copy, Clone)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct UpdateForumPostRevision {
     pub forum_post_revision_id: i64,
     pub user_id: i64,

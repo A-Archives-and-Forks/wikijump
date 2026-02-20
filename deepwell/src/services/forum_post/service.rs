@@ -296,12 +296,12 @@ impl ForumPostService {
         ctx: &ServiceContext<'_>,
         key: GetForumPost,
     ) -> Result<ForumPostModel> {
-        Self::get_optional(ctx, key).await?.ok_or_else(|| {
+        Ok(Self::get_optional(ctx, key).await?.ok_or_else(|| {
             Error::new(
                 format!("forum post ID {} does not exist", key.forum_post_id),
                 ErrorType::BadRequest,
             )
-        })
+        })?)
     }
 
     pub async fn list(

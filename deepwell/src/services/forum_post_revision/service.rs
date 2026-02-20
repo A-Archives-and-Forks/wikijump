@@ -26,6 +26,7 @@ use crate::models::forum_post_revision::{
 use crate::services::render::RenderOutput;
 use crate::services::score::ScoreValue;
 use crate::services::{RenderService, SiteService, TextService};
+use crate::types::FetchDirection;
 use ftml::data::PageInfo;
 use ftml::settings::{WikitextMode, WikitextSettings};
 use sea_query::Order;
@@ -315,7 +316,7 @@ impl ForumPostRevisionService {
         ctx: &ServiceContext<'_>,
         key: GetForumPostRevision,
     ) -> Result<ForumPostRevisionModel> {
-        Self::get_optional(ctx, key).await?.ok_or_else(|| {
+        Ok(Self::get_optional(ctx, key).await?.ok_or_else(|| {
             Error::new(
                 format!(
                     "forum post revision number {} does not exist for post ID {}",
@@ -323,7 +324,7 @@ impl ForumPostRevisionService {
                 ),
                 ErrorType::BadRequest,
             )
-        })
+        })?)
     }
 
     pub async fn get_direct(
@@ -344,7 +345,7 @@ impl ForumPostRevisionService {
                 )
             })?;
 
-        revision.ok_or_else(|| {
+        Ok(revision.ok_or_else(|| {
             Error::new(
                 format!(
                     "forum post revision ID {} does not exist",
@@ -352,7 +353,7 @@ impl ForumPostRevisionService {
                 ),
                 ErrorType::BadRequest,
             )
-        })
+        })?)
     }
 
     pub async fn count(ctx: &ServiceContext<'_>, forum_post_id: i64) -> Result<u64> {

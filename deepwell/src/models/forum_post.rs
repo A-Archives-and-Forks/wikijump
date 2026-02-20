@@ -111,6 +111,12 @@ impl Related<super::forum_group::Entity> for Entity {
     }
 }
 
+impl Related<super::forum_post::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::ForumPost2.def()
+    }
+}
+
 impl Related<super::forum_post_lock::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::ForumPostLock.def()

@@ -204,7 +204,7 @@ impl ForumService {
         ctx: &ServiceContext<'_>,
         key: GetForumGroup,
     ) -> Result<ForumGroupModel> {
-        Self::get_group_optional(ctx, key).await?.ok_or_else(|| {
+        Ok(Self::get_group_optional(ctx, key).await?.ok_or_else(|| {
             Error::new(
                 format!(
                     "forum group ID {} does not exist in site ID {}",
@@ -212,7 +212,7 @@ impl ForumService {
                 ),
                 ErrorType::BadRequest,
             )
-        })
+        })?)
     }
 
     pub async fn get_group_direct_optional(
@@ -247,14 +247,16 @@ impl ForumService {
         forum_group_id: i64,
         include_deleted: bool,
     ) -> Result<ForumGroupModel> {
-        Self::get_group_direct_optional(ctx, forum_group_id, include_deleted)
-            .await?
-            .ok_or_else(|| {
-                Error::new(
-                    format!("forum group ID {} does not exist", forum_group_id),
-                    ErrorType::BadRequest,
-                )
-            })
+        Ok(
+            Self::get_group_direct_optional(ctx, forum_group_id, include_deleted)
+                .await?
+                .ok_or_else(|| {
+                    Error::new(
+                        format!("forum group ID {} does not exist", forum_group_id),
+                        ErrorType::BadRequest,
+                    )
+                })?,
+        )
     }
 
     pub async fn list_groups(
@@ -566,15 +568,17 @@ impl ForumService {
         ctx: &ServiceContext<'_>,
         key: GetForumCategory,
     ) -> Result<ForumCategoryModel> {
-        Self::get_category_optional(ctx, key).await?.ok_or_else(|| {
-            Error::new(
-                format!(
-                    "forum category ID {} does not exist in site ID {}",
-                    key.forum_category_id, key.site_id,
-                ),
-                ErrorType::BadRequest,
-            )
-        })
+        Ok(Self::get_category_optional(ctx, key)
+            .await?
+            .ok_or_else(|| {
+                Error::new(
+                    format!(
+                        "forum category ID {} does not exist in site ID {}",
+                        key.forum_category_id, key.site_id,
+                    ),
+                    ErrorType::BadRequest,
+                )
+            })?)
     }
 
     pub async fn get_category_direct_optional(
@@ -612,14 +616,16 @@ impl ForumService {
         forum_category_id: i64,
         include_deleted: bool,
     ) -> Result<ForumCategoryModel> {
-        Self::get_category_direct_optional(ctx, forum_category_id, include_deleted)
-            .await?
-            .ok_or_else(|| {
-                Error::new(
-                    format!("forum category ID {} does not exist", forum_category_id),
-                    ErrorType::BadRequest,
-                )
-            })
+        Ok(
+            Self::get_category_direct_optional(ctx, forum_category_id, include_deleted)
+                .await?
+                .ok_or_else(|| {
+                    Error::new(
+                        format!("forum category ID {} does not exist", forum_category_id),
+                        ErrorType::BadRequest,
+                    )
+                })?,
+        )
     }
 
     pub async fn list_categories(
