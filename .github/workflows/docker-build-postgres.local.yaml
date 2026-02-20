@@ -1,4 +1,4 @@
-name: '[backend] Docker build PostgreSQL (local)'
+name: '[backend] Docker build PostgreSQL (LOCAL)'
 
 on:
   pull_request:
