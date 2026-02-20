@@ -1,4 +1,4 @@
-name: '[backend] Docker build Caddy (prod)'
+name: '[backend] Docker build Caddy (PROD)'
 
 on:
   pull_request:
