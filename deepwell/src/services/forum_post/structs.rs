@@ -18,6 +18,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#![allow(dead_code)] // TEMP
+
 use crate::models::forum_post::Model as ForumPostModel;
 use crate::models::forum_post_revision::Model as ForumPostRevisionModel;
 use crate::types::Maybe;

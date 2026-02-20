@@ -18,6 +18,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#![allow(dead_code)] // TEMP
+
 use crate::types::{FetchDirection, Maybe};
 use ftml::parsing::ParseError;
 

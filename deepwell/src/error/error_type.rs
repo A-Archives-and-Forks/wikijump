@@ -87,6 +87,7 @@ pub enum ErrorType {
     Filter,
     CustomDomain,
     Alias,
+    #[allow(dead_code)] // TEMP
     Forum,
 
     // 2000

@@ -64,6 +64,7 @@ pub struct NavigationPageHtml {
 }
 
 /// Contains effective forum settings for a site/category pair.
+#[allow(dead_code)] // TODO
 #[derive(Debug, Copy, Clone)]
 pub struct ForumStructureSettings {
     pub max_nest_level: i16,

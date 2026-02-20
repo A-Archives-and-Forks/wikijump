@@ -59,6 +59,7 @@ pub struct GetSiteOutput {
     pub domains: Vec<SiteDomainModel>,
 }
 
+#[allow(dead_code)] // TODO
 #[derive(Serialize, Deserialize, Debug, Copy, Clone)]
 pub struct SiteForumSettings {
     pub max_nest_level: i16,
