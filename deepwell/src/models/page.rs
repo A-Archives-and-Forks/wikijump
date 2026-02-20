@@ -32,6 +32,14 @@ pub enum Relation {
     #[sea_orm(has_many = "super::file_revision::Entity")]
     FileRevision,
     #[sea_orm(
+        belongs_to = "super::forum_thread::Entity",
+        from = "Column::DiscussionThreadId",
+        to = "super::forum_thread::Column::ForumThreadId",
+        on_update = "NoAction",
+        on_delete = "NoAction"
+    )]
+    ForumThread,
+    #[sea_orm(
         belongs_to = "super::page_category::Entity",
         from = "Column::PageCategoryId",
         to = "super::page_category::Column::CategoryId",
@@ -76,6 +84,12 @@ impl Related<super::file::Entity> for Entity {
 impl Related<super::file_revision::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::FileRevision.def()
+    }
+}
+
+impl Related<super::forum_thread::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::ForumThread.def()
     }
 }
 

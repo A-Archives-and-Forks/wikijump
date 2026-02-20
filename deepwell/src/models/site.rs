@@ -47,6 +47,16 @@ pub enum Relation {
     FileRevision,
     #[sea_orm(has_many = "super::filter::Entity")]
     Filter,
+    #[sea_orm(has_many = "super::forum_category::Entity")]
+    ForumCategory,
+    #[sea_orm(has_many = "super::forum_group::Entity")]
+    ForumGroup,
+    #[sea_orm(has_many = "super::forum_post::Entity")]
+    ForumPost,
+    #[sea_orm(has_many = "super::forum_post_revision::Entity")]
+    ForumPostRevision,
+    #[sea_orm(has_many = "super::forum_thread::Entity")]
+    ForumThread,
     #[sea_orm(has_many = "super::message_report::Entity")]
     MessageReport,
     #[sea_orm(has_many = "super::page::Entity")]
@@ -84,6 +94,36 @@ impl Related<super::file_revision::Entity> for Entity {
 impl Related<super::filter::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Filter.def()
+    }
+}
+
+impl Related<super::forum_category::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::ForumCategory.def()
+    }
+}
+
+impl Related<super::forum_group::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::ForumGroup.def()
+    }
+}
+
+impl Related<super::forum_post::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::ForumPost.def()
+    }
+}
+
+impl Related<super::forum_post_revision::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::ForumPostRevision.def()
+    }
+}
+
+impl Related<super::forum_thread::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::ForumThread.def()
     }
 }
 

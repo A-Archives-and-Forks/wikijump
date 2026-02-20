@@ -62,3 +62,10 @@ pub struct NavigationPageHtml {
     pub compiled_top_bar_html: Option<String>,
     pub compiled_side_bar_html: Option<String>,
 }
+
+/// Contains effective forum settings for a site/category pair.
+#[derive(Debug, Copy, Clone)]
+pub struct ForumStructureSettings {
+    pub max_nest_level: i16,
+    pub per_page_discussion: bool,
+}

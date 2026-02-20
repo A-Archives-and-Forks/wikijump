@@ -41,6 +41,9 @@ use wikidot_normalize::normalize;
 #[derive(Debug)]
 pub struct SiteService;
 
+const DEFAULT_FORUM_MAX_NEST_LEVEL: i16 = 10;
+const DEFAULT_FORUM_PER_PAGE_DISCUSSION: bool = false;
+
 impl SiteService {
     pub async fn create(
         ctx: &ServiceContext<'_>,
@@ -509,6 +512,26 @@ impl SiteService {
                 Ok(site_id)
             }
         }
+    }
+
+    /// Gets site-wide forum settings.
+    ///
+    /// At present this is sourced from service defaults; the site row itself
+    /// does not yet carry dedicated forum configuration columns.
+    pub async fn get_forum_settings(
+        ctx: &ServiceContext<'_>,
+        reference: Reference<'_>,
+    ) -> Result<SiteForumSettings> {
+        let SiteModel { site_id, .. } =
+            Self::get(ctx, reference).await.or_raise(|| {
+                Error::new("failed to get site forum settings", ErrorType::Forum)
+            })?;
+
+        debug!("Using default forum settings for site ID {site_id}");
+        Ok(SiteForumSettings {
+            max_nest_level: DEFAULT_FORUM_MAX_NEST_LEVEL,
+            per_page_discussion: DEFAULT_FORUM_PER_PAGE_DISCUSSION,
+        })
     }
 
     /// Checks to see if a site already exists at the slug specified.

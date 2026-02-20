@@ -59,6 +59,12 @@ pub struct GetSiteOutput {
     pub domains: Vec<SiteDomainModel>,
 }
 
+#[derive(Serialize, Deserialize, Debug, Copy, Clone)]
+pub struct SiteForumSettings {
+    pub max_nest_level: i16,
+    pub per_page_discussion: bool,
+}
+
 #[derive(Deserialize, Debug, Clone)]
 pub struct UpdateSite<'a> {
     pub site: Reference<'a>,
