@@ -2,7 +2,7 @@
 
 wiki-page-category = 分类：{ $category }
 
-wiki-page-revision = 修改版本：{ $revision }
+wiki-page-revision = 页面版本：{ $revision }
 
 wiki-page-last-edit = 最后编辑于: { $date } ({ $days ->
   [0] 今日
@@ -18,7 +18,7 @@ wiki-page-revision-history = 页面修订历史
 
 wiki-page-revision-number = 版本编号
 
-wiki-page-revision-created-at = 创建日期
+wiki-page-revision-created-at = 編輯時間
 
 wiki-page-revision-user = 编辑用户
 

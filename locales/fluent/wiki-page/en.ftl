@@ -18,7 +18,7 @@ wiki-page-revision-history = Page revision history
 
 wiki-page-revision-number = Revision #
 
-wiki-page-revision-created-at = Creation
+wiki-page-revision-created-at = Edit time
 
 wiki-page-revision-user = User
 
