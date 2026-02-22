@@ -3,6 +3,8 @@
 	metrics {
 		per_host
 	}
+	http_port 80
+	auto_https off
 }
 
 (strip_headers) {
