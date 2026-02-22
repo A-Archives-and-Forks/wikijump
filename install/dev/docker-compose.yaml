@@ -1,10 +1,20 @@
 services:
   deepwell:
-    build:
-      context: ../..
-      dockerfile: install/dev/deepwell/Dockerfile
+    image: ghcr.io/scpwiki/wikijump:deepwell-dev
     ports:
       - "2747:2747"
+    networks:
+      - dokploy-network
+    environment:
+      - "DATABASE_URL=${DATABASE_URL}"
+      - "REDIS_URL=${REDIS_URL}"
+      - "S3_FILES_BUCKET=${S3_FILES_BUCKET}"
+      - "S3_TEXT_BLOCKS_BUCKET=${S3_TEXT_BLOCKS_BUCKET}"
+      - "S3_REGION_NAME=${S3_REGION_NAME}"
+      - "S3_CUSTOM_ENDPOINT=${S3_CUSTOM_ENDPOINT}"
+      - "S3_PATH_STYLE=${S3_PATH_STYLE}"
+      - "S3_ACCESS_KEY_ID=${S3_ACCESS_KEY_ID}"
+      - "S3_SECRET_ACCESS_KEY=${S3_SECRET_ACCESS_KEY}"
     restart: always
     healthcheck:
       test: ["CMD", "wikijump-health-check"]
@@ -15,11 +25,9 @@ services:
       start_interval: 10s
 
   framerail:
-    build:
-      context: ../..
-      dockerfile: install/dev/framerail/Dockerfile
+    image: ghcr.io/scpwiki/wikijump:framerail-dev
     ports:
-      - "3000:3000"
+      - "3008:3000"
     links:
       - deepwell
     environment:
@@ -35,16 +43,24 @@ services:
         condition: service_healthy
 
   wws:
-    build:
-      context: ../..
-      dockerfile: install/dev/wws/Dockerfile
+    image: ghcr.io/scpwiki/wikijump:wws-dev
     ports:
       - "7000:7000"
+    networks:
+      - dokploy-network
     links:
       - deepwell
     environment:
       - "ADDRESS=[::]:7000"
       - "DEEPWELL_URL=http://deepwell:2747"
+      - "REDIS_URL=${REDIS_URL}"
+      - "S3_FILES_BUCKET=${S3_FILES_BUCKET}"
+      - "S3_TEXT_BLOCKS_BUCKET=${S3_TEXT_BLOCKS_BUCKET}"
+      - "S3_REGION_NAME=${S3_REGION_NAME}"
+      - "S3_CUSTOM_ENDPOINT=${S3_CUSTOM_ENDPOINT}"
+      - "S3_PATH_STYLE=${S3_PATH_STYLE}"
+      - "S3_ACCESS_KEY_ID=${S3_ACCESS_KEY_ID}"
+      - "S3_SECRET_ACCESS_KEY=${S3_SECRET_ACCESS_KEY}"
     restart: always
     healthcheck:
       test: ["CMD", "wikijump-health-check"]
@@ -56,13 +72,7 @@ services:
         condition: service_healthy
 
   caddy:
-    build:
-      context: ../..
-      dockerfile: install/dev/caddy/Dockerfile
-    ports:
-      - "80:80"
-      - "443:443"
-      - "443:443/udp"
+    image: ghcr.io/scpwiki/wikijump:caddy-dev
     links:
       - framerail
       - wws
