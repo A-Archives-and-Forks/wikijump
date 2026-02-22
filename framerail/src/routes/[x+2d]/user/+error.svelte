@@ -16,9 +16,6 @@ as soon as we can figure out prettier support for it.
   {:else}
     {$page.error.internationalization?.["user-not-exist"]}
   {/if}
-{:else if $page.error.view === "site_missing"}
-  UNTRANSLATED:No such site
-  {@html $page.error.html}
 {:else}
   UNTRANSLATED:Fatal error: Unable to display view
 {/if}

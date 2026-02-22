@@ -55,9 +55,6 @@ export async function loadUser(username?: string, request, cookies) {
       viewData.user = null
       errorStatus = 404
       break
-    case "site_missing":
-      errorStatus = 404
-      break
     default:
       // Unexpected response type!
       // There is an inconsistency between here / DEEPWELL
