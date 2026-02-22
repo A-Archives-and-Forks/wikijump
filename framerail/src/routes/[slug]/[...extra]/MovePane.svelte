@@ -60,7 +60,7 @@
     bind:this={moveInputNewSlugElem}
     name="new-slug"
     class="page-move-new-slug"
-    placeholder={$page.data.internationalization?.["wiki-page-move-new-slug"]}
+    placeholder={$page.data.internationalization?.["wiki-page-move.new-slug"]}
     type="text"
   />
   <textarea

@@ -171,7 +171,7 @@ export async function loadPage(
       "wiki-page-parent": {},
       "wiki-page-delete": {},
       "wiki-page-move": {},
-      "wiki-page-move-new-slug": {},
+      "wiki-page-move.new-slug": {},
       "wiki-page-no-render": {},
       "wiki-page-source": {},
       "wiki-page-view-source": {}
@@ -183,7 +183,7 @@ export async function loadPage(
       // Page actions
       "restore": {},
       "wiki-page-restore": {},
-      "wiki-page-restore-select": {},
+      "wiki-page-restore.select": {},
       "wiki-page-create": {},
       "wiki-page-deleted": {
         // To be determined lazily

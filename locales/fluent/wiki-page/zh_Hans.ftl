@@ -50,8 +50,7 @@ wiki-page-edit = 编辑页面
 wiki-page-create = 建立新页面
 
 wiki-page-move = 移动页面
-
-wiki-page-move-new-slug = 新页面网址
+  .new-slug = 新页面网址
 
 wiki-page-layout = 页面布局
   .default = 预设布局
@@ -61,8 +60,7 @@ wiki-page-layout = 页面布局
 wiki-page-delete = 删除页面
 
 wiki-page-restore = 恢复页面
-
-wiki-page-restore-select = 选择需恢复的页面
+  .select = 选择需恢复的页面
 
 wiki-page-deleted = 于{ $datetime }删除
 
@@ -100,6 +98,7 @@ wiki-page-file-restore = 恢复
 ### 维基页面父页面
 
 wiki-page-parent = 父页面
+
 ### 蓝图页面
 
 wiki-page-missing = 你访问的页面 //{ $slug }// 并不存在。

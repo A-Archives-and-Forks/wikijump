@@ -50,8 +50,7 @@ wiki-page-edit = Edit the page
 wiki-page-create = Create new page
 
 wiki-page-move = Move page
-
-wiki-page-move-new-slug = New slug
+  .new-slug = New slug
 
 wiki-page-layout = Page layout
   .default = Default layout
@@ -61,8 +60,7 @@ wiki-page-layout = Page layout
 wiki-page-delete = Delete page
 
 wiki-page-restore = Restore page
-
-wiki-page-restore-select = Select page to restore
+  .select = Select page to restore
 
 wiki-page-deleted = Deleted at { $datetime }
 
@@ -100,6 +98,7 @@ wiki-page-file-restore = Restore
 ### Wiki page parents
 
 wiki-page-parent = Page parents
+
 ### Blueprint page fallback strings
 
 wiki-page-missing = The page //{ $slug }// you want to access does not exist.
