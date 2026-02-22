@@ -20,8 +20,6 @@ export async function loadPage(
   const sessionToken = cookies.get("wikijump_token")
   let locales = parseAcceptLangHeader(request)
 
-  // TODO insert user preference at the beginning of the list
-
   // Request data from backend
   // Includes fallback locale in case there is no Accept-Language header
   const response = await pageView(
@@ -30,6 +28,15 @@ export async function loadPage(
     route,
     sessionToken
   )
+
+  if (response.data?.user_session?.user?.locales) {
+    locales = [
+      ...response.data.user_session.user.locales,
+      ...locales.filter(
+        (locale) => !response.data.user_session.user.locales.includes(locale)
+      )
+    ]
+  }
 
   if (response.data?.site?.locale && !locales.includes(response.data.site.locale)) {
     locales.push(response.data.site.locale)
@@ -128,10 +135,10 @@ export async function loadPage(
 
       // Page vote
       "wiki-page-vote": {},
-      "wiki-page-vote-list": {},
-      "wiki-page-vote-set": {},
-      "wiki-page-vote-remove": {},
-      "wiki-page-vote-score": {},
+      "wiki-page-vote.list": {},
+      "wiki-page-vote.set": {},
+      "wiki-page-vote.remove": {},
+      "wiki-page-vote.score": {},
 
       // Page files
       "files": {},
@@ -139,13 +146,11 @@ export async function loadPage(
       "restore": {},
       "wiki-page-file": {},
       "wiki-page-file-no-files": {},
-      "wiki-page-file-select": {},
-      "wiki-page-file-name": {},
-      "wiki-page-file-license": {},
+      "wiki-page-file-upload.select": {},
+      "wiki-page-file-upload.name": {},
       "wiki-page-file.name": {},
       "wiki-page-file.created-at": {},
       "wiki-page-file.updated-at": {},
-      "wiki-page-file.license": {},
       "wiki-page-file.mime": {},
       "wiki-page-file.size": {},
       "wiki-page-file.page": {},
@@ -166,7 +171,7 @@ export async function loadPage(
       "wiki-page-parent": {},
       "wiki-page-delete": {},
       "wiki-page-move": {},
-      "wiki-page-move-new-slug": {},
+      "wiki-page-move.new-slug": {},
       "wiki-page-no-render": {},
       "wiki-page-source": {},
       "wiki-page-view-source": {}
@@ -178,7 +183,7 @@ export async function loadPage(
       // Page actions
       "restore": {},
       "wiki-page-restore": {},
-      "wiki-page-restore-select": {},
+      "wiki-page-restore.select": {},
       "wiki-page-create": {},
       "wiki-page-deleted": {
         // To be determined lazily

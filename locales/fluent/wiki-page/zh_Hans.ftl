@@ -2,7 +2,7 @@
 
 wiki-page-category = 分类：{ $category }
 
-wiki-page-revision = 修改版本：{ $revision }
+wiki-page-revision = 页面版本：{ $revision }
 
 wiki-page-last-edit = 最后编辑于: { $date } ({ $days ->
   [0] 今日
@@ -18,7 +18,7 @@ wiki-page-revision-history = 页面修订历史
 
 wiki-page-revision-number = 版本编号
 
-wiki-page-revision-created-at = 创建日期
+wiki-page-revision-created-at = 編輯時間
 
 wiki-page-revision-user = 编辑用户
 
@@ -38,14 +38,10 @@ wiki-page-revision-type = 类型
 ### 维基页面评分
 
 wiki-page-vote = 页面评分
-
-wiki-page-vote-set = 进行评分
-
-wiki-page-vote-remove = 取消评分
-
-wiki-page-vote-list = 查看评分列表
-
-wiki-page-vote-score = 现时评分
+  .set = 进行评分
+  .remove = 取消评分
+  .list = 查看评分列表
+  .score = 现时评分
 
 ### 维基页面编辑
 
@@ -54,8 +50,7 @@ wiki-page-edit = 编辑页面
 wiki-page-create = 建立新页面
 
 wiki-page-move = 移动页面
-
-wiki-page-move-new-slug = 新页面网址
+  .new-slug = 新页面网址
 
 wiki-page-layout = 页面布局
   .default = 预设布局
@@ -65,8 +60,7 @@ wiki-page-layout = 页面布局
 wiki-page-delete = 删除页面
 
 wiki-page-restore = 恢复页面
-
-wiki-page-restore-select = 选择需恢复的页面
+  .select = 选择需恢复的页面
 
 wiki-page-deleted = 于{ $datetime }删除
 
@@ -74,9 +68,9 @@ wiki-page-deleted = 于{ $datetime }删除
 
 wiki-page-file-no-files = 本页没有上传任何档案。
 
-wiki-page-file-select = 选择档案：
-
-wiki-page-file-name = 档案名：
+wiki-page-file-upload =
+  .select = 选择档案：
+  .name = 档案名：
 
 wiki-page-file-move-destination-page = 新页面网址
 
@@ -104,6 +98,7 @@ wiki-page-file-restore = 恢复
 ### 维基页面父页面
 
 wiki-page-parent = 父页面
+
 ### 蓝图页面
 
 wiki-page-missing = 你访问的页面 //{ $slug }// 并不存在。

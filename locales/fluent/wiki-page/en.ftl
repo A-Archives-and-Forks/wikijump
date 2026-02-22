@@ -18,7 +18,7 @@ wiki-page-revision-history = Page revision history
 
 wiki-page-revision-number = Revision #
 
-wiki-page-revision-created-at = Creation
+wiki-page-revision-created-at = Edit time
 
 wiki-page-revision-user = User
 
@@ -38,14 +38,10 @@ wiki-page-revision-type = Type
 ### Wiki Page Vote
 
 wiki-page-vote = Page rating
-
-wiki-page-vote-set = Cast vote
-
-wiki-page-vote-remove = Cancel vote
-
-wiki-page-vote-list = List votes
-
-wiki-page-vote-score = Rating
+  .set = Cast vote
+  .remove = Cancel vote
+  .list = List votes
+  .score = Rating
 
 ### Wiki Page Edit
 
@@ -54,8 +50,7 @@ wiki-page-edit = Edit the page
 wiki-page-create = Create new page
 
 wiki-page-move = Move page
-
-wiki-page-move-new-slug = New slug
+  .new-slug = New slug
 
 wiki-page-layout = Page layout
   .default = Default layout
@@ -65,8 +60,7 @@ wiki-page-layout = Page layout
 wiki-page-delete = Delete page
 
 wiki-page-restore = Restore page
-
-wiki-page-restore-select = Select page to restore
+  .select = Select page to restore
 
 wiki-page-deleted = Deleted at { $datetime }
 
@@ -74,9 +68,9 @@ wiki-page-deleted = Deleted at { $datetime }
 
 wiki-page-file-no-files = No files for this page.
 
-wiki-page-file-select = Select file:
-
-wiki-page-file-name = File name:
+wiki-page-file-upload =
+  .select = Select file:
+  .name = File name:
 
 wiki-page-file-move-destination-page = Destination page
 
@@ -104,6 +98,7 @@ wiki-page-file-restore = Restore
 ### Wiki page parents
 
 wiki-page-parent = Page parents
+
 ### Blueprint page fallback strings
 
 wiki-page-missing = The page //{ $slug }// you want to access does not exist.

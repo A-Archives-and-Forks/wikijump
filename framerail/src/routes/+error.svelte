@@ -217,7 +217,7 @@ as soon as we can figure out prettier support for it.
           >
             <fieldset>
               <legend
-                >{$page.error.internationalization?.["wiki-page-restore-select"]}</legend
+                >{$page.error.internationalization?.["wiki-page-restore.select"]}</legend
               >
               {#each deletedPages as deletedPage}
                 <input
@@ -281,7 +281,7 @@ as soon as we can figure out prettier support for it.
         >
           <fieldset>
             <legend
-              >{$page.error.internationalization?.["wiki-page-restore-select"]}</legend
+              >{$page.error.internationalization?.["wiki-page-restore.select"]}</legend
             >
             {#each deletedPages as deletedPage}
               <input

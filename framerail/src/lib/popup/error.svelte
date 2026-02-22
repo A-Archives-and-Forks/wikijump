@@ -56,7 +56,7 @@
         </h1>
         {#if $showErrorPopup.data}
           <p id="model-message-extra" class="modal-message-extra">
-            {$showErrorPopup.data}
+            {$showErrorPopup.data.call_trace}
           </p>
         {/if}
       </div>
@@ -94,7 +94,7 @@
       </div>
       {#if $showErrorPopup.data}
         <div id="model-message-extra" class="modal-message-extra">
-          {$showErrorPopup.data}
+          {$showErrorPopup.data.call_trace}
         </div>
       {/if}
     </div>
@@ -133,5 +133,8 @@
   }
   .modal h2 {
     margin-top: 0;
+  }
+  .modal-message-extra {
+    white-space: pre-wrap;
   }
 </style>

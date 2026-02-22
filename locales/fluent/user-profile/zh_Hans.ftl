@@ -13,3 +13,5 @@ user-profile-info =
   .locales = 语言：
 
 user-not-exist = 此用户并不存在。
+
+user-not-logged-in = 您并未登入。

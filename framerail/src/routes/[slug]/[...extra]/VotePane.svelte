@@ -93,7 +93,7 @@
   <div class="page-rate-widget-area">
     <div class="page-rate-widget-box">
       <span class="rate-points"
-        >{$page.data.internationalization?.["wiki-page-vote-score"]}&nbsp;<span
+        >{$page.data.internationalization?.["wiki-page-vote.score"]}&nbsp;<span
           class="number prw54353">{voteRating}</span
         ></span
       ><span class="rateup btn btn-default"
@@ -127,7 +127,7 @@
         })
       }}
     >
-      {$page.data.internationalization?.["wiki-page-vote-list"]}
+      {$page.data.internationalization?.["wiki-page-vote.list"]}
     </a>
   </p>
   {#if showVoteList}
@@ -154,17 +154,17 @@
           })
         }}
       >
-        {$page.data.internationalization?.["wiki-page-vote-list"]}
+        {$page.data.internationalization?.["wiki-page-vote.list"]}
       </button>
       <div class="action-button vote-rating">
         <span class="vote-desc"
-          >{$page.data.internationalization?.["wiki-page-vote-score"]}</span
+          >{$page.data.internationalization?.["wiki-page-vote.score"]}</span
         >
         <span class="vote-rating-number">{voteRating}</span>
       </div>
       <div class="action-button cast-vote">
         <span class="vote-desc"
-          >{$page.data.internationalization?.["wiki-page-vote-set"]}</span
+          >{$page.data.internationalization?.["wiki-page-vote.set"]}</span
         >
         <button
           class="vote-subbutton clickable"
@@ -193,7 +193,7 @@
         type="button"
         on:click|stopPropagation={cancelVote}
       >
-        {$page.data.internationalization?.["wiki-page-vote-remove"]}
+        {$page.data.internationalization?.["wiki-page-vote.remove"]}
       </button>
     </div>
     {#if showVoteList}
