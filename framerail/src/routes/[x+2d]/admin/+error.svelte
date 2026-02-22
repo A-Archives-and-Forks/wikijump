@@ -13,9 +13,6 @@ as soon as we can figure out prettier support for it.
 {#if $page.error.view === "admin_permissions"}
   UNTRANSLATED:Lacks permissions for page
   {@html $page.error.html}
-{:else if $page.error.view === "site_missing"}
-  UNTRANSLATED:No such site
-  {@html $page.error.html}
 {:else}
   UNTRANSLATED:Fatal error: Unable to display view
 {/if}
