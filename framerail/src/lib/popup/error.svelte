@@ -36,7 +36,7 @@
     role="presentation"
     on:click={containerExitPrompt}
     on:keydown={escKeydown}
-  />
+  ></div>
   <div
     id="odialog-container"
     style:--basalt-compat="block"

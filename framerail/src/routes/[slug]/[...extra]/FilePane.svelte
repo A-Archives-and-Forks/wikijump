@@ -290,7 +290,7 @@
         <div class="file-attribute size">
           {$page.data.internationalization?.["wiki-page-file.size"]}
         </div>
-        <div class="file-attribute action" />
+        <div class="file-attribute action"></div>
       </div>
       {#each [...fileMap].sort((a, b) => b[0] - a[0]) as [_, file] (file.file_id)}
         <div class="file-row" data-id={file.file_id}>
@@ -470,7 +470,7 @@
         name="comments"
         class="file-form-field file-comments"
         placeholder={$page.data.internationalization?.["wiki-page-revision-comments"]}
-      />
+      ></textarea>
       {#if $pageLayout === Layout.WIKIDOT}
         <div class="buttons">
           <input
@@ -546,7 +546,7 @@
         name="comments"
         class="file-form-field file-comments"
         placeholder={$page.data.internationalization?.["wiki-page-revision-comments"]}
-      />
+      ></textarea>
       {#if $pageLayout === Layout.WIKIDOT}
         <div class="buttons">
           <input
@@ -606,7 +606,7 @@
         name="comments"
         class="file-move-comments"
         placeholder={$page.data.internationalization?.["wiki-page-revision-comments"]}
-      />
+      ></textarea>
       {#if $pageLayout === Layout.WIKIDOT}
         <div class="buttons">
           <input
@@ -670,7 +670,7 @@
         name="comments"
         class="file-restore-comments"
         placeholder={$page.data.internationalization?.["wiki-page-revision-comments"]}
-      />
+      ></textarea>
       {#if $pageLayout === Layout.WIKIDOT}
         <div class="buttons">
           <input
@@ -714,7 +714,7 @@
   {#if showFileHistory}
     <div class="revision-list">
       <div class="revision-header">
-        <div class="revision-attribute action" />
+        <div class="revision-attribute action"></div>
         <div class="revision-attribute revision-number">
           {$page.data.internationalization?.["wiki-page-revision-number"]}
         </div>

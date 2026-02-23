@@ -2,24 +2,24 @@ import { authGetSession } from "$lib/server/auth/getSession"
 import { userEdit } from "$lib/server/deepwell/user"
 
 export async function POST(event) {
-  let data = await event.request.formData()
-  let sessionToken = event.cookies.get("wikijump_token")
+  const data = await event.request.formData()
+  const sessionToken = event.cookies.get("wikijump_token")
 
   try {
-    let session = await authGetSession(sessionToken)
+    const session = await authGetSession(sessionToken)
 
-    let name = data.get("name")?.toString().trim()
-    let email = data.get("email")?.toString().trim()
-    let realName = data.get("real-name")?.toString().trim()
-    let gender = data.get("gender")?.toString().trim()
-    let birthday = data.get("birthday")?.toString().trim()
-    let location = data.get("location")?.toString().trim()
-    let biography = data.get("biography")?.toString().trim()
-    let userPage = data.get("user-page")?.toString().trim()
-    let locales = data.get("locales")?.toString().trim()
-    let avatar = data.get("avatar")?.valueOf()
+    const name = data.get("name")?.toString().trim()
+    const email = data.get("email")?.toString().trim()
+    const realName = data.get("real-name")?.toString().trim()
+    const gender = data.get("gender")?.toString().trim()
+    const birthday = data.get("birthday")?.toString().trim()
+    const location = data.get("location")?.toString().trim()
+    const biography = data.get("biography")?.toString().trim()
+    const userPage = data.get("user-page")?.toString().trim()
+    const locales = data.get("locales")?.toString().trim()
+    const avatar = data.get("avatar")?.valueOf()
 
-    let body: Record<string, any> = {
+    const body: Record<string, any> = {
       name,
       email,
       real_name: realName,
@@ -36,7 +36,7 @@ export async function POST(event) {
       avatar
     }
 
-    let res = await userEdit(session?.user_id, event.getClientAddress(), body)
+    const res = await userEdit(session?.user_id, event.getClientAddress(), body)
 
     return new Response(JSON.stringify(res))
   } catch (error) {

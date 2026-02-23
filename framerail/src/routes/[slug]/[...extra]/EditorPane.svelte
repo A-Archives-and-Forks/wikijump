@@ -77,7 +77,7 @@
     name="comments"
     class="editor-comments"
     placeholder={$page.data.internationalization?.["wiki-page-revision-comments"]}
-  />
+  ></textarea>
   {#if $pageLayout === Layout.WIKIDOT}
     <div class="buttons alignleft">
       <input

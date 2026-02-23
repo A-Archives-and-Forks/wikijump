@@ -68,7 +68,7 @@
     >
 
     <svelte:fragment slot="content">
-      <slot />
+      <slot></slot>
     </svelte:fragment>
 
     <svelte:fragment slot="footer">
@@ -118,7 +118,7 @@
     >
 
     <svelte:fragment slot="content">
-      <slot />
+      <slot></slot>
     </svelte:fragment>
 
     <svelte:fragment slot="footer">

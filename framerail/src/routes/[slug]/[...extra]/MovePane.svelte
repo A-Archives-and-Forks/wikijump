@@ -67,7 +67,7 @@
     name="comments"
     class="page-move-comments"
     placeholder={$page.data.internationalization?.["wiki-page-revision-comments"]}
-  />
+  ></textarea>
   {#if $pageLayout === Layout.WIKIDOT}
     <div class="buttons">
       <input

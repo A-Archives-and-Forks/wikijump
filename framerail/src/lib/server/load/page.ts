@@ -48,7 +48,7 @@ export async function loadPage(
   const viewData = response.data
   viewData.view = response.type
 
-  let checkRedirect = true
+  const checkRedirect = true
   let errorStatus = null
 
   switch (response.type) {
@@ -93,8 +93,8 @@ export async function loadPage(
 
   if (errorStatus === null) {
     // Calculate difference of days since latest page edit
-    let updatedAt = Date.parse(viewData.page.updated_at ?? viewData.page.created_at)
-    let daysDiff = Math.floor((Date.now() - updatedAt) / 1000 / 86400)
+    const updatedAt = Date.parse(viewData.page.updated_at ?? viewData.page.created_at)
+    const daysDiff = Math.floor((Date.now() - updatedAt) / 1000 / 86400)
 
     translateKeys = {
       ...translateKeys,

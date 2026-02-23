@@ -10,13 +10,13 @@ import process from "process"
 export async function loadInfo(request, cookies) {
   const { siteId } = loadSiteInfo(request.headers)
   const sessionToken = cookies.get("wikijump_token")
-  let locales = parseAcceptLangHeader(request)
+  const locales = parseAcceptLangHeader(request)
 
   if (!locales.includes(defaults.fallbackLocale)) locales.push(defaults.fallbackLocale)
 
   const response = await info()
 
-  let translateKeys: TranslateKeys = {
+  const translateKeys: TranslateKeys = {
     ...defaults.translateKeys
   }
 

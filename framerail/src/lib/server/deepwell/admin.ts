@@ -6,12 +6,12 @@ export async function siteUpdate(
   siteId: number,
   userId: number,
   userIpAddr: string,
-  name: Optional<String>,
-  slug: Optional<String>,
-  tagline: Optional<String>,
-  description: Optional<String>,
-  defaultPage: Optional<String>,
-  locale: Optional<String>,
+  name: Optional<string>,
+  slug: Optional<string>,
+  tagline: Optional<string>,
+  description: Optional<string>,
+  defaultPage: Optional<string>,
+  locale: Optional<string>,
   layout: Optional<Nullable<Layout>>
 ): Promise<object> {
   return client.request("site_update", {

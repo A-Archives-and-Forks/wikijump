@@ -113,7 +113,7 @@
         <td class="revision-attribute revision-number">
           {$page.data.internationalization?.["wiki-page-revision-number"]}
         </td>
-        <td class="revision-attribute action" />
+        <td class="revision-attribute action"></td>
         <td class="revision-attribute revision-type">
           {$page.data.internationalization?.["wiki-page-revision-type"]}
         </td>
@@ -204,7 +204,7 @@
   </h2>
   <div class="revision-list">
     <div class="revision-header">
-      <div class="revision-attribute action" />
+      <div class="revision-attribute action"></div>
       <div class="revision-attribute revision-number">
         {$page.data.internationalization?.["wiki-page-revision-number"]}
       </div>

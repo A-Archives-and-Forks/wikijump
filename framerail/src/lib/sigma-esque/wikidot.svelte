@@ -1,40 +1,40 @@
 <div id="skrollr-body">
   <!-- svelte-ignore a11y-missing-content -->
-  <a name="page-top" />
+  <a name="page-top"></a>
   <div id="container-wrap-wrap">
     <div id="container-wrap">
       <div id="container">
         <div id="header">
-          <slot name="header" />
+          <slot name="header"></slot>
           <div id="top-bar">
-            <slot name="top-bar" />
+            <slot name="top-bar"></slot>
           </div>
         </div>
         <div id="content-wrap">
           <div id="side-bar">
-            <slot name="side-bar" />
+            <slot name="side-bar"></slot>
           </div>
           <div id="main-content">
-            <div id="action-area-top" />
-            <slot name="content" />
+            <div id="action-area-top"></div>
+            <slot name="content"></slot>
           </div>
         </div>
         <div id="footer">
-          <slot name="footer" />
+          <slot name="footer"></slot>
         </div>
         <div id="license-area" class="license-area">
-          <slot name="license" />
+          <slot name="license"></slot>
         </div>
-        <div id="extrac-div-1"><span /></div>
-        <div id="extrac-div-2"><span /></div>
-        <div id="extrac-div-3"><span /></div>
+        <div id="extrac-div-1"><span></span></div>
+        <div id="extrac-div-2"><span></span></div>
+        <div id="extrac-div-3"><span></span></div>
       </div>
-      <div id="extra-div-1"><span /></div>
-      <div id="extra-div-2"><span /></div>
-      <div id="extra-div-3"><span /></div>
-      <div id="extra-div-4"><span /></div>
-      <div id="extra-div-5"><span /></div>
-      <div id="extra-div-6"><span /></div>
+      <div id="extra-div-1"><span></span></div>
+      <div id="extra-div-2"><span></span></div>
+      <div id="extra-div-3"><span></span></div>
+      <div id="extra-div-4"><span></span></div>
+      <div id="extra-div-5"><span></span></div>
+      <div id="extra-div-6"><span></span></div>
     </div>
   </div>
 </div>

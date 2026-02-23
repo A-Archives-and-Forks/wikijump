@@ -1,18 +1,18 @@
 <div class="sigma-esque-container">
   <div class="header">
-    <slot name="header" />
+    <slot name="header"></slot>
   </div>
 
   <div class="top-bar">
-    <slot name="top-bar" />
+    <slot name="top-bar"></slot>
   </div>
 
   <div class="page-content-container">
-    <slot name="content" />
+    <slot name="content"></slot>
   </div>
 
   <div class="footer">
-    <slot name="footer" />
+    <slot name="footer"></slot>
   </div>
 </div>
 

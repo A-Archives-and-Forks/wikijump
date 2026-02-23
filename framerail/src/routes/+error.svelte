@@ -112,7 +112,7 @@ as soon as we can figure out prettier support for it.
         placeholder={$page.error.internationalization?.["alt-title"]}
         type="text"
       />
-      <textarea name="wikitext" class="editor-wikitext" />
+      <textarea name="wikitext" class="editor-wikitext" ></textarea>
       <input
         name="tags"
         class="editor-tags"
@@ -135,7 +135,7 @@ as soon as we can figure out prettier support for it.
         name="comments"
         class="editor-comments"
         placeholder={$page.error.internationalization?.["wiki-page-revision-comments"]}
-      />
+      ></textarea>
       {#if $pageLayout === Layout.WIKIDOT}
         <div class="buttons">
           <input
@@ -248,7 +248,7 @@ as soon as we can figure out prettier support for it.
               placeholder={$page.error.internationalization?.[
                 "wiki-page-revision-comments"
               ]}
-            />
+            ></textarea>
 
             <div class="buttons">
               <input
@@ -312,7 +312,7 @@ as soon as we can figure out prettier support for it.
             placeholder={$page.error.internationalization?.[
               "wiki-page-revision-comments"
             ]}
-          />
+          ></textarea>
 
           <div class="action-row page-restore-actions">
             <button

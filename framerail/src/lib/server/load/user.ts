@@ -84,8 +84,8 @@ export async function loadUser(username?: string, request, cookies) {
 
     // Get user avatar image
     if (viewData.user.avatar_s3_hash !== null) {
-      let avatar = await getFileByHash(new Uint8Array(viewData.user.avatar_s3_hash))
-      let dataurl = `data:${avatar.type};base64,${Buffer.from(
+      const avatar = await getFileByHash(new Uint8Array(viewData.user.avatar_s3_hash))
+      const dataurl = `data:${avatar.type};base64,${Buffer.from(
         await avatar.arrayBuffer()
       ).toString("base64")}`
       viewData.user.avatar = dataurl
