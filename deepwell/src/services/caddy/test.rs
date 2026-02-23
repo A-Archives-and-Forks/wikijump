@@ -208,7 +208,7 @@ fn write_test_file(path: &str, caddyfile: &str) {
 
 #[test]
 fn generate_caddyfiles() {
-    const FRAMERAIL_HOST: &str = "framerail:3000";
+    const FRAMERAIL_HOST: &str = "framerail:3393";
     const WWS_HOST: &str = "wws:7000";
 
     // Build different configurations for various test cases

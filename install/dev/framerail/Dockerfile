@@ -24,7 +24,7 @@ RUN \
 USER node:node
 ENV NODE_ENV=production
 ENV FRAMERAIL_ENV=dev
-ENV PORT=3000
-EXPOSE 3000
+ENV PORT=3393
+EXPOSE 3393
 
 CMD ["/usr/local/bin/node", "build"]

@@ -6,7 +6,7 @@
 		"debug": false,
 		"local": false,
 		"auto_https": false,
-		"framerail_host": "framerail:3008",
+		"framerail_host": "framerail:3393",
 		"wws_host": "wws:7000"
 	}
 }

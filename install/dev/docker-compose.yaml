@@ -27,7 +27,7 @@ services:
   framerail:
     image: ghcr.io/scpwiki/wikijump:framerail-dev
     ports:
-      - "3008:3000"
+      - "3393:3393"
     links:
       - deepwell
     environment:

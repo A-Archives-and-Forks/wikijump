@@ -24,6 +24,6 @@ RUN \
 USER node:node
 ENV NODE_ENV=production
 ENV FRAMERAIL_ENV=prod
-EXPOSE 3000
+EXPOSE 3393
 
 CMD ["/usr/local/bin/node", "build"]
