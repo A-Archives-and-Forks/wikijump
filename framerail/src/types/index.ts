@@ -1,4 +1,13 @@
 export interface Locales {
+  readonly "site-info": string
+  readonly "site-info.name": string
+  readonly "site-info.slug": string
+  readonly "site-info.tagline": string
+  readonly "site-info.description": string
+  readonly "site-info.default-page": string
+  readonly "site-info.locale": string
+  readonly "site-info.layout": string
+  readonly "admin-unauthorized": string
   readonly "-service-name": string
   readonly "message-loading": string
   readonly "goto-home": string
@@ -15,12 +24,15 @@ export interface Locales {
   readonly change: string
   readonly clear: string
   readonly close: string
+  readonly confirm: string
   readonly dashboard: string
   readonly delete: string
   readonly docs: string
   readonly download: string
   readonly edit: string
   readonly editor: string
+  readonly error: string
+  readonly files: string
   readonly footer: string
   readonly general: string
   readonly header: string
@@ -28,17 +40,20 @@ export interface Locales {
   readonly history: string
   readonly inbox: string
   readonly invitations: string
-  readonly license: string
+  readonly layout: string
   readonly load: string
   readonly "main-content": string
   readonly messages: string
   readonly move: string
   readonly navigation: string
   readonly notifications: string
+  readonly options: string
+  readonly parents: string
   readonly preview: string
   readonly privacy: string
   readonly profile: string
   readonly publish: string
+  readonly restore: string
   readonly "reveal-sidebar": string
   readonly save: string
   readonly security: string
@@ -51,16 +66,28 @@ export interface Locales {
   readonly title: string
   readonly upload: string
   readonly view: string
+  readonly vote: string
   readonly search: string
+  readonly "search.placeholder": string
   readonly login: string
+  readonly "login.toast": string
   readonly logout: string
+  readonly "logout.toast": string
   readonly register: string
+  readonly "register.toast": string
   readonly specifier: string
+  readonly "specifier.placeholder": string
   readonly username: string
+  readonly "username.placeholder": string
+  readonly "username.info": string
   readonly email: string
+  readonly "email.placeholder": string
+  readonly "email.info": string
   readonly password: string
+  readonly "password.placeholder": string
   readonly "confirm-password": string
   readonly "forgot-password": string
+  readonly "forgot-password.question": string
   readonly "reset-password": string
   readonly "remember-me": string
   readonly "create-account": string
@@ -68,60 +95,304 @@ export interface Locales {
   readonly "characters-left": string
   readonly "hold-to-show-password": string
   readonly "error-404": string
+  readonly "error-404.generic": string
+  readonly "error-404.page": string
+  readonly "error-404.user": string
   readonly "error-form": string
+  readonly "error-form.missing-fields": string
+  readonly "error-form.password-mismatch": string
   readonly "error-api": string
+  readonly "error-api.GENERIC": string
+  readonly "error-api.INTERNAL": string
+  readonly "error-api.NO_CONNECTION": string
+  readonly "error-api.BAD_SYNTAX": string
+  readonly "error-api.FORBIDDEN": string
+  readonly "error-api.NOT_FOUND": string
+  readonly "error-api.CONFLICT": string
+  readonly "error-api.ACCOUNT_ALREADY_VERIFIED": string
+  readonly "error-api.ACCOUNT_NO_EMAIL": string
+  readonly "error-api.ALREADY_LOGGED_IN": string
+  readonly "error-api.FAILED_TO_UPDATE_PROFILE": string
+  readonly "error-api.INVALID_AVATAR": string
+  readonly "error-api.INVALID_EMAIL": string
+  readonly "error-api.INVALID_LANGUAGE_CODE": string
+  readonly "error-api.INVALID_PASSWORD": string
+  readonly "error-api.INVALID_SESSION": string
+  readonly "error-api.INVALID_SPECIFIER": string
+  readonly "error-api.INVALID_USERNAME": string
+  readonly "error-api.LOGIN_FAILED": string
+  readonly "error-api.NOT_LOGGED_IN": string
+  readonly "error-api.UNKNOWN_EMAIL": string
+  readonly "error-api.UNKNOWN_USER": string
+  readonly "error-api.WRONG_PASSWORD": string
   readonly "error-418": string
+  readonly "basic-error-site-slug": string
+  readonly "basic-error-site-slug.title": string
+  readonly "basic-error-site-custom": string
+  readonly "basic-error-site-custom.title": string
+  readonly "basic-error-page-slug": string
+  readonly "basic-error-page-slug.title": string
+  readonly "basic-error-page-fetch": string
+  readonly "basic-error-page-fetch.title": string
+  readonly "basic-error-file-name": string
+  readonly "basic-error-file-name.title": string
+  readonly "basic-error-file-fetch": string
+  readonly "basic-error-file-fetch.title": string
+  readonly "basic-error-text-block": string
+  readonly "basic-error-text-block.title": string
+  readonly "basic-error-file-root": string
+  readonly "basic-error-file-root.title": string
   readonly "cmftml-undocumented-block": string
   readonly "cmftml-lint": string
+  readonly "cmftml-lint.warning-source": string
+  readonly "cmftml-lint.recursion-depth-exceeded": string
+  readonly "cmftml-lint.end-of-input": string
+  readonly "cmftml-lint.no-rules-matched": string
+  readonly "cmftml-lint.rule-failed": string
+  readonly "cmftml-lint.not-start-of-line": string
+  readonly "cmftml-lint.invalid-include": string
+  readonly "cmftml-lint.list-empty": string
+  readonly "cmftml-lint.list-contains-non-item": string
+  readonly "cmftml-lint.list-item-outside-list": string
+  readonly "cmftml-lint.list-depth-exceeded": string
+  readonly "cmftml-lint.table-contains-non-row": string
+  readonly "cmftml-lint.table-row-contains-non-cell": string
+  readonly "cmftml-lint.table-row-outside-table": string
+  readonly "cmftml-lint.table-cell-outside-table": string
+  readonly "cmftml-lint.footnotes-nested": string
+  readonly "cmftml-lint.blockquote-depth-exceeded": string
+  readonly "cmftml-lint.no-such-block": string
+  readonly "cmftml-lint.block-disallows-star": string
+  readonly "cmftml-lint.block-disallows-score": string
+  readonly "cmftml-lint.block-missing-name": string
+  readonly "cmftml-lint.block-missing-close-brackets": string
+  readonly "cmftml-lint.black-malformed-arguments": string
+  readonly "cmftml-lint.block-missing-arguments": string
+  readonly "cmftml-lint.block-expected-end": string
+  readonly "cmftml-lint.block-end-mismatch": string
+  readonly "cmftml-lint.no-such-module": string
+  readonly "cmftml-lint.module-missing-name": string
+  readonly "cmftml-lint.no-such-page": string
+  readonly "cmftml-lint.invalid-url": string
   readonly "cmftml-accepts": string
+  readonly "cmftml-accepts.star": string
+  readonly "cmftml-accepts.score": string
+  readonly "cmftml-accepts.newlines": string
+  readonly "cmftml-accepts.html-attributes": string
   readonly "cmftml-argument-none": string
+  readonly "cmftml-argument-none.info": string
   readonly "cmftml-argument-value": string
+  readonly "cmftml-argument-value.info": string
   readonly "cmftml-argument-map": string
+  readonly "cmftml-argument-map.info": string
   readonly "cmftml-argument-value-map": string
+  readonly "cmftml-argument-value-map.info": string
   readonly "cmftml-body-none": string
+  readonly "cmftml-body-none.info": string
   readonly "cmftml-body-raw": string
+  readonly "cmftml-body-raw.info": string
   readonly "cmftml-body-elements": string
+  readonly "cmftml-body-elements.info": string
   readonly "cmftml-body-other": string
+  readonly "cmftml-body-other.info": string
   readonly "dashboard-profile": string
+  readonly "dashboard-profile.name": string
+  readonly "dashboard-profile.pronouns": string
+  readonly "dashboard-profile.birthday": string
+  readonly "dashboard-profile.location": string
+  readonly "dashboard-profile.about": string
+  readonly "dashboard-profile.signature": string
+  readonly "dashboard-profile.save": string
+  readonly "dashboard-profile.toast": string
   readonly "dashboard-account": string
+  readonly "dashboard-account.username": string
+  readonly "dashboard-account.language": string
+  readonly "dashboard-account.allow-messages": string
+  readonly "dashboard-account.accepts-invites": string
+  readonly "dashboard-account.save": string
+  readonly "dashboard-account.toast": string
   readonly "dashboard-account-allow-messages": string
+  readonly "dashboard-account-allow-messages.registered": string
+  readonly "dashboard-account-allow-messages.co-members": string
+  readonly "dashboard-account-allow-messages.nobody": string
   readonly "emails-subscribed": string
   readonly "emails-unsubscribe": string
+  readonly "emails-unsubscribe.text": string
+  readonly "emails-unsubscribe.copy": string
   readonly "emails-verify-email": string
+  readonly "emails-verify-email.subject": string
+  readonly "emails-verify-email.greeting": string
+  readonly "emails-verify-email.intro": string
+  readonly "emails-verify-email.action": string
+  readonly "emails-verify-email.outro": string
   readonly "emails-reset-password": string
+  readonly "emails-reset-password.subject": string
+  readonly "emails-reset-password.greeting": string
+  readonly "emails-reset-password.intro": string
+  readonly "emails-reset-password.action": string
+  readonly "emails-reset-password.expires": string
+  readonly "emails-reset-password.outro": string
   readonly "footer-powered-by": string
   readonly "footer-part-of": string
   readonly "footer-menu": string
+  readonly "footer-menu.report-bug": string
+  readonly "footer-menu.report-flag": string
   readonly "footer-license": string
   readonly "footer-license-unless": string
+  readonly license: string
+  readonly "license.cc-by-sa-4-0": string
+  readonly "license.cc-by-4-0": string
+  readonly "license.cc-by-nd-4-0": string
+  readonly "license.cc-by-nc-4-0": string
+  readonly "license.cc-by-nc-sa-4-0": string
+  readonly "license.cc-by-nc-nd-4-0": string
+  readonly "license.cc-by-sa-3-0": string
+  readonly "license.cc-by-3-0": string
+  readonly "license.cc-by-nd-3-0": string
+  readonly "license.cc-by-nc-3-0": string
+  readonly "license.cc-by-nc-sa-3-0": string
+  readonly "license.cc-by-nc-nd-3-0": string
+  readonly "license.cc-by-sa-2-5": string
+  readonly "license.cc-by-2-5": string
+  readonly "license.cc-by-nd-2-5": string
+  readonly "license.cc-by-nc-2-5": string
+  readonly "license.cc-by-nc-sa-2-5": string
+  readonly "license.cc-by-nc-nd-2-5": string
+  readonly "license.gnu-fdl-1-3": string
+  readonly "license.gnu-fdl-1-2": string
+  readonly "license.gnu-fdl-1-1": string
+  readonly "license.cc0": string
   readonly "notification-bell-status": string
+  readonly "notification-bell-status.read": string
+  readonly "notification-bell-status.unread": string
+  readonly "notification-bell-status.unread-with-count": string
   readonly sheaf: string
+  readonly "sheaf.title": string
+  readonly "sheaf.version": string
   readonly "sheaf-preview": string
+  readonly "sheaf-preview.open": string
+  readonly "sheaf-preview.close": string
+  readonly "sheaf-preview.result": string
+  readonly "sheaf-preview.html": string
+  readonly "sheaf-preview.css": string
+  readonly "sheaf-preview.ast": string
+  readonly "sheaf-preview.tokens": string
+  readonly "sheaf-preview.editor-ast": string
+  readonly "sheaf-preview.compile": string
+  readonly "sheaf-preview.patch": string
+  readonly "sheaf-preview.total": string
+  readonly "sheaf-preview.rendering": string
+  readonly "sheaf-preview.performance": string
   readonly "sheaf-stats": string
+  readonly "sheaf-stats.chars": string
+  readonly "sheaf-stats.bytes": string
+  readonly "sheaf-stats.words": string
+  readonly "sheaf-stats.lines": string
   readonly "sheaf-settings": string
+  readonly "sheaf-settings.debug-mode": string
+  readonly "sheaf-settings.dark-mode": string
+  readonly "sheaf-settings.spellcheck": string
   readonly "spellcheck-word": string
+  readonly "spellcheck-word.misspelled": string
+  readonly "spellcheck-word.forbidden": string
+  readonly "spellcheck-word.warned": string
   readonly "spellcheck-add-word": string
+  readonly "spellcheck-add-word.tooltip": string
   readonly "spellcheck-accept": string
   readonly "spellcheck-source": string
   readonly "spinny-label": string
+  readonly "spinny-label.active": string
+  readonly "spinny-label.error": string
+  readonly "spinny-label.success": string
+  readonly "spinny-label.warning": string
   readonly "user-profile-info": string
+  readonly "user-profile-info.name": string
+  readonly "user-profile-info.real-name": string
+  readonly "user-profile-info.email": string
+  readonly "user-profile-info.avatar": string
+  readonly "user-profile-info.pronouns": string
+  readonly "user-profile-info.birthday": string
+  readonly "user-profile-info.location": string
+  readonly "user-profile-info.since": string
+  readonly "user-profile-info.biography": string
+  readonly "user-profile-info.gender": string
+  readonly "user-profile-info.user-page": string
+  readonly "user-profile-info.locales": string
   readonly "user-not-exist": string
+  readonly "user-not-logged-in": string
   readonly "wiki-auth-verify-email": string
+  readonly "wiki-auth-verify-email.intro": string
+  readonly "wiki-auth-verify-email.email-sent": string
+  readonly "wiki-auth-verify-email.resend-email": string
   readonly "wiki-auth-verify-email-link": string
+  readonly "wiki-auth-verify-email-link.waiting": string
+  readonly "wiki-auth-verify-email-link.please-interact": string
+  readonly "wiki-auth-verify-email-link.instructions": string
+  readonly "wiki-auth-verify-email-link.success": string
   readonly "password-recovery": string
+  readonly "password-recovery.email-sent": string
   readonly "wiki-page-category": string
   readonly "wiki-page-revision": string
   readonly "wiki-page-last-edit": string
+  readonly "wiki-page-source": string
   readonly "wiki-page-view-source": string
+  readonly "wiki-page-revision-history": string
   readonly "wiki-page-revision-number": string
   readonly "wiki-page-revision-created-at": string
   readonly "wiki-page-revision-user": string
   readonly "wiki-page-revision-comments": string
-  readonly "wiki-page-move-new-slug": string
+  readonly "wiki-page-revision-rollback": string
+  readonly "wiki-page-revision-type": string
+  readonly "wiki-page-revision-type.create": string
+  readonly "wiki-page-revision-type.regular": string
+  readonly "wiki-page-revision-type.move": string
+  readonly "wiki-page-revision-type.delete": string
+  readonly "wiki-page-revision-type.rollback": string
+  readonly "wiki-page-revision-type.undelete": string
+  readonly "wiki-page-revision-type.undo": string
+  readonly "wiki-page-vote": string
+  readonly "wiki-page-vote.set": string
+  readonly "wiki-page-vote.remove": string
+  readonly "wiki-page-vote.list": string
+  readonly "wiki-page-vote.score": string
+  readonly "wiki-page-edit": string
+  readonly "wiki-page-create": string
+  readonly "wiki-page-move": string
+  readonly "wiki-page-move.new-slug": string
+  readonly "wiki-page-layout": string
+  readonly "wiki-page-layout.default": string
+  readonly "wiki-page-layout.wikidot": string
+  readonly "wiki-page-layout.wikijump": string
+  readonly "wiki-page-delete": string
+  readonly "wiki-page-restore": string
+  readonly "wiki-page-restore.select": string
+  readonly "wiki-page-deleted": string
+  readonly "wiki-page-file-no-files": string
+  readonly "wiki-page-file-upload": string
+  readonly "wiki-page-file-upload.select": string
+  readonly "wiki-page-file-upload.name": string
+  readonly "wiki-page-file-move-destination-page": string
+  readonly "wiki-page-file": string
+  readonly "wiki-page-file.name": string
+  readonly "wiki-page-file.created-at": string
+  readonly "wiki-page-file.updated-at": string
+  readonly "wiki-page-file.mime": string
+  readonly "wiki-page-file.size": string
+  readonly "wiki-page-file.page": string
+  readonly "wiki-page-file-revision-type": string
+  readonly "wiki-page-file-revision-type.create": string
+  readonly "wiki-page-file-revision-type.regular": string
+  readonly "wiki-page-file-revision-type.move": string
+  readonly "wiki-page-file-revision-type.delete": string
+  readonly "wiki-page-file-revision-type.rollback": string
+  readonly "wiki-page-file-revision-type.undelete": string
+  readonly "wiki-page-file-revision-type.undo": string
+  readonly "wiki-page-file-restore": string
+  readonly "wiki-page-file-restore.new-page": string
+  readonly "wiki-page-file-restore.new-name": string
+  readonly "wiki-page-parent": string
   readonly "wiki-page-missing": string
   readonly "wiki-page-private": string
   readonly "wiki-page-banned": string
-  readonly "wiki-page-site-slug": string
-  readonly "wiki-page-site-custom": string
   readonly "wiki-page-no-render": string
 }

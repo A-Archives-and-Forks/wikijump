@@ -16,8 +16,11 @@ fs.readdirSync(input).forEach((folder) => {
 
     const files = fs.readFileSync(`${input}/${folder}/${file}`, "utf8");
 
-    return new FluentResource(files).body.map((entry) => {
-      return entry.id;
+    return new FluentResource(files).body.flatMap((entry) => {
+      return [
+        entry.id,
+        ...Object.keys(entry.attributes).map(key=>`${entry.id}.${key}`),
+      ];
     });
   });
 
@@ -36,6 +39,6 @@ const types = JSON.stringify(combined, null, 2)
   .replace(/"readonly /g, 'readonly "')
   .replace(/"/g, "")
   .replace(/,/g, "")
-  .replace(/(?=\S*['-])([a-zA-Z0-9'-]+)/g, '"$1"');
+  .replace(/(?=\S*['-._])([a-zA-Z0-9'-._]+)/g, '"$1"');
 
 fs.writeFileSync(`${output}/index.ts`, `export interface Locales ${types}\n`);
