@@ -50,7 +50,7 @@ export async function pageEdit(
     tags,
     layout:
       layout !== undefined
-        ? Layout[layout?.toUpperCase() as keyof typeof Layout] ?? null
+        ? (Layout[layout?.toUpperCase() as keyof typeof Layout] ?? null)
         : undefined
   })
 }

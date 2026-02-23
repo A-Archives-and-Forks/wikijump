@@ -25,7 +25,7 @@ export async function siteUpdate(
     locale,
     layout:
       layout !== undefined
-        ? Layout[layout?.toUpperCase() as keyof typeof Layout] ?? null
+        ? (Layout[layout?.toUpperCase() as keyof typeof Layout] ?? null)
         : undefined,
     ip_address: userIpAddr
   })
