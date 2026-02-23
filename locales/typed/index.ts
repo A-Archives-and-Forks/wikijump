@@ -31,12 +31,11 @@ fs.readdirSync(input).forEach((folder) => {
   const unique = [...new Set(flat)];
 
   unique.forEach((entry) => {
-    combined["readonly " + entry] = "string";
+    combined[entry] = "string";
   });
 });
 
 const types = JSON.stringify(combined, null, 2)
-  .replace(/"readonly /g, 'readonly "')
   .replace(/"/g, "")
   .replace(/,/g, "")
   .replace(/(?=\S*['-._])([a-zA-Z0-9'-._]+)/g, '"$1"');
