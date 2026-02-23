@@ -89,7 +89,7 @@ services:
       context: ../..
       dockerfile: install/local/framerail/Dockerfile
     ports:
-      - "3000:3000"
+      - "3393:3393"
     links:
       - deepwell
     environment:

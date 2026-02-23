@@ -5,7 +5,8 @@
 	"params": {
 		"debug": false,
 		"local": false,
-		"framerail_host": "framerail:3000",
+		"auto_https": false,
+		"framerail_host": "framerail:3393",
 		"wws_host": "wws:7000"
 	}
 }

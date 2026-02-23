@@ -3,11 +3,8 @@
 	metrics {
 		per_host
 	}
-	http_port 8000
-	https_port 8443
-	debug
-	local_certs
-	skip_install_trust
+	http_port 80
+	auto_https off
 }
 
 (strip_headers) {
@@ -49,7 +46,7 @@
 		path /-/code/*
 		path /-/html/*
 	}
-	redir @redirect https://{vars.site_slug}.wjfiles.localhost{uri}
+	redir @redirect https://{vars.site_slug}.wjfiles.test{uri}
 
 	# Enable default compression settings
 	encode
@@ -59,7 +56,7 @@
 	reverse_proxy framerail:3393
 }
 
-foo.wikijump.localhost {
+foo.wikijump.test {
 	import strip_headers
 
 	vars {
@@ -72,12 +69,12 @@ foo.wikijump.localhost {
 	import serve_main
 }
 
-www.foo.wikijump.localhost {
-	redir https://foo.wikijump.localhost{uri}
+www.foo.wikijump.test {
+	redir https://foo.wikijump.test{uri}
 }
 
-bar.wikijump.localhost,
-www.bar.wikijump.localhost {
+bar.wikijump.test,
+www.bar.wikijump.test {
 	redir https://example.com{uri}
 }
 
@@ -115,20 +112,20 @@ www.example.com {
 	reverse_proxy wws:7000
 }
 
-wjfiles.localhost {
+wjfiles.test {
 	import strip_headers
 	request_header X-Wikijump-Basic-Error 1
 	rewrite * /-/basic-error/file-root
 	reverse_proxy wws:7000
 }
 
-*.wjfiles.localhost {
+*.wjfiles.test {
 	import strip_headers
 
-	@foo host foo.wjfiles.localhost
+	@foo host foo.wjfiles.test
 	vars @foo site_id 1
 
-	@bar host bar.wjfiles.localhost
+	@bar host bar.wjfiles.test
 	vars @bar site_id 2
 
 	request_header X-Wikijump-Site-Slug {labels.2}
@@ -142,7 +139,7 @@ wjfiles.localhost {
 #
 
 # Missing canonical domain
-*.wikijump.localhost {
+*.wikijump.test {
 	import strip_headers
 	request_header X-Wikijump-Basic-Error 1
 	request_header X-Wikijump-Site-Slug {labels.2}
@@ -152,8 +149,7 @@ wjfiles.localhost {
 
 # Missing custom domain
 http://,
-https://,
-localhost {
+https:// {
 	import strip_headers
 	request_header X-Wikijump-Basic-Error 1
 	rewrite * /-/basic-error/site-custom

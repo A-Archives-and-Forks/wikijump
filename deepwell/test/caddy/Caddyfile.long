@@ -51,7 +51,7 @@
 
 	# Finally, proxy to framerail to get the actual HTML
 	# Note, the x-wikijump-site-* headers have already been set at this point
-	reverse_proxy framerail:3000
+	reverse_proxy framerail:3393
 }
 
 foo.site.wikijump.com {
