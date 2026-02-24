@@ -8,7 +8,9 @@ import type { UserConfig } from "vite"
 let pnpmVersion = null
 try {
   pnpmVersion = execSync("pnpm -v").toString("utf-8").trim()
-} catch (_) {}
+} catch (_) {
+  // ignore pnpm version if there are errors
+}
 
 const config: UserConfig = {
   server: {

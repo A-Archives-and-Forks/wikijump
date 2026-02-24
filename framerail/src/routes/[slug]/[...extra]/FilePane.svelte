@@ -33,7 +33,7 @@
         data: res.data
       }
     } else {
-      fileMap = new Map()
+      fileMap.clear()
       res.forEach((file) => {
         fileMap.set(file.file_id, file)
       })
@@ -179,7 +179,7 @@
         data: res.data
       }
     } else {
-      fileRevisionMap = new Map()
+      fileRevisionMap.clear()
       res.forEach((rev) => {
         fileRevisionMap.set(rev.revision_number, rev)
       })
@@ -208,7 +208,7 @@
     } else {
       getFileList()
       activeFileAction = null
-      fileRevisionMap = new Map()
+      fileRevisionMap.clear()
       handleFileHistory(fileEditId)
       invalidateAll()
     }

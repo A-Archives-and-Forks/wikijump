@@ -76,7 +76,12 @@ export default defineConfig(
       "@typescript-eslint/consistent-type-exports": [
         "warn",
         { fixMixedExportsWithInlineTypeSpecifier: true }
-      ]
+      ],
+
+      // TODO: warn no-explicit-any and no-unused-vars
+      // should remove them later
+      "@typescript-eslint/no-explicit-any": "warn",
+      "@typescript-eslint/no-unused-vars": "warn"
     }
   },
   ...svelte.configs.recommended,
@@ -122,11 +127,12 @@ export default defineConfig(
     languageOptions: {
       globals: {
         ...globals.browser,
-        ...globals.node
+        ...globals.node,
+        ...globals.es2026
       },
 
       parser: ts.parser,
-      ecmaVersion: 2020,
+      ecmaVersion: "latest",
       sourceType: "module",
 
       parserOptions: {
@@ -159,7 +165,7 @@ export default defineConfig(
       files: ["**/*.js", "**/*.cjs"],
 
       languageOptions: {
-        ecmaVersion: 5,
+        ecmaVersion: "latest",
         sourceType: "script",
 
         parserOptions: {

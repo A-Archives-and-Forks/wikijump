@@ -22,7 +22,7 @@
         data: res.data
       }
     } else {
-      voteMap = new Map()
+      voteMap.clear()
       res.forEach((vote) => {
         voteMap.set(vote.user_id, vote)
       })

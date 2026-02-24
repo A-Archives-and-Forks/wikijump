@@ -98,7 +98,7 @@
           data: res.data
         }
       } else {
-        revisionMap = new Map()
+        revisionMap.clear()
         res.forEach((rev) => {
           revisionMap.set(rev.revision_number, rev)
         })
