@@ -3,19 +3,16 @@
   import { invalidateAll } from "$app/navigation"
   import { errorPopupState, pageLayoutState } from "$lib/stores.svelte"
   import { Layout } from "$lib/types"
+  import { SvelteMap } from "svelte/reactivity"
 
   type FileAction = "upload" | "edit" | "move" | "restore" | "history"
   let activeFileAction = $state<FileAction | null>(null)
 
-  let fileMap = $state<Map<number, Record<string, any>>>(
-    new Map<number, Record<string, any>>()
-  )
+  let fileMap = new SvelteMap<number, Record<string, any>>()
   let filesUpload = $state<FileList>()
   let filesEditElem = $state<HTMLInputElement>()
   let fileEditId = $state<number | null>(null)
-  let fileRevisionMap = $state<Map<number, Record<string, any>>>(
-    new Map<number, Record<string, any>>()
-  )
+  let fileRevisionMap = new SvelteMap<number, Record<string, any>>()
 
   async function getFileList(deleted?: boolean) {
     const fdata = new FormData()

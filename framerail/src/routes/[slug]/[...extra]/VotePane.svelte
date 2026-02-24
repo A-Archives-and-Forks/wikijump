@@ -2,9 +2,10 @@
   import { page } from "$app/state"
   import { errorPopupState, pageLayoutState } from "$lib/stores.svelte"
   import { Layout } from "$lib/types"
+  import { SvelteMap } from "svelte/reactivity"
 
   let showVoteList = $state<boolean>(false)
-  let voteMap = $state<Map<number, Record<string, any>>>(new Map())
+  let voteMap = new SvelteMap<number, Record<string, any>>()
   let voteRating = $state<number>()
 
   async function getVoteList() {
@@ -87,7 +88,7 @@
   })
 </script>
 
-{#if pageLayoutState.current === Layout.WIKIJUMP}
+{#if pageLayoutState.current === Layout.WIKIDOT}
   <h1 class="page-vote-header">
     {page.data.internationalization?.["wiki-page-vote"]}
   </h1>

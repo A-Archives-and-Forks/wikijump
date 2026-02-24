@@ -3,10 +3,11 @@
   import { invalidateAll } from "$app/navigation"
   import { errorPopupState, pageLayoutState } from "$lib/stores.svelte"
   import { Layout } from "$lib/types"
+  import { SvelteMap } from "svelte/reactivity"
 
-  let revisionMap: Map<number, Record<string, any>> = $state(new Map())
-  let revision: Record<string, any> = $state({})
-  let showRevisionSource = $state(false)
+  let revisionMap = new SvelteMap<number, Record<string, any>>()
+  let revision = $state<Record<string, any>>({})
+  let showRevisionSource = $state<boolean>(false)
 
   interface Props {
     setShowRevision: (val: boolean) => void
