@@ -1,11 +1,20 @@
 name: '[backend] Docker build Framerail (PROD)'
 
 on:
+  push:
+    branches:
+      - prod
   pull_request:
     paths:
       - 'framerail/**'
       - 'install/prod/framerail/Dockerfile'
       - '.github/workflows/docker-build-framerail.prod.yaml'
+
+env:
+  IMAGE_NAME: wikijump/framerail
+  DESCRIPTION: Web server for Wikijump
+  NAME: framerail
+  TIER: prod
 
 jobs:
   build:
@@ -15,6 +24,16 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Build image
-        run: docker build -f install/prod/framerail/Dockerfile .
+        run: docker build --tag ${{ env.IMAGE_NAME }}:${{ env.TIER }} -f install/${{ env.TIER }}/${{ env.NAME }}/Dockerfile .
         env:
           DOCKER_BUILDKIT: 1
+
+      - name: Push image to ECR
+        if: github.ref == 'refs/heads/prod'
+        uses: jwalton/gh-ecr-push@v2
+        with:
+          access-key-id: ${{ secrets.AWS_ECR_ACCESS_KEY }}
+          secret-access-key: ${{ secrets.AWS_ECR_SECRET_KEY }}
+          region: us-east-2
+          local-image: ${{ env.IMAGE_NAME }}:${{ env.TIER }}
+          image: ${{ env.IMAGE_NAME }}:${{ env.TIER }}
