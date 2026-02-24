@@ -1,12 +1,16 @@
+import pkg from "./package.json"
+
 import { sveltekit } from "@sveltejs/kit/vite"
 import { execSync } from "child_process"
+
 import type { UserConfig } from "vite"
-import pkg from "./package.json"
 
 let pnpmVersion = null
 try {
   pnpmVersion = execSync("pnpm -v").toString("utf-8").trim()
-} catch (_) {}
+} catch (_) {
+  // ignore pnpm version if there are errors
+}
 
 const config: UserConfig = {
   server: {

@@ -2,19 +2,19 @@ import { authGetSession } from "$lib/server/auth/getSession"
 import { authLogin } from "$lib/server/auth/login"
 
 export async function POST(event) {
-  let data = await event.request.formData()
+  const data = await event.request.formData()
 
-  let userAgent = event.request.headers.get("User-Agent")
-  let ipAddress = event.getClientAddress()
+  const userAgent = event.request.headers.get("User-Agent")
+  const ipAddress = event.getClientAddress()
 
-  let nameOrEmail = data.get("name-or-email")?.toString()
-  let password = data.get("password")?.toString()
+  const nameOrEmail = data.get("name-or-email")?.toString()
+  const password = data.get("password")?.toString()
 
   try {
-    let res = await authLogin(nameOrEmail, password, ipAddress, userAgent)
+    const res = await authLogin(nameOrEmail, password, ipAddress, userAgent)
 
     if (res.session_token) {
-      let session = await authGetSession(res.session_token)
+      const session = await authGetSession(res.session_token)
       event.cookies.set("wikijump_token", res.session_token, {
         path: "/",
         httpOnly: true,

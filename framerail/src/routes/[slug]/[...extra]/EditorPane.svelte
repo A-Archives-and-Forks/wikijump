@@ -1,115 +1,132 @@
 <script lang="ts">
-  import { page } from "$app/stores"
+  import { page } from "$app/state"
   import { goto } from "$app/navigation"
-  import { useErrorPopup, usePageLayoutState } from "$lib/stores"
+  import { errorPopupState, pageLayoutState } from "$lib/stores.svelte"
   import { Layout } from "$lib/types"
-  let showErrorPopup = useErrorPopup()
-  let pageLayout = usePageLayoutState()
+  import { resolve } from "$app/paths"
 
   function cancelEdit() {
-    let options: string[] = []
-    if ($page.data.options.no_render) options.push("norender")
-    if ($page.data.options.no_redirect) options.push("noredirect")
-    options = options.map((opt) => `/${opt}`)
-    goto(`/${$page.data.page.slug}${options.join("")}`, {
+    const options: string[] = Object.entries({
+      norender: page.data.options.no_render,
+      noredirect: page.data.options.no_redirect
+    })
+      .filter(([, enabled]) => enabled)
+      .map(([key]) => `/${key}`)
+
+    goto(resolve(`/${page.data.page.slug}${options.join("")}`, {}), {
       noScroll: true
     })
   }
 
   async function saveEdit() {
-    let form = document.getElementById("editor")
-    let fdata = new FormData(form)
-    fdata.set("site-id", $page.data.site.site_id)
-    fdata.set("page-id", $page.data.page.page_id)
-    fdata.set("last-revision-id", $page.data.page_revision.revision_id)
-    let res = await fetch(`/${$page.data.page.slug}/edit`, {
+    const form = document.querySelector<HTMLFormElement>("form#editor")
+    if (!form) return
+    const fdata = new FormData(form)
+    fdata.set("site-id", page.data.site.site_id)
+    fdata.set("page-id", page.data.page.page_id)
+    fdata.set("last-revision-id", page.data.page_revision.revision_id.toString())
+    const res = await fetch(`/${page.data.page.slug}/edit`, {
       method: "POST",
       body: fdata
     }).then((res) => res.json())
     if (res?.message) {
-      showErrorPopup.set({
+      errorPopupState.current = {
         state: true,
         message: res.message,
         data: res.data
-      })
+      }
     } else {
-      goto(`/${$page.data.page.slug}`, {
+      goto(resolve(`/${page.data.page.slug}`, {}), {
         noScroll: true
       })
     }
   }
 </script>
 
-{#if $pageLayout === Layout.WIKIDOT}
+{#if pageLayoutState.current === Layout.WIKIDOT}
   <h1 class="page-edit-header">
-    {$page.data.internationalization?.["wiki-page-edit"]}
+    {page.data.internationalization?.["wiki-page-edit"]}
   </h1>
 {:else}
   <h2 class="page-edit-header">
-    {$page.data.internationalization?.["wiki-page-edit"]}
+    {page.data.internationalization?.["wiki-page-edit"]}
   </h2>
 {/if}
 
-<form id="editor" class="editor" method="POST" on:submit|preventDefault={saveEdit}>
+<form
+  id="editor"
+  class="editor"
+  method="POST"
+  onsubmit={(event) => {
+    event.preventDefault()
+    saveEdit()
+  }}
+>
   <input
     name="title"
     class="editor-title"
-    placeholder={$page.data.internationalization?.title}
+    placeholder={page.data.internationalization?.title}
     type="text"
-    value={$page.data.page_revision.title}
+    value={page.data.page_revision.title}
   />
   <input
     name="alt-title"
     class="editor-alt-title"
-    placeholder={$page.data.internationalization?.["alt-title"]}
+    placeholder={page.data.internationalization?.["alt-title"]}
     type="text"
-    value={$page.data.page_revision.alt_title}
+    value={page.data.page_revision.alt_title}
   />
-  <textarea name="wikitext" class="editor-wikitext">{$page.data.wikitext}</textarea>
+  <textarea name="wikitext" class="editor-wikitext">{page.data.wikitext}</textarea>
   <input
     name="tags"
     class="editor-tags"
-    placeholder={$page.data.internationalization?.tags}
+    placeholder={page.data.internationalization?.tags}
     type="text"
-    value={$page.data.page_revision.tags.join(" ")}
+    value={page.data.page_revision.tags?.join(" ")}
   />
   <textarea
     name="comments"
     class="editor-comments"
-    placeholder={$page.data.internationalization?.["wiki-page-revision-comments"]}
-  />
-  {#if $pageLayout === Layout.WIKIDOT}
+    placeholder={page.data.internationalization?.["wiki-page-revision-comments"]}
+  ></textarea>
+  {#if pageLayoutState.current === Layout.WIKIDOT}
     <div class="buttons alignleft">
       <input
         name="cancel"
         class="btn btn-danger"
+        onclick={(event) => {
+          event.stopPropagation()
+          cancelEdit()
+        }}
         type="button"
-        value={$page.data.internationalization?.cancel}
-        on:click|stopPropagation={cancelEdit}
+        value={page.data.internationalization?.cancel}
       />
       <input
         name="save"
         class="btn btn-primary"
+        onclick={(event) => event.stopPropagation()}
         type="submit"
-        value={$page.data.internationalization?.save}
-        on:click|stopPropagation
+        value={page.data.internationalization?.save}
       />
     </div>
   {:else}
     <div class="action-row editor-actions">
       <button
         class="action-button editor-button button-cancel clickable"
+        onclick={(event) => {
+          event.stopPropagation()
+          cancelEdit()
+        }}
         type="button"
-        on:click|stopPropagation={cancelEdit}
       >
-        {$page.data.internationalization?.cancel}
+        {page.data.internationalization?.cancel}
       </button>
       <button
         class="action-button editor-button button-save clickable"
+        onclick={(event) => event.stopPropagation()}
         type="submit"
-        on:click|stopPropagation
       >
-        {$page.data.internationalization?.save}
+        {page.data.internationalization?.save}
       </button>
     </div>
   {/if}

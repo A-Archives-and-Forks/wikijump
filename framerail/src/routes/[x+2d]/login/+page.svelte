@@ -1,15 +1,15 @@
 <script lang="ts">
-  import { page } from "$app/stores"
+  import { page } from "$app/state"
   import { invalidateAll } from "$app/navigation"
-  import { useErrorPopup } from "$lib/stores"
-  let showErrorPopup = useErrorPopup()
+  import { errorPopupState } from "$lib/stores.svelte"
 
-  let isLoggedIn = $page.data.isLoggedIn
+  let isLoggedIn = $state<boolean>(page.data.isLoggedIn)
 
   async function tryLogin() {
-    let form = document.getElementById("login")
-    let fdata = new FormData(form)
-    let res = await fetch(`/-/login`, {
+    const form = document.querySelector<HTMLFormElement>("form#login")
+    if (!form) return
+    const fdata = new FormData(form)
+    const res = await fetch(`/-/login`, {
       method: "POST",
       body: fdata
     }).then((res) => res.json())
@@ -18,45 +18,57 @@
       isLoggedIn = true
       invalidateAll()
     } else {
-      showErrorPopup.set({
+      errorPopupState.current = {
         state: true,
         message: res.message,
         data: res.data
-      })
+      }
     }
   }
 </script>
 
 {#if isLoggedIn}
-  {$page.data.internationalization?.["login.toast"]}
+  {page.data.internationalization?.["login.toast"]}
 {:else}
-  <form id="login" class="login-form" method="POST" on:submit|preventDefault={tryLogin}>
+  <form
+    id="login"
+    class="login-form"
+    method="POST"
+    onsubmit={(event) => {
+      event.preventDefault()
+      tryLogin()
+    }}
+  >
     <input
       name="name-or-email"
       class="auth-name-or-email"
-      placeholder={$page.data.internationalization?.specifier}
+      placeholder={page.data.internationalization?.specifier}
       type="text"
     />
     <input
       name="password"
       class="auth-password"
-      placeholder={$page.data.internationalization?.password}
+      placeholder={page.data.internationalization?.password}
       type="password"
     />
     <div class="action-row auth-actions">
       <button
         class="action-button auth-button button-cancel clickable"
+        onclick={(event) => {
+          event.stopPropagation()
+        }}
         type="button"
-        on:click|stopPropagation={() => {}}
       >
-        {$page.data.internationalization?.cancel}
+        {page.data.internationalization?.cancel}
       </button>
       <button
         class="action-button auth-button button-login clickable"
+        onclick={(event) => {
+          event.stopPropagation()
+        }}
         type="submit"
-        on:click|stopPropagation
       >
-        {$page.data.internationalization?.login}
+        {page.data.internationalization?.login}
       </button>
     </div>
   </form>

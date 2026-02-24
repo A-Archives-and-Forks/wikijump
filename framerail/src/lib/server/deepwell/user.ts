@@ -21,11 +21,13 @@ export async function userEdit(
   userIpAddr: string,
   params: Record<string, any>
 ): Promise<object> {
-  let data: Record<string, any> = {}
-  if (params.name !== undefined && typeof params.name === "string")
+  const data: Record<string, any> = {}
+  if (params.name !== undefined && typeof params.name === "string") {
     data.name = params.name
-  if (params.email !== undefined && typeof params.email === "string")
+  }
+  if (params.email !== undefined && typeof params.email === "string") {
     data.email = params.email
+  }
   if (params.real_name !== undefined && typeof params.real_name === "string") {
     if (params.real_name) data.real_name = params.real_name
     else data.real_name = null
@@ -50,10 +52,14 @@ export async function userEdit(
     if (params.user_page) data.user_page = params.user_page
     else data.user_page = null
   }
-  if (Array.isArray(params.locales) && params.locales.every((v) => typeof v === "string"))
+  if (
+    Array.isArray(params.locales) &&
+    params.locales.every((v) => typeof v === "string")
+  ) {
     data.locales = params.locales
+  }
   if (params.avatar instanceof File && params.avatar.type.startsWith("image/")) {
-    let presign = await startBlobUpload(userId, params.avatar.size)
+    const presign = await startBlobUpload(userId, params.avatar.size)
     await uploadToPresignUrl(presign.presign_url, params.avatar)
     data.avatar_uploaded_blob_id = presign.pending_blob_id
   } else if (params.avatar !== undefined && params.avatar === null) data.avatar = null

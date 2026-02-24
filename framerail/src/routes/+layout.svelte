@@ -1,42 +1,46 @@
 <script lang="ts">
-  import { page } from "$app/stores"
   import SigmaEsque from "$lib/sigma-esque/sigma-esque.svelte"
   import Wikidot from "$lib/sigma-esque/wikidot.svelte"
   import wjBanner from "$assets/logo-outline.min.svg?raw"
-  import { useErrorPopup, usePageLayoutState } from "$lib/stores"
-  import { Layout } from "$lib/types"
   import ErrorPopup from "$lib/popup/error.svelte"
-  let showErrorPopup = useErrorPopup()
+
+  import { page } from "$app/state"
+  import { pageLayoutState, errorPopupState } from "$lib/stores.svelte"
+  import { Layout } from "$lib/types"
+  import { resolve } from "$app/paths"
+
+  let { children } = $props()
+
   function closeErrorPopup() {
-    showErrorPopup.set({
+    errorPopupState.current = {
       state: false,
       message: null,
       data: null
-    })
+    }
   }
 
-  let pageLayout = usePageLayoutState()
   function setLayout() {
-    if ($page.route.id.startsWith("/[x+2d]/")) {
+    if (page.route.id?.startsWith("/[x+2d]/")) {
       // this is an blueprint page, use Wikijump layout
-      $pageLayout = Layout.WIKIJUMP
+      pageLayoutState.current = Layout.WIKIJUMP
     } else {
-      $pageLayout =
-        $page.data?.page?.layout ??
-        $page.data?.site?.layout ??
-        $page.error?.site?.layout ??
+      pageLayoutState.current =
+        page.data?.page?.layout ??
+        page.data?.site?.layout ??
+        page.error?.site?.layout ??
         Layout.WIKIJUMP
     }
   }
-  setLayout()
-  page.subscribe(() => setLayout())
+  $effect(() => {
+    setLayout()
+  })
 </script>
 
-{#if $showErrorPopup.state}
+{#if errorPopupState.current.state}
   <ErrorPopup exitPrompt={closeErrorPopup} />
 {/if}
 
-{#if $pageLayout === Layout.WIKIDOT}
+{#if pageLayoutState.current === Layout.WIKIDOT}
   <style global>
     /* Use Sigma 10 as default Wikidot theme for now */
     @import url("https://d3g0gp89917ko0.cloudfront.net/v--7690939296dc/common--theme/base/css/style.css");
@@ -44,122 +48,117 @@
     @import url("https://cdn.scpwiki.com/theme/en/sigma/css/sigma.min.css");
   </style>
   <Wikidot>
-    <svelte:fragment slot="header">
+    {#snippet header()}
       <h1>
-        <a class="active" href="/"
-          ><span>{$page.data?.site?.name ?? $page.error?.site?.name}</span></a
+        <a class="active" href={resolve("/", {})}
+          ><span>{page.data?.site?.name ?? page.error?.site?.name}</span></a
         >
       </h1>
       <h2>
-        <span>{$page.data?.site?.tagline ?? $page.error?.site?.tagline}</span>
+        <span>{page.data?.site?.tagline ?? page.error?.site?.tagline}</span>
       </h2>
-    </svelte:fragment>
+    {/snippet}
 
-    <svelte:fragment slot="top-bar"
-      >{@html $page.data?.compiled_top_bar_html ??
-        $page.error?.compiled_top_bar_html ??
-        ""}</svelte:fragment
-    >
+    {#snippet topBar()}
+      {@html page.data?.compiled_top_bar_html ?? page.error?.compiled_top_bar_html ?? ""}
+    {/snippet}
 
-    <svelte:fragment slot="side-bar"
-      >{@html $page.data?.compiled_side_bar_html ??
-        $page.error?.compiled_side_bar_html ??
-        ""}</svelte:fragment
-    >
+    {#snippet sideBar()}
+      {@html page.data?.compiled_side_bar_html ??
+        page.error?.compiled_side_bar_html ??
+        ""}
+    {/snippet}
 
-    <svelte:fragment slot="content">
-      <slot />
-    </svelte:fragment>
+    {#snippet content()}
+      {@render children?.()}
+    {/snippet}
 
-    <svelte:fragment slot="footer">
+    {#snippet footer()}
       <div class="options">
-        <a href="/"
-          >{$page.data?.internationalization?.docs ??
-            $page.error?.internationalization?.docs}</a
+        <a href={resolve("/", {})}
+          >{page.data?.internationalization?.docs ??
+            page.error?.internationalization?.docs}</a
         >
         |
-        <a href="/"
-          >{$page.data?.internationalization?.terms ??
-            $page.error?.internationalization?.terms}</a
+        <a href={resolve("/", {})}
+          >{page.data?.internationalization?.terms ??
+            page.error?.internationalization?.terms}</a
         >
         |
-        <a href="/"
-          >{$page.data?.internationalization?.privacy ??
-            $page.error?.internationalization?.privacy}</a
+        <a href={resolve("/", {})}
+          >{page.data?.internationalization?.privacy ??
+            page.error?.internationalization?.privacy}</a
         >
         |
-        <a href="/"
-          >{$page.data?.internationalization?.security ??
-            $page.error?.internationalization?.security}</a
+        <a href={resolve("/", {})}
+          >{page.data?.internationalization?.security ??
+            page.error?.internationalization?.security}</a
         >
       </div>
       <div class="footer-powered-by">
-        {$page.data?.internationalization?.["footer-powered-by"] ??
-          $page.error?.internationalization?.["footer-powered-by"]}
+        {page.data?.internationalization?.["footer-powered-by"] ??
+          page.error?.internationalization?.["footer-powered-by"]}
       </div>
-    </svelte:fragment>
-    <svelte:fragment slot="license">
-      {@html $page.data?.internationalization?.["footer-license-unless"] ??
-        $page.error?.internationalization?.["footer-license-unless"]}
-    </svelte:fragment>
+    {/snippet}
+    {#snippet license()}
+      {@html page.data?.internationalization?.["footer-license-unless"] ??
+        page.error?.internationalization?.["footer-license-unless"]}
+    {/snippet}
   </Wikidot>
 {:else}
   <SigmaEsque>
-    <svelte:fragment slot="header">
+    {#snippet header()}
       <div class="header-wjbanner">
         {@html wjBanner}
       </div>
-    </svelte:fragment>
+    {/snippet}
+    {#snippet topBar()}
+      {@html page.data?.compiled_top_bar_html ?? page.error?.compiled_top_bar_html ?? ""}
+    {/snippet}
 
-    <svelte:fragment slot="top-bar"
-      >{@html $page.data?.compiled_top_bar_html ??
-        $page.error?.compiled_top_bar_html ??
-        ""}</svelte:fragment
-    >
+    {#snippet content()}
+      {@render children?.()}
+    {/snippet}
 
-    <svelte:fragment slot="content">
-      <slot />
-    </svelte:fragment>
-
-    <svelte:fragment slot="footer">
+    {#snippet footer()}
       <div class="footer-inner">
         <ul class="footer-items">
           <li class="footer-item">
-            <a href="/"
-              >{$page.data?.internationalization?.terms ??
-                $page.error?.internationalization?.terms}</a
+            <a href={resolve("/", {})}
+              >{page.data?.internationalization?.terms ??
+                page.error?.internationalization?.terms}</a
             >
           </li>
           <li class="footer-item">
-            <a href="/"
-              >{$page.data?.internationalization?.privacy ??
-                $page.error?.internationalization?.privacy}</a
+            <a href={resolve("/", {})}
+              >{page.data?.internationalization?.privacy ??
+                page.error?.internationalization?.privacy}</a
             >
           </li>
           <li class="footer-item">
-            <a href="/"
-              >{$page.data?.internationalization?.docs ??
-                $page.error?.internationalization?.docs}</a
+            <a href={resolve("/", {})}
+              >{page.data?.internationalization?.docs ??
+                page.error?.internationalization?.docs}</a
             >
           </li>
           <li class="footer-item">
-            <a href="/"
-              >{$page.data?.internationalization?.security ??
-                $page.error?.internationalization?.security}</a
+            <a href={resolve("/", {})}
+              >{page.data?.internationalization?.security ??
+                page.error?.internationalization?.security}</a
             >
           </li>
         </ul>
         <div class="footer-powered-by">
-          {$page.data?.internationalization?.["footer-powered-by"] ??
-            $page.error?.internationalization?.["footer-powered-by"]}
+          {page.data?.internationalization?.["footer-powered-by"] ??
+            page.error?.internationalization?.["footer-powered-by"]}
         </div>
       </div>
-    </svelte:fragment>
+    {/snippet}
   </SigmaEsque>
 {/if}
 
 <!-- Ignoring the "unused" svg as we know we imported and embedded a raw svg -->
-<!-- svelte-ignore css-unused-selector -->
+<!-- svelte-ignore css_unused_selector -->
 <style global lang="scss">
   $tablet-max-width: 767px;
 

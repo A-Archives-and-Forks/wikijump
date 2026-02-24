@@ -7,12 +7,12 @@ export enum Layout {
   WIKIJUMP = "wikijump"
 }
 export enum PagePane {
-  None,
-  File,
-  History,
-  Layout,
-  Move,
-  Parent,
-  Vote,
-  Delete
+  None = "none",
+  File = "file",
+  History = "history",
+  Layout = "layout",
+  Move = "move",
+  Parent = "parent",
+  Vote = "vote",
+  Delete = "delete"
 }

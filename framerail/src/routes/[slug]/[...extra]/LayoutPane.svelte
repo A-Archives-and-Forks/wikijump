@@ -1,41 +1,39 @@
 <script lang="ts">
-  import { page } from "$app/stores"
-  import { useErrorPopup, usePageLayoutState, usePagePaneState } from "$lib/stores"
+  import { page } from "$app/state"
+  import { errorPopupState, pageLayoutState, pagePaneState } from "$lib/stores.svelte"
   import { Layout, PagePane } from "$lib/types"
-  let showErrorPopup = useErrorPopup()
-  let pagePaneState = usePagePaneState()
-  let pageLayout = usePageLayoutState()
 
   async function handleLayout() {
-    let form = document.getElementById("page-layout")
-    let fdata = new FormData(form)
-    fdata.set("site-id", $page.data.site.site_id)
-    fdata.set("page-id", $page.data.page.page_id)
-    let res = await fetch(`/${$page.data.page.slug}/layout`, {
+    const form = document.querySelector<HTMLFormElement>("form#page-layout")
+    if (!form) return
+    const fdata = new FormData(form)
+    fdata.set("site-id", page.data.site.site_id)
+    fdata.set("page-id", page.data.page.page_id)
+    const res = await fetch(`/${page.data.page.slug}/layout`, {
       method: "POST",
       body: fdata
     }).then((res) => res.json())
     if (res?.message) {
-      showErrorPopup.set({
+      errorPopupState.current = {
         state: true,
         message: res.message,
         data: res.data
-      })
+      }
     } else {
-      pagePaneState.set(PagePane.None)
-      pageLayout.set(fdata.get("layout") ?? $page.data.site.layout)
+      pagePaneState.current = PagePane.None
+      pageLayoutState.current = fdata.get("layout") ?? page.data.site.layout
       window.location.reload()
     }
   }
 </script>
 
-{#if $pageLayout === Layout.WIKIDOT}
+{#if pageLayoutState.current === Layout.WIKIDOT}
   <h1 class="page-layout-header">
-    {$page.data.internationalization?.["wiki-page-layout"]}
+    {page.data.internationalization?.["wiki-page-layout"]}
   </h1>
 {:else}
   <h2 class="page-layout-header">
-    {$page.data.internationalization?.["wiki-page-layout"]}
+    {page.data.internationalization?.["wiki-page-layout"]}
   </h2>
 {/if}
 
@@ -43,52 +41,57 @@
   id="page-layout"
   class="page-layout"
   method="POST"
-  on:submit|preventDefault={handleLayout}
+  onsubmit={(event) => {
+    event.preventDefault()
+    handleLayout()
+  }}
 >
-  <select name="layout" class="page-layout-select" value={$page.data.page.layout}>
-    <option value={null}
-      >{$page.data.internationalization?.["wiki-page-layout.default"]}</option
-    >
-    {#each Object.values(Layout) as layoutOption}
-      <option value={layoutOption}
-        >{$page.data.internationalization?.[`wiki-page-layout.${layoutOption}`]}</option
-      >
+  <select name="layout" class="page-layout-select" value={page.data.page.layout}>
+    <option value={null}>
+      {page.data.internationalization?.["wiki-page-layout.default"]}
+    </option>
+    {#each Object.values(Layout) as layoutOption (layoutOption)}
+      <option value={layoutOption}>
+        {page.data.internationalization?.[`wiki-page-layout.${layoutOption}`]}
+      </option>
     {/each}
   </select>
-  {#if $pageLayout === Layout.WIKIDOT}
+  {#if pageLayoutState.current === Layout.WIKIDOT}
     <div class="buttons">
       <input
         class="btn btn-danger"
-        type="button"
-        value={$page.data.internationalization?.cancel}
-        on:click|stopPropagation={() => {
-          pagePaneState.set(PagePane.None)
+        onclick={(event) => {
+          event.stopPropagation()
+          pagePaneState.current = PagePane.None
         }}
+        type="button"
+        value={page.data.internationalization?.cancel}
       />
       <input
         class="btn btn-primary"
+        onclick={(event) => event.stopPropagation()}
         type="submit"
-        value={$page.data.internationalization?.save}
-        on:click|stopPropagation
+        value={page.data.internationalization?.save}
       />
     </div>
   {:else}
     <div class="action-row page-layout-actions">
       <button
         class="action-button page-layout-button button-cancel clickable"
-        type="button"
-        on:click|stopPropagation={() => {
-          pagePaneState.set(PagePane.None)
+        onclick={(event) => {
+          event.stopPropagation()
+          pagePaneState.current = PagePane.None
         }}
+        type="button"
       >
-        {$page.data.internationalization?.cancel}
+        {page.data.internationalization?.cancel}
       </button>
       <button
         class="action-button page-layout-button button-save clickable"
+        onclick={(event) => event.stopPropagation()}
         type="submit"
-        on:click|stopPropagation
       >
-        {$page.data.internationalization?.save}
+        {page.data.internationalization?.save}
       </button>
     </div>
   {/if}

@@ -40,7 +40,7 @@ export async function pageFileCreate(
   file: File,
   revisionComments: Optional<string>
 ) {
-  let presign = await startBlobUpload(userId, file.size)
+  const presign = await startBlobUpload(userId, file.size)
   await uploadToPresignUrl(presign.presign_url, file)
 
   return await client.request("file_create", {
@@ -81,9 +81,9 @@ export async function pageFileEdit(
   lastRevisionId: number,
   revisionComments: Optional<string>
 ) {
-  let presignId = undefined
+  let presignId
   if (file && file instanceof File) {
-    let presign = await startBlobUpload(userId, file.size)
+    const presign = await startBlobUpload(userId, file.size)
     await uploadToPresignUrl(presign.presign_url, file)
     presignId = presign.pending_blob_id
   }

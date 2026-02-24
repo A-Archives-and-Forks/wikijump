@@ -1,46 +1,50 @@
+<script lang="ts">
+  let { header, topBar, sideBar, content, footer, license } = $props()
+</script>
+
 <div id="skrollr-body">
-  <!-- svelte-ignore a11y-missing-content -->
-  <a name="page-top" />
+  <!-- svelte-ignore a11y_consider_explicit_label -->
+  <a name="page-top"></a>
   <div id="container-wrap-wrap">
     <div id="container-wrap">
       <div id="container">
         <div id="header">
-          <slot name="header" />
+          {@render header?.()}
           <div id="top-bar">
-            <slot name="top-bar" />
+            {@render topBar?.()}
           </div>
         </div>
         <div id="content-wrap">
           <div id="side-bar">
-            <slot name="side-bar" />
+            {@render sideBar?.()}
           </div>
           <div id="main-content">
-            <div id="action-area-top" />
-            <slot name="content" />
+            <div id="action-area-top"></div>
+            {@render content?.()}
           </div>
         </div>
         <div id="footer">
-          <slot name="footer" />
+          {@render footer?.()}
         </div>
         <div id="license-area" class="license-area">
-          <slot name="license" />
+          {@render license?.()}
         </div>
-        <div id="extrac-div-1"><span /></div>
-        <div id="extrac-div-2"><span /></div>
-        <div id="extrac-div-3"><span /></div>
+        <div id="extrac-div-1"><span></span></div>
+        <div id="extrac-div-2"><span></span></div>
+        <div id="extrac-div-3"><span></span></div>
       </div>
-      <div id="extra-div-1"><span /></div>
-      <div id="extra-div-2"><span /></div>
-      <div id="extra-div-3"><span /></div>
-      <div id="extra-div-4"><span /></div>
-      <div id="extra-div-5"><span /></div>
-      <div id="extra-div-6"><span /></div>
+      <div id="extra-div-1"><span></span></div>
+      <div id="extra-div-2"><span></span></div>
+      <div id="extra-div-3"><span></span></div>
+      <div id="extra-div-4"><span></span></div>
+      <div id="extra-div-5"><span></span></div>
+      <div id="extra-div-6"><span></span></div>
     </div>
   </div>
 </div>
 
 <!-- Ignoring the styling as being a theme it will inevitably style other elements in the entire layout -->
-<!-- svelte-ignore css-unused-selector -->
+<!-- svelte-ignore css_unused_selector -->
 <style global lang="scss">
   $tablet-max-width: 767px;
 

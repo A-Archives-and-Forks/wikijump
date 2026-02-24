@@ -1,10 +1,10 @@
 import { authLogout } from "$lib/server/auth/logout"
 
 export async function DELETE(event) {
-  let sessionToken = event.cookies.get("wikijump_token")
+  const sessionToken = event.cookies.get("wikijump_token")
 
   try {
-    let res = await authLogout(sessionToken)
+    const res = await authLogout(sessionToken)
 
     event.cookies.delete("wikijump_token", {
       path: "/",

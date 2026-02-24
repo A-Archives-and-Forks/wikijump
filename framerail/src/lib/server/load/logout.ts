@@ -8,9 +8,9 @@ export async function loadLogoutPage(request, cookies) {
   // Set up parameters
   const { siteId } = loadSiteInfo(request.headers)
   const sessionToken = cookies.get("wikijump_token")
-  let locales = parseAcceptLangHeader(request)
+  const locales = parseAcceptLangHeader(request)
 
-  let viewData: Record<string, any> = {
+  const viewData: Record<string, any> = {
     isLoggedIn: Boolean(sessionToken)
   }
 

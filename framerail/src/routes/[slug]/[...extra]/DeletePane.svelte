@@ -1,78 +1,81 @@
 <script lang="ts">
-  import { page } from "$app/stores"
+  import { page } from "$app/state"
   import { goto, invalidateAll } from "$app/navigation"
-  import { useErrorPopup, usePageLayoutState, usePagePaneState } from "$lib/stores"
+  import { errorPopupState, pageLayoutState, pagePaneState } from "$lib/stores.svelte"
   import { Layout, PagePane } from "$lib/types"
-  let showErrorPopup = useErrorPopup()
-  let pagePaneState = usePagePaneState()
-  let pageLayout = usePageLayoutState()
-  let moveInputNewSlugElem: HTMLInputElement
-  enum DeleteOptions {
-    Move = "move",
-    Delete = "delete"
-  }
-  let delOption = DeleteOptions.Move
+  import { resolve } from "$app/paths"
+
+  let moveInputNewSlugElem = $state<HTMLInputElement>()
+
+  const DeleteOptions = {
+    Move: "move",
+    Delete: "delete"
+  } as const
+  type DeleteOptions = (typeof DeleteOptions)[keyof typeof DeleteOptions]
+  let delOption = $state<DeleteOptions>(DeleteOptions.Move)
 
   async function handleDelete() {
-    let fdata = new FormData()
-    fdata.set("site-id", $page.data.site.site_id)
-    fdata.set("page-id", $page.data.page.page_id)
-    fdata.set("last-revision-id", $page.data.page_revision.revision_id)
-    let res = await fetch(`/${$page.data.page.slug}`, {
+    const fdata = new FormData()
+    fdata.set("site-id", page.data.site.site_id)
+    fdata.set("page-id", page.data.page.page_id)
+    fdata.set("last-revision-id", page.data.page_revision.revision_id.toString())
+    const res = await fetch(`/${page.data.page.slug}`, {
       method: "DELETE",
       body: fdata
     }).then((res) => res.json())
     if (res?.message) {
-      showErrorPopup.set({
+      errorPopupState.current = {
         state: true,
         message: res.message,
         data: res.data
-      })
+      }
     } else {
-      pagePaneState.set(PagePane.None)
+      pagePaneState.current = PagePane.None
       invalidateAll()
     }
   }
 
   async function handleMove() {
-    let form = document.getElementById("page-delete")
-    let fdata = new FormData(form)
-    let newSlug = fdata.get("new-slug")
+    const form = document.querySelector<HTMLFormElement>("form#page-delete")
+    if (!form) return
+    const fdata = new FormData(form)
+    const newSlug = fdata.get("new-slug")
+    if (!moveInputNewSlugElem) return
     if (!newSlug) {
       moveInputNewSlugElem.classList.add("error")
       return
     } else {
       moveInputNewSlugElem.classList.remove("error")
     }
-    fdata.set("site-id", $page.data.site.site_id)
-    fdata.set("page-id", $page.data.page.page_id)
-    fdata.set("last-revision-id", $page.data.page_revision.revision_id)
-    let res = await fetch(`/${$page.data.page.slug}/move`, {
+    fdata.set("site-id", page.data.site.site_id)
+    fdata.set("page-id", page.data.page.page_id)
+    fdata.set("last-revision-id", page.data.page_revision.revision_id.toString())
+    const res = await fetch(`/${page.data.page.slug}/move`, {
       method: "POST",
       body: fdata
     }).then((res) => res.json())
     if (res?.message) {
-      showErrorPopup.set({
+      errorPopupState.current = {
         state: true,
         message: res.message,
         data: res.data
-      })
+      }
     } else {
-      goto(`/${newSlug}`, {
+      goto(resolve(`/${newSlug}`, {}), {
         noScroll: true
       })
-      pagePaneState.set(PagePane.None)
+      pagePaneState.current = PagePane.None
     }
   }
 </script>
 
-{#if $pageLayout === Layout.WIKIDOT}
+{#if pageLayoutState.current === Layout.WIKIDOT}
   <h1 class="page-delete-header">
-    {$page.data.internationalization?.["wiki-page-delete"]}
+    {page.data.internationalization?.["wiki-page-delete"]}
   </h1>
 {:else}
   <h2 class="page-delete-header">
-    {$page.data.internationalization?.["wiki-page-delete"]}
+    {page.data.internationalization?.["wiki-page-delete"]}
   </h2>
 {/if}
 
@@ -80,7 +83,8 @@
   id="page-delete"
   class="page-delete"
   method="POST"
-  on:submit|preventDefault={() => {
+  onsubmit={(event) => {
+    event.preventDefault()
     if (delOption === DeleteOptions.Move) handleMove()
     else handleDelete()
   }}
@@ -91,67 +95,71 @@
     type="radio"
     value={DeleteOptions.Move}
     bind:group={delOption}
-  /><label class="page-delete-option option-move" for="page-delete-option-move"
-    >{$page.data.internationalization?.["wiki-page-move"]}</label
-  >
+  />
+  <label class="page-delete-option option-move" for="page-delete-option-move">
+    {page.data.internationalization?.["wiki-page-move"]}
+  </label>
   <input
     id="page-delete-option-delete"
     name="page-delete-option"
     type="radio"
     value={DeleteOptions.Delete}
     bind:group={delOption}
-  /><label class="page-delete-option option-delete" for="page-delete-option-delete"
-    >{$page.data.internationalization?.["wiki-page-delete"]}</label
-  >
+  />
+  <label class="page-delete-option option-delete" for="page-delete-option-delete">
+    {page.data.internationalization?.["wiki-page-delete"]}
+  </label>
   {#if delOption === DeleteOptions.Move}
     <input
       bind:this={moveInputNewSlugElem}
       name="new-slug"
       class="page-move-new-slug"
-      placeholder={$page.data.internationalization?.["wiki-page-move.new-slug"]}
+      placeholder={page.data.internationalization?.["wiki-page-move.new-slug"]}
       type="text"
-      value={`deleted:${$page.data.page.slug}`}
+      value={`deleted:${page.data.page.slug}`}
     />
     <textarea
       name="comments"
       class="page-move-comments"
-      placeholder={$page.data.internationalization?.["wiki-page-revision-comments"]}
-    />
+      placeholder={page.data.internationalization?.["wiki-page-revision-comments"]}
+    ></textarea>
   {/if}
-  {#if $pageLayout === Layout.WIKIDOT}
+  {#if pageLayoutState.current === Layout.WIKIDOT}
     <div class="buttons">
       <input
         class="btn btn-danger"
-        type="button"
-        value={$page.data.internationalization?.cancel}
-        on:click|stopPropagation={() => {
-          pagePaneState.set(PagePane.None)
+        onclick={(event) => {
+          event.stopPropagation()
+          pagePaneState.current = PagePane.None
         }}
+        type="button"
+        value={page.data.internationalization?.cancel}
       />
       <input
         class="btn btn-primary"
+        onclick={(event) => event.stopPropagation()}
         type="submit"
-        value={$page.data.internationalization?.confirm}
-        on:click|stopPropagation
+        value={page.data.internationalization?.confirm}
       />
     </div>
   {:else}
     <div class="action-row page-delete-actions">
       <button
         class="action-button page-delete-button button-cancel clickable"
-        type="button"
-        on:click|stopPropagation={() => {
-          pagePaneState.set(PagePane.None)
+        onclick={(event) => {
+          event.stopPropagation()
+          pagePaneState.current = PagePane.None
         }}
+        type="button"
       >
-        {$page.data.internationalization?.cancel}
+        {page.data.internationalization?.cancel}
       </button>
       <button
         class="action-button page-delete-button button-confirm clickable"
+        onclick={(event) => event.stopPropagation()}
         type="submit"
-        on:click|stopPropagation
       >
-        {$page.data.internationalization?.confirm}
+        {page.data.internationalization?.confirm}
       </button>
     </div>
   {/if}

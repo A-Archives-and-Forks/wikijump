@@ -4,9 +4,10 @@ import { translate } from "$lib/server/deepwell/translate"
 import { adminView } from "$lib/server/deepwell/views"
 import { loadSiteInfo } from "$lib/server/load/site-info"
 import type { TranslateKeys } from "$lib/types"
+import type { Cookies } from "@sveltejs/kit"
 import { error } from "@sveltejs/kit"
 
-export async function loadAdminPage(request, cookies) {
+export async function loadAdminPage(request: Request, cookies: Cookies) {
   const { siteId } = loadSiteInfo(request.headers)
   const sessionToken = cookies.get("wikijump_token")
   let locales = parseAcceptLangHeader(request)

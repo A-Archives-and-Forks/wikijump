@@ -1,18 +1,21 @@
 import defaults from "$lib/defaults"
+
 import { parseAcceptLangHeader } from "$lib/locales"
 import { translate } from "$lib/server/deepwell/translate"
 import { pageView } from "$lib/server/deepwell/views"
 import { loadSiteInfo } from "$lib/server/load/site-info"
-import type { Optional, TranslateKeys } from "$lib/types"
 import { error, redirect } from "@sveltejs/kit"
+
+import type { Optional, TranslateKeys } from "$lib/types"
+import type { Cookies } from "@sveltejs/kit"
 
 // TODO form single deepwell request that does all the relevant prep stuff here
 
 export async function loadPage(
   slug: Optional<string>,
   extra: Optional<string>,
-  request,
-  cookies
+  request: Request,
+  cookies: Cookies
 ) {
   // Set up parameters
   const { siteId } = loadSiteInfo(request.headers)
@@ -48,7 +51,7 @@ export async function loadPage(
   const viewData = response.data
   viewData.view = response.type
 
-  let checkRedirect = true
+  const checkRedirect = true
   let errorStatus = null
 
   switch (response.type) {
@@ -93,8 +96,8 @@ export async function loadPage(
 
   if (errorStatus === null) {
     // Calculate difference of days since latest page edit
-    let updatedAt = Date.parse(viewData.page.updated_at ?? viewData.page.created_at)
-    let daysDiff = Math.floor((Date.now() - updatedAt) / 1000 / 86400)
+    const updatedAt = Date.parse(viewData.page.updated_at ?? viewData.page.created_at)
+    const daysDiff = Math.floor((Date.now() - updatedAt) / 1000 / 86400)
 
     translateKeys = {
       ...translateKeys,

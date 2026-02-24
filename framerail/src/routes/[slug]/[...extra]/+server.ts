@@ -5,40 +5,40 @@ import * as pageFile from "$lib/server/deepwell/pageFile"
 // Handling of server events from client
 
 export async function POST(event) {
-  let data = await event.request.formData()
-  let slug = event.params.slug
+  const data = await event.request.formData()
+  const slug = event.params.slug
 
-  let sessionToken = event.cookies.get("wikijump_token")
-  let ipAddr = event.getClientAddress()
-  let userAgent = event.cookies.get("User-Agent")
+  const sessionToken = event.cookies.get("wikijump_token")
+  const ipAddr = event.getClientAddress()
+  const userAgent = event.cookies.get("User-Agent")
 
-  let session = await authGetSession(sessionToken)
+  const session = await authGetSession(sessionToken)
 
-  let extra = event.params.extra
+  const extra = event.params.extra
     ?.toLowerCase()
     .split("/")
     .filter((flag) => flag.length)
 
-  let pageIdVal = data.get("page-id")?.toString()
-  let pageId = pageIdVal ? parseInt(pageIdVal) : null
-  let siteIdVal = data.get("site-id")?.toString()
-  let siteId = siteIdVal ? parseInt(siteIdVal) : null
+  const pageIdVal = data.get("page-id")?.toString()
+  const pageId = pageIdVal ? parseInt(pageIdVal) : null
+  const siteIdVal = data.get("site-id")?.toString()
+  const siteId = siteIdVal ? parseInt(siteIdVal) : null
 
   let res: object = {}
 
   try {
     if (extra.includes("edit")) {
       /** Edit or create page. */
-      let comments = data.get("comments")?.toString() ?? ""
-      let wikitext = data.get("wikitext")?.toString()
-      let title = data.get("title")?.toString()
-      let altTitle = data.get("alt-title")?.toString()
-      let tagsStr = data.get("tags")?.toString().trim()
+      const comments = data.get("comments")?.toString() ?? ""
+      const wikitext = data.get("wikitext")?.toString()
+      const title = data.get("title")?.toString()
+      const altTitle = data.get("alt-title")?.toString()
+      const tagsStr = data.get("tags")?.toString().trim()
       let tags: string[] = []
       if (tagsStr?.length) tags = tagsStr.split(" ").filter((tag) => tag.length)
-      let layout = data.get("layout")?.toString().trim()
-      let lastRevIdStr = data.get("last-revision-id")?.toString().trim()
-      let lastRevId = lastRevIdStr ? parseInt(lastRevIdStr) : null
+      const layout = data.get("layout")?.toString().trim()
+      const lastRevIdStr = data.get("last-revision-id")?.toString().trim()
+      const lastRevId = lastRevIdStr ? parseInt(lastRevIdStr) : null
 
       res = await page.pageEdit(
         siteId,
@@ -56,18 +56,18 @@ export async function POST(event) {
       )
     } else if (extra.includes("history")) {
       /** Retrieve page revision list. */
-      let revisionNumberStr = data.get("revision-number")?.toString()
-      let revisionNumber = revisionNumberStr ? parseInt(revisionNumberStr) : null
-      let limitStr = data.get("limit")?.toString()
-      let limit = limitStr ? parseInt(limitStr) : null
+      const revisionNumberStr = data.get("revision-number")?.toString()
+      const revisionNumber = revisionNumberStr ? parseInt(revisionNumberStr) : null
+      const limitStr = data.get("limit")?.toString()
+      const limit = limitStr ? parseInt(limitStr) : null
 
       res = await page.pageHistory(siteId, pageId, revisionNumber, limit)
     } else if (extra.includes("move")) {
       /** Move page to new slug. */
-      let comments = data.get("comments")?.toString() ?? ""
-      let newSlug = data.get("new-slug")?.toString()
-      let lastRevIdStr = data.get("last-revision-id")?.toString().trim()
-      let lastRevId = lastRevIdStr ? parseInt(lastRevIdStr) : null
+      const comments = data.get("comments")?.toString() ?? ""
+      const newSlug = data.get("new-slug")?.toString()
+      const lastRevIdStr = data.get("last-revision-id")?.toString().trim()
+      const lastRevId = lastRevIdStr ? parseInt(lastRevIdStr) : null
 
       res = await page.pageMove(
         siteId,
@@ -80,10 +80,10 @@ export async function POST(event) {
         comments
       )
     } else if (extra.includes("revision")) {
-      let revisionNumberStr = data.get("revision-number")?.toString()
-      let compiledHtml = data.get("compiled-html")?.toString() === "true"
-      let wikitext = data.get("wikitext")?.toString() === "true"
-      let revisionNumber = revisionNumberStr ? parseInt(revisionNumberStr) : null
+      const revisionNumberStr = data.get("revision-number")?.toString()
+      const compiledHtml = data.get("compiled-html")?.toString() === "true"
+      const wikitext = data.get("wikitext")?.toString() === "true"
+      const revisionNumber = revisionNumberStr ? parseInt(revisionNumberStr) : null
 
       res = await page.pageRevision(
         siteId,
@@ -93,11 +93,11 @@ export async function POST(event) {
         wikitext
       )
     } else if (extra.includes("rollback")) {
-      let revisionNumberStr = data.get("revision-number")?.toString()
-      let revisionNumber = revisionNumberStr ? parseInt(revisionNumberStr) : null
-      let comments = data.get("comments")?.toString() ?? ""
-      let lastRevIdStr = data.get("last-revision-id")?.toString().trim()
-      let lastRevId = lastRevIdStr ? parseInt(lastRevIdStr) : null
+      const revisionNumberStr = data.get("revision-number")?.toString()
+      const revisionNumber = revisionNumberStr ? parseInt(revisionNumberStr) : null
+      const comments = data.get("comments")?.toString() ?? ""
+      const lastRevIdStr = data.get("last-revision-id")?.toString().trim()
+      const lastRevId = lastRevIdStr ? parseInt(lastRevIdStr) : null
 
       res = await page.pageRollback(
         siteId,
@@ -112,23 +112,23 @@ export async function POST(event) {
     } else if (extra.includes("vote-get")) {
       res = await page.pageVoteList(siteId, pageId)
     } else if (extra.includes("vote-cast")) {
-      let valueStr = data.get("value")?.toString()
-      let value = valueStr ? parseInt(valueStr) : null
+      const valueStr = data.get("value")?.toString()
+      const value = valueStr ? parseInt(valueStr) : null
 
       res = await page.pageVoteCast(siteId, pageId, session?.user_id, value)
     } else if (extra.includes("vote-cancel")) {
       res = await page.pageVoteRemove(siteId, pageId, session?.user_id)
     } else if (extra.includes("layout")) {
-      let layout = data.get("layout")?.toString().trim() ?? null
+      const layout = data.get("layout")?.toString().trim() ?? null
 
       res = await page.pageLayout(siteId, pageId, session?.user_id, ipAddr, layout)
     } else if (extra.includes("parent-set")) {
-      let addParentStr = data.get("add-parents")?.toString().trim() ?? ""
-      let addParents = addParentStr.split(" ").filter((p) => p)
-      let removeParentStr = data.get("remove-parents")?.toString().trim() ?? ""
-      let removeParents = removeParentStr.split(" ").filter((p) => p)
+      const addParentStr = data.get("add-parents")?.toString().trim() ?? ""
+      const addParents = addParentStr.split(" ").filter((p) => p)
+      const removeParentStr = data.get("remove-parents")?.toString().trim() ?? ""
+      const removeParents = removeParentStr.split(" ").filter((p) => p)
 
-      if (addParents.length + removeParents.length)
+      if (addParents.length + removeParents.length) {
         res = await page.pageParentUpdate(
           siteId,
           pageId,
@@ -136,18 +136,19 @@ export async function POST(event) {
           addParents.length ? addParents : undefined,
           removeParents.length ? removeParents : undefined
         )
+      }
     } else if (extra.includes("parent-get")) {
       res = await page.pageParentGet(siteId, pageId, slug)
     } else if (extra.includes("deleted-get")) {
       res = await page.pageDeletedGet(siteId, slug)
     } else if (extra.includes("restore")) {
-      let comments = data.get("comments")?.toString() ?? ""
+      const comments = data.get("comments")?.toString() ?? ""
 
       res = await page.pageRestore(siteId, pageId, session?.user_id, ipAddr, comments)
     } else if (extra.includes("score")) {
       res = await page.pageScore(siteId, pageId, slug)
     } else if (extra.includes("file-list")) {
-      let deleted = data.get("deleted")?.toString() ?? false
+      const deleted = data.get("deleted")?.toString() ?? false
 
       res = await pageFile.pageFileList(
         siteId,
@@ -155,10 +156,10 @@ export async function POST(event) {
         !["false", "null", "", false].includes(deleted)
       )
     } else if (extra.includes("file-upload")) {
-      let file = data.get("file")?.valueOf()
+      const file = data.get("file")?.valueOf()
       let name = data.get("name")?.toString().trim()
       if (name === "") name = undefined // use default file name
-      let comments = data.get("comments")?.toString() ?? ""
+      const comments = data.get("comments")?.toString() ?? ""
 
       res = await pageFile.pageFileCreate(
         siteId,
@@ -170,11 +171,11 @@ export async function POST(event) {
         comments
       )
     } else if (extra.includes("file-delete")) {
-      let fileIdStr = data.get("file-id")?.toString().trim()
-      let fileId = fileIdStr ? parseInt(fileIdStr) : null
-      let lastRevIdStr = data.get("last-revision-id")?.toString().trim()
-      let lastRevId = lastRevIdStr ? parseInt(lastRevIdStr) : null
-      let comments = data.get("comments")?.toString() ?? ""
+      const fileIdStr = data.get("file-id")?.toString().trim()
+      const fileId = fileIdStr ? parseInt(fileIdStr) : null
+      const lastRevIdStr = data.get("last-revision-id")?.toString().trim()
+      const lastRevId = lastRevIdStr ? parseInt(lastRevIdStr) : null
+      const comments = data.get("comments")?.toString() ?? ""
 
       res = await pageFile.pageFileDelete(
         siteId,
@@ -185,14 +186,14 @@ export async function POST(event) {
         comments
       )
     } else if (extra.includes("file-edit")) {
-      let fileIdStr = data.get("file-id")?.toString().trim()
-      let fileId = fileIdStr ? parseInt(fileIdStr) : null
-      let lastRevIdStr = data.get("last-revision-id")?.toString().trim()
-      let lastRevId = lastRevIdStr ? parseInt(lastRevIdStr) : null
-      let file = data.get("file")?.valueOf()
+      const fileIdStr = data.get("file-id")?.toString().trim()
+      const fileId = fileIdStr ? parseInt(fileIdStr) : null
+      const lastRevIdStr = data.get("last-revision-id")?.toString().trim()
+      const lastRevId = lastRevIdStr ? parseInt(lastRevIdStr) : null
+      const file = data.get("file")?.valueOf()
       let name = data.get("name")?.toString().trim()
       if (name === "") name = undefined
-      let comments = data.get("comments")?.toString() ?? ""
+      const comments = data.get("comments")?.toString() ?? ""
 
       res = await pageFile.pageFileEdit(
         siteId,
@@ -205,14 +206,14 @@ export async function POST(event) {
         comments
       )
     } else if (extra.includes("file-move")) {
-      let fileIdStr = data.get("file-id")?.toString().trim()
-      let fileId = fileIdStr ? parseInt(fileIdStr) : null
-      let lastRevIdStr = data.get("last-revision-id")?.toString().trim()
-      let lastRevId = lastRevIdStr ? parseInt(lastRevIdStr) : null
-      let destinationPage = data.get("destination-page")?.toString()
+      const fileIdStr = data.get("file-id")?.toString().trim()
+      const fileId = fileIdStr ? parseInt(fileIdStr) : null
+      const lastRevIdStr = data.get("last-revision-id")?.toString().trim()
+      const lastRevId = lastRevIdStr ? parseInt(lastRevIdStr) : null
+      const destinationPage = data.get("destination-page")?.toString()
       let name = data.get("name")?.toString().trim()
       if (name === "") name = undefined
-      let comments = data.get("comments")?.toString() ?? ""
+      const comments = data.get("comments")?.toString() ?? ""
 
       res = await pageFile.pageFileMove(
         siteId,
@@ -225,13 +226,13 @@ export async function POST(event) {
         comments
       )
     } else if (extra.includes("file-restore")) {
-      let fileIdStr = data.get("file-id")?.toString().trim()
-      let fileId = fileIdStr ? parseInt(fileIdStr) : null
+      const fileIdStr = data.get("file-id")?.toString().trim()
+      const fileId = fileIdStr ? parseInt(fileIdStr) : null
       let newPage = data.get("new-page")?.toString().trim()
       let newName = data.get("new-name")?.toString().trim()
       if (newPage === "") newPage = undefined
       if (newName === "") newName = undefined
-      let comments = data.get("comments")?.toString() ?? ""
+      const comments = data.get("comments")?.toString() ?? ""
 
       res = await pageFile.pageFileRestore(
         siteId,
@@ -244,22 +245,22 @@ export async function POST(event) {
       )
     } else if (extra.includes("file-history")) {
       /** Retrieve file revision list. */
-      let fileIdStr = data.get("file-id")?.toString().trim()
-      let fileId = fileIdStr ? parseInt(fileIdStr) : null
-      let revisionNumberStr = data.get("revision-number")?.toString()
-      let revisionNumber = revisionNumberStr ? parseInt(revisionNumberStr) : null
-      let limitStr = data.get("limit")?.toString()
-      let limit = limitStr ? parseInt(limitStr) : null
+      const fileIdStr = data.get("file-id")?.toString().trim()
+      const fileId = fileIdStr ? parseInt(fileIdStr) : null
+      const revisionNumberStr = data.get("revision-number")?.toString()
+      const revisionNumber = revisionNumberStr ? parseInt(revisionNumberStr) : null
+      const limitStr = data.get("limit")?.toString()
+      const limit = limitStr ? parseInt(limitStr) : null
 
       res = await pageFile.pageFileHistory(siteId, pageId, fileId, revisionNumber, limit)
     } else if (extra.includes("file-rollback")) {
-      let fileIdStr = data.get("file-id")?.toString().trim()
-      let fileId = fileIdStr ? parseInt(fileIdStr) : null
-      let revisionNumberStr = data.get("revision-number")?.toString()
-      let revisionNumber = revisionNumberStr ? parseInt(revisionNumberStr) : null
-      let comments = data.get("comments")?.toString() ?? ""
-      let lastRevIdStr = data.get("last-revision-id")?.toString().trim()
-      let lastRevId = lastRevIdStr ? parseInt(lastRevIdStr) : null
+      const fileIdStr = data.get("file-id")?.toString().trim()
+      const fileId = fileIdStr ? parseInt(fileIdStr) : null
+      const revisionNumberStr = data.get("revision-number")?.toString()
+      const revisionNumber = revisionNumberStr ? parseInt(revisionNumberStr) : null
+      const comments = data.get("comments")?.toString() ?? ""
+      const lastRevIdStr = data.get("last-revision-id")?.toString().trim()
+      const lastRevId = lastRevIdStr ? parseInt(lastRevIdStr) : null
 
       res = await pageFile.pageFileRollback(
         siteId,
@@ -286,25 +287,25 @@ export async function POST(event) {
 
 /** Delete page. */
 export async function DELETE(event) {
-  let data = await event.request.formData()
-  let slug = event.params.slug
+  const data = await event.request.formData()
+  const slug = event.params.slug
 
-  let sessionToken = event.cookies.get("wikijump_token")
-  let ipAddr = event.getClientAddress()
-  let userAgent = event.cookies.get("User-Agent")
+  const sessionToken = event.cookies.get("wikijump_token")
+  const ipAddr = event.getClientAddress()
+  const userAgent = event.cookies.get("User-Agent")
 
-  let session = await authGetSession(sessionToken)
+  const session = await authGetSession(sessionToken)
 
-  let pageIdVal = data.get("page-id")?.toString()
-  let pageId = pageIdVal ? parseInt(pageIdVal) : null
-  let siteIdVal = data.get("site-id")?.toString()
-  let siteId = siteIdVal ? parseInt(siteIdVal) : null
-  let comments = data.get("comments")?.toString() ?? ""
-  let lastRevIdStr = data.get("last-revision-id")?.toString().trim()
-  let lastRevId = lastRevIdStr ? parseInt(lastRevIdStr) : null
+  const pageIdVal = data.get("page-id")?.toString()
+  const pageId = pageIdVal ? parseInt(pageIdVal) : null
+  const siteIdVal = data.get("site-id")?.toString()
+  const siteId = siteIdVal ? parseInt(siteIdVal) : null
+  const comments = data.get("comments")?.toString() ?? ""
+  const lastRevIdStr = data.get("last-revision-id")?.toString().trim()
+  const lastRevId = lastRevIdStr ? parseInt(lastRevIdStr) : null
 
   try {
-    let res = await page.pageDelete(
+    const res = await page.pageDelete(
       siteId,
       pageId,
       session?.user_id,

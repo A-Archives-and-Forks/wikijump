@@ -1,39 +1,36 @@
 <script lang="ts">
-  import { page } from "$app/stores"
+  import { page } from "$app/state"
   import { invalidateAll } from "$app/navigation"
-  import { onMount } from "svelte"
-  import { useErrorPopup, usePageLayoutState } from "$lib/stores"
+  import { errorPopupState, pageLayoutState } from "$lib/stores.svelte"
   import { Layout } from "$lib/types"
-  let showErrorPopup = useErrorPopup()
-  let pageLayout = usePageLayoutState()
-  let showFileUploadAction = false
-  let showFileEditAction = false
-  let showFileMoveAction = false
-  let showFileRestoreAction = false
-  let showFileHistory = false
-  let fileMap: Map<number, Record<string, any>> = new Map()
-  let filesUpload: FileList
-  let filesEditElem: HTMLInputElement
-  let fileEditId: number | null = null
-  let fileRevisionMap: Map<number, Record<string, any>> = new Map()
+  import { SvelteMap } from "svelte/reactivity"
+
+  type FileAction = "upload" | "edit" | "move" | "restore" | "history"
+  let activeFileAction = $state<FileAction | null>(null)
+
+  let fileMap = new SvelteMap<number, Record<string, any>>()
+  let filesUpload = $state<FileList>()
+  let filesEditElem = $state<HTMLInputElement>()
+  let fileEditId = $state<number | null>(null)
+  let fileRevisionMap = new SvelteMap<number, Record<string, any>>()
 
   async function getFileList(deleted?: boolean) {
-    let fdata = new FormData()
-    fdata.set("site-id", $page.data.site.site_id)
-    fdata.set("page-id", $page.data.page.page_id)
-    if (deleted !== undefined) fdata.set("deleted", deleted)
-    let res = await fetch(`/${$page.data.page.slug}/file-list`, {
+    const fdata = new FormData()
+    fdata.set("site-id", page.data.site.site_id)
+    fdata.set("page-id", page.data.page.page_id)
+    if (deleted !== undefined) fdata.set("deleted", deleted.toString())
+    const res = await fetch(`/${page.data.page.slug}/file-list`, {
       method: "POST",
       body: fdata
     }).then((res) => res.json())
     if (res?.message) {
-      showErrorPopup.set({
+      errorPopupState.current = {
         state: true,
         message: res.message,
         data: res.data
-      })
+      }
     } else {
-      fileMap = new Map()
+      fileMap.clear()
       res.forEach((file) => {
         fileMap.set(file.file_id, file)
       })
@@ -41,231 +38,231 @@
   }
 
   async function uploadFile() {
-    let form = document.getElementById("file-upload")
-    let fdata = new FormData(form)
-    fdata.set("site-id", $page.data.site.site_id)
-    fdata.set("page-id", $page.data.page.page_id)
+    const form = document.querySelector<HTMLFormElement>("form#file-upload")
+    if (!form) return
+    const fdata = new FormData(form)
+    fdata.set("site-id", page.data.site.site_id)
+    fdata.set("page-id", page.data.page.page_id)
 
-    let res = await fetch(`/${$page.data.page.slug}/file-upload`, {
+    const res = await fetch(`/${page.data.page.slug}/file-upload`, {
       method: "POST",
       body: fdata
     }).then((res) => res.json())
     if (res?.message) {
-      showErrorPopup.set({
+      errorPopupState.current = {
         state: true,
         message: res.message,
         data: res.data
-      })
+      }
     } else {
       filesUpload = null
-      showFileUploadAction = false
+      activeFileAction = null
       await getFileList()
     }
   }
 
   async function deleteFile(fileId: number, lastRevisionId: number) {
-    let fdata = new FormData()
-    fdata.set("site-id", $page.data.site.site_id)
-    fdata.set("page-id", $page.data.page.page_id)
-    fdata.set("file-id", fileId)
-    fdata.set("last-revision-id", lastRevisionId)
+    const fdata = new FormData()
+    fdata.set("site-id", page.data.site.site_id)
+    fdata.set("page-id", page.data.page.page_id)
+    fdata.set("file-id", fileId.toString())
+    fdata.set("last-revision-id", lastRevisionId.toString())
 
-    let res = await fetch(`/${$page.data.page.slug}/file-delete`, {
+    const res = await fetch(`/${page.data.page.slug}/file-delete`, {
       method: "POST",
       body: fdata
     }).then((res) => res.json())
     if (res?.message) {
-      showErrorPopup.set({
+      errorPopupState.current = {
         state: true,
         message: res.message,
         data: res.data
-      })
+      }
     } else {
-      showFileHistory = false
+      activeFileAction = null
       await getFileList()
     }
   }
 
   async function editFile() {
-    let form = document.getElementById("file-edit")
-    let fdata = new FormData(form)
-    fdata.set("site-id", $page.data.site.site_id)
-    fdata.set("page-id", $page.data.page.page_id)
+    const form = document.querySelector<HTMLFormElement>("form#file-edit")
+    if (!form) return
+    const fdata = new FormData(form)
+    fdata.set("site-id", page.data.site.site_id)
+    fdata.set("page-id", page.data.page.page_id)
     fdata.set("file-id", fileEditId)
     fdata.set("last-revision-id", fileMap.get(fileEditId)?.revision_id)
 
     if (!filesEditElem.files?.length) fdata.delete("file")
 
-    let res = await fetch(`/${$page.data.page.slug}/file-edit`, {
+    const res = await fetch(`/${page.data.page.slug}/file-edit`, {
       method: "POST",
       body: fdata
     }).then((res) => res.json())
     if (res?.message) {
-      showErrorPopup.set({
+      errorPopupState.current = {
         state: true,
         message: res.message,
         data: res.data
-      })
+      }
     } else {
-      showFileEditAction = false
-      showFileHistory = false
+      activeFileAction = null
       await getFileList()
     }
   }
 
   async function moveFile() {
-    let form = document.getElementById("file-move")
-    let fdata = new FormData(form)
-    fdata.set("site-id", $page.data.site.site_id)
-    fdata.set("page-id", $page.data.page.page_id)
+    const form = document.querySelector<HTMLFormElement>("form#file-move")
+    if (!form) return
+    const fdata = new FormData(form)
+    fdata.set("site-id", page.data.site.site_id)
+    fdata.set("page-id", page.data.page.page_id)
     fdata.set("file-id", fileEditId)
     fdata.set("last-revision-id", fileMap.get(fileEditId)?.revision_id)
 
-    let res = await fetch(`/${$page.data.page.slug}/file-move`, {
+    const res = await fetch(`/${page.data.page.slug}/file-move`, {
       method: "POST",
       body: fdata
     }).then((res) => res.json())
     if (res?.message) {
-      showErrorPopup.set({
+      errorPopupState.current = {
         state: true,
         message: res.message,
         data: res.data
-      })
+      }
     } else {
-      showFileMoveAction = false
-      showFileHistory = false
+      activeFileAction = null
       await getFileList()
     }
   }
 
   async function restoreFile() {
-    let form = document.getElementById("file-restore")
-    let fdata = new FormData(form)
-    fdata.set("site-id", $page.data.site.site_id)
-    fdata.set("page-id", $page.data.page.page_id)
-    fdata.set("file-id", fileEditId)
-    let res = await fetch(`/${$page.params.slug}/file-restore`, {
+    const form = document.querySelector<HTMLFormElement>("form#file-restore")
+    if (!form) return
+    const fdata = new FormData(form)
+    fdata.set("site-id", page.data.site.site_id)
+    fdata.set("page-id", page.data.page.page_id)
+    fdata.set("file-id", fileEditId?.toString() ?? "")
+    const res = await fetch(`/${page.params.slug}/file-restore`, {
       method: "POST",
       body: fdata
     }).then((res) => res.json())
     if (res?.message) {
-      showErrorPopup.set({
+      errorPopupState.current = {
         state: true,
         message: res.message,
         data: res.data
-      })
+      }
     } else {
-      showFileRestoreAction = false
+      activeFileAction = null
       getFileList()
       invalidateAll()
     }
   }
 
   async function handleFileHistory(fileId: number) {
-    let fdata = new FormData()
-    fdata.set("site-id", $page.data.site.site_id)
-    fdata.set("page-id", $page.data.page.page_id)
-    fdata.set("file-id", fileId)
-    let res = await fetch(`/${$page.data.page.slug}/file-history`, {
+    const fdata = new FormData()
+    fdata.set("site-id", page.data.site.site_id)
+    fdata.set("page-id", page.data.page.page_id)
+    fdata.set("file-id", fileId.toString())
+    const res = await fetch(`/${page.data.page.slug}/file-history`, {
       method: "POST",
       body: fdata
     }).then((res) => res.json())
     if (res?.message) {
-      showErrorPopup.set({
+      errorPopupState.current = {
         state: true,
         message: res.message,
         data: res.data
-      })
+      }
     } else {
-      fileRevisionMap = new Map()
+      fileRevisionMap.clear()
       res.forEach((rev) => {
         fileRevisionMap.set(rev.revision_number, rev)
       })
-      showFileHistory = true
+      activeFileAction = "history"
     }
   }
 
   async function rollbackFileRevision(revisionNumber: number, comments?: string) {
-    let fdata = new FormData()
-    fdata.set("site-id", $page.data.site.site_id)
-    fdata.set("page-id", $page.data.page.page_id)
-    fdata.set("file-id", fileEditId)
-    fdata.set("revision-number", revisionNumber)
+    const fdata = new FormData()
+    fdata.set("site-id", page.data.site.site_id)
+    fdata.set("page-id", page.data.page.page_id)
+    fdata.set("file-id", fileEditId?.toString())
+    fdata.set("revision-number", revisionNumber.toString())
     fdata.set("last-revision-id", fileMap.get(fileEditId)?.revision_id)
     if (comments !== undefined) fdata.set("comments", comments)
-    let res = await fetch(`/${$page.data.page.slug}/file-rollback`, {
+    const res = await fetch(`/${page.data.page.slug}/file-rollback`, {
       method: "POST",
       body: fdata
     }).then((res) => res.json())
     if (res?.message) {
-      showErrorPopup.set({
+      errorPopupState.current = {
         state: true,
         message: res.message,
         data: res.data
-      })
+      }
     } else {
       getFileList()
-      showFileHistory = false
-      fileRevisionMap = new Map()
+      activeFileAction = null
+      fileRevisionMap.clear()
       handleFileHistory(fileEditId)
       invalidateAll()
     }
   }
 
-  onMount(async () => {
+  $effect(() => {
     getFileList(false)
   })
 </script>
 
-{#if $pageLayout === Layout.WIKIDOT}
+{#if pageLayoutState.current === Layout.WIKIDOT}
   <h1 class="page-file-header">
-    {$page.data.internationalization?.["wiki-page-file"]}
+    {page.data.internationalization?.["wiki-page-file"]}
   </h1>
 {:else}
   <h2 class="page-file-header">
-    {$page.data.internationalization?.["wiki-page-file"]}
+    {page.data.internationalization?.["wiki-page-file"]}
   </h2>
 {/if}
 
 <div class="file-panel">
-  {#if $pageLayout === Layout.WIKIDOT}
+  {#if pageLayoutState.current === Layout.WIKIDOT}
     <div class="buttons">
       <input
         class="btn btn-primary"
-        type="button"
-        value={$page.data.internationalization?.upload}
-        on:click|stopPropagation={() => {
-          showFileUploadAction = true
+        onclick={(event) => {
+          event.stopPropagation()
+          activeFileAction = "upload"
         }}
+        type="button"
+        value={page.data.internationalization?.upload}
       />
       <input
         class="btn btn-default"
+        onclick={() => getFileList(true)}
         type="submit"
-        value={$page.data.internationalization?.restore}
-        on:click={() => {
-          getFileList(true)
-        }}
+        value={page.data.internationalization?.restore}
       />
     </div>
   {:else}
     <div class="action-row file-action">
       <button
         class="action-button upload-file clickable"
-        type="button"
-        on:click|stopPropagation={() => {
-          showFileUploadAction = true
+        onclick={(event) => {
+          event.stopPropagation()
+          activeFileAction = "upload"
         }}
+        type="button"
       >
-        {$page.data.internationalization?.upload}
+        {page.data.internationalization?.upload}
       </button>
       <button
         class="action-button deleted-file clickable"
+        onclick={() => getFileList(true)}
         type="button"
-        on:click={() => {
-          getFileList(true)
-        }}
       >
-        {$page.data.internationalization?.restore}
+        {page.data.internationalization?.restore}
       </button>
     </div>
   {/if}
@@ -274,31 +271,33 @@
     <div class="file-list">
       <div class="file-list-header">
         <div class="file-attribute name">
-          {$page.data.internationalization?.["wiki-page-file.name"]}
+          {page.data.internationalization?.["wiki-page-file.name"]}
         </div>
         <div class="file-attribute created-at">
-          {$page.data.internationalization?.["wiki-page-file.created-at"]}
+          {page.data.internationalization?.["wiki-page-file.created-at"]}
         </div>
         <div class="file-attribute updated-at">
-          {$page.data.internationalization?.["wiki-page-file.updated-at"]}
+          {page.data.internationalization?.["wiki-page-file.updated-at"]}
         </div>
-        {#if $pageLayout !== Layout.WIKIDOT}
+        {#if pageLayoutState.current !== Layout.WIKIDOT}
           <div class="file-attribute mime">
-            {$page.data.internationalization?.["wiki-page-file.mime"]}
+            {page.data.internationalization?.["wiki-page-file.mime"]}
           </div>
         {/if}
         <div class="file-attribute size">
-          {$page.data.internationalization?.["wiki-page-file.size"]}
+          {page.data.internationalization?.["wiki-page-file.size"]}
         </div>
-        <div class="file-attribute action" />
+        <div class="file-attribute action"></div>
       </div>
-      {#each [...fileMap].sort((a, b) => b[0] - a[0]) as [_, file] (file.file_id)}
+      {#each [...fileMap].sort((a, b) => b[0] - a[0]) as [, file] (file.file_id)}
         <div class="file-row" data-id={file.file_id}>
           <div class="file-attribute name">
             <a
-              href="//{$page.data.site_file_domain}/-/file/{$page.data.page
-                .slug}/{file.name}">{file.name}</a
+              href={`//${page.data.site_file_domain}/-/file/${page.data.page.slug}/${file.name}`}
+              rel="external"
             >
+              {file.name}
+            </a>
           </div>
           <div class="file-attribute created-at">
             {new Date(file.file_created_at).toLocaleString()}
@@ -306,7 +305,7 @@
           <div class="file-attribute updated-at">
             {file.file_updated_at ? new Date(file.file_updated_at).toLocaleString() : ""}
           </div>
-          {#if $pageLayout !== Layout.WIKIDOT}
+          {#if pageLayoutState.current !== Layout.WIKIDOT}
             <div class="file-attribute mime">
               {file.mime}
             </div>
@@ -315,114 +314,124 @@
             {file.size}
           </div>
           <div class="file-attribute action">
-            {#if $pageLayout === Layout.WIKIDOT}
+            {#if pageLayoutState.current === Layout.WIKIDOT}
               {#if file.revision_type === "delete"}
-                <!-- svelte-ignore a11y-invalid-attribute -->
+                <!-- svelte-ignore a11y_invalid_attribute -->
                 <a
                   class="btn btn-primary btn-sm btn-small"
                   href="javascript:;"
-                  on:click|stopPropagation={() => {
+                  onclick={(event) => {
+                    event.stopPropagation()
                     fileEditId = file.file_id
-                    showFileRestoreAction = true
+                    activeFileAction = "restore"
                   }}
                 >
-                  {$page.data.internationalization?.restore}
+                  {page.data.internationalization?.restore}
                 </a>
               {:else}
-                <!-- svelte-ignore a11y-invalid-attribute -->
+                <!-- svelte-ignore a11y_invalid_attribute -->
                 <a
                   class="btn btn-primary btn-sm btn-small"
                   href="javascript:;"
-                  on:click|stopPropagation={() => {
-                    showFileHistory = false
+                  onclick={(event) => {
+                    event.stopPropagation()
+                    activeFileAction = "history"
                     handleFileHistory(file.file_id)
                   }}
                 >
-                  {$page.data.internationalization?.history}
+                  {page.data.internationalization?.history}
                 </a>
-                <!-- svelte-ignore a11y-invalid-attribute -->
+                <!-- svelte-ignore a11y_invalid_attribute -->
                 <a
                   class="btn btn-primary btn-sm btn-small"
                   href="javascript:;"
-                  on:click|stopPropagation={() => {
+                  onclick={(event) => {
+                    event.stopPropagation()
                     fileEditId = file.file_id
-                    showFileMoveAction = true
+                    activeFileAction = "move"
                   }}
                 >
-                  {$page.data.internationalization?.move}
+                  {page.data.internationalization?.move}
                 </a>
-                <!-- svelte-ignore a11y-invalid-attribute -->
+                <!-- svelte-ignore a11y_invalid_attribute -->
                 <a
                   class="btn btn-primary btn-sm btn-small"
                   href="javascript:;"
-                  on:click|stopPropagation={() => {
+                  onclick={(event) => {
+                    event.stopPropagation()
                     fileEditId = file.file_id
-                    showFileEditAction = true
+                    activeFileAction = "edit"
                   }}
                 >
-                  {$page.data.internationalization?.edit}
+                  {page.data.internationalization?.edit}
                 </a>
-                <!-- svelte-ignore a11y-invalid-attribute -->
+                <!-- svelte-ignore a11y_invalid_attribute -->
                 <a
                   class="btn btn-primary btn-sm btn-small"
                   href="javascript:;"
-                  on:click|stopPropagation={() => {
+                  onclick={(event) => {
+                    event.stopPropagation()
                     deleteFile(file.file_id, file.revision_id)
                   }}
                 >
-                  {$page.data.internationalization?.delete}
+                  {page.data.internationalization?.delete}
                 </a>
               {/if}
             {:else if file.revision_type === "delete"}
               <button
                 class="action-button restore-file clickable"
-                type="button"
-                on:click|stopPropagation={() => {
+                onclick={(event) => {
+                  event.stopPropagation()
                   fileEditId = file.file_id
-                  showFileRestoreAction = true
+                  activeFileAction = "restore"
                 }}
+                type="button"
               >
-                {$page.data.internationalization?.restore}
+                {page.data.internationalization?.restore}
               </button>
             {:else}
               <button
                 class="action-button file-history clickable"
-                type="button"
-                on:click|stopPropagation={() => {
-                  showFileHistory = false
+                onclick={(event) => {
+                  event.stopPropagation()
+                  activeFileAction = "history"
                   handleFileHistory(file.file_id)
                 }}
+                type="button"
               >
-                {$page.data.internationalization?.history}
+                {page.data.internationalization?.history}
               </button>
               <button
                 class="action-button move-file clickable"
-                type="button"
-                on:click|stopPropagation={() => {
+                onclick={(event) => {
+                  event.stopPropagation()
                   fileEditId = file.file_id
-                  showFileMoveAction = true
+                  activeFileAction = "move"
                 }}
+                type="button"
               >
-                {$page.data.internationalization?.move}
+                {page.data.internationalization?.move}
               </button>
               <button
                 class="action-button edit-file clickable"
-                type="button"
-                on:click|stopPropagation={() => {
+                onclick={(event) => {
+                  event.stopPropagation()
                   fileEditId = file.file_id
-                  showFileEditAction = true
+                  activeFileAction = "edit"
                 }}
+                type="button"
               >
-                {$page.data.internationalization?.edit}
+                {page.data.internationalization?.edit}
               </button>
               <button
                 class="action-button delete-file clickable"
-                type="button"
-                on:click|stopPropagation={() => {
+                onclick={(event) => {
+                  event.stopPropagation()
                   deleteFile(file.file_id, file.revision_id)
                 }}
+                type="button"
               >
-                {$page.data.internationalization?.delete}
+                {page.data.internationalization?.delete}
               </button>
             {/if}
           </div>
@@ -432,22 +441,25 @@
   {:else}
     <div class="file-list">
       <div class="file-list-message">
-        {$page.data.internationalization?.["wiki-page-file-no-files"]}
+        {page.data.internationalization?.["wiki-page-file-no-files"]}
       </div>
     </div>
   {/if}
 
-  {#if showFileUploadAction}
+  {#if activeFileAction === "upload"}
     <form
       id="file-upload"
       class="file-upload"
       method="POST"
-      on:submit|preventDefault={uploadFile}
+      onsubmit={(event) => {
+        event.preventDefault()
+        uploadFile()
+      }}
     >
       <div class="file-form-field">
-        <label for="file"
-          >{$page.data.internationalization?.["wiki-page-file-upload.select"]}</label
-        >
+        <label for="file">
+          {page.data.internationalization?.["wiki-page-file-upload.select"]}
+        </label>
         <input
           name="file"
           class="file-attribute file"
@@ -456,9 +468,9 @@
         />
       </div>
       <div class="file-form-field">
-        <label for="name"
-          >{$page.data.internationalization?.["wiki-page-file-upload.name"]}</label
-        >
+        <label for="name">
+          {page.data.internationalization?.["wiki-page-file-upload.name"]}
+        </label>
         <input
           name="name"
           class="file-attribute name"
@@ -469,61 +481,66 @@
       <textarea
         name="comments"
         class="file-form-field file-comments"
-        placeholder={$page.data.internationalization?.["wiki-page-revision-comments"]}
-      />
-      {#if $pageLayout === Layout.WIKIDOT}
+        placeholder={page.data.internationalization?.["wiki-page-revision-comments"]}
+      ></textarea>
+      {#if pageLayoutState.current === Layout.WIKIDOT}
         <div class="buttons">
           <input
             class="btn btn-default"
-            type="button"
-            value={$page.data.internationalization?.cancel}
-            on:click|stopPropagation={() => {
+            onclick={(event) => {
+              event.stopPropagation()
               filesUpload = null
-              showFileUploadAction = false
+              activeFileAction = null
             }}
+            type="button"
+            value={page.data.internationalization?.cancel}
           />
           <input
             class="btn btn-primary"
+            onclick={(event) => event.stopPropagation()}
             type="submit"
-            value={$page.data.internationalization?.upload}
-            on:click|stopPropagation
+            value={page.data.internationalization?.upload}
           />
         </div>
       {:else}
         <div class="action-row file-upload-actions">
           <button
             class="action-button file-upload-button button-cancel clickable"
-            type="button"
-            on:click|stopPropagation={() => {
+            onclick={(event) => {
+              event.stopPropagation()
               filesUpload = null
-              showFileUploadAction = false
+              activeFileAction = null
             }}
+            type="button"
           >
-            {$page.data.internationalization?.cancel}
+            {page.data.internationalization?.cancel}
           </button>
           <button
             class="action-button file-upload-button button-upload clickable"
+            onclick={(event) => event.stopPropagation()}
             type="submit"
-            on:click|stopPropagation
           >
-            {$page.data.internationalization?.upload}
+            {page.data.internationalization?.upload}
           </button>
         </div>
       {/if}
     </form>
   {/if}
 
-  {#if showFileEditAction}
+  {#if activeFileAction === "edit"}
     <form
       id="file-edit"
       class="file-edit"
       method="POST"
-      on:submit|preventDefault={editFile}
+      onsubmit={(event) => {
+        event.preventDefault()
+        editFile()
+      }}
     >
       <div class="file-form-field">
-        <label for="file"
-          >{$page.data.internationalization?.["wiki-page-file-upload.select"]}</label
-        >
+        <label for="file">
+          {page.data.internationalization?.["wiki-page-file-upload.select"]}
+        </label>
         <input
           bind:this={filesEditElem}
           name="file"
@@ -532,9 +549,9 @@
         />
       </div>
       <div class="file-form-field">
-        <label for="name"
-          >{$page.data.internationalization?.["wiki-page-file-upload.name"]}</label
-        >
+        <label for="name">
+          {page.data.internationalization?.["wiki-page-file-upload.name"]}
+        </label>
         <input
           name="name"
           class="file-attribute name"
@@ -545,59 +562,64 @@
       <textarea
         name="comments"
         class="file-form-field file-comments"
-        placeholder={$page.data.internationalization?.["wiki-page-revision-comments"]}
-      />
-      {#if $pageLayout === Layout.WIKIDOT}
+        placeholder={page.data.internationalization?.["wiki-page-revision-comments"]}
+      ></textarea>
+      {#if pageLayoutState.current === Layout.WIKIDOT}
         <div class="buttons">
           <input
             class="btn btn-default"
-            type="button"
-            value={$page.data.internationalization?.cancel}
-            on:click|stopPropagation={() => {
-              showFileEditAction = false
+            onclick={(event) => {
+              event.stopPropagation()
+              activeFileAction = null
             }}
+            type="button"
+            value={page.data.internationalization?.cancel}
           />
           <input
             class="btn btn-primary"
+            onclick={(event) => event.stopPropagation()}
             type="submit"
-            value={$page.data.internationalization?.save}
-            on:click|stopPropagation
+            value={page.data.internationalization?.save}
           />
         </div>
       {:else}
         <div class="action-row file-edit-actions">
           <button
             class="action-button file-edit-button button-cancel clickable"
-            type="button"
-            on:click|stopPropagation={() => {
-              showFileEditAction = false
+            onclick={(event) => {
+              event.stopPropagation()
+              activeFileAction = null
             }}
+            type="button"
           >
-            {$page.data.internationalization?.cancel}
+            {page.data.internationalization?.cancel}
           </button>
           <button
             class="action-button file-edit-button button-save clickable"
+            onclick={(event) => event.stopPropagation()}
             type="submit"
-            on:click|stopPropagation
           >
-            {$page.data.internationalization?.save}
+            {page.data.internationalization?.save}
           </button>
         </div>
       {/if}
     </form>
   {/if}
 
-  {#if showFileMoveAction}
+  {#if activeFileAction === "move"}
     <form
       id="file-move"
       class="file-move"
       method="POST"
-      on:submit|preventDefault={moveFile}
+      onsubmit={(event) => {
+        event.preventDefault()
+        moveFile()
+      }}
     >
       <input
         name="destination-page"
         class="file-move-destination-page"
-        placeholder={$page.data.internationalization?.[
+        placeholder={page.data.internationalization?.[
           "wiki-page-file-move-destination-page"
         ]}
         type="text"
@@ -605,142 +627,149 @@
       <textarea
         name="comments"
         class="file-move-comments"
-        placeholder={$page.data.internationalization?.["wiki-page-revision-comments"]}
-      />
-      {#if $pageLayout === Layout.WIKIDOT}
+        placeholder={page.data.internationalization?.["wiki-page-revision-comments"]}
+      ></textarea>
+      {#if pageLayoutState.current === Layout.WIKIDOT}
         <div class="buttons">
           <input
             class="btn btn-default"
-            type="button"
-            value={$page.data.internationalization?.cancel}
-            on:click|stopPropagation={() => {
-              showFileMoveAction = false
+            onclick={(event) => {
+              event.stopPropagation()
+              activeFileAction = null
             }}
+            type="button"
+            value={page.data.internationalization?.cancel}
           />
           <input
             class="btn btn-primary"
+            onclick={(event) => event.stopPropagation()}
             type="submit"
-            value={$page.data.internationalization?.move}
-            on:click|stopPropagation
+            value={page.data.internationalization?.move}
           />
         </div>
       {:else}
         <div class="action-row file-move-actions">
           <button
             class="action-button file-move-button button-cancel clickable"
-            type="button"
-            on:click|stopPropagation={() => {
-              showFileMoveAction = false
+            onclick={(event) => {
+              event.stopPropagation()
+              activeFileAction = null
             }}
+            type="button"
           >
-            {$page.data.internationalization?.cancel}
+            {page.data.internationalization?.cancel}
           </button>
           <button
             class="action-button file-move-button button-move clickable"
+            onclick={(event) => event.stopPropagation()}
             type="submit"
-            on:click|stopPropagation
           >
-            {$page.data.internationalization?.move}
+            {page.data.internationalization?.move}
           </button>
         </div>
       {/if}
     </form>
   {/if}
 
-  {#if showFileRestoreAction}
+  {#if activeFileAction === "restore"}
     <form
       id="file-restore"
       class="file-restore"
       method="POST"
-      on:submit|preventDefault={restoreFile}
+      onsubmit={(event) => {
+        event.preventDefault()
+        restoreFile()
+      }}
     >
       <input
         name="new-page"
         class="file-restore-new-page"
-        placeholder={$page.data.internationalization?.["wiki-page-file-restore.new-page"]}
+        placeholder={page.data.internationalization?.["wiki-page-file-restore.new-page"]}
         type="text"
       />
       <input
         name="new-name"
         class="file-restore-new-name"
-        placeholder={$page.data.internationalization?.["wiki-page-file-restore.new-name"]}
+        placeholder={page.data.internationalization?.["wiki-page-file-restore.new-name"]}
         type="text"
       />
       <textarea
         name="comments"
         class="file-restore-comments"
-        placeholder={$page.data.internationalization?.["wiki-page-revision-comments"]}
-      />
-      {#if $pageLayout === Layout.WIKIDOT}
+        placeholder={page.data.internationalization?.["wiki-page-revision-comments"]}
+      ></textarea>
+      {#if pageLayoutState.current === Layout.WIKIDOT}
         <div class="buttons">
           <input
             class="btn btn-default"
-            type="button"
-            value={$page.data.internationalization?.cancel}
-            on:click|stopPropagation={() => {
-              showFileRestoreAction = false
+            onclick={(event) => {
+              event.stopPropagation()
+              activeFileAction = null
             }}
+            type="button"
+            value={page.data.internationalization?.cancel}
           />
           <input
             class="btn btn-primary"
+            onclick={(event) => event.stopPropagation()}
             type="submit"
-            value={$page.data.internationalization?.restore}
-            on:click|stopPropagation
+            value={page.data.internationalization?.restore}
           />
         </div>
       {:else}
         <div class="action-row file-restore-actions">
           <button
             class="action-button file-restore-button button-cancel clickable"
-            type="button"
-            on:click|stopPropagation={() => {
-              showFileRestoreAction = false
+            onclick={(event) => {
+              event.stopPropagation()
+              activeFileAction = null
             }}
+            type="button"
           >
-            {$page.data.internationalization?.cancel}
+            {page.data.internationalization?.cancel}
           </button>
           <button
             class="action-button file-restore-button button-restore clickable"
+            onclick={(event) => event.stopPropagation()}
             type="submit"
-            on:click|stopPropagation
           >
-            {$page.data.internationalization?.restore}
+            {page.data.internationalization?.restore}
           </button>
         </div>
       {/if}
     </form>
   {/if}
 
-  {#if showFileHistory}
+  {#if activeFileAction === "history"}
     <div class="revision-list">
       <div class="revision-header">
-        <div class="revision-attribute action" />
+        <div class="revision-attribute action"></div>
         <div class="revision-attribute revision-number">
-          {$page.data.internationalization?.["wiki-page-revision-number"]}
+          {page.data.internationalization?.["wiki-page-revision-number"]}
         </div>
         <div class="revision-attribute revision-type">
-          {$page.data.internationalization?.["wiki-page-file-revision-type"]}
+          {page.data.internationalization?.["wiki-page-file-revision-type"]}
         </div>
         <div class="revision-attribute created-at">
-          {$page.data.internationalization?.["wiki-page-file.created-at"]}
+          {page.data.internationalization?.["wiki-page-file.created-at"]}
         </div>
         <div class="revision-attribute user">
-          {$page.data.internationalization?.["wiki-page-revision-user"]}
+          {page.data.internationalization?.["wiki-page-revision-user"]}
         </div>
         <div class="revision-attribute page">
-          {$page.data.internationalization?.["wiki-page-file.page"]}
+          {page.data.internationalization?.["wiki-page-file.page"]}
         </div>
         <div class="revision-attribute name">
-          {$page.data.internationalization?.["wiki-page-file.name"]}
+          {page.data.internationalization?.["wiki-page-file.name"]}
         </div>
         <div class="revision-attribute mime">
-          {$page.data.internationalization?.["wiki-page-file.mime"]}
+          {page.data.internationalization?.["wiki-page-file.mime"]}
         </div>
         <div class="revision-attribute size">
-          {$page.data.internationalization?.["wiki-page-file.size"]}
+          {page.data.internationalization?.["wiki-page-file.size"]}
         </div>
         <div class="revision-attribute comments">
-          {$page.data.internationalization?.["wiki-page-revision-comments"]}
+          {page.data.internationalization?.["wiki-page-revision-comments"]}
         </div>
       </div>
       <!-- Here we sort the list in descending order. -->
@@ -748,28 +777,30 @@
         <div class="revision-row" data-id={revisionItem.revision_id}>
           <div class="revision-attribute action">
             {#if ["create", "regular"].includes(revisionItem.revision_type)}
-              {#if $pageLayout === Layout.WIKIDOT}
-                <!-- svelte-ignore a11y-invalid-attribute -->
+              {#if pageLayoutState.current === Layout.WIKIDOT}
+                <!-- svelte-ignore a11y_invalid_attribute -->
                 <a
                   class="btn btn-primary btn-sm btn-small"
                   href="javascript:;"
-                  on:click|stopPropagation={() => {
+                  onclick={(event) => {
+                    event.stopPropagation()
                     fileEditId = revisionItem.file_id
                     rollbackFileRevision(revisionItem.revision_number)
                   }}
                 >
-                  {$page.data.internationalization?.["wiki-page-revision-rollback"]}
+                  {page.data.internationalization?.["wiki-page-revision-rollback"]}
                 </a>
               {:else}
                 <button
                   class="action-button revision-rollback clickable"
-                  type="button"
-                  on:click|stopPropagation={() => {
+                  onclick={(event) => {
+                    event.stopPropagation()
                     fileEditId = revisionItem.file_id
                     rollbackFileRevision(revisionItem.revision_number)
                   }}
+                  type="button"
                 >
-                  {$page.data.internationalization?.["wiki-page-revision-rollback"]}
+                  {page.data.internationalization?.["wiki-page-revision-rollback"]}
                 </button>
               {/if}
             {/if}
@@ -778,7 +809,7 @@
             {revisionItem.revision_number}
           </div>
           <div class="revision-attribute revision-type">
-            {$page.data.internationalization?.[
+            {page.data.internationalization?.[
               `wiki-page-file-revision-type.${revisionItem.revision_type}`
             ]}
           </div>
