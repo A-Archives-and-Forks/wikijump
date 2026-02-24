@@ -15,7 +15,7 @@ services:
       - "S3_PATH_STYLE=${S3_PATH_STYLE}"
       - "S3_ACCESS_KEY_ID=${S3_ACCESS_KEY_ID}"
       - "S3_SECRET_ACCESS_KEY=${S3_SECRET_ACCESS_KEY}"
-    restart: always
+    restart: unless-stopped
     healthcheck:
       test: ["CMD", "wikijump-health-check"]
       interval: 120s
@@ -32,7 +32,7 @@ services:
       - deepwell
     environment:
       - "DEEPWELL_HOST=deepwell"
-    restart: always
+    restart: unless-stopped
     healthcheck:
       test: ["CMD", "wikijump-health-check"]
       interval: 120s
@@ -61,7 +61,7 @@ services:
       - "S3_PATH_STYLE=${S3_PATH_STYLE}"
       - "S3_ACCESS_KEY_ID=${S3_ACCESS_KEY_ID}"
       - "S3_SECRET_ACCESS_KEY=${S3_SECRET_ACCESS_KEY}"
-    restart: always
+    restart: unless-stopped
     healthcheck:
       test: ["CMD", "wikijump-health-check"]
       interval: 120s
@@ -76,7 +76,7 @@ services:
     links:
       - framerail
       - wws
-    restart: always
+    restart: unless-stopped
     healthcheck:
       test: ["CMD", "wikijump-health-check"]
       interval: 30s
