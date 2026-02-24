@@ -33,7 +33,7 @@
       errorPopupState.current = {
         state: true,
         message: res.message,
-        data: res
+        data: res.data
       }
     } else {
       goto(resolve(`/${page.data.page.slug}`, {}), {
