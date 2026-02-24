@@ -1,7 +1,10 @@
+import type { Locales } from "../types"
 export type Optional<T> = T | undefined
 export type Nullable<T> = T | null
-export type TranslateKeys = Record<string, Record<string, string | number>>
-export type TranslatedKeys = Record<string, Optional<string>>
+export type TranslateKeys = {
+  [P in keyof Locales]?: Record<string, string | number>
+}
+export type TranslatedKeys = Partial<Locales>
 export enum Layout {
   WIKIDOT = "wikidot",
   WIKIJUMP = "wikijump"
