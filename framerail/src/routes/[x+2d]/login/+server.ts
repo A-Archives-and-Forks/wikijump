@@ -2,7 +2,6 @@ import { authGetSession } from "$lib/server/auth/getSession"
 import { authLogin } from "$lib/server/auth/login"
 
 export async function POST(event) {
-  console.log("POST HIT")
   const data = await event.request.formData()
 
   const userAgent = event.request.headers.get("User-Agent")
