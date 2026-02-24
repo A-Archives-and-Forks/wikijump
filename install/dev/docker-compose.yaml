@@ -1,6 +1,6 @@
 services:
   deepwell:
-    image: ghcr.io/scpwiki/wikijump:deepwell-dev
+    image: 575596218155.dkr.ecr.us-east-2.amazonaws.com/wikijump/deepwell
     ports:
       - "2747:2747"
     networks:
@@ -25,7 +25,7 @@ services:
       start_interval: 10s
 
   framerail:
-    image: ghcr.io/scpwiki/wikijump:framerail-dev
+    image: 575596218155.dkr.ecr.us-east-2.amazonaws.com/wikijump/framerail
     ports:
       - "3393:3393"
     links:
@@ -43,7 +43,7 @@ services:
         condition: service_healthy
 
   wws:
-    image: ghcr.io/scpwiki/wikijump:wws-dev
+    image: 575596218155.dkr.ecr.us-east-2.amazonaws.com/wikijump/wws
     ports:
       - "7000:7000"
     networks:
@@ -72,7 +72,7 @@ services:
         condition: service_healthy
 
   caddy:
-    image: ghcr.io/scpwiki/wikijump:caddy-dev
+    image: 575596218155.dkr.ecr.us-east-2.amazonaws.com/wikijump/caddy
     links:
       - framerail
       - wws
