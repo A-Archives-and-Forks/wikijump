@@ -47,79 +47,79 @@
       saveEdit()
     }}
   >
-    <label>
+    <label for="name">
       {page.data.internationalization?.["site-info.name"]}
-      <input
-        name="name"
-        class="site-attribute name"
-        type="text"
-        value={page.data.site.name}
-      />
     </label>
+    <input
+      name="name"
+      class="site-attribute name"
+      type="text"
+      value={page.data.site.name}
+    />
 
-    <label>
+    <label for="slug">
       {page.data.internationalization?.["site-info.slug"]}
-      <input
-        name="slug"
-        class="site-attribute slug"
-        type="text"
-        value={page.data.site.slug}
-      />
     </label>
+    <input
+      name="slug"
+      class="site-attribute slug"
+      type="text"
+      value={page.data.site.slug}
+    />
 
-    <label>
+    <label for="tagline">
       {page.data.internationalization?.["site-info.tagline"]}
-      <input
-        name="tagline"
-        class="site-attribute tagline"
-        type="text"
-        value={page.data.site.tagline}
-      />
     </label>
+    <input
+      name="tagline"
+      class="site-attribute tagline"
+      type="text"
+      value={page.data.site.tagline}
+    />
 
-    <label>
+    <label for="description">
       {page.data.internationalization?.["site-info.description"]}
-      <input
-        name="description"
-        class="site-attribute description"
-        type="text"
-        value={page.data.site.description}
-      />
     </label>
+    <input
+      name="description"
+      class="site-attribute description"
+      type="text"
+      value={page.data.site.description}
+    />
 
-    <label>
+    <label for="default-page">
       {page.data.internationalization?.["site-info.default-page"]}
-      <input
-        name="default-page"
-        class="site-attribute default-page"
-        type="text"
-        value={page.data.site.default_page}
-      />
     </label>
+    <input
+      name="default-page"
+      class="site-attribute default-page"
+      type="text"
+      value={page.data.site.default_page}
+    />
 
-    <label>
+    <label for="locale">
       {page.data.internationalization?.["site-info.locale"]}
-      <input
-        name="locale"
-        class="site-attribute locale"
-        type="text"
-        value={page.data.site.locale}
-      />
     </label>
+    <input
+      name="locale"
+      class="site-attribute locale"
+      type="text"
+      value={page.data.site.locale}
+    />
 
     <label for="layout">
       {page.data.internationalization?.["site-info.layout"]}
-      <select name="layout" class="site-attribute layout" value={page.data.site.layout}>
-        <option value={null}>
-          {page.data.internationalization?.["wiki-page-layout.default"]}
-        </option>
-        {#each Object.values(Layout) as layoutOption (layoutOption)}
-          <option value={layoutOption}>
-            {page.data.internationalization?.[`wiki-page-layout.${layoutOption}`]}
-          </option>
-        {/each}
-      </select>
     </label>
+    <select name="layout" class="site-attribute layout" value={page.data.site.layout}>
+      <option value={null}>
+        {page.data.internationalization?.["wiki-page-layout.default"]}
+      </option>
+      {#each Object.values(Layout) as layoutOption (layoutOption)}
+        <option value={layoutOption}>
+          {page.data.internationalization?.[`wiki-page-layout.${layoutOption}`]}
+        </option>
+      {/each}
+    </select>
 
     <div class="action-row editor-actions">
       <button
@@ -236,12 +236,6 @@
     align-items: stretch;
     justify-content: stretch;
     width: 100%;
-  }
-
-  .editor label {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
   }
 
   .action-row {

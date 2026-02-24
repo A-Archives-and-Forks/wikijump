@@ -457,26 +457,26 @@
       }}
     >
       <div class="file-form-field">
-        <label>
+        <label for="file">
           {page.data.internationalization?.["wiki-page-file-upload.select"]}
-          <input
-            name="file"
-            class="file-attribute file"
-            type="file"
-            bind:files={filesUpload}
-          />
         </label>
+        <input
+          name="file"
+          class="file-attribute file"
+          type="file"
+          bind:files={filesUpload}
+        />
       </div>
       <div class="file-form-field">
-        <label>
+        <label for="name">
           {page.data.internationalization?.["wiki-page-file-upload.name"]}
-          <input
-            name="name"
-            class="file-attribute name"
-            placeholder={filesUpload?.[0]?.name}
-            type="text"
-          />
         </label>
+        <input
+          name="name"
+          class="file-attribute name"
+          placeholder={filesUpload?.[0]?.name}
+          type="text"
+        />
       </div>
       <textarea
         name="comments"
@@ -538,26 +538,26 @@
       }}
     >
       <div class="file-form-field">
-        <label>
+        <label for="file">
           {page.data.internationalization?.["wiki-page-file-upload.select"]}
-          <input
-            bind:this={filesEditElem}
-            name="file"
-            class="file-attribute file"
-            type="file"
-          />
         </label>
+        <input
+          bind:this={filesEditElem}
+          name="file"
+          class="file-attribute file"
+          type="file"
+        />
       </div>
       <div class="file-form-field">
-        <label>
+        <label for="name">
           {page.data.internationalization?.["wiki-page-file-upload.name"]}
-          <input
-            name="name"
-            class="file-attribute name"
-            placeholder={fileMap.get(fileEditId)?.name}
-            type="text"
-          />
         </label>
+        <input
+          name="name"
+          class="file-attribute name"
+          placeholder={fileMap.get(fileEditId)?.name}
+          type="text"
+        />
       </div>
       <textarea
         name="comments"

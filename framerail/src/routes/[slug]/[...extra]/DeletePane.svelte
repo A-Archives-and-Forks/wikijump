@@ -89,24 +89,24 @@
     else handleDelete()
   }}
 >
-  <label class="page-delete-option option-move">
-    <input
-      id="page-delete-option-move"
-      name="page-delete-option"
-      type="radio"
-      value={DeleteOptions.Move}
-      bind:group={delOption}
-    />
+  <input
+    id="page-delete-option-move"
+    name="page-delete-option"
+    type="radio"
+    value={DeleteOptions.Move}
+    bind:group={delOption}
+  />
+  <label class="page-delete-option option-move" for="page-delete-option-move">
     {page.data.internationalization?.["wiki-page-move"]}
   </label>
-  <label class="page-delete-option option-delete">
-    <input
-      id="page-delete-option-delete"
-      name="page-delete-option"
-      type="radio"
-      value={DeleteOptions.Delete}
-      bind:group={delOption}
-    />
+  <input
+    id="page-delete-option-delete"
+    name="page-delete-option"
+    type="radio"
+    value={DeleteOptions.Delete}
+    bind:group={delOption}
+  />
+  <label class="page-delete-option option-delete" for="page-delete-option-delete">
     {page.data.internationalization?.["wiki-page-delete"]}
   </label>
   {#if delOption === DeleteOptions.Move}
