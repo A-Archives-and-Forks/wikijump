@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { page } from "$app/stores"
+  import { page } from "$app/state"
   import { invalidateAll } from "$app/navigation"
 
-  let isLoggedIn = $page.data.isLoggedIn
+  let isLoggedIn = $state<boolean>(page.data.isLoggedIn)
 
   async function tryLogout() {
     let res = await fetch(`/-/logout`, {
@@ -20,12 +20,12 @@
   <div class="action-row auth-actions">
     <button
       class="action-button auth-button button-logout clickable"
+      onclick={tryLogout}
       type="button"
-      on:click={tryLogout}
     >
-      {$page.data.internationalization?.logout}
+      {page.data.internationalization?.logout}
     </button>
   </div>
 {:else}
-  {$page.data.internationalization?.["logout.toast"]}
+  {page.data.internationalization?.["logout.toast"]}
 {/if}

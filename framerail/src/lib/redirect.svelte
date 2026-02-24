@@ -1,10 +1,15 @@
 <script lang="ts">
   import { goto } from "$app/navigation"
-  import { onMount } from "svelte"
-  export let redirectPage = "/"
+  import { resolve } from "$app/paths"
 
-  onMount(() => {
-    goto(redirectPage, {
+  interface Props {
+    redirectPage?: string
+  }
+
+  let { redirectPage = "/" }: Props = $props()
+
+  $effect(() => {
+    goto(resolve(redirectPage, {}), {
       replaceState: true
     })
   })

@@ -97,6 +97,7 @@ export default defineConfig(
 
       "svelte/valid-compile": "error",
       "svelte/no-target-blank": "error",
+
       "svelte/require-store-callbacks-use-set-param": "warn",
       "svelte/button-has-type": "warn",
       "svelte/no-at-debug-tags": "warn",
@@ -112,7 +113,9 @@ export default defineConfig(
       "svelte/shorthand-attribute": "warn",
       "svelte/shorthand-directive": "warn",
       "svelte/sort-attributes": "warn",
-      "svelte/spaced-html-comment": "warn"
+      "svelte/spaced-html-comment": "warn",
+
+      "svelte/no-at-html-tags": "off"
     }
   },
   {

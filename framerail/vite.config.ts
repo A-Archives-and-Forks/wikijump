@@ -1,7 +1,9 @@
+import pkg from "./package.json"
+
 import { sveltekit } from "@sveltejs/kit/vite"
 import { execSync } from "child_process"
+
 import type { UserConfig } from "vite"
-import pkg from "./package.json"
 
 let pnpmVersion = null
 try {

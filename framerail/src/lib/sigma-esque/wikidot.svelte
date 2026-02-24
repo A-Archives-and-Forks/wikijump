@@ -1,29 +1,33 @@
+<script lang="ts">
+  let { header, topBar, sideBar, content, footer, license } = $props()
+</script>
+
 <div id="skrollr-body">
-  <!-- svelte-ignore a11y-missing-content -->
+  <!-- svelte-ignore a11y_consider_explicit_label -->
   <a name="page-top"></a>
   <div id="container-wrap-wrap">
     <div id="container-wrap">
       <div id="container">
         <div id="header">
-          <slot name="header"></slot>
+          {@render header?.()}
           <div id="top-bar">
-            <slot name="top-bar"></slot>
+            {@render topBar?.()}
           </div>
         </div>
         <div id="content-wrap">
           <div id="side-bar">
-            <slot name="side-bar"></slot>
+            {@render sideBar?.()}
           </div>
           <div id="main-content">
             <div id="action-area-top"></div>
-            <slot name="content"></slot>
+            {@render content?.()}
           </div>
         </div>
         <div id="footer">
-          <slot name="footer"></slot>
+          {@render footer?.()}
         </div>
         <div id="license-area" class="license-area">
-          <slot name="license"></slot>
+          {@render license?.()}
         </div>
         <div id="extrac-div-1"><span></span></div>
         <div id="extrac-div-2"><span></span></div>
@@ -40,7 +44,7 @@
 </div>
 
 <!-- Ignoring the styling as being a theme it will inevitably style other elements in the entire layout -->
-<!-- svelte-ignore css-unused-selector -->
+<!-- svelte-ignore css_unused_selector -->
 <style global lang="scss">
   $tablet-max-width: 767px;
 

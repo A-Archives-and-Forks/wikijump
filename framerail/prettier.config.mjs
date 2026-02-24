@@ -9,9 +9,9 @@ const config = {
   arrowParens: "always",
   endOfLine: "auto",
   plugins: [
+    "prettier-plugin-svelte",
     "prettier-plugin-organize-imports",
-    "prettier-plugin-jsdoc",
-    "prettier-plugin-svelte"
+    "prettier-plugin-jsdoc"
   ],
   jsdocPrintWidth: 75,
   overrides: [

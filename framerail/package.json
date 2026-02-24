@@ -20,23 +20,23 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.3",
     "@eslint/js": "^10.0.1",
-    "@playwright/test": "^1.56.1",
-    "@sveltejs/vite-plugin-svelte": "^3.1.2",
+    "@playwright/test": "^1.58.2",
+    "@sveltejs/vite-plugin-svelte": "^6.2.4",
     "@types/accept-language-parser": "^1.5.8",
-    "@types/node": "^24.10.1",
+    "@types/node": "^25.3.0",
     "eslint": "^10.0.1",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-svelte": "^3.15.0",
     "globals": "^17.3.0",
     "jiti": "^2.6.1",
     "postcss": "^8.5.6",
-    "postcss-html": "^1.8.0",
+    "postcss-html": "^1.8.1",
     "postcss-scss": "^4.0.9",
     "prettier": "^3.8.1",
     "prettier-plugin-jsdoc": "^1.8.0",
     "prettier-plugin-organize-imports": "^4.3.0",
     "prettier-plugin-svelte": "^3.5.0",
-    "sass": "^1.93.3",
+    "sass": "^1.97.3",
     "stylelint": "^17.3.0",
     "stylelint-config-recess-order": "^7.6.1",
     "stylelint-order": "^7.0.1",
@@ -46,14 +46,14 @@
     "typescript-eslint": "^8.56.0"
   },
   "dependencies": {
-    "@sveltejs/adapter-node": "^5.3.3",
-    "@sveltejs/kit": "^2.27.3",
+    "@sveltejs/adapter-node": "^5.5.3",
+    "@sveltejs/kit": "^2.53.0",
     "accept-language-parser": "^1.5.0",
     "json-rpc-2.0": "^1.7.1",
-    "svelte": "^4.2.20",
-    "svelte-check": "^4.3.4",
+    "svelte": "^5.53.3",
+    "svelte-check": "^4.4.3",
     "svelte-preprocess": "^6.0.3",
     "tslib": "^2.8.1",
-    "vite": "^5.4.21"
+    "vite": "^7.3.1"
   }
 }

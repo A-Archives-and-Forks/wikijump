@@ -1,18 +1,21 @@
 import defaults from "$lib/defaults"
+
 import { parseAcceptLangHeader } from "$lib/locales"
 import { translate } from "$lib/server/deepwell/translate"
 import { pageView } from "$lib/server/deepwell/views"
 import { loadSiteInfo } from "$lib/server/load/site-info"
-import type { Optional, TranslateKeys } from "$lib/types"
 import { error, redirect } from "@sveltejs/kit"
+
+import type { Optional, TranslateKeys } from "$lib/types"
+import type { Cookies } from "@sveltejs/kit"
 
 // TODO form single deepwell request that does all the relevant prep stuff here
 
 export async function loadPage(
   slug: Optional<string>,
   extra: Optional<string>,
-  request,
-  cookies
+  request: Request,
+  cookies: Cookies
 ) {
   // Set up parameters
   const { siteId } = loadSiteInfo(request.headers)

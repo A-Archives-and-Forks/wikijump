@@ -1,23 +1,27 @@
+<script lang="ts">
+  let { header, topBar, content, footer } = $props()
+</script>
+
 <div class="sigma-esque-container">
   <div class="header">
-    <slot name="header"></slot>
+    {@render header?.()}
   </div>
 
   <div class="top-bar">
-    <slot name="top-bar"></slot>
+    {@render topBar?.()}
   </div>
 
   <div class="page-content-container">
-    <slot name="content"></slot>
+    {@render content?.()}
   </div>
 
   <div class="footer">
-    <slot name="footer"></slot>
+    {@render footer?.()}
   </div>
 </div>
 
 <!-- Ignoring the styling as being a theme it will inevitably style other elements in the entire layout -->
-<!-- svelte-ignore css-unused-selector -->
+<!-- svelte-ignore css_unused_selector -->
 <style global lang="scss">
   $tablet-max-width: 767px;
 
