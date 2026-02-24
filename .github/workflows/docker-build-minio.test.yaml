@@ -1,20 +1,19 @@
-name: '[backend] Docker build Framerail (PROD)'
+name: '[backend] Docker build Minio (TEST)'
 
 on:
   push:
     branches:
-      - prod
-  pull_request:
+      - develop
     paths:
-      - 'framerail/**'
-      - 'install/prod/framerail/Dockerfile'
-      - '.github/workflows/docker-build-framerail.prod.yaml'
+      - 'install/local/minio/*'
+      - '.github/workflows/docker-build-minio.local.yaml'
+      - '.github/workflows/docker-push-minio.local.yaml'
 
 env:
-  IMAGE_NAME: wikijump/framerail
-  DESCRIPTION: Web server for Wikijump
-  NAME: framerail
-  TIER: prod
+  IMAGE_NAME: wikijump/minio
+  DESCRIPTION: Modified version of Minio for integration testing
+  NAME: caddy
+  TIER: test
 
 jobs:
   build:
@@ -24,12 +23,12 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Build image
-        run: docker build --tag ${{ env.IMAGE_NAME }}:${{ env.TIER }} -f install/${{ env.TIER }}/${{ env.NAME }}/Dockerfile .
+        run: docker build --tag ${{ env.IMAGE_NAME }}:${{ env.TIER }} -f install/local/${{ env.NAME }}/Dockerfile .
         env:
           DOCKER_BUILDKIT: 1
 
       - name: Push image to ECR
-        if: github.ref == 'refs/heads/prod'
+        if: github.ref == 'refs/heads/develop'
         uses: jwalton/gh-ecr-push@v2
         with:
           access-key-id: ${{ secrets.AWS_ECR_ACCESS_KEY }}
