@@ -1,5 +1,7 @@
 name: '[backend] Docker build Minio (LOCAL)'
 
+# (TEMP) Push image to GitHub Container Registry (GHCR)
+
 on:
   push:
     branches:

@@ -1,5 +1,7 @@
 name: '[backend] Docker push Caddy (PROD)'
 
+# (DEPRECATED) Push image to GitHub Container Registry (GHCR)
+
 on:
   push:
     branches:
