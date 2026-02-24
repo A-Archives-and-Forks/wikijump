@@ -36,4 +36,4 @@ jobs:
           secret-access-key: ${{ secrets.AWS_ECR_SECRET_KEY }}
           region: us-east-2
           local-image: ${{ env.IMAGE_NAME }}:${{ env.TIER }}
-          image: ${{ env.IMAGE_NAME }}:${{ env.TIER }}
+          image: ${{ env.IMAGE_NAME }}:${{ env.TIER }}, ${{ env.IMAGE_NAME }}:${{ env.TIER }}-${{ github.sha }}
