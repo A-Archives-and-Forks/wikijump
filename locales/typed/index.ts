@@ -38,6 +38,6 @@ fs.readdirSync(input).forEach((folder) => {
 const types = JSON.stringify(combined, null, 2)
   .replace(/"/g, "")
   .replace(/,/g, "")
-  .replace(/(?=\S*['-._])([a-zA-Z0-9'-._]+)/g, '"$1"');
+  .replace(/(?=\S*['\-\._])([a-zA-Z0-9'\-\._]+)/g, '"$1"');
 
 fs.writeFileSync(`${output}/index.ts`, `export interface Locales ${types}\n`);
