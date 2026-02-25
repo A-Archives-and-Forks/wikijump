@@ -45,13 +45,13 @@ services:
   wws:
     image: 575596218155.dkr.ecr.us-east-2.amazonaws.com/wikijump/wws
     ports:
-      - "7000:7000"
+      - "3466:3466"
     networks:
       - dokploy-network
     links:
       - deepwell
     environment:
-      - "ADDRESS=[::]:7000"
+      - "ADDRESS=[::]:3466"
       - "DEEPWELL_URL=http://deepwell:2747"
       - "REDIS_URL=${REDIS_URL}"
       - "S3_FILES_BUCKET=${S3_FILES_BUCKET}"
