@@ -29,7 +29,7 @@
 		path /-/health-check
 	}
 	request_header @proxy X-Wikijump-Target-Server main
-	reverse_proxy @proxy wws:7000
+	reverse_proxy @proxy wws:3466
 
 	# Redirect, true route is on the files server
 	@redirect {
@@ -109,14 +109,14 @@ www.example.com {
 
 	# Reverse proxy
 	request_header X-Wikijump-Target-Server files
-	reverse_proxy wws:7000
+	reverse_proxy wws:3466
 }
 
 wjfiles.localhost {
 	import strip_headers
 	request_header X-Wikijump-Basic-Error 1
 	rewrite * /-/basic-error/file-root
-	reverse_proxy wws:7000
+	reverse_proxy wws:3466
 }
 
 *.wjfiles.localhost {
@@ -144,7 +144,7 @@ wjfiles.localhost {
 	request_header X-Wikijump-Basic-Error 1
 	request_header X-Wikijump-Site-Slug {labels.2}
 	rewrite * /-/basic-error/site-slug
-	reverse_proxy wws:7000
+	reverse_proxy wws:3466
 }
 
 # Missing custom domain
@@ -154,5 +154,5 @@ localhost {
 	import strip_headers
 	request_header X-Wikijump-Basic-Error 1
 	rewrite * /-/basic-error/site-custom
-	reverse_proxy wws:7000
+	reverse_proxy wws:3466
 }

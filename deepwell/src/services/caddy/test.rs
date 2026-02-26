@@ -209,7 +209,7 @@ fn write_test_file(path: &str, caddyfile: &str) {
 #[test]
 fn generate_caddyfiles() {
     const FRAMERAIL_HOST: &str = "framerail:3393";
-    const WWS_HOST: &str = "wws:7000";
+    const WWS_HOST: &str = "wws:3466";
 
     // Build different configurations for various test cases
     let config_basic = build_config("wikijump.test", "wjfiles.test");
