@@ -1,8 +1,13 @@
 [[stack]]
 name = "wikijump-dev"
+description = "Wikijump deployment for the dev tier"
 tags = ["wikijump"]
 [stack.config]
 server = "Local"
+links = [
+    "https://github.com/scpwiki/wikijump",
+    "https://wikijump.org",
+]
 project_name = "wikijump"
 run_build = true
 destroy_before_deploy = true
