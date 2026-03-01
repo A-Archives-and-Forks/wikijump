@@ -6,8 +6,7 @@ on:
       - develop
     paths:
       - 'install/local/minio/*'
-      - '.github/workflows/docker-build-minio.local.yaml'
-      - '.github/workflows/docker-push-minio.local.yaml'
+      - '.github/workflows/docker-push-minio.yaml'
 
 env:
   REGISTRY: ghcr.io
