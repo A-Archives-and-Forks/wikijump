@@ -45,6 +45,8 @@ jobs:
           MINIO_API_PORT_NUMBER: '9000'
           MINIO_SERVER_ACCESS_KEY: 's3-access-key'
           MINIO_SERVER_SECRET_KEY: 's3-secret-key'
+          MINIO_REGION_NAME: 'local'
+          INITIAL_BUCKETS: 'deepwell-files deepwell-text-blocks'
         options: >-
           --health-cmd "bash -c ':> /dev/tcp/127.0.0.1/9000'"
           --health-interval 10s
@@ -62,14 +64,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
-
-      - name: Create Buckets
-        run: |
-          docker exec minio /bin/sh -c "
-            /usr/bin/mc alias set dockerminio http://minio:9000 s3-access-key s3-secret-key &&
-            /usr/bin/mc mb dockerminio/deepwell-files &&
-            /usr/bin/mc mb dockerminio/deepwell-text-blocks
-          "
 
       - name: Cargo Cache
         uses: actions/cache@v5
