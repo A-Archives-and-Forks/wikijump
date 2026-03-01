@@ -1,23 +1,22 @@
-name: '[backend] Docker push WWS (DEV)'
-
-# (DEPRECATED) Push image to GitHub Container Registry (GHCR)
+name: '[backend] Docker build Minio (TEST)'
 
 on:
   push:
     branches:
-      - prod
-    tags:
-      - wws-*
+      - develop
+    paths:
+      - 'install/local/minio/*'
+      - '.github/workflows/docker-build-minio.local.yaml'
+      - '.github/workflows/docker-push-minio.local.yaml'
 
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: scpwiki/wikijump
-  DESCRIPTION: Wilson's Web Server, file and static routing for Wikijump
-  NAME: wws
-  TIER: prod
+  DESCRIPTION: Modified version of Minio for integration testing
+  TAG: minio
 
 jobs:
-  build_and_push:
+  push:
     runs-on: ubuntu-latest
 
     permissions:
@@ -43,10 +42,7 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            # use "prod" for latest production branch pushes
-            type=raw,value=${{ env.NAME }}-${{ env.TIER }},enable=${{ github.ref == format('refs/heads/{0}', 'prod') }}
-            # use version from git tags
-            type=match,pattern=${{ env.NAME }}-(.+),group=0
+            type=raw,value=${{ env.TAG }},enable=${{ github.ref == format('refs/heads/{0}', 'develop') }}
           labels: |
             org.opencontainers.image.title=${{ env.NAME }}
             org.opencontainers.image.description=${{ env.DESCRIPTION }}
@@ -55,8 +51,6 @@ jobs:
         id: push
         uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4
         with:
-          file: install/${{ env.TIER }}/${{ env.NAME }}/Dockerfile
-          context: .
-          push: true
+          file: install/local/minio/Dockerfile
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
