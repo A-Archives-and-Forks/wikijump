@@ -115,7 +115,6 @@ impl CaddyService {
         CaddyfileOptions {
             debug,
             local,
-            auto_https,
             http_port,
             https_port,
             framerail_host,
@@ -154,10 +153,6 @@ impl CaddyService {
 
         if *local {
             str_writeln!(&mut caddyfile, "\tlocal_certs\n\tskip_install_trust");
-        }
-
-        if !*auto_https {
-            str_writeln!(&mut caddyfile, "\tauto_https off");
         }
 
         str_write!(
