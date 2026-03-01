@@ -72,3 +72,4 @@ Then in Komodo, navigate to _Settings → Providers → Registry Accounts_ and a
 * __Username:__ `AWS`
 * __Token:__ The login password you generated above.
 11. Go to the `wikijump-dev` stack and **pull images**. If everything is configured properly so far, it should be able to retrieve the images and be in a state to deploy it.
+12. __**TODO**__ Now, deploy the `wikijump-dev` stack. This will first build the local images (the two databases) and attempt to start the containers per the topology in `docker-compose.yaml`.
