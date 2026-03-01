@@ -1,9 +1,7 @@
-name: '[backend] Docker build Minio (TEST)'
+name: '[backend] Docker build Minio'
 
 on:
   push:
-    branches:
-      - develop
     paths:
       - 'install/local/minio/*'
       - '.github/workflows/docker-push-minio.yaml'
@@ -15,7 +13,7 @@ env:
   TAG: minio
 
 jobs:
-  push:
+  build:
     runs-on: ubuntu-latest
 
     permissions:
@@ -51,5 +49,7 @@ jobs:
         uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4
         with:
           file: install/local/minio/Dockerfile
+          context: install/local/minio
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
+          push: ${{ github.ref == 'refs/heads/develop' }}
