@@ -2,10 +2,9 @@
 
 [[variable]]
 name = "POSTGRES_PASSWORD"
-description
 description = "Password for the PostgreSQL database."
 value = ""  # TODO: generate password value!
-is_secret = false
+is_secret = true
 
 # S3 / Object Storage
 

@@ -1,0 +1,7 @@
+[[resource_sync]]
+name = "wikijump-dev"
+tags = ["wikijump"]
+
+[resource_sync.config]
+linked_repo = "wikijump-dev"
+resource_path = ["install/dev/komodo/"]
