@@ -6,7 +6,7 @@ services:
     environment:
       - "POSTGRES_DB=wikijump"
       - "POSTGRES_USER=wikijump"
-      - "POSTGRES_PASSWORD=wikijump"
+      - "POSTGRES_PASSWORD=${POSTGRES_PASSWORD}"
       - "POSTGRES_HOST_AUTH_METHOD=md5"
       - "POSTGRES_INITDB_ARGS=--locale en_US.UTF-8"
     ports:
@@ -34,11 +34,12 @@ services:
     image: 575596218155.dkr.ecr.us-east-2.amazonaws.com/wikijump/deepwell:dev
     ports:
       - "2747:2747"
-    networks:
-      - dokploy-network
+    links:
+      - cache
+      - database
     environment:
-      - "DATABASE_URL=${DATABASE_URL}"
-      - "REDIS_URL=${REDIS_URL}"
+      - "DATABASE_URL=postgres://wikijump:${POSTGRES_PASSWORD}@database/wikijump"
+      - "REDIS_URL=redis://cache"
       - "S3_FILES_BUCKET=${S3_FILES_BUCKET}"
       - "S3_TEXT_BLOCKS_BUCKET=${S3_TEXT_BLOCKS_BUCKET}"
       - "S3_REGION_NAME=${S3_REGION_NAME}"
@@ -77,14 +78,13 @@ services:
     image: 575596218155.dkr.ecr.us-east-2.amazonaws.com/wikijump/wws:dev
     ports:
       - "3466:3466"
-    networks:
-      - dokploy-network
     links:
       - deepwell
+      - cache
     environment:
       - "ADDRESS=[::]:3466"
       - "DEEPWELL_URL=http://deepwell:2747"
-      - "REDIS_URL=${REDIS_URL}"
+      - "REDIS_URL=redis://cache"
       - "S3_FILES_BUCKET=${S3_FILES_BUCKET}"
       - "S3_TEXT_BLOCKS_BUCKET=${S3_TEXT_BLOCKS_BUCKET}"
       - "S3_REGION_NAME=${S3_REGION_NAME}"
