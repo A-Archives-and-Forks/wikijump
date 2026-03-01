@@ -1,4 +1,35 @@
 services:
+  database:
+    build:
+      context: ../..
+      dockerfile: install/dev/postgres/Dockerfile
+    environment:
+      - "POSTGRES_DB=wikijump"
+      - "POSTGRES_USER=wikijump"
+      - "POSTGRES_PASSWORD=wikijump"
+      - "POSTGRES_HOST_AUTH_METHOD=md5"
+      - "POSTGRES_INITDB_ARGS=--locale en_US.UTF-8"
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wikijump-health-check"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+  cache:
+    build: valkey
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    # You can add a volume for /data if you wish
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
   deepwell:
     image: 575596218155.dkr.ecr.us-east-2.amazonaws.com/wikijump/deepwell:dev
     ports:

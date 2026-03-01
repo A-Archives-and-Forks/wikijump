@@ -27,26 +27,26 @@ services:
       - "MINIO_REGION_NAME=local"
       - "INITIAL_BUCKETS=deepwell-files deepwell-text-blocks"
       - "DATA_DIR=/data"  # You can add a volume for /data if you wish
+    ports:
+      - "9000:9000"
+      - "9001:9001"
     healthcheck:
       test: ["CMD", "/healthcheck.sh"]
       interval: 10s
       timeout: 5s
       retries: 3
-    ports:
-      - "9000:9000"
-      - "9001:9001"
 
   cache:
     build: valkey
     restart: unless-stopped
+    ports:
+      - "6379:6379"
     # You can add a volume for /data if you wish
     healthcheck:
       test: ["CMD", "valkey-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 3
-    ports:
-      - "6379:6379"
 
   deepwell:
     build:
