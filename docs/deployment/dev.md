@@ -27,7 +27,7 @@ $ sudo systemctl reload ssh.service
 ```
 5. Install Docker:
 ```
-$ sudo apt install docker.io docker-compose
+$ sudo apt install docker.io docker-compose docker-buildx
 ```
 6. Install Komodo:
 When multiple servers are initiated for the same tier, note that *only one machine should have a Komodo Core*. All the servers need a Periphery instance to be able to talk to the one machine running Komodo Core.
