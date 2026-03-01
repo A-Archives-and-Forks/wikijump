@@ -23,7 +23,6 @@ services:
     restart: unless-stopped
     ports:
       - "6379:6379"
-    # You can add a volume for /data if you wish
     healthcheck:
       test: ["CMD", "valkey-cli", "ping"]
       interval: 10s
