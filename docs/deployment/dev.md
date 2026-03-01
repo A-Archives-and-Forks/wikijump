@@ -30,8 +30,8 @@ When multiple servers are initiated for the same tier, note that *only one machi
 
 The files to use here are located in the current directory, and for `compose.env` see `compose.env.example` to populate the missing fields.
 ```
-sudo mkdir -p /var/lib/komodo/backups
-sudo docker-compose -p komodo -f docker-compose.yaml --env-file compose.env up -d
+$ sudo mkdir -p /var/lib/komodo/backups
+$ sudo docker-compose -p komodo -f docker-compose.yaml --env-file compose.env up -d
 ```
 
 
