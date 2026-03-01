@@ -166,7 +166,8 @@ impl CaddyService {
 	request_header -X-Wikijump-*
 }}
 
-");
+"
+        );
 
         if let Some(deploy_host) = deploy_host {
             str_write!(
@@ -184,7 +185,8 @@ deploy{files_domain} {{
 	redir https://deploy{main_domain}
 }}
 
-");
+"
+            );
         }
 
         str_write!(
