@@ -33,19 +33,31 @@ The files to use here are located in the current directory, and for `compose.env
 $ sudo mkdir -p /var/lib/komodo/backups
 $ sudo docker-compose -p komodo -f docker-compose.yaml --env-file compose.env up -d
 ```
+8. Log in to Komodo.
+Using the admin password you generated for `compose.env`, log in to Komodo via `http://[IP ADDRESS]:9120/`.
+9. Bootstrap resource sync.
+In order to add the rest of the infrastructure, we need to add a git repository and a resource sync. Then, Komodo can use the `*.toml` files in `install/dev/komodo/` to set up the rest of the infrastructure.
 
+  1. Go to **repos**. See `install/dev/komodo/sources.toml` and add the fields as appropriate.
+  2. Go to **resource syncs**. See `install/dev/komodo/resource-sync.toml` add add the fields as appropriate.
+  3. As a **one-time change**, set "Sync Variables" to true.
+  4. Click the "refresh" button, verify that proposed infrastructure changes look good, then apply.
+  5. Set "Sync Variables" back to false.
+10. Add secrets.
+It is not good practice to add secrets to code, and triply so if the repository is public. As such, `install/dev/komodo/variables.toml` is missing values for those marked "secret" (see the file for more information). Some of these are secret values that need to be generated, and some come from your infrastructure. Fill in the values as appropriate.
 
+If you are using AWS ECR for storing images, you will need to generate a login identity. Do the following:
 ```
-# curl -sSL https://dokploy.com/install.sh | sh
+Temporarily set appropriate access key and secret key:
+$ aws configure
+# Get your user ID
+$ aws sts get-caller-identity --query Account --output text
+# Get the 'token' field
+$ aws ecr get-login-password
+# Now, remove the temporary credentials from `~/.aws`
 ```
-6. Go to the new HTTP endpoint and set up the Dokploy owner account.
-7. Set up the HTTPS custom domain for Dokploy (here, `deploy.wikijump.dev`).
-8. Add [GitHub Container Registry to Dokploy](https://docs.dokploy.com/docs/core/registry/ghcr).
-9. Add S3 buckets to Dokploy and configure regular backups.
-10. Add git repository connection to Dokploy.
-11. Create "Wikijump" project.
-  1. Add PostgreSQL database. Set database / user to `wikijump`.
-  2. Add Valkey / Redis database.
-  3. Add "Compose" application. This uses the git repository to read the docker-compose file at `install/dev/docker-compose.yaml` on branch `develop`.
-12. Create all relevant domains (and subdomains) for the project. Each needs to point to `caddy` at port 80, and should have Let's Encrypt provide TLS certificates.
-13. Create deployments for all services.
+
+Then in Komodo, navigate to _Settings → Providers → Registry Accounts_ and add a new one:
+* __Domain:__ Your AWS ECR registry URL, that is `[user ID].dkr.ecr.[region].amazonaws.com`
+* __Username:__ `AWS`
+* __Token:__ The login password you generated above.
