@@ -7,23 +7,27 @@ This illustrates the setup for the [Komodo](https://komo.do)-based dev tier host
 ```
 # adduser --disabled-password maintainer
 # gpasswd -a maintainer sudo
+# passwd -d maintainer
 ```
-3. Disable password-based SSH (if not already disabled):
+3. Add SSH keys to enable login as `maintainer`:
+```
+# su maintainer
+$ cd
+$ mkdir -m700 .ssh
+$ nano .ssh/authorized_keys
+$ chmod 600 .ssh/authorized_keys
+```
+Then, ensure you can SSH to the machine as `maintainer`. The remaining instructions assume you are logged in as `maintainer`, not `root`.
+4. Disable password-based SSH (if not already disabled):
 ```
 $ sudoedit /etc/ssh/sshd_config
 PasswordAuthentication no
 PermitEmptyPasswords no
 $ sudo systemctl reload ssh.service
 ```
-4. Add SSH keys to enable login as `maintainer`:
-```
-$ mkdir -m700 .ssh
-$ nano .ssh/authorized_keys
-$ chmod 600 .ssh/authorized_keys
-```
 5. Install Docker:
 ```
-$ sudo apt install docker.io docker-compose
+$ sudo apt install docker.io docker-compose docker-buildx
 ```
 6. Install Komodo:
 When multiple servers are initiated for the same tier, note that *only one machine should have a Komodo Core*. All the servers need a Periphery instance to be able to talk to the one machine running Komodo Core.
@@ -31,7 +35,13 @@ When multiple servers are initiated for the same tier, note that *only one machi
 The files to use here are located in the current directory, and for `compose.env` see `compose.env.example` to populate the missing fields.
 ```
 $ sudo mkdir -p /var/lib/komodo/backups
+$ mkdir ~/komodo
+$ cd ~/komodo
+Copy docker-compose.yaml from install/dev/komodo/docker-compose.yaml
+Create compose.env based on install/dev/komodo/compose.env.example
 $ sudo docker-compose -p komodo -f docker-compose.yaml --env-file compose.env up -d
+Ensure that it's running as expected:
+$ sudo docker-compose -p komodo -f docker-compose.yaml --env-file compose.env ps
 ```
 8. Log in to Komodo.
 Using the admin password you generated for `compose.env`, log in to Komodo via `http://[IP ADDRESS]:9120/`.
@@ -61,4 +71,6 @@ Then in Komodo, navigate to _Settings → Providers → Registry Accounts_ and a
 * __Domain:__ Your AWS ECR registry URL, that is `[user ID].dkr.ecr.[region].amazonaws.com`
 * __Username:__ `AWS`
 * __Token:__ The login password you generated above.
-11. **TODO:** Add steps for deploying the stack.
+11. Go to the `wikijump-dev` stack and **pull images**. If everything is configured properly so far, it should be able to retrieve the images and be in a state to deploy it.
+12. __**TODO**__ Now, deploy the `wikijump-dev` stack. This will first build the local images (the two databases) and attempt to start the containers per the topology in `docker-compose.yaml`.
+13. Once the stack is deployed, and caddy is serving as TLS termination for Komodo, you should enable a firewall on the machine. The only exposed ports should be 22 (for SSH), and 80 and 443 (for HTTP traffic).
