@@ -164,7 +164,6 @@ macro_rules! test_file_path {
 }
 
 const CADDYFILE_BASIC_PROD: &str = test_file_path!("basic_prod");
-const CADDYFILE_BASIC_PROD_HTTP: &str = test_file_path!("basic_prod_http");
 const CADDYFILE_BASIC_LOCAL: &str = test_file_path!("basic_local");
 const CADDYFILE_BASIC_LOCAL_DEV: &str = test_file_path!("basic_localdev");
 const CADDYFILE_BASIC_DIFFERENT_PROXIES: &str = test_file_path!("proxies");
@@ -208,6 +207,7 @@ fn write_test_file(path: &str, caddyfile: &str) {
 
 #[test]
 fn generate_caddyfiles() {
+    const DEPLOY_HOST: &str = "localhost:9120";
     const FRAMERAIL_HOST: &str = "framerail:3393";
     const WWS_HOST: &str = "wws:3466";
 
@@ -265,24 +265,9 @@ UNIT TEST INFO:
         CaddyfileOptions {
             debug: false,
             local: false,
-            auto_https: true,
             http_port: None,
             https_port: None,
-            framerail_host: cow!(FRAMERAIL_HOST),
-            wws_host: cow!(WWS_HOST),
-        },
-    );
-
-    check!(
-        CADDYFILE_BASIC_PROD_HTTP,
-        config_basic,
-        sites_basic,
-        CaddyfileOptions {
-            debug: false,
-            local: false,
-            auto_https: false,
-            http_port: Some(80),
-            https_port: None,
+            deploy_host: Some(cow!(DEPLOY_HOST)),
             framerail_host: cow!(FRAMERAIL_HOST),
             wws_host: cow!(WWS_HOST),
         },
@@ -295,9 +280,9 @@ UNIT TEST INFO:
         CaddyfileOptions {
             debug: false,
             local: true,
-            auto_https: true,
             http_port: None,
             https_port: None,
+            deploy_host: None,
             framerail_host: cow!(FRAMERAIL_HOST),
             wws_host: cow!(WWS_HOST),
         },
@@ -310,9 +295,9 @@ UNIT TEST INFO:
         CaddyfileOptions {
             debug: true,
             local: true,
-            auto_https: true,
             http_port: Some(8000),
             https_port: Some(8443),
+            deploy_host: None,
             framerail_host: cow!(FRAMERAIL_HOST),
             wws_host: cow!(WWS_HOST),
         },
@@ -325,9 +310,9 @@ UNIT TEST INFO:
         CaddyfileOptions {
             debug: false,
             local: false,
-            auto_https: true,
             http_port: None,
             https_port: None,
+            deploy_host: Some(cow!("komodo_host")),
             framerail_host: cow!("web_proxy_host"),
             wws_host: cow!("wws_proxy_host"),
         },
@@ -340,9 +325,9 @@ UNIT TEST INFO:
         CaddyfileOptions {
             debug: false,
             local: false,
-            auto_https: true,
             http_port: None,
             https_port: None,
+            deploy_host: Some(cow!(DEPLOY_HOST)),
             framerail_host: cow!(FRAMERAIL_HOST),
             wws_host: cow!(WWS_HOST),
         },
@@ -355,9 +340,9 @@ UNIT TEST INFO:
         CaddyfileOptions {
             debug: false,
             local: false,
-            auto_https: true,
             http_port: None,
             https_port: None,
+            deploy_host: None,
             framerail_host: cow!(FRAMERAIL_HOST),
             wws_host: cow!(WWS_HOST),
         },

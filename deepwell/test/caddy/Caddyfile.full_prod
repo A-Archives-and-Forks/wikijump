@@ -11,6 +11,18 @@
 }
 
 #
+# INFRASTRUCTURE
+#
+
+deploy.wikijump.test {
+	reverse_proxy localhost:9120
+}
+
+deploy.wjfiles.test {
+	redir https://deploy.wikijump.test
+}
+
+#
 # MAIN
 #
 

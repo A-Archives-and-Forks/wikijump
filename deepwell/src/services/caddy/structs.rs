@@ -29,9 +29,6 @@ pub struct CaddyfileOptions<'a> {
     #[serde(default)]
     pub local: bool,
 
-    #[serde(default = "default_true")]
-    pub auto_https: bool,
-
     #[serde(default)]
     pub http_port: Option<i64>,
 
@@ -39,6 +36,8 @@ pub struct CaddyfileOptions<'a> {
     pub https_port: Option<i64>,
 
     // Infra information
+    #[serde(default)]
+    pub deploy_host: Option<Cow<'a, str>>,
     pub framerail_host: Cow<'a, str>,
     pub wws_host: Cow<'a, str>,
 }
@@ -53,9 +52,4 @@ pub struct SiteData {
 pub struct SiteDomainData {
     pub aliases: Vec<String>,
     pub custom_domains: Vec<String>,
-}
-
-#[inline]
-fn default_true() -> bool {
-    true
 }
