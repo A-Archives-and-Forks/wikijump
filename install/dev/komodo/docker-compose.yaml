@@ -1,3 +1,5 @@
+# See https://komo.do/docs/setup/ferretdb for more information
+
 services:
   postgres:
     # Pin to a specific version. Updates can be breaking.
@@ -49,13 +51,20 @@ services:
     volumes:
       ## Store dated backups of the database - https://komo.do/docs/setup/backup
       - /var/lib/komodo/backups:/backups
-      ## Store sync files on server
-      # - /your/path/to/syncs:/syncs
-      ## Optionally mount a custom core.config.toml
-      # - /your/path/to/core.config.toml:/config/config.toml
-    ## Allows for systemd Periphery connection at "https://host.docker.internal:8120"
-    extra_hosts:
-      - host.docker.internal:host-gateway
+
+  periphery:
+    image: ghcr.io/moghtech/komodo-periphery:latest
+    restart: unless-stopped
+    labels:
+      komodo.skip:
+    env_file: ./compose.env
+    volumes:
+      ## Mount external docker socket and procfs
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /proc:/proc
+      ## Specify the Periphery agent root directory
+      # Must be the same inside and outside the container.
+      - /etc/komodo:/etc/komodo
 
 volumes:
   ferretdb-postgres:
