@@ -8,18 +8,20 @@ This illustrates the setup for the [Komodo](https://komo.do)-based dev tier host
 # adduser --disabled-password maintainer
 # gpasswd -a maintainer sudo
 ```
-3. Disable password-based SSH (if not already disabled):
+3. Add SSH keys to enable login as `maintainer`:
+```
+# su maintainer
+$ mkdir -m700 .ssh
+$ nano .ssh/authorized_keys
+$ chmod 600 .ssh/authorized_keys
+```
+Then, ensure you can SSH to the machine as `maintainer`. The remaining instructions assume you are logged in as `maintainer`, not `root`.
+4. Disable password-based SSH (if not already disabled):
 ```
 $ sudoedit /etc/ssh/sshd_config
 PasswordAuthentication no
 PermitEmptyPasswords no
 $ sudo systemctl reload ssh.service
-```
-4. Add SSH keys to enable login as `maintainer`:
-```
-$ mkdir -m700 .ssh
-$ nano .ssh/authorized_keys
-$ chmod 600 .ssh/authorized_keys
 ```
 5. Install Docker:
 ```
