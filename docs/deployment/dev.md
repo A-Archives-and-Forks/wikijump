@@ -40,6 +40,8 @@ $ cd ~/komodo
 Copy docker-compose.yaml from install/dev/komodo/docker-compose.yaml
 Create compose.env based on install/dev/komodo/compose.env.example
 $ sudo docker-compose -p komodo -f docker-compose.yaml --env-file compose.env up -d
+Ensure that it's running as expected:
+$ sudo docker-compose -p komodo -f docker-compose.yaml --env-file compose.env ps
 ```
 8. Log in to Komodo.
 Using the admin password you generated for `compose.env`, log in to Komodo via `http://[IP ADDRESS]:9120/`.
