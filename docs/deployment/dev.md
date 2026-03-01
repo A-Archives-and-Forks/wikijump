@@ -1,6 +1,6 @@
 ## Dev Environment
 
-This illustrates the setup for the [Dokploy](https://dokploy.com)-based dev tier hosting `wikijump.dev`:
+This illustrates the setup for the [Komodo](https://komo.do)-based dev tier hosting `wikijump.dev`:
 
 1. Create a Virtual Private Server with Ubuntu 24.04 LTS.
 2. Set up a non-root administrator account:
@@ -21,7 +21,20 @@ $ mkdir -m700 .ssh
 $ nano .ssh/authorized_keys
 $ chmod 600 .ssh/authorized_keys
 ```
-5. Install Dokploy:
+5. Install Docker:
+```
+$ sudo apt install docker.io docker-compose
+```
+6. Install Komodo:
+When multiple servers are initiated for the same tier, note that *only one machine should have a Komodo Core*. All the servers need a Periphery instance to be able to talk to the one machine running Komodo Core.
+
+The files to use here are located in the current directory, and for `compose.env` see `compose.env.example` to populate the missing fields.
+```
+sudo mkdir -p /var/lib/komodo/backups
+sudo docker-compose -p komodo -f docker-compose.yaml --env-file compose.env up -d
+```
+
+
 ```
 # curl -sSL https://dokploy.com/install.sh | sh
 ```
