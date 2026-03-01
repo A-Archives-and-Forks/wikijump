@@ -7,6 +7,7 @@ This illustrates the setup for the [Komodo](https://komo.do)-based dev tier host
 ```
 # adduser --disabled-password maintainer
 # gpasswd -a maintainer sudo
+# passwd -d maintainer
 ```
 3. Add SSH keys to enable login as `maintainer`:
 ```
