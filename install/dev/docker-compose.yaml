@@ -103,6 +103,10 @@ services:
 
   caddy:
     image: 575596218155.dkr.ecr.us-east-2.amazonaws.com/wikijump/caddy:dev
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
     links:
       - framerail
       - wws

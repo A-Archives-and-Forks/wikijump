@@ -72,5 +72,6 @@ Then in Komodo, navigate to _Settings → Providers → Registry Accounts_ and a
 * __Username:__ `AWS`
 * __Token:__ The login password you generated above.
 11. Go to the `wikijump-dev` stack and **pull images**. If everything is configured properly so far, it should be able to retrieve the images and be in a state to deploy it.
-12. __**TODO**__ Now, deploy the `wikijump-dev` stack. This will first build the local images (the two databases) and attempt to start the containers per the topology in `docker-compose.yaml`.
+12. Now, deploy the `wikijump-dev` stack. This will first build the local images (the two databases) and attempt to start the containers per the topology in `docker-compose.yaml`.
+On the first deploy, it may take some time to populate the database. You may need to restart services dependent on `deepwell` (i.e. `caddy`, `framerail`, `wws`) if they are reporting as unhealthy.
 13. Once the stack is deployed, and caddy is serving as TLS termination for Komodo, you should enable a firewall on the machine. The only exposed ports should be 22 (for SSH), and 80 and 443 (for HTTP traffic).
