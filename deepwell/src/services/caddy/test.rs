@@ -207,6 +207,7 @@ fn write_test_file(path: &str, caddyfile: &str) {
 
 #[test]
 fn generate_caddyfiles() {
+    const DEPLOY_HOST: &str = "localhost:9120";
     const FRAMERAIL_HOST: &str = "framerail:3393";
     const WWS_HOST: &str = "wws:3466";
 
@@ -266,6 +267,7 @@ UNIT TEST INFO:
             local: false,
             http_port: None,
             https_port: None,
+            deploy_host: Some(cow!(DEPLOY_HOST)),
             framerail_host: cow!(FRAMERAIL_HOST),
             wws_host: cow!(WWS_HOST),
         },
@@ -280,6 +282,7 @@ UNIT TEST INFO:
             local: true,
             http_port: None,
             https_port: None,
+            deploy_host: None,
             framerail_host: cow!(FRAMERAIL_HOST),
             wws_host: cow!(WWS_HOST),
         },
@@ -294,6 +297,7 @@ UNIT TEST INFO:
             local: true,
             http_port: Some(8000),
             https_port: Some(8443),
+            deploy_host: None,
             framerail_host: cow!(FRAMERAIL_HOST),
             wws_host: cow!(WWS_HOST),
         },
@@ -308,6 +312,7 @@ UNIT TEST INFO:
             local: false,
             http_port: None,
             https_port: None,
+            deploy_host: Some(cow!("komodo_host")),
             framerail_host: cow!("web_proxy_host"),
             wws_host: cow!("wws_proxy_host"),
         },
@@ -322,6 +327,7 @@ UNIT TEST INFO:
             local: false,
             http_port: None,
             https_port: None,
+            deploy_host: Some(cow!(DEPLOY_HOST)),
             framerail_host: cow!(FRAMERAIL_HOST),
             wws_host: cow!(WWS_HOST),
         },
@@ -336,6 +342,7 @@ UNIT TEST INFO:
             local: false,
             http_port: None,
             https_port: None,
+            deploy_host: None,
             framerail_host: cow!(FRAMERAIL_HOST),
             wws_host: cow!(WWS_HOST),
         },

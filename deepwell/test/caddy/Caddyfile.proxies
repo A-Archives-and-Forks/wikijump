@@ -11,6 +11,18 @@
 }
 
 #
+# INFRASTRUCTURE
+#
+
+deploy.wikijump.test {
+	reverse_proxy komodo_host
+}
+
+deploy.wjfiles.test {
+	redir https://deploy.wikijump.test
+}
+
+#
 # MAIN
 #
 

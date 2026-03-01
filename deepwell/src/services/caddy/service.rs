@@ -117,6 +117,7 @@ impl CaddyService {
             local,
             http_port,
             https_port,
+            deploy_host,
             framerail_host,
             wws_host,
         }: &CaddyfileOptions<'_>,
@@ -165,6 +166,30 @@ impl CaddyService {
 	request_header -X-Wikijump-*
 }}
 
+");
+
+        if let Some(deploy_host) = deploy_host {
+            str_write!(
+                &mut caddyfile,
+                "\
+#
+# INFRASTRUCTURE
+#
+
+deploy{main_domain} {{
+	reverse_proxy {deploy_host}
+}}
+
+deploy{files_domain} {{
+	redir https://deploy{main_domain}
+}}
+
+");
+        }
+
+        str_write!(
+            &mut caddyfile,
+            "\
 #
 # MAIN
 #

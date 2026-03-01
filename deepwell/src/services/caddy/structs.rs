@@ -36,6 +36,8 @@ pub struct CaddyfileOptions<'a> {
     pub https_port: Option<i64>,
 
     // Infra information
+    #[serde(default)]
+    pub deploy_host: Option<Cow<'a, str>>,
     pub framerail_host: Cow<'a, str>,
     pub wws_host: Cow<'a, str>,
 }
