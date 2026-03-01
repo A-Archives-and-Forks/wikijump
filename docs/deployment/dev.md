@@ -61,3 +61,4 @@ Then in Komodo, navigate to _Settings → Providers → Registry Accounts_ and a
 * __Domain:__ Your AWS ECR registry URL, that is `[user ID].dkr.ecr.[region].amazonaws.com`
 * __Username:__ `AWS`
 * __Token:__ The login password you generated above.
+11. **TODO:** Add steps for deploying the stack.
