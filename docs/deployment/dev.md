@@ -11,6 +11,7 @@ This illustrates the setup for the [Komodo](https://komo.do)-based dev tier host
 3. Add SSH keys to enable login as `maintainer`:
 ```
 # su maintainer
+$ cd
 $ mkdir -m700 .ssh
 $ nano .ssh/authorized_keys
 $ chmod 600 .ssh/authorized_keys
