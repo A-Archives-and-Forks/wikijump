@@ -27,7 +27,7 @@ $ sudo systemctl reload ssh.service
 ```
 5. Install Docker:
 ```
-$ sudo apt install docker.io docker-compose docker-buildx
+$ sudo apt install docker.io docker-compose-v2 docker-buildx
 ```
 6. Install Komodo:
 When multiple servers are initiated for the same tier, note that *only one machine should have a Komodo Core*. All the servers need a Periphery instance to be able to talk to the one machine running Komodo Core.
@@ -39,9 +39,9 @@ $ mkdir ~/komodo
 $ cd ~/komodo
 Copy docker-compose.yaml from install/dev/komodo/docker-compose.yaml
 Create compose.env based on install/dev/komodo/compose.env.example
-$ sudo docker-compose -p komodo -f docker-compose.yaml --env-file compose.env up -d
+$ sudo docker compose -p komodo -f docker-compose.yaml --env-file compose.env up -d
 Ensure that it's running as expected:
-$ sudo docker-compose -p komodo -f docker-compose.yaml --env-file compose.env ps
+$ sudo docker compose -p komodo -f docker-compose.yaml --env-file compose.env ps
 ```
 8. Log in to Komodo.
 Using the admin password you generated for `compose.env`, log in to Komodo via `http://[IP ADDRESS]:9120/`.
