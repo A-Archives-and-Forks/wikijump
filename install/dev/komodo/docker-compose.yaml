@@ -62,6 +62,9 @@ services:
     labels:
       komodo.skip:
     env_file: ./compose.env
+    environment:
+      AWS_ACCESS_KEY_ID: ${PERIPHERY_AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${PERIPHERY_AWS_SECRET_ACCESS_KEY}
     volumes:
       ## Mount external docker socket and procfs
       - /var/run/docker.sock:/var/run/docker.sock
