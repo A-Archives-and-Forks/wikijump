@@ -25,11 +25,22 @@ PasswordAuthentication no
 PermitEmptyPasswords no
 $ sudo systemctl reload ssh.service
 ```
-5. Install Docker:
+5. Install Docker and other dependencies:
 ```
-$ sudo apt install docker.io docker-compose-v2 docker-buildx
+$ sudo apt install docker.io docker-compose-v2 docker-buildx amazon-ecr-credential-helper
 ```
-6. Install Komodo:
+6. (For AWS ECR) Set up the ECR credential helper:
+```
+$ sudo mkdir -m 700 ~root/.docker
+$ sudoedit ~root/.docker/
+{
+	"credHelpers": {
+		"public.ecr.aws": "ecr-login",
+		"575596218155.dkr.ecr.us-east-2.amazonaws.com": "ecr-login"
+	}
+}
+```
+7. Install Komodo:
 When multiple servers are initiated for the same tier, note that *only one machine should have a Komodo Core*. All the servers need a Periphery instance to be able to talk to the one machine running Komodo Core.
 
 The files to use here are located in the current directory, and for `compose.env` see `compose.env.example` to populate the missing fields.
