@@ -71,7 +71,7 @@ services:
       ## Mount external docker socket and procfs
       - /var/run/docker.sock:/var/run/docker.sock
       - /proc:/proc
-      - /root/.docker:/root/.docker:ro
+      - /root/.docker/config.json:/root/.docker/config.json:ro
       ## Specify the Periphery agent root directory
       # Must be the same inside and outside the container.
       - /etc/komodo:/etc/komodo
