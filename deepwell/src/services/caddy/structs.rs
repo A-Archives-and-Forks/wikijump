@@ -23,22 +23,52 @@ use std::collections::HashMap;
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct CaddyfileOptions<'a> {
+    /// Whether to enable debug logging in Caddy.
+    ///
+    /// Corresponds to the Caddy option `debug`.
     #[serde(default)]
     pub debug: bool,
 
+    /// Whether to operate in local mode.
+    ///
+    /// This uses local self-signed certificates and
+    /// attempts no ACME challenges because the server
+    /// is not running in an environment where it actually
+    /// owns a domain name.
+    ///
+    /// Corresponds to Caddy options `local_certs` and `skip_install_trust`.
     #[serde(default)]
     pub local: bool,
 
+    /// The HTTP port to use.
+    ///
+    /// Corresponds to the Caddy option `http_port`.
     #[serde(default)]
     pub http_port: Option<i64>,
 
+    /// The HTTPS port to use.
+    ///
+    /// Corresponds to the Caddy option `https_port`.
     #[serde(default)]
     pub https_port: Option<i64>,
 
     // Infra information
+
+    /// Enables a `deploy` subdomain redirect.
+    ///
+    /// If this is running in an environment where a system
+    /// like [Komodo](https://komo.do/) is responsible for
+    /// deploying Wikijump.
+    ///
+    /// This should have the host of the deployment system's
+    /// web server to reverse proxy to.
     #[serde(default)]
     pub deploy_host: Option<Cow<'a, str>>,
+
+    /// Specifies the framerail host to reverse proxy to.
     pub framerail_host: Cow<'a, str>,
+
+    /// Specifies the WWS host to reverse proxy to.
     pub wws_host: Cow<'a, str>,
 }
 
