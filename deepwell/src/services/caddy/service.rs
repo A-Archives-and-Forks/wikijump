@@ -366,7 +366,7 @@ www.{domain} {{
 	import serve_files
 }}
 ",
-            site_slug_split_index(files_domain)
+            site_slug_split_index(files_domain),
         );
 
         str_write!(
