@@ -165,6 +165,10 @@ impl CaddyService {
             None => "http://",
         };
 
+        if let Some(provider) = wildcard_cert {
+            str_write!(&mut caddyfile, "\ttls {{\n\t\tdns {provider}\n\t}}");
+        }
+
         str_write!(
             &mut caddyfile,
             "\
