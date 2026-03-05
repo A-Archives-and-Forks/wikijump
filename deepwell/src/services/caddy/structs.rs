@@ -52,6 +52,24 @@ pub struct CaddyfileOptions<'a> {
     #[serde(default)]
     pub https_port: Option<i64>,
 
+    /// TLS wildcard certificate settings.
+    ///
+    /// This option, if `Some(_)`, instructs Caddy to perform
+    /// a DNS ACME challenge to generate a wildcard certificate
+    /// for the fallback cases.
+    ///
+    /// The value here is used in a `dns` directive to instruct
+    /// Caddy which provider to use to perform the ACME challenge.
+    ///
+    /// For instance, the value might be `digitalocean {env.DIGITALOCEAN_TOKEN}`
+    /// to use the [DigitalOcean provider](https://github.com/caddy-dns/digitalocean).
+    ///
+    /// If this option is `None`, then it means that no wildcard
+    /// certificates should be fetched for this server. In this case,
+    /// all unknown domains are handled as HTTP.
+    #[serde(default)]
+    pub wildcard_cert: Option<Cow<'a, str>>,
+
     // Infra information
 
     /// Enables a `deploy` subdomain redirect.

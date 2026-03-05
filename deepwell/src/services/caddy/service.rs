@@ -117,6 +117,7 @@ impl CaddyService {
             local,
             http_port,
             https_port,
+            wildcard_cert,
             deploy_host,
             framerail_host,
             wws_host,
