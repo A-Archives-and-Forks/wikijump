@@ -66,7 +66,7 @@ pub struct CaddyfileOptions<'a> {
     ///
     /// If this option is `None`, then it means that no wildcard
     /// certificates should be fetched for this server. In this case,
-    /// all unknown domains are handled as HTTP.
+    /// all unknown domains and `wjfiles` are handled as HTTP.
     #[serde(default)]
     pub wildcard_cert: Option<Cow<'a, str>>,
 

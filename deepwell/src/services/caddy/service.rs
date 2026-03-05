@@ -157,6 +157,14 @@ impl CaddyService {
             str_writeln!(&mut caddyfile, "\tlocal_certs\n\tskip_install_trust");
         }
 
+        let missing_domain_scheme = match wildcard_cert {
+            // Default, no scheme prefix
+            Some(provider) => "",
+
+            // Specify HTTP scheme to have Caddy not get TLS certs for this domain
+            None => "http://",
+        };
+
         str_write!(
             &mut caddyfile,
             "\
@@ -343,7 +351,7 @@ www.{domain} {{
 	reverse_proxy {wws_host}
 }}
 
-*{files_domain} {{
+{missing_domain_scheme}*{files_domain} {{
 	import strip_headers
 "
         );
@@ -378,7 +386,7 @@ www.{domain} {{
 #
 
 # Missing canonical domain
-*{main_domain} {{
+{missing_domain_scheme}*{main_domain} {{
 	import strip_headers
 	request_header X-Wikijump-Basic-Error 1
 	request_header X-Wikijump-Site-Slug {{labels.{}}}
