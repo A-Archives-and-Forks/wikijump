@@ -159,7 +159,7 @@ impl CaddyService {
 
         let missing_domain_scheme = match wildcard_cert {
             // Default, no scheme prefix
-            Some(provider) => "",
+            Some(_) => "",
 
             // Specify HTTP scheme to have Caddy not get TLS certs for this domain
             None => "http://",
