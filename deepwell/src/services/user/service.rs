@@ -154,6 +154,7 @@ impl UserService {
         let alias_exists = AliasService::exists(ctx, AliasType::User, &slug)
             .await
             .or_raise(make_error)?;
+
         if alias_exists {
             error!("User alias with conflicting slug already exists, cannot create");
             error!("Checked slug '{slug}'");
@@ -984,12 +985,27 @@ fn check_email_validation(
             Ok(true)
         }
 
+        EmailClassification::Role => {
+            info!(
+                "User {user_slug}'s email was verified successfully (as a role account)"
+            );
+            Ok(true)
+        }
+
         EmailClassification::Disposable => {
             error!(
                 "User {user_slug}'s email is disposable and did not pass verification",
             );
             bail!(Error::new(
                 "cannot create user, disposable emails are not permitted",
+                ErrorType::DisallowedEmail,
+            ));
+        }
+
+        EmailClassification::Spam => {
+            error!("User {user_slug}'s email is spam and did not pass verification",);
+            bail!(Error::new(
+                "cannot create user, email address flagged as spam",
                 ErrorType::DisallowedEmail,
             ));
         }
