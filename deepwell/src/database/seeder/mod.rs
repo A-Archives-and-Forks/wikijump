@@ -52,8 +52,7 @@ use std::net::{IpAddr, Ipv6Addr};
 use std::path::{Path, PathBuf};
 
 /// The IP address to record for any seeded data.
-/// This is just `localhost`.
-pub const SEED_IP_ADDRESS: IpAddr = IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 1));
+pub const SEED_IP_ADDRESS: IpAddr = IpAddr::V6(Ipv6Addr::LOCALHOST);
 
 pub async fn seed(state: &ServerState) -> Result<()> {
     info!("Running seeder...");
