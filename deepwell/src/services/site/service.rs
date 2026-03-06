@@ -100,7 +100,7 @@ impl SiteService {
                 locales: vec![locale],
                 password: String::new(),
                 bypass_filter: false,
-                bypass_email_verification: false,
+                bypass_email_verification: true,
                 ip_address,
             },
         )
