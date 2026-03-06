@@ -28,8 +28,9 @@ CREATE TABLE "user" (
     last_name_change_added_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
     last_renamed_at TIMESTAMP WITH TIME ZONE,
     email TEXT NOT NULL,  -- Can be empty, for instance with system accounts.
-    email_is_alias BOOLEAN,
     email_verified_at TIMESTAMP WITH TIME ZONE,
+    email_validation_info JSON,  -- Can be NULL if validation was skipped
+    email_validation_at TIMESTAMP WITH TIME ZONE,
     password TEXT NOT NULL,
     multi_factor_secret TEXT,
     multi_factor_recovery_codes TEXT[],
@@ -48,6 +49,9 @@ CREATE TABLE "user" (
 
     -- Both MFA columns should either be set or unset
     CHECK ((multi_factor_secret IS NULL) = (multi_factor_recovery_codes IS NULL)),
+
+    -- Both email validation columns should either be set or unset
+    CHECK ((email_validation_info IS NULL) = (email_validation_at IS NULL)),
 
     -- Locale must be unset for system users, but set for everyone else.
     CHECK ((user_type = 'system' AND locales = '{}') OR (user_type != 'system' AND locales != '{}')),
