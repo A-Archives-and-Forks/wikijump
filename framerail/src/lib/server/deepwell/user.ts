@@ -1,6 +1,7 @@
 import { client } from "$lib/server/deepwell"
-import type { Optional } from "$lib/types"
 import { startBlobUpload, uploadToPresignUrl } from "./file"
+
+import type { Optional, UserType } from "$lib/types"
 
 export async function userView(
   siteId: number,
@@ -68,5 +69,30 @@ export async function userEdit(
     user: userId,
     ip_address: userIpAddr,
     ...data
+  })
+}
+
+export async function userCreate(
+  userType: UserType,
+  name: string,
+  email: string,
+  locales: string[],
+  password: string,
+  ipAddress: string,
+  bypassFilter = false,
+  bypassEmailVerification = false
+): Promise<{
+  user_id: number
+  slug: string
+}> {
+  return client.request("user_create", {
+    user_type: userType,
+    name,
+    email,
+    locales,
+    password,
+    ip_address: ipAddress,
+    bypass_filter: bypassFilter,
+    bypass_email_verification: bypassEmailVerification
   })
 }

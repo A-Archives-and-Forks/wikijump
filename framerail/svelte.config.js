@@ -33,11 +33,6 @@ const config = {
       "$static": resolve(__dirname, "static"),
       "$assets": resolveAssets()
     }
-  },
-
-  compilerOptions: {
-    enableSourcemap: true,
-    immutable: true
   }
 }
 

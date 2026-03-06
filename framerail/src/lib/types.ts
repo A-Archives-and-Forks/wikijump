@@ -19,3 +19,9 @@ export enum PagePane {
   Vote = "vote",
   Delete = "delete"
 }
+export enum UserType {
+  Regular = "regular",
+  System = "system",
+  Site = "site",
+  Bot = "bot"
+}
