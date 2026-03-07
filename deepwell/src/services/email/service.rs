@@ -25,7 +25,7 @@ pub struct EmailService;
 
 impl EmailService {
     /// Validates an email through the MailCheck API.
-    pub async fn validate(email: &str) -> Result<EmailValidationOutput> {
+    pub async fn validate(ctx: &ServiceContext<'_>, email: &str) -> Result<EmailValidationOutput> {
         if email.is_empty() {
             bail!(Error::new(
                 "cannot validate empty email string",

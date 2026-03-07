@@ -206,7 +206,7 @@ impl UserService {
         let (email_validation_json, email_validation_at) =
             if !bypass_email_verification && !email.is_empty() {
                 let email_validation_output =
-                    EmailService::validate(&email).await.or_raise(make_error)?;
+                    EmailService::validate(ctx, &email).await.or_raise(make_error)?;
 
                 let email_validation_json =
                     check_email_validation(&slug, &email_validation_output)
@@ -449,7 +449,7 @@ impl UserService {
 
             // Validate email
             let email_validation_output =
-                EmailService::validate(&email).await.or_raise(make_error)?;
+                EmailService::validate(ctx, &email).await.or_raise(make_error)?;
 
             let email_validation_json =
                 check_email_validation(&user.slug, &email_validation_output)
