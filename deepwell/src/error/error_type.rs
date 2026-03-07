@@ -19,6 +19,7 @@
  */
 
 use crate::hash::BlobHash;
+use crate::services::filter::FilterSummary;
 use crate::services::view::ViewType;
 use fluent::FluentError;
 use fluent_syntax::parser::ParserError as FluentParserError;
@@ -184,6 +185,7 @@ pub enum ErrorType {
     FilterViolation {
         field: String,
         value: String,
+        failed: Vec<FilterSummary>,
     },
     FilterRegexInvalid {
         regex: String,
@@ -729,8 +731,21 @@ impl ErrorType {
     pub fn data(&self) -> JsonValue {
         use crate::hash::blob_hash_to_hex;
         use serde_json::json;
+        use std::fmt::Display;
+
+        fn misc_errors_to_json<T: Display>(errors: &[T]) -> JsonValue {
+            errors
+                .iter()
+                .map(|e| JsonValue::from(str!(e)))
+                .collect::<Vec<_>>()
+                .into()
+        }
 
         match self {
+            ErrorType::GetView(view_type) => json!(view_type),
+            ErrorType::Fluent(errors) => misc_errors_to_json(errors),
+            ErrorType::FluentParser(errors) => misc_errors_to_json(errors),
+            ErrorType::Cryptography(extra) => json!(extra),
             ErrorType::SessionUserId {
                 active_user_id,
                 session_user_id,
@@ -738,13 +753,39 @@ impl ErrorType {
                 "active_user_id": active_user_id,
                 "session_user_id": session_user_id,
             }),
-            ErrorType::BlobSizeMismatch { expected, actual } => json!({
-                "expected": expected,
-                "actual": actual,
-            }),
             ErrorType::FileNameTooLong { length, maximum } => json!({
                 "length": length,
                 "maximum": maximum,
+            }),
+            ErrorType::LocaleInvalid { locale } | ErrorType::LocaleMissing { locale } => {
+                json!({ "locale": locale })
+            }
+            ErrorType::LocaleMessageMissing { message_key }
+            | ErrorType::LocaleMessageValueMissing { message_key } => json!({
+                "message_key": message_key,
+            }),
+            ErrorType::LocaleMessageAttributeMissing {
+                message_key,
+                attribute,
+            } => json!({
+                "message_key": message_key,
+                "attribute": attribute,
+            }),
+            ErrorType::FilterViolation {
+                field,
+                value,
+                failed,
+            } => json!({
+                "field": field,
+                "value": value,
+                "failed": failed,
+            }),
+            ErrorType::FilterRegexInvalid { regex } => json!({
+                "regex": regex,
+            }),
+            ErrorType::BlobSizeMismatch { expected, actual } => json!({
+                "expected": expected,
+                "actual": actual,
             }),
             ErrorType::BlobBlacklisted(bytes) => json!(*blob_hash_to_hex(bytes)),
             _ => json!(null),

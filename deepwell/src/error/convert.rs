@@ -28,7 +28,7 @@ use super::{Error, ErrorType};
 use exn::{ErrorExt, Exn, Frame};
 use jsonrpsee::types::error::ErrorObjectOwned;
 use sea_orm::TransactionError;
-use serde_json::json;
+use serde_json::{Value as JsonValue, json};
 
 /// Unwraps Sea-ORM transaction error into a standard crate error.
 ///
@@ -60,11 +60,16 @@ pub fn exn_error_to_rpc_error(exn_error: Exn<Error>) -> ErrorObjectOwned {
         JsonrpcError(&'e ErrorObjectOwned),
     }
 
-    fn walk<'e>(frame: &'e Frame, code_trace: &mut Vec<i32>) -> Option<TopError<'e>> {
+    fn walk<'e>(
+        frame: &'e Frame,
+        code_trace: &mut Vec<i32>,
+        extra_data: &mut Vec<JsonValue>,
+    ) -> Option<TopError<'e>> {
         let crate_error = frame.error().downcast_ref::<Error>();
         if let Some(error) = crate_error {
-            // Log error code for trace
+            // Add error code and data for history
             code_trace.push(error.code());
+            extra_data.push(error.data());
 
             // If acceptable, return
             if !error.error_type.is_high_level() {
@@ -78,12 +83,22 @@ pub fn exn_error_to_rpc_error(exn_error: Exn<Error>) -> ErrorObjectOwned {
             _ => frame
                 .children()
                 .iter()
-                .find_map(|frame| walk(frame, code_trace)),
+                .find_map(|frame| walk(frame, code_trace, extra_data)),
         }
     }
 
     let mut code_trace = Vec::new();
-    let top_error = walk(exn_error.frame(), &mut code_trace);
+    let mut extra_data = Vec::new();
+    let top_error = walk(exn_error.frame(), &mut code_trace, &mut extra_data);
+
+    // Special case
+    // If all the extra data fields are null, then just replace the list with that.
+    let extra_data = if extra_data.iter().all(JsonValue::is_null) {
+        None
+    } else {
+        Some(extra_data)
+    };
+
     match top_error {
         // Get the top non-request crate error
         Some(TopError::CrateError(error)) => {
@@ -98,7 +113,7 @@ pub fn exn_error_to_rpc_error(exn_error: Exn<Error>) -> ErrorObjectOwned {
                 _ => Some(json!({
                     "call_trace": format!("{exn_error:?}"),
                     "code_trace": code_trace,
-                    "extra": error.data(),
+                    "extra": extra_data,
                 })),
             };
             ErrorObjectOwned::owned(error_code, message, data)
@@ -114,6 +129,7 @@ pub fn exn_error_to_rpc_error(exn_error: Exn<Error>) -> ErrorObjectOwned {
             let data = json!({
                 "call_trace": format!("{exn_error:?}"),
                 "code_trace": code_trace,
+                "extra": extra_data,
             });
             ErrorObjectOwned::owned(0, message, Some(data))
         }

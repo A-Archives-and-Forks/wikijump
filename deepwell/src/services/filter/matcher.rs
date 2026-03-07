@@ -22,9 +22,10 @@ use super::prelude::*;
 use regex::RegexSet;
 
 /// Describes one filter which a `FilterMatcher` can verify against.
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Clone, Hash, PartialEq, Eq)]
 pub struct FilterSummary {
     pub filter_id: i64,
+    pub regex: String,
     pub description: String,
 }
 
@@ -62,12 +63,14 @@ impl FilterMatcher {
             return Ok(());
         }
 
+        let mut failed = Vec::new();
         for index in matches {
-            let description = &self.filter_data[index];
+            let info = &self.filter_data[index];
             error!(
-                "String failed filter ID {}: {}",
-                description.filter_id, description.description,
+                "String failed filter ID {} (regex '{}'): {}",
+                info.filter_id, info.regex, info.description,
             );
+            failed.push(info.clone());
 
             // TODO audit log, with contextual data (what it's checking)
             //      (will need to add extra args)
@@ -79,6 +82,7 @@ impl FilterMatcher {
             ErrorType::FilterViolation {
                 field: str!(field),
                 value: str!(text),
+                failed,
             },
         ));
     }
