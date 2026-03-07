@@ -150,12 +150,10 @@ impl EmailService {
         if mailcheck.mx_providers.is_empty() {
             if mailcheck.public_domain {
                 provider_classification = EmailProviderClassification::PublicEmail;
+            } else if mailcheck.mx {
+                provider_classification = EmailProviderClassification::SelfHosted;
             } else {
-                if mailcheck.mx {
-                    provider_classification = EmailProviderClassification::SelfHosted;
-                } else {
-                    provider_classification = EmailProviderClassification::NoProvider;
-                }
+                provider_classification = EmailProviderClassification::NoProvider;
             }
         }
 
