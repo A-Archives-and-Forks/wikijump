@@ -72,7 +72,7 @@ pub struct MxProvider {
 
 /// The kind of email provider this MX record is for.
 #[derive(Serialize, Deserialize, Debug, Copy, Clone, PartialEq, Eq)]
-#[serde(rename = "snake_case")] // set by MailCheck, don't change!
+#[serde(rename_all = "snake_case")] // set by MailCheck, don't change!
 pub enum MxProviderType {
     /// Full mailbox provider (e.g. Google Workspace, Microsoft 365, Fastmail)
     Mailbox,
@@ -91,7 +91,7 @@ pub enum MxProviderType {
 }
 
 #[derive(Serialize, Deserialize, Debug, Copy, Clone, PartialEq, Eq)]
-#[serde(rename = "snake_case")] // set by MailCheck
+#[serde(rename_all = "snake_case")] // set by MailCheck
 pub enum MxProviderGrade {
     /// High-involvement providers with sales processes and contracts (e.g. Mimecast, Proofpoint)
     Enterprise,
