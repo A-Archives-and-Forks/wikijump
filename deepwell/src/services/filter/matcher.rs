@@ -25,6 +25,7 @@ use regex::RegexSet;
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct FilterSummary {
     pub filter_id: i64,
+    pub regex: String,
     pub description: String,
 }
 
@@ -65,8 +66,8 @@ impl FilterMatcher {
         for index in matches {
             let description = &self.filter_data[index];
             error!(
-                "String failed filter ID {}: {}",
-                description.filter_id, description.description,
+                "String failed filter ID {} (regex '{}'): {}",
+                description.filter_id, description.regex, description.description,
             );
 
             // TODO audit log, with contextual data (what it's checking)
