@@ -25,7 +25,18 @@ pub struct EmailService;
 
 impl EmailService {
     /// Validates an email through the MailCheck API.
-    pub async fn validate(email: &str) -> Result<EmailValidationOutput> {
+    pub async fn validate(
+        ctx: &ServiceContext<'_>,
+        email: &str,
+    ) -> Result<EmailValidationOutput> {
+        if email.is_empty() {
+            bail!(Error::new(
+                "cannot validate empty email string",
+                ErrorType::BadRequest,
+            ));
+        }
+
+        let state = ctx.state();
         let make_error = || {
             Error::new(
                 format!("failed to validate email '{email}'"),
@@ -34,74 +45,144 @@ impl EmailService {
         };
 
         // Sends a GET request to the MailCheck API and deserializes the response.
-        let mailcheck = reqwest::get(format!("https://api.mailcheck.ai/email/{email}"))
+        let request_url = format!("https://api.mailcheck.ai/email/{email}");
+        let mailcheck = state
+            .mailcheck_api_client
+            .get(request_url)
+            .send()
             .await
             .or_raise(make_error)?
             .json::<MailCheckResponse>()
             .await
             .or_raise(make_error)?;
 
-        // Create the output with default parameters.
-        let mut output = EmailValidationOutput::default();
+        let mailcheck = match mailcheck {
+            MailCheckResponse::Success(data) => data,
+            MailCheckResponse::Failure(MailCheckFailureResponse { status, error }) => {
+                match status {
+                    // Invalid request, bad email
+                    400 => {
+                        error!(
+                            "MailCheck API request failed with bad response: {}",
+                            error,
+                        );
+                        bail!(Error::new(
+                            format!(
+                                "failed to validate email, MailCheck API returned an error: {}",
+                                error,
+                            ),
+                            ErrorType::EmailVerification,
+                        ));
+                    }
 
-        // Check request status.
-        match mailcheck.status {
-            // Valid request.
-            200 => {}
+                    // Exceeded rate limit
+                    429 => {
+                        error!("MailCheck API hit ratelimit: {}", error);
+                        bail!(Error::new(
+                            "failed to validate email, MailCheck API hit ratelimit",
+                            ErrorType::RateLimited,
+                        ));
+                    }
 
-            // Invalid request.
-            400 => {
-                error!(
-                    "MailCheck API request failed with bad response: {:?}",
-                    mailcheck.error,
-                );
-
-                let mut message =
-                    str!("failed to validate email, MailCheck API returned an error");
-                if let Some(remote_error) = &mailcheck.error {
-                    str_write!(&mut message, ": {remote_error}");
+                    // Other statuses.
+                    _ => {
+                        error!(
+                            "MailCheck API returned error status {}: {}",
+                            status, error,
+                        );
+                        bail!(Error::new(
+                            format!(
+                                "failed to validate email, unexpected status {} from MailCheck: {}",
+                                status, error
+                            ),
+                            ErrorType::EmailVerification
+                        ));
+                    }
                 }
-                bail!(Error::new(message, ErrorType::EmailVerification));
             }
+        };
 
-            // Exceeded rate limit.
-            429 => {
-                error!("MailCheck API hit ratelimit: {:?}", mailcheck.error);
-                bail!(Error::new(
-                    "failed to validate email, MailCheck API hit ratelimit",
-                    ErrorType::RateLimited,
-                ));
-            }
+        if mailcheck.status != 200 {
+            error!(
+                "MailCheck API returned non-success status {} with no error message",
+                mailcheck.status,
+            );
+            bail!(Error::new(
+                format!(
+                    "failed to validate email, unexpected non-success status {} from MailCheck, but no error message",
+                    mailcheck.status,
+                ),
+                ErrorType::EmailVerification,
+            ));
+        }
 
-            // Other statuses.
-            _ => {
-                warn!(
-                    "MailCheck API returned status {}: {:?}",
-                    mailcheck.status, mailcheck.error,
-                );
-            }
+        // Prepare output fields
+        let mut valid = true;
+        let mut classification = EmailClassification::Normal;
+        let mut provider_classification = EmailProviderClassification::KnownProvider;
+        let mut normalized_email = None;
+
+        // Check if the email is a role email
+        // This is for addresses like "info@example.com" or "webmaster@example.com"
+        // which are likely managed by multiple people.
+        if mailcheck.role_account {
+            classification = EmailClassification::Role;
         }
 
         // Check if the email is an alias.
-        if mailcheck.alias {
-            output.classification = EmailClassification::Alias;
+        // This was previously a boolean, now it is a derived property
+        // from comparing the email with its derived counterpart.
+        if mailcheck.email != mailcheck.normalized_email {
+            classification = EmailClassification::Alias;
+            normalized_email = Some(mailcheck.normalized_email);
         }
 
-        // Check if the email is a disposable.
         if mailcheck.disposable {
-            output.valid = false;
-            output.classification = EmailClassification::Disposable;
+            valid = false;
+            classification = EmailClassification::Disposable;
         }
 
         // Check if the domain has any MX records.
+        // If not, it's not a valid email (we cannot send anything there)
         if !mailcheck.mx {
-            output.valid = false;
-            output.classification = EmailClassification::Invalid;
+            valid = false;
+            classification = EmailClassification::Invalid;
         }
 
-        // Set "did you mean" field to mailcheck response.
-        output.did_you_mean = mailcheck.did_you_mean;
+        if mailcheck.spam {
+            valid = false;
+            classification = EmailClassification::Spam;
+        }
 
-        Ok(output)
+        // Determine email provider classification if no mx_providers
+        if mailcheck.mx_providers.is_empty() {
+            if mailcheck.public_domain {
+                provider_classification = EmailProviderClassification::PublicEmail;
+            } else if mailcheck.mx {
+                provider_classification = EmailProviderClassification::SelfHosted;
+            } else {
+                provider_classification = EmailProviderClassification::NoProvider;
+            }
+        }
+
+        // Move other fields to output
+        Ok(EmailValidationOutput {
+            valid,
+            classification,
+            provider_classification,
+            email: mailcheck.email,
+            normalized_email,
+            domain: mailcheck.domain,
+            domain_age_in_days: mailcheck.domain_age_in_days,
+            mx: mailcheck.mx,
+            mx_records: mailcheck.mx_records,
+            mx_providers: mailcheck.mx_providers,
+            disposable: mailcheck.disposable,
+            public_domain: mailcheck.public_domain,
+            relay_domain: mailcheck.relay_domain,
+            role_account: mailcheck.role_account,
+            spam: mailcheck.spam,
+            did_you_mean: mailcheck.did_you_mean,
+        })
     }
 }

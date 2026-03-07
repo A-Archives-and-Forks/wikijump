@@ -21,6 +21,7 @@
 use dotenvy::dotenv;
 use ref_map::*;
 use s3::{creds::Credentials, region::Region};
+use std::env::VarError;
 use std::{env, process};
 
 #[derive(Debug, Clone)]
@@ -65,6 +66,15 @@ pub struct Secrets {
     /// Alternatively you can have it read from the AWS credentials file.
     /// The profile to read from can be set in the `AWS_PROFILE_NAME` environment variable.
     pub s3_credentials: Credentials,
+
+    /// MailCheck API key.
+    ///
+    /// **Optional**. The server will still work without an API key, but MailCheck will
+    /// heavily ratelimit you.
+    ///
+    /// * No API key: 5 requests / hour
+    /// * Free tier: 1000 requests / month
+    pub mailcheck_api_key: Option<String>,
 }
 
 impl Secrets {
@@ -150,6 +160,18 @@ impl Secrets {
             }
         };
 
+        let mailcheck_api_key = match env::var("MAILCHECK_API_KEY") {
+            Ok(value) if value.is_empty() => None,
+            Ok(value) => Some(value),
+            Err(VarError::NotPresent) => None,
+            Err(error) => {
+                eprintln!(
+                    "Unable to read environment variable MAILCHECK_API_KEY: {error}"
+                );
+                process::exit(1);
+            }
+        };
+
         // Build and return
         Secrets {
             database_url,
@@ -159,6 +181,7 @@ impl Secrets {
             s3_region,
             s3_path_style,
             s3_credentials,
+            mailcheck_api_key,
         }
     }
 }

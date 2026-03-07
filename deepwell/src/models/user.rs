@@ -28,9 +28,12 @@ pub struct Model {
     pub last_renamed_at: Option<TimeDateTimeWithTimeZone>,
     #[sea_orm(column_type = "Text")]
     pub email: String,
-    pub email_is_alias: Option<bool>,
     #[serde(with = "time::serde::rfc3339::option")]
     pub email_verified_at: Option<TimeDateTimeWithTimeZone>,
+    #[sea_orm(column_type = "Json", nullable)]
+    pub email_validation_info: Option<Json>,
+    #[serde(with = "time::serde::rfc3339::option")]
+    pub email_validation_at: Option<TimeDateTimeWithTimeZone>,
     #[sea_orm(column_type = "Text")]
     pub password: String,
     #[sea_orm(column_type = "Text", nullable)]

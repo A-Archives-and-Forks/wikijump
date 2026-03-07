@@ -22,13 +22,13 @@ use super::prelude::*;
 use crate::services::email::{EmailService, EmailValidationOutput};
 
 pub async fn validate_email(
-    _ctx: &ServiceContext<'_>,
+    ctx: &ServiceContext<'_>,
     params: Params<'static>,
 ) -> Result<EmailValidationOutput> {
     let email: String = parse_one!(params);
     info!("Validating user email: {email}");
 
-    EmailService::validate(&email)
+    EmailService::validate(ctx, &email)
         .await
         .or_raise(|| Error::new("failed to validate email", ErrorType::Request))
 }
