@@ -21,6 +21,7 @@
 use dotenvy::dotenv;
 use ref_map::*;
 use s3::{creds::Credentials, region::Region};
+use std::env::VarError;
 use std::{env, process};
 
 #[derive(Debug, Clone)]
@@ -159,9 +160,16 @@ impl Secrets {
             }
         };
 
-        let mailcheck_api_key = {
-            let value = get_env!("MAILCHECK_API_KEY");
-            if value.is_empty() { None } else { Some(value) }
+        let mailcheck_api_key = match env::var("MAILCHECK_API_KEY") {
+            Ok(value) if value.is_empty() => None,
+            Ok(value) => Some(value),
+            Err(VarError::NotPresent) => None,
+            Err(error) => {
+                eprintln!(
+                    "Unable to read environment variable MAILCHECK_API_KEY: {error}"
+                );
+                process::exit(1);
+            }
         };
 
         // Build and return
