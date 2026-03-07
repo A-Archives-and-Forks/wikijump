@@ -19,6 +19,7 @@
  */
 
 use crate::hash::BlobHash;
+use crate::services::filter::FilterSummary;
 use crate::services::view::ViewType;
 use fluent::FluentError;
 use fluent_syntax::parser::ParserError as FluentParserError;
@@ -184,6 +185,7 @@ pub enum ErrorType {
     FilterViolation {
         field: String,
         value: String,
+        failed: Vec<FilterSummary>,
     },
     FilterRegexInvalid {
         regex: String,

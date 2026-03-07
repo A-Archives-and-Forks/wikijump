@@ -63,12 +63,14 @@ impl FilterMatcher {
             return Ok(());
         }
 
+        let mut failed = Vec::new();
         for index in matches {
-            let description = &self.filter_data[index];
+            let info = &self.filter_data[index];
             error!(
                 "String failed filter ID {} (regex '{}'): {}",
-                description.filter_id, description.regex, description.description,
+                info.filter_id, info.regex, info.description,
             );
+            failed.push(info.clone());
 
             // TODO audit log, with contextual data (what it's checking)
             //      (will need to add extra args)
@@ -80,6 +82,7 @@ impl FilterMatcher {
             ErrorType::FilterViolation {
                 field: str!(field),
                 value: str!(text),
+                failed,
             },
         ));
     }
