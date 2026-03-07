@@ -89,6 +89,7 @@ pub async fn build_server_state(
         s3_region,
         s3_path_style,
         s3_credentials,
+        mailcheck_api_key,
     }: Secrets,
 ) -> Result<ServerState> {
     let make_error =

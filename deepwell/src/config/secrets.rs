@@ -65,6 +65,15 @@ pub struct Secrets {
     /// Alternatively you can have it read from the AWS credentials file.
     /// The profile to read from can be set in the `AWS_PROFILE_NAME` environment variable.
     pub s3_credentials: Credentials,
+
+    /// MailCheck API key.
+    ///
+    /// **Optional**. The server will still work without an API key, but MailCheck will
+    /// heavily ratelimit you.
+    ///
+    /// * No API key: 5 requests / hour
+    /// * Free tier: 1000 requests / month
+    pub mailcheck_api_key: Option<String>,
 }
 
 impl Secrets {
@@ -150,6 +159,15 @@ impl Secrets {
             }
         };
 
+        let mailcheck_api_key = {
+            let value = get_env!("MAILCHECK_API_KEY");
+            if value.is_empty() {
+                None
+            } else {
+                Some(value)
+            }
+        };
+
         // Build and return
         Secrets {
             database_url,
@@ -159,6 +177,7 @@ impl Secrets {
             s3_region,
             s3_path_style,
             s3_credentials,
+            mailcheck_api_key,
         }
     }
 }
