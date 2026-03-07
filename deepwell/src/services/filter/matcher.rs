@@ -22,7 +22,7 @@ use super::prelude::*;
 use regex::RegexSet;
 
 /// Describes one filter which a `FilterMatcher` can verify against.
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Clone, Hash, PartialEq, Eq)]
 pub struct FilterSummary {
     pub filter_id: i64,
     pub regex: String,
