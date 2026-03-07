@@ -161,11 +161,7 @@ impl Secrets {
 
         let mailcheck_api_key = {
             let value = get_env!("MAILCHECK_API_KEY");
-            if value.is_empty() {
-                None
-            } else {
-                Some(value)
-            }
+            if value.is_empty() { None } else { Some(value) }
         };
 
         // Build and return

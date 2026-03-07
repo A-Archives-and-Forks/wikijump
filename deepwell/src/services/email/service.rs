@@ -25,7 +25,10 @@ pub struct EmailService;
 
 impl EmailService {
     /// Validates an email through the MailCheck API.
-    pub async fn validate(ctx: &ServiceContext<'_>, email: &str) -> Result<EmailValidationOutput> {
+    pub async fn validate(
+        ctx: &ServiceContext<'_>,
+        email: &str,
+    ) -> Result<EmailValidationOutput> {
         if email.is_empty() {
             bail!(Error::new(
                 "cannot validate empty email string",
@@ -33,6 +36,7 @@ impl EmailService {
             ));
         }
 
+        let state = ctx.state();
         let make_error = || {
             Error::new(
                 format!("failed to validate email '{email}'"),
@@ -41,7 +45,11 @@ impl EmailService {
         };
 
         // Sends a GET request to the MailCheck API and deserializes the response.
-        let mailcheck = reqwest::get(format!("https://api.mailcheck.ai/email/{email}"))
+        let request_url = format!("https://api.mailcheck.ai/email/{email}");
+        let mailcheck = state
+            .mailcheck_api_client
+            .get(request_url)
+            .send()
             .await
             .or_raise(make_error)?
             .json::<MailCheckResponse>()

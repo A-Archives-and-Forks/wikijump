@@ -39,9 +39,10 @@ use crate::services::ServiceContext;
 use crate::services::blob::MimeAnalyzer;
 use crate::services::job::JobWorker;
 use crate::utils::debug_pointer;
-use crate::{database, redis as redis_db};
+use crate::{database, info, redis as redis_db};
 use jsonrpsee::server::{RpcModule, Server, ServerHandle};
 use redis::aio::MultiplexedConnection as RedisMultiplexedConnection;
+use reqwest::Client as ReqwestClient;
 use rsmq_async::Rsmq;
 use s3::bucket::Bucket;
 use sea_orm::{DatabaseConnection, TransactionTrait};
@@ -62,6 +63,7 @@ pub struct ServerStateInner {
     pub mime_analyzer: MimeAnalyzer,
     pub s3_files_bucket: Box<Bucket>,
     pub s3_tblocks_bucket: Box<Bucket>,
+    pub mailcheck_api_client: ReqwestClient,
 }
 
 impl Debug for ServerStateInner {
@@ -75,6 +77,7 @@ impl Debug for ServerStateInner {
             .field("mime_analyzer", &self.mime_analyzer)
             .field("s3_files_bucket", &self.s3_files_bucket)
             .field("s3_tblocks_bucket", &self.s3_tblocks_bucket)
+            .field("mailcheck_api_client", &self.mailcheck_api_client)
             .finish()
     }
 }
@@ -138,6 +141,31 @@ pub async fn build_server_state(
         (files_bucket, tblocks_bucket)
     };
 
+    // Set up reqwest client for the MailCheck API
+    let mailcheck_api_client = {
+        use reqwest::header::{AUTHORIZATION, HeaderMap, HeaderValue};
+        use reqwest::redirect::Policy as RedirectPolicy;
+
+        let mut builder = ReqwestClient::builder();
+
+        if let Some(mut api_token) = mailcheck_api_key {
+            // Authorization: Bearer {token}
+            api_token.insert_str(0, "Bearer ");
+            let value = HeaderValue::from_str(&api_token).or_raise(make_error)?;
+
+            let mut headers = HeaderMap::default();
+            headers.insert(AUTHORIZATION, value);
+            builder = builder.default_headers(headers);
+        }
+
+        builder
+            .user_agent(&*info::VERSION)
+            .redirect(RedirectPolicy::none())
+            .timeout(Duration::from_secs(2))
+            .build()
+            .or_raise(make_error)?
+    };
+
     // Build server state
     let state = Arc::new(ServerStateInner {
         config,
@@ -148,6 +176,7 @@ pub async fn build_server_state(
         mime_analyzer,
         s3_files_bucket,
         s3_tblocks_bucket,
+        mailcheck_api_client,
     });
 
     // Start workers listening to the job queue (requires ServerState)
