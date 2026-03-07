@@ -14,6 +14,14 @@
         "user": true
     },
     {
+        "site": "www",
+        "regex": "^(foo|bar)-",
+        "description": "Pages or files starting with foo or bar aren't allowed (example)",
+        "case-sensitive": true,
+        "page": true,
+        "file": true
+    },
+    {
         "site": null,
         "regex": "^.*@example\\.net$",
         "description": "Cannot join using example.net emails (example)",
