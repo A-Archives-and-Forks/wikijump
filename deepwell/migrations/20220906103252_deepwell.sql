@@ -691,7 +691,7 @@ CREATE TABLE message_draft (
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
     updated_at TIMESTAMP WITH TIME ZONE,
     user_id BIGINT NOT NULL REFERENCES "user"(user_id),
-    recipients JSONB NOT NULL,
+    recipients JSON NOT NULL,
 
     -- Text contents
     subject TEXT NOT NULL,
