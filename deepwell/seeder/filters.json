@@ -15,8 +15,8 @@
     },
     {
         "site": null,
-        "regex": "^.*@example\\.com$",
-        "description": "Cannot join using example.com emails (example)",
+        "regex": "^.*@example\\.net$",
+        "description": "Cannot join using example.net emails (example)",
         "case-sensitive": false,
         "email": true
     },
