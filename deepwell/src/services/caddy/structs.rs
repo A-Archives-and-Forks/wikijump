@@ -44,13 +44,13 @@ pub struct CaddyfileOptions<'a> {
     ///
     /// Corresponds to the Caddy option `http_port`.
     #[serde(default)]
-    pub http_port: Option<i64>,
+    pub http_port: Option<u16>,
 
     /// The HTTPS port to use.
     ///
     /// Corresponds to the Caddy option `https_port`.
     #[serde(default)]
-    pub https_port: Option<i64>,
+    pub https_port: Option<u16>,
 
     /// TLS wildcard certificate settings.
     ///
