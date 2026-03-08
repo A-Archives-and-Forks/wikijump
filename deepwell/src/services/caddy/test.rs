@@ -226,7 +226,8 @@ fn generate_caddyfiles() {
             let expected = read_test_file($path);
             let actual = {
                 let mut caddyfile =
-                    CaddyService::generate_with_data(&$config, &$options, &$sites);
+                    CaddyService::generate_with_data(&$config, &$options, &$sites)
+                        .expect("failed to generate Caddyfile");
 
                 trim_string(&mut caddyfile);
                 caddyfile
