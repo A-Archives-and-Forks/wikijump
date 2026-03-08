@@ -7,6 +7,8 @@
 	skip_install_trust
 }
 
+# Common segments
+
 (strip_headers) {
 	# Strip internal headers used by Wikijump
 	request_header -X-Wikijump-*
@@ -56,6 +58,8 @@
 	reverse_proxy framerail:3393
 }
 
+# Canonical domain
+
 foo.wikijump.localhost {
 	import strip_headers
 
@@ -73,10 +77,15 @@ www.foo.wikijump.localhost {
 	redir https://foo.wikijump.localhost{uri}
 }
 
+
+# Canonical domain
+
 bar.wikijump.localhost,
 www.bar.wikijump.localhost {
 	redir https://example.com{uri}
 }
+
+# Custom domains
 
 example.com {
 	import strip_headers
@@ -140,6 +149,7 @@ wjfiles.localhost {
 
 # Missing canonical domain
 *.wikijump.localhost {
+	import wildcard_tls
 	import strip_headers
 	request_header X-Wikijump-Basic-Error 1
 	request_header X-Wikijump-Site-Slug {labels.2}

@@ -5,9 +5,19 @@
 	}
 }
 
+# Common segments
+
 (strip_headers) {
 	# Strip internal headers used by Wikijump
 	request_header -X-Wikijump-*
+}
+
+(wildcard_tls) {
+	# Set settings for DNS-based ACME challenge
+	# Needed for wildcard TLS certificates
+	tls {
+		dms digitalocean token123
+	}
 }
 
 #
@@ -66,6 +76,8 @@ deploy.wjfiles.test {
 	reverse_proxy framerail:3393
 }
 
+# Canonical domain
+
 wikijump.test {
 	import strip_headers
 
@@ -82,6 +94,8 @@ wikijump.test {
 www.wikijump.test {
 	redir https://wikijump.test{uri}
 }
+
+# Canonical domain
 
 empty.wikijump.test {
 	import strip_headers
@@ -100,6 +114,8 @@ www.empty.wikijump.test {
 	redir https://empty.wikijump.test{uri}
 }
 
+# Canonical domain
+
 mytest.wikijump.test {
 	import strip_headers
 
@@ -117,25 +133,36 @@ www.mytest.wikijump.test {
 	redir https://mytest.wikijump.test{uri}
 }
 
+# Custom domains
+
 example.com,
 www.example.com {
 	redir https://mytest.wikijump.test{uri}
 }
+
+
+
 
 example.net,
 www.example.net {
 	redir https://mytest.wikijump.test{uri}
 }
 
+
+# Aliases
 check.wikijump.test,
 www.check.wikijump.test {
 	redir https://mytest.wikijump.test{uri}
 }
 
+# Canonical domain
+
 wanderers-library.wikijump.test,
 www.wanderers-library.wikijump.test {
 	redir https://wandererslibrary.com{uri}
 }
+
+# Custom domains
 
 wandererslibrary.com {
 	import strip_headers
@@ -154,10 +181,16 @@ www.wandererslibrary.com {
 	redir https://wandererslibrary.com{uri}
 }
 
+
+
+# Canonical domain
+
 scp-wiki.wikijump.test,
 www.scp-wiki.wikijump.test {
 	redir https://scpwiki.com{uri}
 }
+
+# Custom domains
 
 scpwiki.com {
 	import strip_headers
@@ -191,6 +224,7 @@ www.foundation.scp {
 	redir https://scpwiki.com{uri}
 }
 
+# Aliases
 scpwiki.wikijump.test,
 www.scpwiki.wikijump.test {
 	redir https://scpwiki.com{uri}
@@ -221,6 +255,7 @@ wjfiles.test {
 }
 
 *.wjfiles.test {
+	import wildcard_tls
 	import strip_headers
 
 	@www host www.wjfiles.test
@@ -250,6 +285,7 @@ wjfiles.test {
 
 # Missing canonical domain
 *.wikijump.test {
+	import wildcard_tls
 	import strip_headers
 	request_header X-Wikijump-Basic-Error 1
 	request_header X-Wikijump-Site-Slug {labels.2}

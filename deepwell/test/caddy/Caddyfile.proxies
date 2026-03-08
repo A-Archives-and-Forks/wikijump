@@ -5,6 +5,8 @@
 	}
 }
 
+# Common segments
+
 (strip_headers) {
 	# Strip internal headers used by Wikijump
 	request_header -X-Wikijump-*
@@ -66,6 +68,8 @@ deploy.wjfiles.test {
 	reverse_proxy web_proxy_host
 }
 
+# Canonical domain
+
 foo.wikijump.test {
 	import strip_headers
 
@@ -83,10 +87,15 @@ www.foo.wikijump.test {
 	redir https://foo.wikijump.test{uri}
 }
 
+
+# Canonical domain
+
 bar.wikijump.test,
 www.bar.wikijump.test {
 	redir https://example.com{uri}
 }
+
+# Custom domains
 
 example.com {
 	import strip_headers
@@ -129,27 +138,38 @@ wjfiles.test {
 	reverse_proxy wws_proxy_host
 }
 
-*.wjfiles.test {
+
+foo.wjfiles.test {
 	import strip_headers
 
-	@foo host foo.wjfiles.test
-	vars @foo site_id 1
-
-	@bar host bar.wjfiles.test
-	vars @bar site_id 2
+	vars {
+		site_id 1
+		site_slug foo
+	}
 
 	request_header X-Wikijump-Site-Slug {labels.2}
 	request_header X-Wikijump-Site-Id {vars.site_id}
 	import serve_files
 }
 
+bar.wjfiles.test {
+	import strip_headers
+
+	vars {
+		site_id 2
+		site_slug bar
+	}
+
+	request_header X-Wikijump-Site-Slug {labels.2}
+	request_header X-Wikijump-Site-Id {vars.site_id}
+	import serve_files
 #
 # FALLBACK
 # (i.e. "no such site")
 #
 
 # Missing canonical domain
-*.wikijump.test {
+http://*.wikijump.test {
 	import strip_headers
 	request_header X-Wikijump-Basic-Error 1
 	request_header X-Wikijump-Site-Slug {labels.2}

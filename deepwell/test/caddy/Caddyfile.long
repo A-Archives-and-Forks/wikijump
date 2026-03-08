@@ -5,6 +5,8 @@
 	}
 }
 
+# Common segments
+
 (strip_headers) {
 	# Strip internal headers used by Wikijump
 	request_header -X-Wikijump-*
@@ -54,6 +56,8 @@
 	reverse_proxy framerail:3393
 }
 
+# Canonical domain
+
 foo.site.wikijump.com {
 	import strip_headers
 
@@ -71,10 +75,15 @@ www.foo.site.wikijump.com {
 	redir https://foo.site.wikijump.com{uri}
 }
 
+
+# Canonical domain
+
 bar.site.wikijump.com,
 www.bar.site.wikijump.com {
 	redir https://example.com{uri}
 }
+
+# Custom domains
 
 example.com {
 	import strip_headers
@@ -117,14 +126,26 @@ wjfiles.host.site.somedomain.example.com {
 	reverse_proxy wws:3466
 }
 
-*.wjfiles.host.site.somedomain.example.com {
+
+foo.wjfiles.host.site.somedomain.example.com {
 	import strip_headers
 
-	@foo host foo.wjfiles.host.site.somedomain.example.com
-	vars @foo site_id 1
+	vars {
+		site_id 1
+		site_slug foo
+	}
 
-	@bar host bar.wjfiles.host.site.somedomain.example.com
-	vars @bar site_id 2
+	request_header X-Wikijump-Site-Slug {labels.6}
+	request_header X-Wikijump-Site-Id {vars.site_id}
+	import serve_files
+
+bar.wjfiles.host.site.somedomain.example.com {
+	import strip_headers
+
+	vars {
+		site_id 2
+		site_slug bar
+	}
 
 	request_header X-Wikijump-Site-Slug {labels.6}
 	request_header X-Wikijump-Site-Id {vars.site_id}
@@ -137,7 +158,8 @@ wjfiles.host.site.somedomain.example.com {
 #
 
 # Missing canonical domain
-*.site.wikijump.com {
+http://*.site.wikijump.com {
+
 	import strip_headers
 	request_header X-Wikijump-Basic-Error 1
 	request_header X-Wikijump-Site-Slug {labels.3}
