@@ -157,18 +157,6 @@ impl CaddyService {
             str_writeln!(&mut caddyfile, "\tlocal_certs\n\tskip_install_trust");
         }
 
-        let missing_domain_scheme = match wildcard_cert {
-            // Default, no scheme prefix
-            Some(_) => "",
-
-            // Specify HTTP scheme to have Caddy not get TLS certs for this domain
-            None => "http://",
-        };
-
-        if let Some(provider) = wildcard_cert {
-            str_write!(&mut caddyfile, "\ttls {{\n\t\tdns {provider}\n\t}}");
-        }
-
         str_write!(
             &mut caddyfile,
             "\
@@ -181,6 +169,22 @@ impl CaddyService {
 
 "
         );
+
+        if let Some(provider) = wildcard_cert {
+            str_write!(
+                &mut caddyfile,
+                "\
+(wildcard_tls) {{
+	# Set settings for DNS-based ACME challenge
+	# Needed for wildcard TLS certificates
+	tls {{
+		dms {provider}
+	}}
+}}
+
+"
+            );
+        }
 
         if let Some(deploy_host) = deploy_host {
             str_write!(
@@ -355,10 +359,35 @@ www.{domain} {{
 	reverse_proxy {wws_host}
 }}
 
-{missing_domain_scheme}*{files_domain} {{
-	import strip_headers
 "
         );
+
+        match wildcard_cert {
+            Some(_) => {
+                // No scheme (default Caddy behavior)
+                // Import the wildcard_tls settings
+                str_write!(
+                    &mut caddyfile,
+                    "
+*{files_domain} {{
+	import wildcard_tls
+	import strip_headers
+"
+                );
+            }
+            None => {
+                // Explicitly http:// scheme
+                // This way Caddy doesn't fetch a TLS certificate
+                // (which is not possible here since we don't have ACME DNS settings)
+                str_write!(
+                    &mut caddyfile,
+                    "
+http://*{files_domain} {{
+	import strip_headers
+"
+                );
+            }
+        }
 
         for (site_id, site_slug, _) in sites {
             str_write!(
@@ -390,7 +419,7 @@ www.{domain} {{
 #
 
 # Missing canonical domain
-{missing_domain_scheme}*{main_domain} {{
+*{main_domain} {{
 	import strip_headers
 	request_header X-Wikijump-Basic-Error 1
 	request_header X-Wikijump-Site-Slug {{labels.{}}}
