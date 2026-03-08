@@ -73,23 +73,6 @@ struct CaddyTemplate<'a> {
     domains: &'a HashMap<i64, SiteDomainData>,
 }
 
-// Helper functions for rendering
-
-fn get_canonical_domain<'s>(config: &'s Config, site_slug: &'s str) -> Cow<'s, str> {
-    if site_slug == DEFAULT_SITE_SLUG {
-        Cow::Borrowed(&config.main_domain_no_dot)
-    } else {
-        Cow::Owned(DomainService::get_canonical(config, site_slug))
-    }
-}
-
-fn get_preferred_domain<'s>(
-    preferred_domain: &'s Option<String>,
-    canonical_domain: &'s str,
-) -> &'s str {
-    preferred_domain.as_deref().unwrap_or(canonical_domain)
-}
-
 // Actual service
 
 #[derive(Debug)]
@@ -540,6 +523,24 @@ http://*{files_domain} {{
         caddyfile
     }
 }
+
+// Helper functions for rendering
+
+fn get_canonical_domain<'s>(config: &'s Config, site_slug: &'s str) -> Cow<'s, str> {
+    if site_slug == DEFAULT_SITE_SLUG {
+        Cow::Borrowed(&config.main_domain_no_dot)
+    } else {
+        Cow::Owned(DomainService::get_canonical(config, site_slug))
+    }
+}
+
+fn get_preferred_domain<'s>(
+    preferred_domain: &'s Option<String>,
+    canonical_domain: &'s str,
+) -> &'s str {
+    preferred_domain.as_deref().unwrap_or(canonical_domain)
+}
+
 
 /// Determines the index to give to Caddy to get the site slug from a domain.
 ///

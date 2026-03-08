@@ -24,12 +24,12 @@ www.{{ domain }} {
 }
 {% endmacro -%}
 
-{% macro render_entry(site_id, site_slug, domain, preferred_domain) %}
+{% macro render_entry(site_id, site_slug, domain, preferred_domain) -%}
 {% if domain == preferred_domain %}
 {{ render_preferred_domain(site_id, site_slug, domain) }}
 {% else %}
 {{ render_redirect(domain, preferred_domain) }}
-{% endif %}
+{% endif -%}
 {% endmacro -%}
 
 # Global options
@@ -80,7 +80,6 @@ deploy{{ files_domain }} {
 	redir https://deploy{{ main_domain }}
 }
 {% endif %}
-
 #
 # MAIN
 #
@@ -124,18 +123,106 @@ deploy{{ files_domain }} {
 	# Note, the x-wikijump-site-* headers have already been set at this point
 	reverse_proxy {{ framerail_host }}
 }
-
-{% for (site_id, site_slug, preferred_domain) in sites %}
-{% let SiteDomainData { aliases, custom_domains } = &domains[site_id] %}
-{% let canonical_domain = self::get_canonical_domain(config, site_slug) %}
-{% let preferred_domain = self::get_preferred_domain(&preferred_domain, &canonical_domain)  -%}
-{{ render_entry(site_id, site_slug, canonical_domain, preferred_domain) }}
-{% for domain in custom_domains %}
-{{ render_entry(site_id, site_slug, domain, preferred_domain) }}
-{% endfor %}
-{% for alias_slug in aliases %}
+{% for (site_id, site_slug, preferred_domain) in sites -%}
+{% let SiteDomainData { aliases, custom_domains } = &domains[site_id] -%}
+{% let canonical_domain = self::get_canonical_domain(config, site_slug) -%}
+{% let preferred_domain = self::get_preferred_domain(&preferred_domain, &canonical_domain) %}
+# Canonical domain
+{{- render_entry(site_id, site_slug, canonical_domain, preferred_domain) -}}
+{% for domain in custom_domains -%}
+{% if loop.first %}# Custom domains{% endif -%}
+{{- render_entry(site_id, site_slug, domain, preferred_domain) }}
+{% endfor -%}
+{% for alias_slug in aliases -%}
+{% if loop.first %}# Aliases{% endif -%}
 {% let domain = DomainService::get_canonical(config, alias_slug) %}
-{{ render_redirect(domain, preferred_domain) }}
-{% endfor %}
+{{- render_redirect(domain, preferred_domain) }}
+{% endfor -%}
+#
+# FILES
+#
 
+(serve_files) {
+	# Special routes
+	respond /-/health-check/caddy ✅ 200
+	respond /-/teapot             🫖 418
+
+	# Enable default compression settings
+	encode
+
+	# Reverse proxy
+	request_header X-Wikijump-Target-Server files
+	reverse_proxy {{ wws_host }}
+}
+
+{{ files_domain_no_dot }} {
+	import strip_headers
+	request_header X-Wikijump-Basic-Error 1
+	rewrite * /-/basic-error/file-root
+	reverse_proxy {{ wws_host }}
+}
+{% match wildcard_cert %}
+{% when Some(_) -%}
+{# If we can get wildcard certificates, then we should do *.wjfiles.tld #}
+*{{ files_domain }} {
+	import wildcard_tls
+	import strip_headers
+{% for (site_id, site_slug, _) in sites %}
+	@{{ site_slug }} host {{ site_slug }}{{ files_domain }}
+	vars @{{ site_slug }} site_id {{ site_id }}
 {% endfor %}
+	request_header X-Wikijump-Site-Slug {labels.{{ self::site_slug_split_index(files_domain) }}}
+	request_header X-Wikijump-Site-Id {vars.site_id}
+	import serve_files
+}
+{% when None -%}
+{# Otherwise, let's have separate xyz.wjfiles.tld hosts #}
+{% for (site_id, site_slug, _) in sites %}
+{{ site_slug }}{{ files_domain }} {
+	import strip_headers
+
+	vars {
+		site_id {{ site_id }}
+		site_slug {{ site_slug }}
+	}
+
+	request_header X-Wikijump-Site-Slug {labels.{{ self::site_slug_split_index(files_domain) }}}
+	request_header X-Wikijump-Site-Id {vars.site_id}
+	import serve_files
+{% endfor -%}
+{% endmatch -%}
+{% endfor %}
+#
+# FALLBACK
+# (i.e. "no such site")
+#
+
+# Missing canonical domain
+{% match wildcard_cert %}
+{% when Some(_) -%}
+*{{ main_domain }}{
+	import wildcard_tls
+{%- when None -%}
+http://*{{ main_domain }} {
+{% endmatch %}
+	import strip_headers
+	request_header X-Wikijump-Basic-Error 1
+	request_header X-Wikijump-Site-Slug {labels.{{ self::site_slug_split_index(main_domain) }}}
+	rewrite * /-/basic-error/site-slug
+	reverse_proxy {{ wws_host }}
+}
+
+# Missing custom domain
+{% if local -%}
+http://,
+https://,
+localhost {
+{% else -%}
+http://,
+https:// {
+{%- endif %}
+	import strip_headers
+	request_header X-Wikijump-Basic-Error 1
+	rewrite * /-/basic-error/site-custom
+	reverse_proxy {{ wws_host }}
+}
