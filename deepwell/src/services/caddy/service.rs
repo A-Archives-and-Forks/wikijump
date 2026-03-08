@@ -103,14 +103,14 @@ impl CaddyService {
             domains
         };
 
-        Ok(Self::generate_custom(
+        Ok(Self::generate_with_data(
             config,
             options,
             &SiteData { sites, domains },
         ))
     }
 
-    pub fn generate_custom(
+    pub fn generate_with_data(
         config: &Config,
         CaddyfileOptions {
             debug,
