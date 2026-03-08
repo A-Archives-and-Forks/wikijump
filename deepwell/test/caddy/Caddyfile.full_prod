@@ -76,8 +76,8 @@ deploy.wjfiles.test {
 	reverse_proxy framerail:3393
 }
 
-# Canonical domain
 
+# Canonical domain
 wikijump.test {
 	import strip_headers
 
@@ -90,13 +90,11 @@ wikijump.test {
 	request_header X-Wikijump-Site-Slug {vars.site_slug}
 	import serve_main
 }
-
 www.wikijump.test {
 	redir https://wikijump.test{uri}
 }
 
 # Canonical domain
-
 empty.wikijump.test {
 	import strip_headers
 
@@ -109,13 +107,11 @@ empty.wikijump.test {
 	request_header X-Wikijump-Site-Slug {vars.site_slug}
 	import serve_main
 }
-
 www.empty.wikijump.test {
 	redir https://empty.wikijump.test{uri}
 }
 
 # Canonical domain
-
 mytest.wikijump.test {
 	import strip_headers
 
@@ -128,26 +124,20 @@ mytest.wikijump.test {
 	request_header X-Wikijump-Site-Slug {vars.site_slug}
 	import serve_main
 }
-
 www.mytest.wikijump.test {
 	redir https://mytest.wikijump.test{uri}
 }
 
 # Custom domains
-
 example.com,
 www.example.com {
 	redir https://mytest.wikijump.test{uri}
 }
 
-
-
-
 example.net,
 www.example.net {
 	redir https://mytest.wikijump.test{uri}
 }
-
 
 # Aliases
 check.wikijump.test,
@@ -156,14 +146,12 @@ www.check.wikijump.test {
 }
 
 # Canonical domain
-
 wanderers-library.wikijump.test,
 www.wanderers-library.wikijump.test {
 	redir https://wandererslibrary.com{uri}
 }
 
 # Custom domains
-
 wandererslibrary.com {
 	import strip_headers
 
@@ -176,22 +164,17 @@ wandererslibrary.com {
 	request_header X-Wikijump-Site-Slug {vars.site_slug}
 	import serve_main
 }
-
 www.wandererslibrary.com {
 	redir https://wandererslibrary.com{uri}
 }
 
-
-
 # Canonical domain
-
 scp-wiki.wikijump.test,
 www.scp-wiki.wikijump.test {
 	redir https://scpwiki.com{uri}
 }
 
 # Custom domains
-
 scpwiki.com {
 	import strip_headers
 
@@ -204,7 +187,6 @@ scpwiki.com {
 	request_header X-Wikijump-Site-Slug {vars.site_slug}
 	import serve_main
 }
-
 www.scpwiki.com {
 	redir https://scpwiki.com{uri}
 }
@@ -229,6 +211,7 @@ scpwiki.wikijump.test,
 www.scpwiki.wikijump.test {
 	redir https://scpwiki.com{uri}
 }
+
 
 #
 # FILES
@@ -278,12 +261,13 @@ wjfiles.test {
 	import serve_files
 }
 
+
 #
 # FALLBACK
 # (i.e. "no such site")
 #
 
-# Missing canonical domain
+# Missing canonical domains
 *.wikijump.test {
 	import wildcard_tls
 	import strip_headers
@@ -293,7 +277,7 @@ wjfiles.test {
 	reverse_proxy wws:3466
 }
 
-# Missing custom domain
+# Missing custom domains
 http://,
 https:// {
 	import strip_headers

@@ -61,8 +61,8 @@
 	reverse_proxy framerail:3393
 }
 
-# Canonical domain
 
+# Canonical domain
 foo.wikijump.localhost {
 	import strip_headers
 
@@ -75,21 +75,17 @@ foo.wikijump.localhost {
 	request_header X-Wikijump-Site-Slug {vars.site_slug}
 	import serve_main
 }
-
 www.foo.wikijump.localhost {
 	redir https://foo.wikijump.localhost{uri}
 }
 
-
 # Canonical domain
-
 bar.wikijump.localhost,
 www.bar.wikijump.localhost {
 	redir https://example.com{uri}
 }
 
 # Custom domains
-
 example.com {
 	import strip_headers
 
@@ -102,10 +98,10 @@ example.com {
 	request_header X-Wikijump-Site-Slug {vars.site_slug}
 	import serve_main
 }
-
 www.example.com {
 	redir https://example.com{uri}
 }
+
 
 #
 # FILES
@@ -145,12 +141,13 @@ wjfiles.localhost {
 	import serve_files
 }
 
+
 #
 # FALLBACK
 # (i.e. "no such site")
 #
 
-# Missing canonical domain
+# Missing canonical domains
 *.wikijump.localhost {
 	import wildcard_tls
 	import strip_headers
@@ -160,7 +157,7 @@ wjfiles.localhost {
 	reverse_proxy wws:3466
 }
 
-# Missing custom domain
+# Missing custom domains
 http://,
 https://,
 localhost {
