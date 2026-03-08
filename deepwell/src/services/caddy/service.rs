@@ -48,6 +48,7 @@ struct CaddyTemplate<'a> {
 
     // TLS
     wildcard_cert: Option<&'a str>,
+    should_use_wildcard: bool,
 
     // Reverse proxy destinations
     deploy_host: Option<&'a str>,
@@ -158,6 +159,7 @@ impl CaddyService {
             http_port: *http_port,
             https_port: *https_port,
             wildcard_cert: wildcard_cert.as_deref(),
+            should_use_wildcard: wildcard_cert.is_some() || *local,
             deploy_host: deploy_host.as_deref(),
             framerail_host: &framerail_host,
             wws_host: &wws_host,

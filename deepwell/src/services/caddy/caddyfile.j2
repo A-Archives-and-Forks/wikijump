@@ -173,7 +173,7 @@ deploy{{ files_domain }} {
 	rewrite * /-/basic-error/file-root
 	reverse_proxy {{ wws_host }}
 }
-{% if wildcard_cert.is_some() || local %}
+{% if should_use_wildcard %}
 {#
 If we can get wildcard certificates, then we should do *.wjfiles.tld
 Or - it's local, in which case the certificates don't matter, so do that
@@ -213,7 +213,7 @@ Or - it's local, in which case the certificates don't matter, so do that
 #
 
 # Missing canonical domain
-{% if wildcard_cert.is_some() || local -%}
+{% if should_use_wildcard -%}
 *{{ main_domain }} {
 	import wildcard_tls
 {%- else -%}
