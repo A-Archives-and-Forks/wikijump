@@ -1,0 +1,14 @@
+[general]
+
+# Directories to look for askama templates in
+#
+# We don't have a unified template directory,
+# if you're adding a new use, then add a separate
+# directory in the respective submodule directory.
+dirs = [
+    # for generating Caddyfiles
+    "src/services/caddy",
+]
+
+# Maintain whitespace, requiring the trim option (-)
+whitespace = "preserve"
