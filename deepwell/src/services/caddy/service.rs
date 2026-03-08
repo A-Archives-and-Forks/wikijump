@@ -59,7 +59,6 @@ struct CaddyTemplate<'a> {
     files_domain: &'a str,
     files_domain_no_dot: &'a str,
     main_domain: &'a str,
-    main_domain_no_dot: &'a str,
 
     // Site and domain data
     sites: &'a [(i64, String, Option<String>)],
@@ -166,7 +165,6 @@ impl CaddyService {
             files_domain: &config.files_domain,
             files_domain_no_dot: &config.files_domain_no_dot,
             main_domain: &config.main_domain,
-            main_domain_no_dot: &config.main_domain_no_dot,
             sites: &sites,
             domains: &domains,
         };
