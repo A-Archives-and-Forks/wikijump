@@ -250,7 +250,7 @@ UNIT TEST INFO:
 * Site data: {}
 * Options: {:#?}
 ",
-                    stringify!($expected),
+                    expected,
                     $config.main_domain_no_dot,
                     $config.files_domain_no_dot,
                     stringify!($sites),
