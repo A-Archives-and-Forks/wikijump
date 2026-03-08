@@ -1,0 +1,141 @@
+{% macro render_preferred_domain(site_id, site_slug, domain) %}
+{{ domain }} {
+	import strip_headers
+
+	vars {
+		site_id {{ site_id }}
+		site_slug {{ site_slug }}
+	}
+
+	request_header X-Wikijump-Site-Id {vars.site_id}
+	request_header X-Wikijump-Site-Slug {vars.site_slug}
+	import serve_main
+}
+
+www.{{ domain }} {
+	redir https://{{ domain }}{uri}
+}
+{% endmacro -%}
+
+{% macro render_redirect(domain, preferred_domain) %}
+{{ domain }},
+www.{{ domain }} {
+	redir https://{{ preferred_domain }}{uri}
+}
+{% endmacro -%}
+
+{% macro render_entry(site_id, site_slug, domain, preferred_domain) %}
+{% if domain == preferred_domain %}
+{{ render_preferred_domain(site_id, site_slug, domain) }}
+{% else %}
+{{ render_redirect(domain, preferred_domain) }}
+{% endif %}
+{% endmacro -%}
+
+# Global options
+{
+	metrics {
+		per_host
+	}
+	{%- if let Some(port) = http_port %}
+	http_port {{ port }}
+	{% endif %}
+	{%- if let Some(port) = https_port %}
+	https_port {{ port }}
+	{% endif %}
+	{%- if debug %}
+	debug
+	{% endif %}
+	{%- if local %}
+	local_certs
+	skip_install_trust
+	{% endif %}
+}
+
+# Common segments
+(strip_headers) {
+	# Strip internal headers used by Wikijump
+	request_header -X-Wikijump-*
+}
+{% if let Some(provider) = wildcard_cert %}
+(wildcard_tls) {
+	# Set settings for DNS-based ACME challenge
+	# Needed for wildcard TLS certificates
+	tls {
+		dms {{ provider }}
+	}
+}
+{% endif %}
+
+{%- if let Some(deploy_host) = deploy_host %}
+#
+# INFRASTRUCTURE
+#
+
+deploy{{ main_domain }} {
+	reverse_proxy {{ deploy_host }}
+}
+
+deploy{{ files_domain }} {
+	redir https://deploy{{ main_domain }}
+}
+{% endif %}
+
+#
+# MAIN
+#
+
+(serve_main) {
+	# Special routes
+	respond /-/health-check/caddy ✅ 200
+	respond /-/teapot             🫖 418
+
+	# wjfiles-managed routes
+	# These are proxied to wws for it to handle, but shouldn't be redirected
+	@proxy {
+		path /robots.txt
+		path /.well-known
+		path /-/health-check
+	}
+	request_header @proxy X-Wikijump-Target-Server main
+	reverse_proxy @proxy {{ wws_host }}
+
+	# Redirect, true route is on the files server
+	@redirect {
+		path /*/code/*
+		path /*/html/*
+		path /*/file/*  # for the /{slug}/file/{filename} convenience routes
+		path /*/download/*
+		path /local--files/*
+		path /local--code/*
+		path /local--html/*
+		path /-/files/*
+		path /-/file/*
+		path /-/download/*
+		path /-/code/*
+		path /-/html/*
+	}
+	redir @redirect https://{vars.site_slug}{{ files_domain }}{uri}
+
+	# Enable default compression settings
+	encode
+
+	# Finally, proxy to framerail to get the actual HTML
+	# Note, the x-wikijump-site-* headers have already been set at this point
+	reverse_proxy {{ framerail_host }}
+}
+
+{% for (site_id, site_slug, preferred_domain) in sites %}
+{% let SiteDomainData { aliases, custom_domains } = &domains[site_id] %}
+{% let canonical_domain = self::get_canonical_domain(config, site_slug) %}
+{% let preferred_domain = self::get_preferred_domain(&preferred_domain, &canonical_domain)  -%}
+{{ render_entry(site_id, site_slug, canonical_domain, preferred_domain) }}
+{% for domain in custom_domains %}
+{{ render_entry(site_id, site_slug, domain, preferred_domain) }}
+{% endfor %}
+{% for alias_slug in aliases %}
+{% let domain = DomainService::get_canonical(config, alias_slug) %}
+{{ render_redirect(domain, preferred_domain) }}
+{% endfor %}
+
+{% endfor %}

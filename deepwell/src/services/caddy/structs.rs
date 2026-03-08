@@ -70,8 +70,6 @@ pub struct CaddyfileOptions<'a> {
     #[serde(default)]
     pub wildcard_cert: Option<Cow<'a, str>>,
 
-    // Infra information
-
     /// Enables a `deploy` subdomain redirect.
     ///
     /// If this is running in an environment where a system

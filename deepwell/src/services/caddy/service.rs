@@ -37,9 +37,60 @@ use crate::models::site::{self, Entity as Site};
 use crate::models::site_domain::{self, Entity as SiteDomain};
 use crate::services::domain::DEFAULT_SITE_SLUG;
 use crate::services::{AliasService, DomainService};
+use askama::Template;
 use sea_orm::{EntityTrait, QuerySelect};
 use std::borrow::Cow;
 use std::collections::HashMap;
+
+// Askama template for generating the Caddyfile
+
+#[derive(Template, Debug)]
+#[template(path = "caddyfile.j2", escape = "none")]
+struct CaddyTemplate<'a> {
+    // Basic options
+    debug: bool,
+    local: bool,
+    http_port: Option<u16>,
+    https_port: Option<u16>,
+
+    // TLS
+    wildcard_cert: Option<&'a str>,
+
+    // Reverse proxy destinations
+    deploy_host: Option<&'a str>,
+    framerail_host: &'a str,
+    wws_host: &'a str,
+
+    // Instance configuration
+    config: &'a Config,
+    files_domain: &'a str,
+    files_domain_no_dot: &'a str,
+    main_domain: &'a str,
+    main_domain_no_dot: &'a str,
+
+    // Site and domain data
+    sites: &'a [(i64, String, Option<String>)],
+    domains: &'a HashMap<i64, SiteDomainData>,
+}
+
+// Helper functions for rendering
+
+fn get_canonical_domain<'s>(config: &'s Config, site_slug: &'s str) -> Cow<'s, str> {
+    if site_slug == DEFAULT_SITE_SLUG {
+        Cow::Borrowed(&config.main_domain_no_dot)
+    } else {
+        Cow::Owned(DomainService::get_canonical(config, site_slug))
+    }
+}
+
+fn get_preferred_domain<'s>(
+    preferred_domain: &'s Option<String>,
+    canonical_domain: &'s str,
+) -> &'s str {
+    preferred_domain.as_deref().unwrap_or(canonical_domain)
+}
+
+// Actual service
 
 #[derive(Debug)]
 pub struct CaddyService;
@@ -108,6 +159,50 @@ impl CaddyService {
             options,
             &SiteData { sites, domains },
         ))
+    }
+
+    pub fn generate_with_data_askama(
+        config: &Config,
+        CaddyfileOptions {
+            debug,
+            local,
+            http_port,
+            https_port,
+            wildcard_cert,
+            deploy_host,
+            framerail_host,
+            wws_host,
+        }: &CaddyfileOptions<'_>,
+        SiteData { sites, domains }: &SiteData,
+    ) -> Result<String> {
+        info!("Generating Caddyfile for {} sites", sites.len());
+
+        let template = CaddyTemplate {
+            debug: *debug,
+            local: *local,
+            http_port: *http_port,
+            https_port: *https_port,
+            wildcard_cert: wildcard_cert.as_deref(),
+            deploy_host: deploy_host.as_deref(),
+            framerail_host: &framerail_host,
+            wws_host: &wws_host,
+            config,
+            files_domain: &config.files_domain,
+            files_domain_no_dot: &config.files_domain_no_dot,
+            main_domain: &config.main_domain,
+            main_domain_no_dot: &config.main_domain_no_dot,
+            sites: &sites,
+            domains: &domains,
+        };
+
+        let caddyfile = template.render().or_raise(|| {
+            Error::new(
+                format!("failed to generate Caddyfile for {} sites", sites.len()),
+                ErrorType::Caddyfile,
+            )
+        })?;
+
+        Ok(caddyfile)
     }
 
     pub fn generate_with_data(
