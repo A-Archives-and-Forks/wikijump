@@ -2,7 +2,7 @@
 
 This illustrates the setup for the [Komodo](https://komo.do)-based dev tier hosting `wikijump.dev`:
 
-1. Create a Virtual Private Server with Ubuntu 24.04 LTS.
+1. Create a Virtual Private Server with Ubuntu 24.04 LTS. Our host is DigitalOcean.
 2. Set up a non-root administrator account:
 ```
 # adduser --disabled-password maintainer
