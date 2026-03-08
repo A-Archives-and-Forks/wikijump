@@ -198,11 +198,13 @@ fn read_test_file(path: &str) -> String {
 }
 
 /// Writes a `Caddyfile`, in the event that we are updating test files.
-/// For convenience when we have updated the logic in `CaddyService`.
+/// For convenience when we have updated the `Caddyfile` template in `CaddyService`.
 fn write_test_file(path: &str, caddyfile: &str) {
     let mut file = File::create(path).expect("Unable to open test file");
     file.write_all(caddyfile.as_bytes())
         .expect("Unable to write to test file");
+    file.write_all(b"\n")
+        .expect("Unable to write final newline");
 }
 
 #[test]
