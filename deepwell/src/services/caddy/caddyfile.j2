@@ -50,17 +50,17 @@ www.{{ domain }} {
 	}
 	{%- if let Some(port) = http_port %}
 	http_port {{ port }}
-	{% endif %}
+	{%- endif %}
 	{%- if let Some(port) = https_port %}
 	https_port {{ port }}
-	{% endif %}
+	{%- endif %}
 	{%- if debug %}
 	debug
-	{% endif %}
+	{%- endif %}
 	{%- if local %}
 	local_certs
 	skip_install_trust
-	{% endif %}
+	{%- endif %}
 }
 
 # Common segments
@@ -147,8 +147,9 @@ deploy{{ files_domain }} {
 {% for alias_slug in aliases -%}
 {% if loop.first %}# Aliases{% endif -%}
 {% let domain = DomainService::get_canonical(config, alias_slug) %}
-{{- render_redirect(domain, preferred_domain) }}
-{% endfor -%}
+{{- render_redirect(domain, preferred_domain) -}}
+{%- endfor -%}
+{%- endfor -%}
 #
 # FILES
 #
@@ -202,7 +203,6 @@ deploy{{ files_domain }} {
 	import serve_files
 {% endfor -%}
 {% endmatch -%}
-{% endfor %}
 #
 # FALLBACK
 # (i.e. "no such site")
@@ -211,7 +211,7 @@ deploy{{ files_domain }} {
 # Missing canonical domain
 {% match wildcard_cert %}
 {% when Some(_) -%}
-*{{ main_domain }}{
+*{{ main_domain }} {
 	import wildcard_tls
 {%- when None -%}
 http://*{{ main_domain }} {
