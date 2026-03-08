@@ -225,7 +225,8 @@ Or - it's local, in which case the certificates don't matter, so do that
 *{{ main_domain }} {
 	import wildcard_tls
 {%- else -%}
-http://*{{ main_domain }} {
+http://*{{ main_domain }},
+http://*{{ files_domain }} {
 {%- endif %}
 	import strip_headers
 	request_header X-Wikijump-Basic-Error 1
