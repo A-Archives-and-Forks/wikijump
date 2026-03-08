@@ -173,11 +173,15 @@ deploy{{ files_domain }} {
 	rewrite * /-/basic-error/file-root
 	reverse_proxy {{ wws_host }}
 }
-{% match wildcard_cert %}
-{% when Some(_) -%}
-{# If we can get wildcard certificates, then we should do *.wjfiles.tld #}
+{% if wildcard_cert.is_some() || local %}
+{#
+If we can get wildcard certificates, then we should do *.wjfiles.tld
+Or - it's local, in which case the certificates don't matter, so do that
+#}
 *{{ files_domain }} {
+{%- if !local %}
 	import wildcard_tls
+{%- endif %}
 	import strip_headers
 {% for (site_id, site_slug, _) in sites %}
 	@{{ site_slug }} host {{ site_slug }}{{ files_domain }}
@@ -187,7 +191,7 @@ deploy{{ files_domain }} {
 	request_header X-Wikijump-Site-Id {vars.site_id}
 	import serve_files
 }
-{% when None -%}
+{% else -%}
 {# Otherwise, let's have separate xyz.wjfiles.tld hosts #}
 {% for (site_id, site_slug, _) in sites %}
 {{ site_slug }}{{ files_domain }} {
@@ -202,20 +206,19 @@ deploy{{ files_domain }} {
 	request_header X-Wikijump-Site-Id {vars.site_id}
 	import serve_files
 {% endfor -%}
-{% endmatch -%}
+{% endif -%}
 #
 # FALLBACK
 # (i.e. "no such site")
 #
 
 # Missing canonical domain
-{% match wildcard_cert %}
-{% when Some(_) -%}
+{% if wildcard_cert.is_some() || local -%}
 *{{ main_domain }} {
 	import wildcard_tls
-{%- when None -%}
+{%- else -%}
 http://*{{ main_domain }} {
-{% endmatch %}
+{% endif %}
 	import strip_headers
 	request_header X-Wikijump-Basic-Error 1
 	request_header X-Wikijump-Site-Slug {labels.{{ self::site_slug_split_index(main_domain) }}}
