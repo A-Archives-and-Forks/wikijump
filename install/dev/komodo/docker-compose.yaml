@@ -51,6 +51,8 @@ services:
     volumes:
       ## Store dated backups of the database - https://komo.do/docs/setup/backup
       - /var/lib/komodo/backups:/backups
+    extra_hosts:
+      - host.docker.internal:host-gateway
 
   periphery:
     # NOTE: If not using AWS ECR, then replace this 'build' section with

@@ -56,8 +56,17 @@ is_secret = true
 # listed on https://caddy.community/t/how-to-use-dns-provider-modules-in-caddy-2/8148
 # will work. Remember you will need to update the "wildcard_cert" field in
 # install/{dev,prod}/caddy/request.json *and* ALL uses of $DIGITALOCEAN_API_TOKEN.
+
 [[variable]]
 name = "DIGITALOCEAN_API_TOKEN"
 description = "API token for changing DNS records in DigitalOcean"
 vaue = ""  # TODO: fill in value here!
+is_secret = true
+
+# Alerters
+
+[[variable]]
+name = "DISCORD_WEBHOOK"
+description = "Webhook for notifying on infrastructural changes"
+value = ""  # TODO: fill in value here!
 is_secret = true
