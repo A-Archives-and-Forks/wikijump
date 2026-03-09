@@ -54,8 +54,8 @@ is_secret = true
 #
 # This assumes you're using DigitalOcean, but any DNS provider
 # listed on https://caddy.community/t/how-to-use-dns-provider-modules-in-caddy-2/8148
-# will work. Remember you will need to update this variable *and* the "wildcard_cert"
-# field in install/{dev,prod}/caddy/request.json
+# will work. Remember you will need to update the "wildcard_cert" field in
+# install/{dev,prod}/caddy/request.json *and* ALL uses of $DIGITALOCEAN_API_TOKEN.
 [[variable]]
 name = "DIGITALOCEAN_API_TOKEN"
 description = "API token for changing DNS records in DigitalOcean"
