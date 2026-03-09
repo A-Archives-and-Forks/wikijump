@@ -2,7 +2,7 @@
 
 This illustrates the setup for the [Komodo](https://komo.do)-based dev tier hosting `wikijump.dev`:
 
-1. Create a Virtual Private Server with Ubuntu 24.04 LTS.
+1. Create a Virtual Private Server with Ubuntu 24.04 LTS. Our host is DigitalOcean.
 2. Set up a non-root administrator account:
 ```
 # adduser --disabled-password maintainer
@@ -25,11 +25,22 @@ PasswordAuthentication no
 PermitEmptyPasswords no
 $ sudo systemctl reload ssh.service
 ```
-5. Install Docker:
+5. Install Docker and other dependencies:
 ```
-$ sudo apt install docker.io docker-compose docker-buildx
+$ sudo apt install docker.io docker-compose-v2 docker-buildx amazon-ecr-credential-helper
 ```
-6. Install Komodo:
+6. (For AWS ECR) Set up the ECR credential helper:
+```
+$ sudo mkdir -m 700 ~root/.docker
+$ sudoedit ~root/.docker/
+{
+	"credHelpers": {
+		"public.ecr.aws": "ecr-login",
+		"575596218155.dkr.ecr.us-east-2.amazonaws.com": "ecr-login"
+	}
+}
+```
+7. Install Komodo:
 When multiple servers are initiated for the same tier, note that *only one machine should have a Komodo Core*. All the servers need a Periphery instance to be able to talk to the one machine running Komodo Core.
 
 The files to use here are located in the current directory, and for `compose.env` see `compose.env.example` to populate the missing fields.
@@ -39,9 +50,9 @@ $ mkdir ~/komodo
 $ cd ~/komodo
 Copy docker-compose.yaml from install/dev/komodo/docker-compose.yaml
 Create compose.env based on install/dev/komodo/compose.env.example
-$ sudo docker-compose -p komodo -f docker-compose.yaml --env-file compose.env up -d
+$ sudo docker compose -p komodo -f docker-compose.yaml --env-file compose.env up -d
 Ensure that it's running as expected:
-$ sudo docker-compose -p komodo -f docker-compose.yaml --env-file compose.env ps
+$ sudo docker compose -p komodo -f docker-compose.yaml --env-file compose.env ps
 ```
 8. Log in to Komodo.
 Using the admin password you generated for `compose.env`, log in to Komodo via `http://[IP ADDRESS]:9120/`.

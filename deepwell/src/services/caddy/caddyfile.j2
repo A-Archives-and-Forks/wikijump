@@ -1,0 +1,251 @@
+{#
+Editor notice:
+
+This file contains hard tabs, as this is what we want to use for
+`Caddyfile` generation. If you're opening this file, mind the git
+diff!
+
+If your editor munges the tabs please discard those changes.
+Remember, 'git add -p' is your friend!
+#}
+
+{%- macro render_preferred_domain(site_id, site_slug, domain) %}
+{{ domain }} {
+	import strip_headers
+
+	vars {
+		site_id {{ site_id }}
+		site_slug {{ site_slug }}
+	}
+
+	request_header X-Wikijump-Site-Id {vars.site_id}
+	request_header X-Wikijump-Site-Slug {vars.site_slug}
+	import serve_main
+}
+www.{{ domain }} {
+	redir https://{{ domain }}{uri}
+}
+{% endmacro -%}
+
+{%- macro render_redirect(domain, preferred_domain) %}
+{{ domain }},
+www.{{ domain }} {
+	redir https://{{ preferred_domain }}{uri}
+}
+{% endmacro -%}
+
+{% macro render_entry(site_id, site_slug, domain, preferred_domain) -%}
+{% if domain == preferred_domain -%}
+{{ render_preferred_domain(site_id, site_slug, domain) }}
+{%- else -%}
+{{ render_redirect(domain, preferred_domain) }}
+{%- endif -%}
+{% endmacro -%}
+
+# Global options
+{
+	metrics {
+		per_host
+	}
+	{%- if let Some(port) = http_port %}
+	http_port {{ port }}
+	{%- endif %}
+	{%- if let Some(port) = https_port %}
+	https_port {{ port }}
+	{%- endif %}
+	{%- if debug %}
+	debug
+	{%- endif %}
+	{%- if local %}
+	local_certs
+	skip_install_trust
+	{%- endif %}
+}
+
+# Common segments
+
+(strip_headers) {
+	# Strip internal headers used by Wikijump
+	request_header -X-Wikijump-*
+}
+{% if let Some(provider) = wildcard_cert %}
+(wildcard_tls) {
+	# Set settings for DNS-based ACME challenge
+	# Needed for wildcard TLS certificates
+	tls {
+		dms {{ provider }}
+	}
+}
+{% endif %}
+
+{%- if let Some(deploy_host) = deploy_host %}
+#
+# INFRASTRUCTURE
+#
+
+deploy{{ main_domain }} {
+	reverse_proxy {{ deploy_host }}
+}
+
+deploy{{ files_domain }} {
+	redir https://deploy{{ main_domain }}
+}
+{% endif %}
+#
+# MAIN
+#
+
+(serve_main) {
+	# Special routes
+	respond /-/health-check/caddy ✅ 200
+	respond /-/teapot             🫖 418
+
+	# wjfiles-managed routes
+	# These are proxied to wws for it to handle, but shouldn't be redirected
+	@proxy {
+		path /robots.txt
+		path /.well-known
+		path /-/health-check
+	}
+	request_header @proxy X-Wikijump-Target-Server main
+	reverse_proxy @proxy {{ wws_host }}
+
+	# Redirect, true route is on the files server
+	@redirect {
+		path /*/code/*
+		path /*/html/*
+		path /*/file/*  # for the /{slug}/file/{filename} convenience routes
+		path /*/download/*
+		path /local--files/*
+		path /local--code/*
+		path /local--html/*
+		path /-/files/*
+		path /-/file/*
+		path /-/download/*
+		path /-/code/*
+		path /-/html/*
+	}
+	redir @redirect https://{vars.site_slug}{{ files_domain }}{uri}
+
+	# Enable default compression settings
+	encode
+
+	# Finally, proxy to framerail to get the actual HTML
+	# Note, the x-wikijump-site-* headers have already been set at this point
+	reverse_proxy {{ framerail_host }}
+}
+
+{% for (site_id, site_slug, preferred_domain) in sites -%}
+{% let SiteDomainData { aliases, custom_domains } = &domains[site_id] -%}
+{% let canonical_domain = self::get_canonical_domain(config, site_slug) -%}
+{% let preferred_domain = self::get_preferred_domain(&preferred_domain, &canonical_domain) %}
+# Canonical domain
+{{- render_entry(site_id, site_slug, canonical_domain, preferred_domain) -}}
+{% for domain in custom_domains -%}
+{% if loop.first %}
+# Custom domains
+{%- endif -%}
+{{- render_entry(site_id, site_slug, domain, preferred_domain) -}}
+{% endfor -%}
+{% for alias_slug in aliases -%}
+{% if loop.first %}
+# Aliases
+{%- endif -%}
+{% let domain = DomainService::get_canonical(config, alias_slug) %}
+{{- render_redirect(domain, preferred_domain) -}}
+{%- endfor -%}
+{% endfor %}
+
+#
+# FILES
+#
+
+(serve_files) {
+	# Special routes
+	respond /-/health-check/caddy ✅ 200
+	respond /-/teapot             🫖 418
+
+	# Enable default compression settings
+	encode
+
+	# Reverse proxy
+	request_header X-Wikijump-Target-Server files
+	reverse_proxy {{ wws_host }}
+}
+
+{{ files_domain_no_dot }} {
+	import strip_headers
+	request_header X-Wikijump-Basic-Error 1
+	rewrite * /-/basic-error/file-root
+	reverse_proxy {{ wws_host }}
+}
+{% if should_use_wildcard -%}
+{#
+If we can get wildcard certificates, then we should do *.wjfiles.tld
+Or - it's local, in which case the certificates don't matter, so do that
+#}
+*{{ files_domain }} {
+	{%- if !local %}
+	import wildcard_tls
+	{%- endif %}
+	import strip_headers
+{% for (site_id, site_slug, _) in sites %}
+	@{{ site_slug }} host {{ site_slug }}{{ files_domain }}
+	vars @{{ site_slug }} site_id {{ site_id }}
+{% endfor %}
+	request_header X-Wikijump-Site-Slug {labels.{{ self::site_slug_split_index(files_domain) }}}
+	request_header X-Wikijump-Site-Id {vars.site_id}
+	import serve_files
+}
+{% else -%}
+{# Otherwise, let's have separate xyz.wjfiles.tld hosts #}
+{% for (site_id, site_slug, _) in sites %}
+{{ site_slug }}{{ files_domain }} {
+	import strip_headers
+
+	vars {
+		site_id {{ site_id }}
+		site_slug {{ site_slug }}
+	}
+
+	request_header X-Wikijump-Site-Slug {labels.{{ self::site_slug_split_index(files_domain) }}}
+	request_header X-Wikijump-Site-Id {vars.site_id}
+	import serve_files
+}
+{%- endfor -%}
+{% endif %}
+
+#
+# FALLBACK
+# (i.e. "no such site")
+#
+
+# Missing canonical domains
+{% if should_use_wildcard -%}
+*{{ main_domain }} {
+	import wildcard_tls
+{%- else -%}
+http://*{{ main_domain }},
+http://*{{ files_domain }} {
+{%- endif %}
+	import strip_headers
+	request_header X-Wikijump-Basic-Error 1
+	request_header X-Wikijump-Site-Slug {labels.{{ self::site_slug_split_index(main_domain) }}}
+	rewrite * /-/basic-error/site-slug
+	reverse_proxy {{ wws_host }}
+}
+
+# Missing custom domains
+{% if local -%}
+http://,
+https://,
+localhost {
+{%- else -%}
+http://,
+https:// {
+{%- endif %}
+	import strip_headers
+	request_header X-Wikijump-Basic-Error 1
+	rewrite * /-/basic-error/site-custom
+	reverse_proxy {{ wws_host }}
+}

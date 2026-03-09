@@ -53,15 +53,25 @@ services:
       - /var/lib/komodo/backups:/backups
 
   periphery:
-    image: ghcr.io/moghtech/komodo-periphery:latest
+    # NOTE: If not using AWS ECR, then replace this 'build' section with
+    # simply 'image: ghcr.io/moghtech/komodo-periphery:latest'
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM ghcr.io/moghtech/komodo-periphery:latest
+        RUN apt-get update && apt-get install -y amazon-ecr-credential-helper
     restart: unless-stopped
     labels:
       komodo.skip:
     env_file: ./compose.env
+    environment:
+      AWS_ACCESS_KEY_ID: ${ECR_AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${ECR_AWS_SECRET_ACCESS_KEY}
     volumes:
       ## Mount external docker socket and procfs
       - /var/run/docker.sock:/var/run/docker.sock
       - /proc:/proc
+      - /root/.docker/config.json:/root/.docker/config.json:ro
       ## Specify the Periphery agent root directory
       # Must be the same inside and outside the container.
       - /etc/komodo:/etc/komodo

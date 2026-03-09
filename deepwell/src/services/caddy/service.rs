@@ -22,13 +22,6 @@
 //!
 //! This is primarily concerned with generating the `Caddyfile` that
 //! powers the server, which is where host → site mapping is performed.
-//!
-//! NOTE: This file contains hard tabs, as this is what we want to use for
-//!       `Caddyfile` generation. If you're opening this file, mind the git
-//!       diff!
-//!
-//!       If your editor munges the tabs please discard those changes.
-//!       Remember, `git add -p` is your friend!
 
 use super::prelude::*;
 use crate::models::alias::Model as AliasModel;
@@ -37,9 +30,43 @@ use crate::models::site::{self, Entity as Site};
 use crate::models::site_domain::{self, Entity as SiteDomain};
 use crate::services::domain::DEFAULT_SITE_SLUG;
 use crate::services::{AliasService, DomainService};
+use askama::Template;
 use sea_orm::{EntityTrait, QuerySelect};
 use std::borrow::Cow;
 use std::collections::HashMap;
+
+// Askama template for generating the Caddyfile
+
+#[derive(Template, Debug)]
+#[template(path = "caddyfile.j2", escape = "none")]
+struct CaddyTemplate<'a> {
+    // Basic options
+    debug: bool,
+    local: bool,
+    http_port: Option<u16>,
+    https_port: Option<u16>,
+
+    // TLS
+    wildcard_cert: Option<&'a str>,
+    should_use_wildcard: bool,
+
+    // Reverse proxy destinations
+    deploy_host: Option<&'a str>,
+    framerail_host: &'a str,
+    wws_host: &'a str,
+
+    // Instance configuration
+    config: &'a Config,
+    files_domain: &'a str,
+    files_domain_no_dot: &'a str,
+    main_domain: &'a str,
+
+    // Site and domain data
+    sites: &'a [(i64, String, Option<String>)],
+    domains: &'a HashMap<i64, SiteDomainData>,
+}
+
+// Actual service
 
 #[derive(Debug)]
 pub struct CaddyService;
@@ -103,305 +130,73 @@ impl CaddyService {
             domains
         };
 
-        Ok(Self::generate_custom(
-            config,
-            options,
-            &SiteData { sites, domains },
-        ))
+        let caddyfile =
+            Self::generate_with_data(config, options, &SiteData { sites, domains })
+                .or_raise(make_error)?;
+
+        Ok(caddyfile)
     }
 
-    pub fn generate_custom(
+    pub fn generate_with_data(
         config: &Config,
         CaddyfileOptions {
             debug,
             local,
             http_port,
             https_port,
+            wildcard_cert,
             deploy_host,
             framerail_host,
             wws_host,
         }: &CaddyfileOptions<'_>,
         SiteData { sites, domains }: &SiteData,
-    ) -> String {
+    ) -> Result<String> {
         info!("Generating Caddyfile for {} sites", sites.len());
 
-        let files_domain = &config.files_domain;
-        let files_domain_no_dot = &config.files_domain_no_dot;
-        let main_domain = &config.main_domain;
-        let main_domain_no_dot = &config.main_domain_no_dot;
+        let template = CaddyTemplate {
+            debug: *debug,
+            local: *local,
+            http_port: *http_port,
+            https_port: *https_port,
+            wildcard_cert: wildcard_cert.as_deref(),
+            should_use_wildcard: wildcard_cert.is_some() || *local,
+            deploy_host: deploy_host.as_deref(),
+            framerail_host,
+            wws_host,
+            config,
+            files_domain: &config.files_domain,
+            files_domain_no_dot: &config.files_domain_no_dot,
+            main_domain: &config.main_domain,
+            sites,
+            domains,
+        };
 
-        let mut caddyfile = str!(
-            "\
-# Global options
-{
-	metrics {
-		per_host
-	}
-"
-        );
+        let caddyfile = template.render().or_raise(|| {
+            Error::new(
+                format!("failed to generate Caddyfile for {} sites", sites.len()),
+                ErrorType::Caddyfile,
+            )
+        })?;
 
-        if let Some(port) = *http_port {
-            str_writeln!(&mut caddyfile, "\thttp_port {port}");
-        }
-
-        if let Some(port) = *https_port {
-            str_writeln!(&mut caddyfile, "\thttps_port {port}");
-        }
-
-        if *debug {
-            str_writeln!(&mut caddyfile, "\tdebug");
-        }
-
-        if *local {
-            str_writeln!(&mut caddyfile, "\tlocal_certs\n\tskip_install_trust");
-        }
-
-        str_write!(
-            &mut caddyfile,
-            "\
-}}
-
-(strip_headers) {{
-	# Strip internal headers used by Wikijump
-	request_header -X-Wikijump-*
-}}
-
-"
-        );
-
-        if let Some(deploy_host) = deploy_host {
-            str_write!(
-                &mut caddyfile,
-                "\
-#
-# INFRASTRUCTURE
-#
-
-deploy{main_domain} {{
-	reverse_proxy {deploy_host}
-}}
-
-deploy{files_domain} {{
-	redir https://deploy{main_domain}
-}}
-
-"
-            );
-        }
-
-        str_write!(
-            &mut caddyfile,
-            "\
-#
-# MAIN
-#
-
-(serve_main) {{
-	# Special routes
-	respond /-/health-check/caddy ✅ 200
-	respond /-/teapot             🫖 418
-
-	# wjfiles-managed routes
-	# These are proxied to wws for it to handle, but shouldn't be redirected
-	@proxy {{
-		path /robots.txt
-		path /.well-known
-		path /-/health-check
-	}}
-	request_header @proxy X-Wikijump-Target-Server main
-	reverse_proxy @proxy {wws_host}
-
-	# Redirect, true route is on the files server
-	@redirect {{
-		path /*/code/*
-		path /*/html/*
-		path /*/file/*  # for the /{{slug}}/file/{{filename}} convenience routes
-		path /*/download/*
-		path /local--files/*
-		path /local--code/*
-		path /local--html/*
-		path /-/files/*
-		path /-/file/*
-		path /-/download/*
-		path /-/code/*
-		path /-/html/*
-	}}
-	redir @redirect https://{{vars.site_slug}}{files_domain}{{uri}}
-
-	# Enable default compression settings
-	encode
-
-	# Finally, proxy to framerail to get the actual HTML
-	# Note, the x-wikijump-site-* headers have already been set at this point
-	reverse_proxy {framerail_host}
-}}
-"
-        );
-
-        for (site_id, site_slug, preferred_domain) in sites {
-            let SiteDomainData {
-                aliases,
-                custom_domains,
-            } = &domains[site_id];
-
-            // Get canonical and preferred domains, for later generation
-            let canonical_domain = if site_slug == DEFAULT_SITE_SLUG {
-                Cow::Borrowed(main_domain_no_dot)
-            } else {
-                Cow::Owned(DomainService::get_canonical(config, site_slug))
-            };
-
-            let preferred_domain: &str =
-                preferred_domain.as_ref().unwrap_or(&canonical_domain);
-
-            // Closure to generate a domain entry
-            //
-            // Then, generate a redirect for the corresponding "www" subdomain.
-            // This shouldn't be used so we should just have it point away to
-            // the right location.
-            //
-            // This also has the benefit of naturally capturing www.wikijump.com -> wikijump.com.
-            let mut generate_entry = |domain: &str| {
-                if domain == preferred_domain {
-                    // Main content, for a preferred domain.
-                    // This is where the request is actually reverse proxied through.
-                    str_write!(
-                        &mut caddyfile,
-                        "
-{domain} {{
-	import strip_headers
-
-	vars {{
-		site_id {site_id}
-		site_slug {site_slug}
-	}}
-
-	request_header X-Wikijump-Site-Id {{vars.site_id}}
-	request_header X-Wikijump-Site-Slug {{vars.site_slug}}
-	import serve_main
-}}
-
-www.{domain} {{
-	redir https://{preferred_domain}{{uri}}
-}}
-"
-                    );
-                } else {
-                    // Generate a redirect to the preferred domain.
-                    str_write!(
-                        &mut caddyfile,
-                        "
-{domain},
-www.{domain} {{
-	redir https://{preferred_domain}{{uri}}
-}}
-"
-                    );
-                }
-            };
-
-            // Canonical domain
-            generate_entry(&canonical_domain);
-
-            // Custom domains
-            for domain in custom_domains {
-                generate_entry(domain);
-            }
-
-            // Aliases (all redirects)
-            for alias_slug in aliases {
-                let domain = DomainService::get_canonical(config, alias_slug);
-                generate_entry(&domain);
-            }
-        }
-
-        str_write!(
-            &mut caddyfile,
-            "
-#
-# FILES
-#
-
-(serve_files) {{
-	# Special routes
-	respond /-/health-check/caddy ✅ 200
-	respond /-/teapot             🫖 418
-
-	# Enable default compression settings
-	encode
-
-	# Reverse proxy
-	request_header X-Wikijump-Target-Server files
-	reverse_proxy {wws_host}
-}}
-
-{files_domain_no_dot} {{
-	import strip_headers
-	request_header X-Wikijump-Basic-Error 1
-	rewrite * /-/basic-error/file-root
-	reverse_proxy {wws_host}
-}}
-
-*{files_domain} {{
-	import strip_headers
-"
-        );
-
-        for (site_id, site_slug, _) in sites {
-            str_write!(
-                &mut caddyfile,
-                "
-	@{site_slug} host {site_slug}{files_domain}
-	vars @{site_slug} site_id {site_id}
-"
-            );
-        }
-
-        str_write!(
-            &mut caddyfile,
-            "
-	request_header X-Wikijump-Site-Slug {{labels.{}}}
-	request_header X-Wikijump-Site-Id {{vars.site_id}}
-	import serve_files
-}}
-",
-            site_slug_split_index(files_domain)
-        );
-
-        str_write!(
-            &mut caddyfile,
-            "
-#
-# FALLBACK
-# (i.e. \"no such site\")
-#
-
-# Missing canonical domain
-*{main_domain} {{
-	import strip_headers
-	request_header X-Wikijump-Basic-Error 1
-	request_header X-Wikijump-Site-Slug {{labels.{}}}
-	rewrite * /-/basic-error/site-slug
-	reverse_proxy {wws_host}
-}}
-
-# Missing custom domain
-{} {{
-	import strip_headers
-	request_header X-Wikijump-Basic-Error 1
-	rewrite * /-/basic-error/site-custom
-	reverse_proxy {wws_host}
-}}",
-            site_slug_split_index(main_domain),
-            if *local {
-                "http://,\nhttps://,\nlocalhost"
-            } else {
-                "http://,\nhttps://"
-            }
-        );
-
-        caddyfile
+        Ok(caddyfile)
     }
+}
+
+// Helper functions for rendering
+
+fn get_canonical_domain<'s>(config: &'s Config, site_slug: &'s str) -> Cow<'s, str> {
+    if site_slug == DEFAULT_SITE_SLUG {
+        Cow::Borrowed(&config.main_domain_no_dot)
+    } else {
+        Cow::Owned(DomainService::get_canonical(config, site_slug))
+    }
+}
+
+fn get_preferred_domain<'s>(
+    preferred_domain: &'s Option<String>,
+    canonical_domain: &'s str,
+) -> &'s str {
+    preferred_domain.as_deref().unwrap_or(canonical_domain)
 }
 
 /// Determines the index to give to Caddy to get the site slug from a domain.

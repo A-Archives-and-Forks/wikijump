@@ -5,9 +5,19 @@
 	}
 }
 
+# Common segments
+
 (strip_headers) {
 	# Strip internal headers used by Wikijump
 	request_header -X-Wikijump-*
+}
+
+(wildcard_tls) {
+	# Set settings for DNS-based ACME challenge
+	# Needed for wildcard TLS certificates
+	tls {
+		dms digitalocean token123
+	}
 }
 
 #
@@ -66,6 +76,8 @@ deploy.wjfiles.test {
 	reverse_proxy framerail:3393
 }
 
+
+# Canonical domain
 foo.wikijump.test {
 	import strip_headers
 
@@ -78,16 +90,17 @@ foo.wikijump.test {
 	request_header X-Wikijump-Site-Slug {vars.site_slug}
 	import serve_main
 }
-
 www.foo.wikijump.test {
 	redir https://foo.wikijump.test{uri}
 }
 
+# Canonical domain
 bar.wikijump.test,
 www.bar.wikijump.test {
 	redir https://example.com{uri}
 }
 
+# Custom domains
 example.com {
 	import strip_headers
 
@@ -100,10 +113,10 @@ example.com {
 	request_header X-Wikijump-Site-Slug {vars.site_slug}
 	import serve_main
 }
-
 www.example.com {
 	redir https://example.com{uri}
 }
+
 
 #
 # FILES
@@ -130,6 +143,7 @@ wjfiles.test {
 }
 
 *.wjfiles.test {
+	import wildcard_tls
 	import strip_headers
 
 	@foo host foo.wjfiles.test
@@ -143,13 +157,15 @@ wjfiles.test {
 	import serve_files
 }
 
+
 #
 # FALLBACK
 # (i.e. "no such site")
 #
 
-# Missing canonical domain
+# Missing canonical domains
 *.wikijump.test {
+	import wildcard_tls
 	import strip_headers
 	request_header X-Wikijump-Basic-Error 1
 	request_header X-Wikijump-Site-Slug {labels.2}
@@ -157,7 +173,7 @@ wjfiles.test {
 	reverse_proxy wws:3466
 }
 
-# Missing custom domain
+# Missing custom domains
 http://,
 https:// {
 	import strip_headers

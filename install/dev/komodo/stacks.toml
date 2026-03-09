@@ -14,9 +14,6 @@ destroy_before_deploy = true
 linked_repo = "wikijump-dev"
 run_directory = "install/dev"
 file_paths = ["docker-compose.yaml"]
-# Set to the container registry where your images are kept
-registry_provider = "575596218155.dkr.ecr.us-east-2.amazonaws.com"
-registry_account = "AWS"
 # Pass-through variables/secrets defined in variables.toml
 environment = """
 POSTGRES_PASSWORD=[[POSTGRES_PASSWORD]]

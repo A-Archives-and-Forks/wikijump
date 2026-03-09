@@ -198,11 +198,13 @@ fn read_test_file(path: &str) -> String {
 }
 
 /// Writes a `Caddyfile`, in the event that we are updating test files.
-/// For convenience when we have updated the logic in `CaddyService`.
+/// For convenience when we have updated the `Caddyfile` template in `CaddyService`.
 fn write_test_file(path: &str, caddyfile: &str) {
     let mut file = File::create(path).expect("Unable to open test file");
     file.write_all(caddyfile.as_bytes())
         .expect("Unable to write to test file");
+    file.write_all(b"\n")
+        .expect("Unable to write final newline");
 }
 
 #[test]
@@ -210,6 +212,7 @@ fn generate_caddyfiles() {
     const DEPLOY_HOST: &str = "localhost:9120";
     const FRAMERAIL_HOST: &str = "framerail:3393";
     const WWS_HOST: &str = "wws:3466";
+    const DNS_WILDCARD: &str = "digitalocean token123";
 
     // Build different configurations for various test cases
     let config_basic = build_config("wikijump.test", "wjfiles.test");
@@ -225,7 +228,8 @@ fn generate_caddyfiles() {
             let expected = read_test_file($path);
             let actual = {
                 let mut caddyfile =
-                    CaddyService::generate_custom(&$config, &$options, &$sites);
+                    CaddyService::generate_with_data(&$config, &$options, &$sites)
+                        .expect("failed to generate Caddyfile");
 
                 trim_string(&mut caddyfile);
                 caddyfile
@@ -248,7 +252,7 @@ UNIT TEST INFO:
 * Site data: {}
 * Options: {:#?}
 ",
-                    stringify!($expected),
+                    expected,
                     $config.main_domain_no_dot,
                     $config.files_domain_no_dot,
                     stringify!($sites),
@@ -267,6 +271,7 @@ UNIT TEST INFO:
             local: false,
             http_port: None,
             https_port: None,
+            wildcard_cert: Some(cow!(DNS_WILDCARD)),
             deploy_host: Some(cow!(DEPLOY_HOST)),
             framerail_host: cow!(FRAMERAIL_HOST),
             wws_host: cow!(WWS_HOST),
@@ -282,6 +287,7 @@ UNIT TEST INFO:
             local: true,
             http_port: None,
             https_port: None,
+            wildcard_cert: None,
             deploy_host: None,
             framerail_host: cow!(FRAMERAIL_HOST),
             wws_host: cow!(WWS_HOST),
@@ -297,6 +303,7 @@ UNIT TEST INFO:
             local: true,
             http_port: Some(8000),
             https_port: Some(8443),
+            wildcard_cert: None,
             deploy_host: None,
             framerail_host: cow!(FRAMERAIL_HOST),
             wws_host: cow!(WWS_HOST),
@@ -312,6 +319,7 @@ UNIT TEST INFO:
             local: false,
             http_port: None,
             https_port: None,
+            wildcard_cert: None,
             deploy_host: Some(cow!("komodo_host")),
             framerail_host: cow!("web_proxy_host"),
             wws_host: cow!("wws_proxy_host"),
@@ -327,6 +335,7 @@ UNIT TEST INFO:
             local: false,
             http_port: None,
             https_port: None,
+            wildcard_cert: Some(cow!(DNS_WILDCARD)),
             deploy_host: Some(cow!(DEPLOY_HOST)),
             framerail_host: cow!(FRAMERAIL_HOST),
             wws_host: cow!(WWS_HOST),
@@ -342,6 +351,7 @@ UNIT TEST INFO:
             local: false,
             http_port: None,
             https_port: None,
+            wildcard_cert: None,
             deploy_host: None,
             framerail_host: cow!(FRAMERAIL_HOST),
             wws_host: cow!(WWS_HOST),
