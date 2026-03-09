@@ -223,7 +223,9 @@ Or - it's local, in which case the certificates don't matter, so do that
 # Missing canonical domains
 {% if should_use_wildcard -%}
 *{{ main_domain }} {
+	{%- if !local %}
 	import wildcard_tls
+	{%- endif %}
 {%- else -%}
 http://*{{ main_domain }},
 http://*{{ files_domain }} {
