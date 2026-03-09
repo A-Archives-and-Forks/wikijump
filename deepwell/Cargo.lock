@@ -880,7 +880,7 @@ dependencies = [
 
 [[package]]
 name = "deepwell"
-version = "2026.3.6"
+version = "2026.3.8"
 dependencies = [
  "argon2",
  "arraystring",
