@@ -16,7 +16,7 @@
 	# Set settings for DNS-based ACME challenge
 	# Needed for wildcard TLS certificates
 	tls {
-		dms digitalocean token123
+		dns digitalocean token123
 	}
 }
 
