@@ -110,6 +110,8 @@ services:
     links:
       - framerail
       - wws
+    environment:
+      - "DIGITALOCEAN_API_TOKEN=${DIGITALOCEAN_API_TOKEN}"
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wikijump-health-check"]
