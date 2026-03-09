@@ -25,6 +25,10 @@ services:
         read_only: true
       # Configuration data
       - type: bind
+        source: ../../deepwell/askama.toml
+        target: /src/deepwell/askama.toml
+        read_only: true
+      - type: bind
         source: ../../install/local/deepwell/config.toml
         target: /etc/deepwell.toml
       # Translation data
