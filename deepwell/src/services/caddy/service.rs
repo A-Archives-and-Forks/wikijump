@@ -161,14 +161,14 @@ impl CaddyService {
             wildcard_cert: wildcard_cert.as_deref(),
             should_use_wildcard: wildcard_cert.is_some() || *local,
             deploy_host: deploy_host.as_deref(),
-            framerail_host: &framerail_host,
-            wws_host: &wws_host,
+            framerail_host,
+            wws_host,
             config,
             files_domain: &config.files_domain,
             files_domain_no_dot: &config.files_domain_no_dot,
             main_domain: &config.main_domain,
-            sites: &sites,
-            domains: &domains,
+            sites,
+            domains,
         };
 
         let caddyfile = template.render().or_raise(|| {
