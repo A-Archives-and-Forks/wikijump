@@ -149,7 +149,6 @@ wjfiles.localhost {
 
 # Missing canonical domains
 *.wikijump.localhost {
-	import wildcard_tls
 	import strip_headers
 	request_header X-Wikijump-Basic-Error 1
 	request_header X-Wikijump-Site-Slug {labels.2}
