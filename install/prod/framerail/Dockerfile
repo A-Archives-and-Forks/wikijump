@@ -4,8 +4,9 @@
 
 FROM node:20-alpine
 
-# Install pnpm
-RUN npm install -g pnpm
+# Install dependencies
+RUN apk add --no-cache curl && \
+    npm install -g pnpm
 
 # Copy sources
 RUN mkdir /app
@@ -24,6 +25,7 @@ RUN \
 USER node:node
 ENV NODE_ENV=production
 ENV FRAMERAIL_ENV=prod
+ENV PORT=3393
 EXPOSE 3393
 
 CMD ["/usr/local/bin/node", "build"]

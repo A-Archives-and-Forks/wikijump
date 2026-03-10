@@ -46,6 +46,7 @@ UNRESOLVED_TIMEOUT=5000
 [[alerter]]
 name = "discord-webhook"
 description = "Infrastructure alerts to Discord"
+tags = ["system"]
 [alerter.config]
 enabled = true
 endpoint.type = "Custom"
