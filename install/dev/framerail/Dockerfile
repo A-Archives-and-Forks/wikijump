@@ -4,8 +4,9 @@
 
 FROM node:20-alpine
 
-# Install pnpm
-RUN npm install -g pnpm
+# Install dependencies
+RUN apk add --no-cache curl && \
+    npm install -g pnpm
 
 # Copy sources
 RUN mkdir /app
