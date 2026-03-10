@@ -1,6 +1,6 @@
 ## Dev Environment
 
-See the [deployment concepts document](Concepts.md) for an introduction to our deployment strategy. This document describes hosting the dev tier, that is, `wikijump.dev`.
+See the [deployment concepts document](concepts.md) for an introduction to our deployment strategy. This document describes hosting the dev tier, that is, `wikijump.dev`.
 
 1. Create a Virtual Private Server with Ubuntu 24.04 LTS.
 2. Set up a non-root administrator account:
