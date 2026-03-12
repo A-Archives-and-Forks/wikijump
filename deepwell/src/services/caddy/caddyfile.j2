@@ -9,7 +9,7 @@ If your editor munges the tabs please discard those changes.
 Remember, 'git add -p' is your friend!
 #}
 
-{%- macro render_preferred_domain(site_id, site_slug, domain) %}
+{%- macro render_preferred_domain(site_id, site_slug, domain, www_redirect) %}
 {{ domain }} {
 	import strip_headers
 
@@ -22,23 +22,27 @@ Remember, 'git add -p' is your friend!
 	request_header X-Wikijump-Site-Slug {vars.site_slug}
 	import serve_main
 }
+{% if www_redirect -%}
 www.{{ domain }} {
 	redir https://{{ domain }}{uri}
 }
+{% endif -%}
 {% endmacro -%}
 
-{%- macro render_redirect(domain, preferred_domain) %}
+{%- macro render_redirect(domain, preferred_domain, www_redirect) %}
 {{ domain }},
+{% if www_redirect -%}
 www.{{ domain }} {
+{% endif %}
 	redir https://{{ preferred_domain }}{uri}
 }
 {% endmacro -%}
 
-{% macro render_entry(site_id, site_slug, domain, preferred_domain) -%}
+{% macro render_entry(site_id, site_slug, domain, preferred_domain, www_redirect) -%}
 {% if domain == preferred_domain -%}
-{{ render_preferred_domain(site_id, site_slug, domain) }}
+{{ render_preferred_domain(site_id, site_slug, domain, www_redirect) }}
 {%- else -%}
-{{ render_redirect(domain, preferred_domain) }}
+{{ render_redirect(domain, preferred_domain, www_redirect) }}
 {%- endif -%}
 {% endmacro -%}
 
@@ -164,21 +168,21 @@ deploy{{ files_domain }} {
 {% for (site_id, site_slug, preferred_domain) in sites -%}
 {% let SiteDomainData { aliases, custom_domains } = &domains[site_id] -%}
 {% let canonical_domain = self::get_canonical_domain(config, site_slug) -%}
-{% let preferred_domain = self::get_preferred_domain(&preferred_domain, &canonical_domain) %}
+{% let (preferred_domain, preferred_www_redirect) = self::get_preferred_domain(&custom_domains, &preferred_domain, &canonical_domain) %}
 # Canonical domain
-{{- render_entry(site_id, site_slug, canonical_domain, preferred_domain) -}}
+{{- render_entry(site_id, site_slug, canonical_domain, preferred_domain, preferred_www_redirect) -}}
 {% for CustomDomainData { domain, www_redirect } in custom_domains -%}
 {% if loop.first %}
 # Custom domains
 {%- endif -%}
-{{- render_entry(site_id, site_slug, domain, preferred_domain) -}}
+{{- render_entry(site_id, site_slug, domain, preferred_domain, www_redirect) -}}
 {% endfor -%}
 {% for alias_slug in aliases -%}
 {% if loop.first %}
 # Aliases
 {%- endif -%}
 {% let domain = DomainService::get_canonical(config, alias_slug) %}
-{{- render_redirect(domain, preferred_domain) -}}
+{{- render_redirect(domain, preferred_domain, true) -}}
 {%- endfor -%}
 {% endfor %}
 
