@@ -221,9 +221,16 @@ pub async fn seed(state: &ServerState) -> Result<()> {
         for domain in site.domains {
             info!("Creating site domain '{domain}'");
 
-            DomainService::create_custom(&ctx, CreateCustomDomain { site_id, domain })
-                .await
-                .or_raise(make_error)?;
+            DomainService::create_custom(
+                &ctx,
+                CreateCustomDomain {
+                    site_id,
+                    domain,
+                    www_redirect: todo!(),
+                },
+            )
+            .await
+            .or_raise(make_error)?;
         }
 
         SiteService::update(

@@ -11,6 +11,7 @@ pub struct Model {
     pub site_id: i64,
     #[serde(with = "time::serde::rfc3339")]
     pub created_at: TimeDateTimeWithTimeZone,
+    pub www_redirect: bool,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
