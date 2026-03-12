@@ -46,7 +46,7 @@
     "typescript-eslint": "^8.56.0"
   },
   "dependencies": {
-    "@sveltejs/adapter-node": "^5.5.3",
+    "@sveltejs/adapter-node": "^5.5.4",
     "@sveltejs/kit": "^2.53.4",
     "accept-language-parser": "^1.5.0",
     "json-rpc-2.0": "^1.7.1",
