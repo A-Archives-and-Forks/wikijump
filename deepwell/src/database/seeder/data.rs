@@ -145,7 +145,7 @@ pub struct Site {
     pub aliases: Vec<String>,
 
     #[serde(default)]
-    pub domains: Vec<String>,
+    pub domains: Vec<SiteDomain>,
 
     #[serde(default)]
     pub preferred_domain: Option<String>,
@@ -158,6 +158,37 @@ pub struct Site {
     pub layout: Option<Layout>,
     pub license: License,
     pub locale: String,
+}
+
+#[derive(Deserialize, Debug)]
+#[serde(untagged)]
+pub enum SiteDomain {
+    DomainOnly(String),
+    WithRedirect {
+        domain: String,
+
+        #[serde(rename = "www-redirect", default = "default_true")]
+        www_redirect: bool,
+    },
+}
+
+impl SiteDomain {
+    pub fn domain(&self) -> &str {
+        match self {
+            SiteDomain::DomainOnly(domain) => domain,
+            SiteDomain::WithRedirect { domain, .. } => domain,
+        }
+    }
+
+    pub fn into_fields(self) -> (String, bool) {
+        match self {
+            SiteDomain::DomainOnly(domain) => (domain, true),
+            SiteDomain::WithRedirect {
+                domain,
+                www_redirect,
+            } => (domain, www_redirect),
+        }
+    }
 }
 
 #[derive(Deserialize, Debug)]
@@ -213,4 +244,9 @@ pub struct File {
 
     #[serde(default)]
     pub deleted: bool,
+}
+
+#[inline]
+const fn default_true() -> bool {
+    true
 }

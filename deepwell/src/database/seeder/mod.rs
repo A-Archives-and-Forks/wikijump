@@ -213,20 +213,21 @@ pub async fn seed(state: &ServerState) -> Result<()> {
 
         if let Some(preferred_domain) = &site.preferred_domain {
             assert!(
-                site.domains.contains(preferred_domain),
+                site.domains.iter().any(|d| d.domain() == preferred_domain),
                 "The site's preferred domain must be a listed custom domain",
             );
         }
 
-        for domain in site.domains {
-            info!("Creating site domain '{domain}'");
+        for site_domain in site.domains {
+            let (domain, www_redirect) = site_domain.into_fields();
+            info!("Creating site domain '{domain}' (www redirect: {www_redirect})");
 
             DomainService::create_custom(
                 &ctx,
                 CreateCustomDomain {
                     site_id,
                     domain,
-                    www_redirect: todo!(),
+                    www_redirect,
                 },
             )
             .await
