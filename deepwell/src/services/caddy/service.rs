@@ -112,8 +112,9 @@ impl CaddyService {
                     .order_by_asc(site_domain::Column::Domain)
                     .select_only()
                     .column(site_domain::Column::Domain)
+                    .column(site_domain::Column::WwwRedirect)
                     .filter(site_domain::Column::SiteId.eq(site_id))
-                    .into_tuple()
+                    .into_model::<CustomDomainData>()
                     .all(txn)
                     .await
                     .or_raise(make_error)?;

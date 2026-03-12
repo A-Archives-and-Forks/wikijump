@@ -167,7 +167,7 @@ deploy{{ files_domain }} {
 {% let preferred_domain = self::get_preferred_domain(&preferred_domain, &canonical_domain) %}
 # Canonical domain
 {{- render_entry(site_id, site_slug, canonical_domain, preferred_domain) -}}
-{% for domain in custom_domains -%}
+{% for CustomDomainData { domain, www_redirect } in custom_domains -%}
 {% if loop.first %}
 # Custom domains
 {%- endif -%}
