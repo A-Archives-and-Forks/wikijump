@@ -30,10 +30,12 @@ www.{{ domain }} {
 {% endmacro -%}
 
 {%- macro render_redirect(domain, preferred_domain, www_redirect) %}
-{{ domain }},
 {% if www_redirect -%}
+{{ domain }},
 www.{{ domain }} {
-{% endif %}
+{%- else -%}
+{{ domain }} {
+{%- endif %}
 	redir https://{{ preferred_domain }}{uri}
 }
 {% endmacro -%}
