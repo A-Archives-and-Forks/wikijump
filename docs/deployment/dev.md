@@ -45,7 +45,7 @@ When multiple servers are initiated for the same tier, note that *only one machi
 
 The files to use here are located in the current directory, and for `compose.env` see `compose.env.example` to populate the missing fields.
 ```
-$ sudo mkdir -p /var/lib/komodo/backups
+$ sudo mkdir -m 700 -p /var/lib/komodo/backups
 $ mkdir ~/komodo
 $ cd ~/komodo
 Copy docker-compose.yaml from install/dev/komodo/docker-compose.yaml
