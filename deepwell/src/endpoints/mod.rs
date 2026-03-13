@@ -54,6 +54,7 @@ pub mod domain;
 pub mod email;
 pub mod file;
 pub mod file_revision;
+pub mod health;
 pub mod info;
 pub mod link;
 pub mod locale;
