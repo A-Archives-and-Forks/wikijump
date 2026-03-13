@@ -29,8 +29,8 @@
 use crate::config::{Config, Secrets};
 use crate::endpoints::{
     auth::*, basic_error::*, blob::*, category::*, domain::*, email::*, file::*,
-    file_revision::*, info::*, link::*, locale::*, message::*, misc::*, page::*,
-    page_attribution::*, page_revision::*, parent::*, routing::*, site::*,
+    file_revision::*, health::*, info::*, link::*, locale::*, message::*, misc::*,
+    page::*, page_attribution::*, page_revision::*, parent::*, routing::*, site::*,
     site_member::*, text::*, text_block::*, user::*, user_bot::*, view::*, vote::*,
 };
 use crate::error::prelude::*;
