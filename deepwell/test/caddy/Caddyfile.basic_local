@@ -14,6 +14,29 @@
 	request_header -X-Wikijump-*
 }
 
+(reverse_proxy_framerail) {
+	reverse_proxy * {
+		# TODO: support multiple upstreams
+		to framerail:3393
+
+		lb_policy least_conn
+
+		fail_duration 30s
+		unhealthy_latency 4s
+	}
+}
+
+(reverse_proxy_wws) {
+	reverse_proxy {args[0]} {
+		# TODO: support multiple upstreams
+		to wws:3466
+
+		lb_policy least_conn
+
+		health_uri /-/health-check
+		health_timeout 1s
+	}
+}
 #
 # MAIN
 #
@@ -31,7 +54,7 @@
 		path /-/health-check
 	}
 	request_header @proxy X-Wikijump-Target-Server main
-	reverse_proxy @proxy wws:3466
+	import reverse_proxy_wws @proxy
 
 	# Redirect, true route is on the files server
 	@redirect {
@@ -50,12 +73,15 @@
 	}
 	redir @redirect https://{vars.site_slug}.wjfiles.localhost{uri}
 
+	# Enable HTTP/2 server push
+	push
+
 	# Enable default compression settings
 	encode
 
 	# Finally, proxy to framerail to get the actual HTML
 	# Note, the x-wikijump-site-* headers have already been set at this point
-	reverse_proxy framerail:3393
+	import reverse_proxy_framerail
 }
 
 
@@ -114,14 +140,14 @@ www.example.com {
 
 	# Reverse proxy
 	request_header X-Wikijump-Target-Server files
-	reverse_proxy wws:3466
+	import reverse_proxy_wws *
 }
 
 wjfiles.localhost {
 	import strip_headers
 	request_header X-Wikijump-Basic-Error 1
 	rewrite * /-/basic-error/file-root
-	reverse_proxy wws:3466
+	import reverse_proxy_wws *
 }
 
 *.wjfiles.localhost {
@@ -150,7 +176,7 @@ wjfiles.localhost {
 	request_header X-Wikijump-Basic-Error 1
 	request_header X-Wikijump-Site-Slug {labels.2}
 	rewrite * /-/basic-error/site-slug
-	reverse_proxy wws:3466
+	import reverse_proxy_wws *
 }
 
 # Missing custom domains
