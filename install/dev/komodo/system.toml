@@ -8,10 +8,7 @@ config.schedule = "Every day at 01:00"
 name = "Run Backup"
 enabled = true
 executions = [
-    {
-        execution.type = "BackupCoreDatabase",
-        enabled = true,
-    }
+    { execution.type = "BackupCoreDatabase", enabled = true },
 ]
 
 [[procedure]]
@@ -24,8 +21,5 @@ config.schedule = "Every day at 03:00"
 name = "Auto Update"
 enabled = true
 executions = [
-    {
-        execution.type = "GlobalAutoUpdate",
-        enabled = true,
-    }
+    { execution.type = "GlobalAutoUpdate", enabled = true },
 ]

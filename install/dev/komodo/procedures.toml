@@ -7,44 +7,26 @@ tags = ["wikijump", "system"]
 name = "Pull Wikijump"
 enabled = true
 executions = [
-    {
-        execution.type = "BatchPullRepo",
-        execution.params.pattern = "wikijump-dev",
-        enabled = true,
-    }
+    { execution.type = "BatchPullRepo", execution.params.pattern = "wikijump-dev", enabled = true },
 ]
 
 [[procedure.config.stage]]
 name = "Update Infrastructure"
 enabled = true
 executions = [
-    {
-        execution.type = "RunSync",
-        execution.params.sync = "wikijump-dev",
-        enabled = true,
-    }
+    { execution.type = "RunSync", execution.params.sync = "wikijump-dev", enabled = true },
 ]
 
 [[procedure.config.stage]]
 name = "Deploy Stacks"
 enabled = true
 executions = [
-    {
-        execution.type = "BatchDeployStackIfChanged",
-        execution.params.pattern = "wikijump-dev, *-alerter",
-        enabled = true,
-    }
+    { execution.type = "BatchDeployStackIfChanged", execution.params.pattern = "wikijump-dev, *-alerter", enabled = true },
 ]
 
 [[procedure.config.stage]]
 name = "Notify"
 enabled = true
 executions = [
-    {
-        execution.type = "SendAlert",
-        execution.params.level = "OK",
-        execution.params.message = "Deployed Wikijump (dev)",
-        execution.params.alerters = [],
-        enabled = true,
-    }
+    { execution.type = "SendAlert", execution.params.level = "OK", execution.params.message = "Deployed Wikijump (dev)", execution.params.alerters = [], enabled = true },
 ]
