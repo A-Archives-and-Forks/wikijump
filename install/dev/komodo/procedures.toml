@@ -1,0 +1,38 @@
+[[procedure]]
+name = "Deploy Dev"
+tags = ["wikijump", "system"]
+description = "Automatically deploy Komodo infrastructure and Wikijump dev on push"
+config.webhook_secret = ""  # TODO: fill in with random value!
+
+[[procedure.config.stage]]
+name = "Pull Wikijump"
+enabled = true
+executions = [
+    {
+        execution.type = "BatchPullRepo",
+        execution.params.pattern = "wikijump-dev",
+        enabled = true,
+    }
+]
+
+[[procedure.config.stage]]
+name = "Update Infrastructure"
+enabled = true
+executions = [
+    {
+        execution.type = "RunSync",
+        execution.params.sync = "wikijump-dev",
+        enabled = true,
+    }
+]
+
+[[procedure.config.stage]]
+name = "Deploy Stacks"
+enabled = true
+executions = [
+    {
+        execution.type = "BatchDeployStackIfChanged",
+        execution.params.pattern = "wikijump-dev, *-alerter",
+        enabled = true,
+    }
+]
