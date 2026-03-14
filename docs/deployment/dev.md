@@ -66,22 +66,6 @@ In order to add the rest of the infrastructure, we need to add a git repository 
   5. Set "Sync Variables" back to false.
 10. Add secrets.
 It is not good practice to add secrets to code, and triply so if the repository is public. As such, `install/dev/komodo/variables.toml` is missing values for those marked "secret" (see the file for more information). Some of these are secret values that need to be generated, and some come from your infrastructure. Fill in the values as appropriate.
-
-If you are using AWS ECR for storing images, you will need to generate a login identity. Do the following:
-```
-Temporarily set appropriate access key and secret key:
-$ aws configure
-# Get your user ID
-$ aws sts get-caller-identity --query Account --output text
-# Get the 'token' field
-$ aws ecr get-login-password
-# Now, remove the temporary credentials from `~/.aws`
-```
-
-Then in Komodo, navigate to _Settings → Providers → Registry Accounts_ and add a new one:
-* __Domain:__ Your AWS ECR registry URL, that is `[user ID].dkr.ecr.[region].amazonaws.com`
-* __Username:__ `AWS`
-* __Token:__ The login password you generated above.
 11. Go to the `wikijump-dev` stack and **pull images**. If everything is configured properly so far, it should be able to retrieve the images and be in a state to deploy it.
 12. Now, deploy the `wikijump-dev` stack. This will first build the local images (the two databases) and attempt to start the containers per the topology in `docker-compose.yaml`.
 On the first deploy, it may take some time to populate the database. You may need to restart services dependent on `deepwell` (i.e. `caddy`, `framerail`, `wws`) if they are reporting as unhealthy.

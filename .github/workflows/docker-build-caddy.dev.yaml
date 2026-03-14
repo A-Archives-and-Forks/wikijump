@@ -1,13 +1,12 @@
 name: '[backend] Docker build Caddy (DEV)'
 
 on:
-  push:
-    branches:
-      - develop
   pull_request:
     paths:
       - 'install/dev/caddy/*'
       - '.github/workflows/docker-build-caddy.dev.yaml'
+  workflow_call:
+    # Runs on deployment (merge to develop or prod)
 
 env:
   IMAGE_NAME: wikijump/caddy

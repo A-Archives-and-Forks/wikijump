@@ -1,7 +1,10 @@
 [[resource_sync]]
 name = "wikijump-dev"
-tags = ["wikijump"]
+description = "Synchronizes infrastructure changes, as defined in TOML files in Wikijump source."
+tags = ["wikijump", "system"]
 
 [resource_sync.config]
 linked_repo = "wikijump-dev"
 resource_path = ["install/dev/komodo/"]
+webhook_enabled = true
+include_user_groups = true
