@@ -46,7 +46,7 @@ pub async fn site_custom_domain_create(
 
     DomainService::create_custom(ctx, input).await.or_raise(|| {
         Error::new(
-            "failed to add a new customm domain",
+            "failed to add a new custom domain",
             ErrorType::SiteSettings,
         )
     })
