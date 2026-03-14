@@ -8,30 +8,13 @@ on:
   workflow_call:
     # Runs on deployment (merge to develop or prod)
 
-env:
-  IMAGE_NAME: wikijump/caddy
-  DESCRIPTION: Caddy server configured for Wikijump
-  NAME: caddy
-  TIER: dev
-
 jobs:
   build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Build image
-        run: docker build --tag ${{ env.IMAGE_NAME }}:${{ env.TIER }} -f install/${{ env.TIER }}/${{ env.NAME }}/Dockerfile .
-        env:
-          DOCKER_BUILDKIT: 1
-
-      - name: Push image to ECR
-        if: github.ref == 'refs/heads/develop'
-        uses: jwalton/gh-ecr-push@v2
-        with:
-          access-key-id: ${{ secrets.AWS_ECR_ACCESS_KEY }}
-          secret-access-key: ${{ secrets.AWS_ECR_SECRET_KEY }}
-          region: us-east-2
-          local-image: ${{ env.IMAGE_NAME }}:${{ env.TIER }}
-          image: ${{ env.IMAGE_NAME }}:${{ env.TIER }}, ${{ env.IMAGE_NAME }}:${{ env.TIER }}-${{ github.sha }}
+    uses: ./.github/workflows/docker-build-template.yaml
+    with:
+      image-repository: wikijump/caddy
+      image-name: caddy
+      tier: dev
+    secrets:
+      aws-access-key: ${{ secrets.AWS_ECR_ACCESS_KEY }}
+      aws-secret-key: ${{ secrets.AWS_ECR_SECRET_KEY }}
