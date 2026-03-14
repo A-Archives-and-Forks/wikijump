@@ -1,14 +1,13 @@
 name: '[backend] Docker build Framerail (PROD)'
 
 on:
-  push:
-    branches:
-      - prod
   pull_request:
     paths:
       - 'framerail/**'
       - 'install/prod/framerail/Dockerfile'
       - '.github/workflows/docker-build-framerail.prod.yaml'
+  workflow_call:
+    # Runs on deployment (merge to develop or prod)
 
 env:
   IMAGE_NAME: wikijump/framerail

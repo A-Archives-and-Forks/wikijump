@@ -1,14 +1,13 @@
 name: '[backend] Docker build DEEWELL (DEV)'
 
 on:
-  push:
-    branches:
-      - develop
   pull_request:
     paths:
       - 'deepwell/**'
       - 'install/dev/deepwell/Dockerfile'
       - '.github/workflows/docker-build-deepwell.dev.yaml'
+  workflow_call:
+    # Runs on deployment (merge to develop or prod)
 
 env:
   IMAGE_NAME: wikijump/deepwell

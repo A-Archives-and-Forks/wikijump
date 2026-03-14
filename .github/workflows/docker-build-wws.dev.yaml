@@ -1,14 +1,13 @@
 name: '[backend] Docker build WWS (DEV)'
 
 on:
-  push:
-    branches:
-      - develop
   pull_request:
     paths:
       - 'wws/**'
       - 'install/dev/wws/Dockerfile'
       - '.github/workflows/docker-build-wws.dev.yaml'
+  workflow_call:
+    # Runs on deployment (merge to develop or prod)
 
 env:
   IMAGE_NAME: wikijump/wws
