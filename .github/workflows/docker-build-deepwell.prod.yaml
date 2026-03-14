@@ -6,8 +6,6 @@ on:
       - 'deepwell/**'
       - 'install/prod/deepwell/Dockerfile'
       - '.github/workflows/docker-build-deepwell.prod.yaml'
-  workflow_call:
-    # Runs on deployment (merge to develop or prod)
 
 jobs:
   build:

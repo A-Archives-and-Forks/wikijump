@@ -6,8 +6,6 @@ on:
       - 'wws/**'
       - 'install/prod/wws/Dockerfile'
       - '.github/workflows/docker-build-wws.prod.yaml'
-  workflow_call:
-    # Runs on deployment (merge to develop or prod)
 
 jobs:
   build:

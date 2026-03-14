@@ -6,8 +6,6 @@ on:
       - 'framerail/**'
       - 'install/prod/framerail/Dockerfile'
       - '.github/workflows/docker-build-framerail.prod.yaml'
-  workflow_call:
-    # Runs on deployment (merge to develop or prod)
 
 jobs:
   build:
