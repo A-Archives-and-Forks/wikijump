@@ -1,8 +1,7 @@
 [[procedure]]
 name = "Deploy Dev"
-tags = ["wikijump", "system"]
 description = "Automatically deploy Komodo infrastructure and Wikijump dev on push"
-config.webhook_secret = ""  # TODO: fill in with random value!
+tags = ["wikijump", "system"]
 
 [[procedure.config.stage]]
 name = "Pull Wikijump"
