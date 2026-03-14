@@ -45,10 +45,7 @@ pub async fn site_custom_domain_create(
     let input: CreateCustomDomain = parse!(params, SiteSettings);
 
     DomainService::create_custom(ctx, input).await.or_raise(|| {
-        Error::new(
-            "failed to add a new custom domain",
-            ErrorType::SiteSettings,
-        )
+        Error::new("failed to add a new custom domain", ErrorType::SiteSettings)
     })
 }
 
