@@ -51,3 +51,16 @@ tags = ["system"]
 enabled = true
 endpoint.type = "Custom"
 endpoint.params.url = "http://host.docker.internal:7100"
+alert_types = [
+    # Deployment / build status
+    "BuildFailed",
+    "RepoBuildFailed",
+    "ActionFailed",
+    "ProcedureFailed",
+    # Application health
+    "StackStateChange",
+    # Not build-related, but critical
+    "ServerUnreachable",
+    "ServerDisk",
+    "ServerVersionMismatch",
+]
