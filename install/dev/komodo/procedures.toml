@@ -21,7 +21,7 @@ executions = [
 name = "Deploy Stacks"
 enabled = true
 executions = [
-    { execution.type = "BatchDeployStackIfChanged", execution.params.pattern = "wikijump-dev, *-alerter", enabled = true },
+    { execution.type = "BatchDeployStack", execution.params.pattern = "wikijump-dev, *-alerter", enabled = true },
 ]
 
 # TODO fix notifications
