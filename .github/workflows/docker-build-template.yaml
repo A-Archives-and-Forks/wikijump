@@ -1,0 +1,49 @@
+# Generic reusable workflow for building Docker images and pushing them to ECR
+name: 'Docker build'
+
+on:
+  workflow_call:
+    inputs:
+      image-repository:
+        type: string
+        required: true
+        description: 'The repository to push the image to, e.g. wikijump/deepwell'
+      image-name:
+        type: string
+        required: true
+        description: 'The name of the image to push, e.g. deepwell'
+      tier:
+        type: string
+        required: true
+        description: 'The tier that this image is for, used as the image label, e.g. prod'
+      push:
+        type: boolean
+        default: false
+        description: 'Whether to push the image to ECR after build (for deployment)'
+    secrets:
+      aws-access-key:
+        required: true
+      aws-secret-key:
+        required: true
+
+jobs:
+  build_image:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Build image
+        run: docker build --tag ${{ inputs.image-repository }}:${{ inputs.tier }} -f install/${{ inputs.tier }}/${{ inputs.image-name }}/Dockerfile .
+        env:
+          DOCKER_BUILDKIT: 1
+
+      - name: Push image to ECR
+        if: ${{ inputs.push }}
+        uses: jwalton/gh-ecr-push@v2
+        with:
+          access-key-id: ${{ secrets.aws-access-key }}
+          secret-access-key: ${{ secrets.aws-secret-key }}
+          region: us-east-2
+          local-image: ${{ inputs.image-repository }}:${{ inputs.tier }}
+          image: ${{ inputs.image-repository }}:${{ inputs.tier }}, ${{ inputs.image-repository }}:${{ inputs.tier }}-${{ github.sha }}
