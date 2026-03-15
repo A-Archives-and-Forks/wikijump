@@ -7,5 +7,5 @@ tags = ["wikijump", "system"]
 linked_repo = "wikijump-dev"
 resource_path = ["install/dev/komodo/"]
 delete = true
-webhook_enabled = true
+webhook_enabled = false
 include_user_groups = true
