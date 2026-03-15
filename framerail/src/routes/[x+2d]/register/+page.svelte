@@ -23,11 +23,11 @@
           return
         }
 
-        if (result.type === "failure" && result.data?.registerError) {
+        if (result.type === "failure" && result.data) {
           errorPopupState.current = {
             state: true,
-            message: result.data.error?.message,
-            data: result.data.error?.data
+            message: result.data?.message,
+            data: result.data?.data
           }
         }
       }
@@ -113,7 +113,7 @@
     <div class="input-container">
       <!-- TODO: Implement a multi select component -->
       <!-- I know it's ugly, but we can implement a better looking component later on -->
-      <select id="locale" name="locale" required multiple bind:value={$form.locale}>
+      <select id="locale" name="locale" multiple required bind:value={$form.locale}>
         <option value="en">UNTRANSLATED:en</option>
         <option value="ko">UNTRANSLATED:ko</option>
         <option value="pl">UNTRANSLATED:pl</option>

@@ -1,15 +1,18 @@
+import "$lib/vite-env.d.ts"
+
 import defaults from "$lib/defaults"
+import process from "process"
+
 import { parseAcceptLangHeader } from "$lib/locales"
 import { info } from "$lib/server/deepwell"
 import { translate } from "$lib/server/deepwell/translate"
 import { loadSiteInfo } from "$lib/server/load/site-info"
-import type { TranslateKeys } from "$lib/types"
-import "$lib/vite-env.d.ts"
-import process from "process"
 
-export async function loadInfo(request, cookies) {
+import type { TranslateKeys } from "$lib/types"
+
+export async function loadInfo(request: Request) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { siteId } = loadSiteInfo(request.headers)
-  const sessionToken = cookies.get("wikijump_token")
   const locales = parseAcceptLangHeader(request)
 
   if (!locales.includes(defaults.fallbackLocale)) locales.push(defaults.fallbackLocale)
@@ -33,9 +36,7 @@ export async function loadInfo(request, cookies) {
     }
   }
 
-  const translated = await translate(locales, translateKeys)
+  const internationalization = await translate(locales, translateKeys)
 
-  viewData.internationalization = translated
-
-  return viewData
+  return { ...viewData, internationalization }
 }

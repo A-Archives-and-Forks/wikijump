@@ -14,18 +14,18 @@
     untrack(() => data.loginForm),
     {
       onResult: async ({ result }) => {
-        if (result.type === "success" && result.data?.isLoggedIn) {
+        if (result.type === "success" && result.data) {
           isLoggedIn = true
           await invalidateAll()
           return
         }
 
-        if (result.type === "failure" && result.data?.loginError) {
+        if (result.type === "failure" && result.data) {
           console.log(result.data.loginError)
           errorPopupState.current = {
             state: true,
-            message: result.data.loginError?.message,
-            data: result.data.loginError?.data
+            message: result.data?.message,
+            data: result.data?.data
           }
         }
       }

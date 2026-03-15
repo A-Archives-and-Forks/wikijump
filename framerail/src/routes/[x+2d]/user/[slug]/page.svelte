@@ -1,91 +1,93 @@
 <script lang="ts">
-  import { page } from "$app/state"
+  import type { PageData } from "./$types"
+
+  let { data }: { data: PageData } = $props()
 </script>
 
 <h1>UNTRANSLATED: Loaded user profile</h1>
 
-<textarea class="debug">{JSON.stringify(page, null, 2)}</textarea>
+<textarea class="debug">{JSON.stringify(data, null, 2)}</textarea>
 
-<div class="user-info" data-id={page.data.user.user_id}>
-  {#if page.data.user.name}
+<div class="user-info" data-id={data.user?.user_id}>
+  {#if data.user?.name}
     <h2 class="user-attribute name">
-      {page.data.user.name}
+      {data.user.name}
     </h2>
   {/if}
 
-  {#if page.data.user.real_name}
+  {#if data.user?.real_name}
     <div class="user-attribute real-name">
       <span class="user-attribute-label"
-        >{page.data.internationalization?.["user-profile-info.real-name"]}</span
+        >{data.internationalization?.["user-profile-info.real-name"]}</span
       >
-      <span class="user-attribute-value">{page.data.user.real_name}</span>
+      <span class="user-attribute-value">{data.user.real_name}</span>
     </div>
   {/if}
 
-  {#if page.data.user.gender}
+  {#if data.user?.gender}
     <div class="user-attribute gender">
       <span class="user-attribute-label"
-        >{page.data.internationalization?.["user-profile-info.gender"]}</span
+        >{data.internationalization?.["user-profile-info.gender"]}</span
       >
-      <span class="user-attribute-value">{page.data.user.gender}</span>
+      <span class="user-attribute-value">{data.user.gender}</span>
     </div>
   {/if}
 
-  {#if page.data.user.avatar}
+  {#if data.user?.avatar}
     <div class="user-attribute avatar">
       <span class="user-attribute-label"
-        >{page.data.internationalization?.["user-profile-info.avatar"]}</span
+        >{data.internationalization?.["user-profile-info.avatar"]}</span
       >
       <img
         class="user-attribute-value"
-        alt={page.data.internationalization?.avatar}
-        src={page.data.user.avatar}
+        alt={data.internationalization?.avatar}
+        src={data.user.avatar}
       />
     </div>
   {/if}
 
-  {#if page.data.user.birthday}
+  {#if data.user?.birthday}
     <div class="user-attribute birthday">
       <span class="user-attribute-label"
-        >{page.data.internationalization?.["user-profile-info.birthday"]}</span
+        >{data.internationalization?.["user-profile-info.birthday"]}</span
       >
-      <span class="user-attribute-value">{page.data.user.birthday}</span>
+      <span class="user-attribute-value">{data.user.birthday}</span>
     </div>
   {/if}
 
-  {#if page.data.user.location}
+  {#if data.user?.location}
     <div class="user-attribute location">
       <span class="user-attribute-label"
-        >{page.data.internationalization?.["user-profile-info.location"]}</span
+        >{data.internationalization?.["user-profile-info.location"]}</span
       >
-      <span class="user-attribute-value">{page.data.user.location}</span>
+      <span class="user-attribute-value">{data.user.location}</span>
     </div>
   {/if}
 
-  {#if page.data.user.user_page}
+  {#if data.user?.user_page}
     <div class="user-attribute user-page">
       <span class="user-attribute-label"
-        >{page.data.internationalization?.["user-profile-info.user-page"]}</span
+        >{data.internationalization?.["user-profile-info.user-page"]}</span
       >
-      <span class="user-attribute-value">{page.data.user.user_page}</span>
+      <span class="user-attribute-value">{data.user.user_page}</span>
     </div>
   {/if}
 
-  {#if page.data.user.biography}
+  {#if data.user?.biography}
     <div class="user-attribute biography">
       <span class="user-attribute-label"
-        >{page.data.internationalization?.["user-profile-info.biography"]}</span
+        >{data.internationalization?.["user-profile-info.biography"]}</span
       >
-      <span class="user-attribute-value">{page.data.user.biography}</span>
+      <span class="user-attribute-value">{data.user.biography}</span>
     </div>
   {/if}
 
-  {#if page.data.user.locales?.length}
+  {#if data.user?.locales?.length}
     <div class="user-attribute locales">
       <span class="user-attribute-label"
-        >{page.data.internationalization?.["user-profile-info.locales"]}</span
+        >{data.internationalization?.["user-profile-info.locales"]}</span
       >
-      <span class="user-attribute-value">{page.data.user.locales?.join(", ")}</span>
+      <span class="user-attribute-value">{data.user.locales?.join(", ")}</span>
     </div>
   {/if}
 </div>

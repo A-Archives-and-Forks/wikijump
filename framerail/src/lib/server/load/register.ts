@@ -24,6 +24,7 @@ import type { Cookies, RequestEvent } from "@sveltejs/kit"
 
 export async function loadRegisterPage(request: Request, cookies: Cookies) {
   // Set up parameters
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { siteId } = loadSiteInfo(request.headers)
   const sessionToken = cookies.get("wikijump_token")
   const locales = parseAcceptLangHeader(request)
@@ -91,11 +92,9 @@ export async function registerAction({ request, getClientAddress }: RequestEvent
   } catch (error) {
     return fail(500, {
       form,
-      registerError: {
-        message: error?.message,
-        code: error?.code,
-        data: error?.data
-      }
+      message: error?.message,
+      code: error?.code,
+      data: error?.data
     })
   }
 }

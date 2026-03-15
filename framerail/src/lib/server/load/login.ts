@@ -15,6 +15,7 @@ import type { Cookies, RequestEvent } from "@sveltejs/kit"
 
 export async function loadLoginPage(request: Request, cookies: Cookies) {
   // Set up parameters
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { siteId } = loadSiteInfo(request.headers)
   const sessionToken = cookies.get("wikijump_token")
   const locales = parseAcceptLangHeader(request)
@@ -81,11 +82,9 @@ export async function loginAction({ request, getClientAddress, cookies }: Reques
     console.log(error)
     return fail(500, {
       form,
-      loginError: {
-        message: error?.message,
-        code: error?.code,
-        data: error?.data
-      }
+      message: error?.message,
+      code: error?.code,
+      data: error?.data
     })
   }
 }

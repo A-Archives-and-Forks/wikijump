@@ -1,58 +1,64 @@
 <script lang="ts">
-  import { page } from "$app/state"
-  import { errorPopupState, pageLayoutState, pagePaneState } from "$lib/stores.svelte"
+  import { errorPopupState, pageLayoutState } from "$lib/stores.svelte"
   import { Layout, PagePane } from "$lib/types"
+  import { superForm } from "sveltekit-superforms"
+  import { untrack } from "svelte"
 
-  async function handleLayout() {
-    const form = document.querySelector<HTMLFormElement>("form#page-layout")
-    if (!form) return
-    const fdata = new FormData(form)
-    fdata.set("site-id", page.data.site.site_id)
-    fdata.set("page-id", page.data.page.page_id)
-    const res = await fetch(`/${page.data.page.slug}/layout`, {
-      method: "POST",
-      body: fdata
-    }).then((res) => res.json())
-    if (res?.message) {
-      errorPopupState.current = {
-        state: true,
-        message: res.message,
-        data: res.data
+  import type { PageProps } from "./$types"
+
+  let { pagePaneState, data }: PageProps & { pagePaneState: PagePane } = $props()
+
+  const { form, enhance } = superForm(
+    untrack(() => data.forms.layoutForm),
+    {
+      dataType: "json",
+      onSubmit: async ({ jsonData }) => {
+        const submitForm = {
+          ...$form,
+          siteId: data.site.site_id,
+          pageId: data.page?.page_id
+        }
+        jsonData(submitForm)
+      },
+      onResult: async ({ result, cancel }) => {
+        if (result.type === "success" && result.data) {
+          pagePaneState = PagePane.None
+          pageLayoutState.current = result.data.layout
+          cancel()
+          window.location.reload()
+        }
+        if (result.type === "failure" && result.data) {
+          errorPopupState.current = {
+            state: true,
+            message: result.data.message,
+            data: result.data.data
+          }
+        }
       }
-    } else {
-      pagePaneState.current = PagePane.None
-      pageLayoutState.current = fdata.get("layout") ?? page.data.site.layout
-      window.location.reload()
     }
-  }
+  )
+
+  $form.layout = untrack(() => data.page?.layout ?? null)
 </script>
 
 {#if pageLayoutState.current === Layout.WIKIDOT}
   <h1 class="page-layout-header">
-    {page.data.internationalization?.["wiki-page-layout"]}
+    {data.internationalization?.["wiki-page-layout"]}
   </h1>
 {:else}
   <h2 class="page-layout-header">
-    {page.data.internationalization?.["wiki-page-layout"]}
+    {data.internationalization?.["wiki-page-layout"]}
   </h2>
 {/if}
 
-<form
-  id="page-layout"
-  class="page-layout"
-  method="POST"
-  onsubmit={(event) => {
-    event.preventDefault()
-    handleLayout()
-  }}
->
-  <select name="layout" class="page-layout-select" value={page.data.page.layout}>
+<form id="page-layout" class="page-layout" action="?/layout" method="POST" use:enhance>
+  <select name="layout" class="page-layout-select" bind:value={$form.layout}>
     <option value={null}>
-      {page.data.internationalization?.["wiki-page-layout.default"]}
+      {data.internationalization?.["wiki-page-layout.default"]}
     </option>
     {#each Object.values(Layout) as layoutOption (layoutOption)}
       <option value={layoutOption}>
-        {page.data.internationalization?.[`wiki-page-layout.${layoutOption}`]}
+        {data.internationalization?.[`wiki-page-layout.${layoutOption}`]}
       </option>
     {/each}
   </select>
@@ -60,38 +66,30 @@
     <div class="buttons">
       <input
         class="btn btn-danger"
-        onclick={(event) => {
-          event.stopPropagation()
-          pagePaneState.current = PagePane.None
-        }}
+        onclick={() => (pagePaneState = PagePane.None)}
         type="button"
-        value={page.data.internationalization?.cancel}
+        value={data.internationalization?.cancel}
       />
       <input
         class="btn btn-primary"
-        onclick={(event) => event.stopPropagation()}
         type="submit"
-        value={page.data.internationalization?.save}
+        value={data.internationalization?.save}
       />
     </div>
   {:else}
     <div class="action-row page-layout-actions">
       <button
         class="action-button page-layout-button button-cancel clickable"
-        onclick={(event) => {
-          event.stopPropagation()
-          pagePaneState.current = PagePane.None
-        }}
+        onclick={() => (pagePaneState = PagePane.None)}
         type="button"
       >
-        {page.data.internationalization?.cancel}
+        {data.internationalization?.cancel}
       </button>
       <button
         class="action-button page-layout-button button-save clickable"
-        onclick={(event) => event.stopPropagation()}
         type="submit"
       >
-        {page.data.internationalization?.save}
+        {data.internationalization?.save}
       </button>
     </div>
   {/if}

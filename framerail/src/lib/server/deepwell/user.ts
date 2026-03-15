@@ -1,14 +1,26 @@
 import { client } from "$lib/server/deepwell"
 import { startBlobUpload, uploadToPresignUrl } from "./file"
 
-import type { Optional, UserType } from "$lib/types"
+import type { Maybe, Optional, UserModel, UserType } from "$lib/types"
+import type { Viewer } from "./views"
 
+/* ----- User View ----- */
+interface UserViewFound {
+  type: "user_found"
+  data: Viewer & {
+    user: UserModel
+  }
+}
+interface UserViewMissing {
+  type: "user_missing"
+  data: Viewer
+}
 export async function userView(
   siteId: number,
   locales: string[],
   sessionToken: Optional<string>,
   username?: string
-): Promise<object> {
+): Promise<UserViewFound | UserViewMissing> {
   return client.request("user_view", {
     site_id: siteId,
     session_token: sessionToken,
@@ -17,11 +29,27 @@ export async function userView(
   })
 }
 
+/* ----- User Edit ----- */
+interface UserEditParams {
+  name?: Maybe<string>
+  email?: Maybe<string>
+  emailVerified?: Maybe<boolean>
+  password?: Maybe<string>
+  locales?: Maybe<string[]>
+  avatar?: Maybe<File>
+  realName?: Maybe<Optional<string>>
+  gender?: Maybe<Optional<string>>
+  birthday?: Maybe<Optional<string>>
+  location?: Maybe<Optional<string>>
+  biography?: Maybe<Optional<string>>
+  userPage?: Maybe<Optional<string>>
+  bypassFilter?: boolean
+}
 export async function userEdit(
   userId: number,
   userIpAddr: string,
-  params: Record<string, any>
-): Promise<object> {
+  params: UserEditParams
+): Promise<UserModel> {
   const data: Record<string, any> = {}
   if (params.name !== undefined && typeof params.name === "string") {
     data.name = params.name
@@ -29,8 +57,8 @@ export async function userEdit(
   if (params.email !== undefined && typeof params.email === "string") {
     data.email = params.email
   }
-  if (params.real_name !== undefined && typeof params.real_name === "string") {
-    if (params.real_name) data.real_name = params.real_name
+  if (params.realName !== undefined && typeof params.realName === "string") {
+    if (params.realName) data.real_name = params.realName
     else data.real_name = null
   }
   if (params.gender !== undefined && typeof params.gender === "string") {
@@ -49,8 +77,8 @@ export async function userEdit(
     if (params.biography) data.biography = params.biography
     else data.biography = null
   }
-  if (params.user_page !== undefined && typeof params.user_page === "string") {
-    if (params.user_page) data.user_page = params.user_page
+  if (params.userPage !== undefined && typeof params.userPage === "string") {
+    if (params.userPage) data.user_page = params.userPage
     else data.user_page = null
   }
   if (
@@ -72,6 +100,11 @@ export async function userEdit(
   })
 }
 
+/* ----- User Create ----- */
+interface UserCreate {
+  user_id: number
+  slug: string
+}
 export async function userCreate(
   userType: UserType,
   name: string,
@@ -81,10 +114,7 @@ export async function userCreate(
   ipAddress: string,
   bypassFilter = false,
   bypassEmailVerification = false
-): Promise<{
-  user_id: number
-  slug: string
-}> {
+): Promise<UserCreate> {
   return client.request("user_create", {
     user_type: userType,
     name,

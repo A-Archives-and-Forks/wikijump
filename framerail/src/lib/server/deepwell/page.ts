@@ -1,8 +1,22 @@
 import defaults from "$lib/defaults"
+
 import { client } from "$lib/server/deepwell"
-import type { Nullable, Optional } from "$lib/types"
 import { Layout } from "$lib/types"
 
+import type {
+  Nullable,
+  Optional,
+  PageRevisionType,
+  PageVoteModel,
+  ParseError
+} from "$lib/types"
+
+/* ----- Page Delete ----- */
+interface PageDelete {
+  page_id: number
+  revision_id: number
+  revision_number: number
+}
 export async function pageDelete(
   siteId: number,
   pageId: Optional<number>,
@@ -11,7 +25,7 @@ export async function pageDelete(
   slug: string,
   lastRevisionId: number,
   revisionComments: Optional<string>
-): Promise<object> {
+): Promise<PageDelete> {
   return client.request("page_delete", {
     site_id: siteId,
     page: pageId ?? slug,
@@ -22,6 +36,12 @@ export async function pageDelete(
   })
 }
 
+/* ----- Page Edit ----- */
+export interface CreatePageRevisionOutput {
+  revision_id: number
+  revision_number: number
+  parser_errors: Optional<ParseError[]>
+}
 export async function pageEdit(
   siteId: number,
   pageId: Optional<number>,
@@ -35,7 +55,7 @@ export async function pageEdit(
   altTitle: Optional<string>,
   tags: string[],
   layout: Optional<Nullable<Layout>>
-): Promise<object> {
+): Promise<CreatePageRevisionOutput> {
   return client.request(pageId ? "page_edit" : "page_create", {
     site_id: siteId,
     page: pageId ?? slug,
@@ -55,12 +75,37 @@ export async function pageEdit(
   })
 }
 
+/* ----- Page History ----- */
+export interface PageRevisionModelFiltered {
+  revision_id: number
+  revision_type: PageRevisionType
+  created_at: number
+  updated_at: Optional<number>
+  from_wikidot: boolean
+  revision_number: number
+  page_id: number
+  site_id: number
+  user_id: number
+  changes: string[]
+  wikitext: Optional<string>
+  compiled_body_html: Optional<string>
+  compiled_top_bar_html: Optional<string>
+  compiled_side_bar_html: Optional<string>
+  compiled_at: number
+  compiled_generator: string
+  comments: Optional<string>
+  hidden: string[]
+  title: Optional<string>
+  alt_title: Optional<string>
+  slug: Optional<string>
+  tags: Optional<string[]>
+}
 export async function pageHistory(
   siteId: number,
   pageId: Optional<number>,
   revisionNumber: Optional<number>,
   limit: Optional<number>
-): Promise<object> {
+): Promise<PageRevisionModelFiltered[]> {
   return client.request("page_revision_range", {
     site_id: siteId,
     page_id: pageId,
@@ -70,6 +115,14 @@ export async function pageHistory(
   })
 }
 
+/* ----- Page Move ----- */
+interface PageMove {
+  old_slug: string
+  new_slug: string
+  revision_id: number
+  revision_number: number
+  parser_errors: Optional<ParseError[]>
+}
 export async function pageMove(
   siteId: number,
   pageId: Optional<number>,
@@ -79,7 +132,7 @@ export async function pageMove(
   lastRevisionId: number,
   newSlug: string,
   revisionComments: Optional<string>
-): Promise<object> {
+): Promise<PageMove> {
   return client.request("page_move", {
     site_id: siteId,
     page: pageId ?? slug,
@@ -91,13 +144,14 @@ export async function pageMove(
   })
 }
 
+/* ----- Page Revision ----- */
 export async function pageRevision(
   siteId: number,
   pageId: Optional<number>,
   revisionNumber: Optional<number>,
   compiledHtml?: boolean,
   wikitext?: boolean
-): Promise<object> {
+): Promise<Optional<PageRevisionModelFiltered>> {
   return client.request("page_revision_get", {
     site_id: siteId,
     page_id: pageId,
@@ -109,6 +163,7 @@ export async function pageRevision(
   })
 }
 
+/* ----- Page Rollback ----- */
 export async function pageRollback(
   siteId: number,
   pageId: Optional<number>,
@@ -118,7 +173,7 @@ export async function pageRollback(
   lastRevisionId: number,
   revisionNumber: Optional<number>,
   revisionComments: Optional<string>
-): Promise<object> {
+): Promise<Optional<CreatePageRevisionOutput>> {
   return client.request("page_rollback", {
     site_id: siteId,
     page: pageId ?? slug,
@@ -130,10 +185,11 @@ export async function pageRollback(
   })
 }
 
+/* ----- Page Vote List ----- */
 export async function pageVoteList(
   siteId: number,
   pageId: Optional<number>
-): Promise<object> {
+): Promise<PageVoteModel[]> {
   return client.request("vote_list", {
     type: "Page",
     id: pageId,
@@ -144,12 +200,13 @@ export async function pageVoteList(
   })
 }
 
+/* ----- Page Vote Cast ----- */
 export async function pageVoteCast(
   siteId: number,
   pageId: Optional<number>,
   userId: number,
   value: number
-): Promise<object> {
+): Promise<Optional<PageVoteModel>> {
   return client.request("vote_set", {
     page_id: pageId,
     user_id: userId,
@@ -157,31 +214,35 @@ export async function pageVoteCast(
   })
 }
 
+/* ----- Page Vote Remove ----- */
 export async function pageVoteRemove(
   siteId: number,
   pageId: Optional<number>,
   userId: number
-): Promise<object> {
+): Promise<PageVoteModel> {
   return client.request("vote_remove", {
     page_id: pageId,
     user_id: userId
   })
 }
 
-export async function pageRerender(siteId: number, pageId: number): Promise<object> {
+/* ----- Page Rerender ----- */
+// Not used for now
+export async function pageRerender(siteId: number, pageId: number): Promise<void> {
   return client.request("page_rerender", {
     site_id: siteId,
     page_id: pageId
   })
 }
 
+/* ----- Page Layout ----- */
 export async function pageLayout(
   siteId: number,
   pageId: number,
   userId: number,
   userIpAddr: string,
   layout: Optional<Nullable<Layout>>
-): Promise<object> {
+): Promise<void> {
   return client.request("page_set_layout", {
     site_id: siteId,
     page_id: pageId,
@@ -191,13 +252,18 @@ export async function pageLayout(
   })
 }
 
+/* ----- Page Parent Update ----- */
+interface PageParentUpdate {
+  added: Optional<number[]>
+  removed: Optional<boolean[]>
+}
 export async function pageParentUpdate(
   siteId: number,
   pageId: number,
   userId: number,
   add: Optional<string[]>,
   remove: Optional<string[]>
-): Promise<object> {
+): Promise<PageParentUpdate> {
   return client.request("parent_update", {
     site_id: siteId,
     child: pageId,
@@ -207,31 +273,58 @@ export async function pageParentUpdate(
   })
 }
 
+/* ----- Page Parent Get ----- */
 export async function pageParentGet(
   siteId: number,
   pageId: Optional<number>,
   slug: string
-): Promise<object> {
+): Promise<string[]> {
   return client.request("parent_get_all", {
     site_id: siteId,
     page: pageId ?? slug
   })
 }
 
-export async function pageDeletedGet(siteId: number, slug: string): Promise<object> {
+/* ----- Page Deleted Get ----- */
+export interface PageDeletedGet {
+  page_id: number
+  page_created_at: string
+  page_updated_at: Optional<string>
+  page_deleted_at: string
+  page_revision_count: number
+  site_id: number
+  discussion_thread_id: Optional<number>
+  hidden_fields: string[]
+  title: string
+  alt_title: Optional<string>
+  slug: string
+  tags: string[]
+  rating: number
+}
+export async function pageDeletedGet(
+  siteId: number,
+  slug: string
+): Promise<PageDeletedGet[]> {
   return client.request("page_get_deleted", {
     site_id: siteId,
     slug
   })
 }
 
+/* ----- Page Restore ----- */
+interface PageRestore {
+  slug: string
+  revision_id: number
+  revision_number: number
+  parser_errors: ParseError[]
+}
 export async function pageRestore(
   siteId: number,
   pageId: number,
   userId: number,
   userIpAddr: string,
   revisionComments: Optional<string>
-): Promise<object> {
+): Promise<PageRestore> {
   return client.request("page_restore", {
     site_id: siteId,
     page_id: pageId,
@@ -241,11 +334,16 @@ export async function pageRestore(
   })
 }
 
+/* ----- Page Score ----- */
+export interface PageScore {
+  page_id: number
+  score: number
+}
 export async function pageScore(
   siteId: number,
   pageId: Optional<number>,
   slug: string
-): Promise<object> {
+): Promise<PageScore> {
   return client.request("page_get_score", {
     site_id: siteId,
     page: pageId ?? slug

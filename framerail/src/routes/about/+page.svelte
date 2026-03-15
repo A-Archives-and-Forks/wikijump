@@ -1,10 +1,12 @@
 <script lang="ts">
-  import { page } from "$app/state"
+  import type { PageProps } from "./$types"
+
+  let { data }: PageProps = $props()
 </script>
 
 <h1>UNTRANSLATED: Info page</h1>
 
-<textarea class="debug">{JSON.stringify(page, null, 2)}</textarea>
+<textarea class="debug">{JSON.stringify(data, null, 2)}</textarea>
 
 <table class="platform-info">
   <tbody>
@@ -13,31 +15,31 @@
     </tr>
     <tr class="info-attribute-row">
       <th class="info-attribute-name">UT:Package name</th>
-      <td class="info-attribute-value">{page.data.backend.package.name}</td>
+      <td class="info-attribute-value">{data.backend.package.name}</td>
     </tr>
     <tr class="info-attribute-row">
       <th class="info-attribute-name">UT:Package description</th>
-      <td class="info-attribute-value">{page.data.backend.package.description}</td>
+      <td class="info-attribute-value">{data.backend.package.description}</td>
     </tr>
     <tr class="info-attribute-row">
       <th class="info-attribute-name">UT:Package license</th>
-      <td class="info-attribute-value">{page.data.backend.package.license}</td>
+      <td class="info-attribute-value">{data.backend.package.license}</td>
     </tr>
     <tr class="info-attribute-row">
       <th class="info-attribute-name">UT:Package repository</th>
       <td class="info-attribute-value">
-        <a href={page.data.backend.package.repository} rel="external">
-          {page.data.backend.package.repository}
+        <a href={data.backend.package.repository} rel="external">
+          {data.backend.package.repository}
         </a>
       </td>
     </tr>
     <tr class="info-attribute-row">
       <th class="info-attribute-name">UT:Package version</th>
-      <td class="info-attribute-value">{page.data.backend.package.version}</td>
+      <td class="info-attribute-value">{data.backend.package.version}</td>
     </tr>
     <tr class="info-attribute-row">
       <th class="info-attribute-name">UT:Rustc version</th>
-      <td class="info-attribute-value">{page.data.backend.compile_info.rustc_version}</td>
+      <td class="info-attribute-value">{data.backend.compile_info.rustc_version}</td>
     </tr>
   </tbody>
   <tbody>
@@ -46,35 +48,35 @@
     </tr>
     <tr class="info-attribute-row">
       <th class="info-attribute-name">UT:Package name</th>
-      <td class="info-attribute-value">{page.data.frontend.name}</td>
+      <td class="info-attribute-value">{data.frontend.name}</td>
     </tr>
     <tr class="info-attribute-row">
       <th class="info-attribute-name">UT:Package description</th>
-      <td class="info-attribute-value">{page.data.frontend.description}</td>
+      <td class="info-attribute-value">{data.frontend.description}</td>
     </tr>
     <tr class="info-attribute-row">
       <th class="info-attribute-name">UT:Package license</th>
-      <td class="info-attribute-value">{page.data.frontend.license}</td>
+      <td class="info-attribute-value">{data.frontend.license}</td>
     </tr>
     <tr class="info-attribute-row">
       <th class="info-attribute-name">UT:Package repository</th>
       <td class="info-attribute-value">
-        <a href={page.data.frontend.repository} rel="external">
-          {page.data.frontend.repository}
+        <a href={data.frontend.repository} rel="external">
+          {data.frontend.repository}
         </a>
       </td>
     </tr>
     <tr class="info-attribute-row">
       <th class="info-attribute-name">UT:Package version</th>
-      <td class="info-attribute-value">{page.data.frontend.version}</td>
+      <td class="info-attribute-value">{data.frontend.version}</td>
     </tr>
     <tr class="info-attribute-row">
       <th class="info-attribute-name">UT:Node version</th>
-      <td class="info-attribute-value">{page.data.frontend.node}</td>
+      <td class="info-attribute-value">{data.frontend.node}</td>
     </tr>
     <tr class="info-attribute-row">
       <th class="info-attribute-name">UT:Pnpm version</th>
-      <td class="info-attribute-value">{page.data.frontend.pnpm}</td>
+      <td class="info-attribute-value">{data.frontend.pnpm}</td>
     </tr>
   </tbody>
 </table>

@@ -1,13 +1,21 @@
 import defaults from "$lib/defaults"
+
 import { parseAcceptLangHeader } from "$lib/locales"
+import { authGetSession } from "$lib/server/auth/getSession"
 import { getFileByHash } from "$lib/server/deepwell/file"
 import { translate } from "$lib/server/deepwell/translate"
-import { userView } from "$lib/server/deepwell/user"
+import { userEdit, userView } from "$lib/server/deepwell/user"
 import { loadSiteInfo } from "$lib/server/load/site-info"
-import type { TranslateKeys } from "$lib/types"
 import { error, redirect } from "@sveltejs/kit"
+import { fail, superValidate, withFiles } from "sveltekit-superforms"
+import { valibot } from "sveltekit-superforms/adapters"
+import { file, object, string } from "valibot"
 
-export async function loadUser(username?: string, request, cookies) {
+import type { Viewer } from "$lib/server/deepwell/views"
+import type { TranslateKeys, UserModel } from "$lib/types"
+import type { Cookies, RequestEvent } from "@sveltejs/kit"
+
+export async function loadUser(request: Request, cookies: Cookies, username?: string) {
   const { siteId } = loadSiteInfo(request.headers)
   const sessionToken = cookies.get("wikijump_token")
   let locales = parseAcceptLangHeader(request)
@@ -23,7 +31,7 @@ export async function loadUser(username?: string, request, cookies) {
     locales = [
       ...response.data.user_session.user.locales,
       ...locales.filter(
-        (locale) => !response.data.user_session.user.locales.includes(locale)
+        (locale) => !response.data.user_session?.user.locales.includes(locale)
       )
     ]
   }
@@ -35,15 +43,11 @@ export async function loadUser(username?: string, request, cookies) {
   if (!locales.includes(defaults.fallbackLocale)) locales.push(defaults.fallbackLocale)
 
   let translateKeys: TranslateKeys = {
-    ...defaults.translateKeys
-  }
-
-  const viewData = response.data
-  viewData.view = response.type
-
-  translateKeys["footer-license-unless"] = {
-    license: viewData.license_name,
-    "license_url": viewData.license_url
+    ...defaults.translateKeys,
+    "footer-license-unless": {
+      license: response.data.license_name,
+      "license_url": response.data.license_url
+    }
   }
 
   let errorStatus = null
@@ -52,7 +56,6 @@ export async function loadUser(username?: string, request, cookies) {
     case "user_found":
       break
     case "user_missing":
-      viewData.user = null
       errorStatus = 404
       break
     default:
@@ -61,30 +64,41 @@ export async function loadUser(username?: string, request, cookies) {
       errorStatus = 500
   }
 
-  if (errorStatus === null && username && viewData.user.slug !== username) {
-    redirect(308, `/-/user/${viewData.user.slug}`)
+  if (
+    errorStatus === null &&
+    username &&
+    response.type === "user_found" &&
+    response.data.user.slug !== username
+  ) {
+    redirect(308, `/-/user/${response.data.user.slug}`)
   }
 
-  if (errorStatus !== null) {
+  const viewData: Partial<
+    Viewer & {
+      user: Partial<UserModel & { avatar: string }>
+    }
+  > = response.data
+
+  if (errorStatus !== null && response.type === "user_missing") {
     translateKeys = {
       ...translateKeys,
       "user-not-exist": {},
       "user-not-logged-in": {}
     }
-  } else {
-    // Remove sensitive information
-    let sensitiveKeys = ["password", "multi_factor_secret", "multi_factor_recovery_codes"]
-    if (viewData.user_session?.user?.user_id !== viewData.user.user_id) {
-      // Currently viewing another user's profile
-      sensitiveKeys = [...sensitiveKeys, "email", "email_is_alias", "email_verified_at"]
-    }
-    for (let i = 0; i < sensitiveKeys.length; i++) {
-      delete viewData.user[sensitiveKeys[i]]
-    }
+  } else if (errorStatus === null && response.type === "user_found") {
+    const isViewingAnotherUser =
+      response.data.user_session?.user?.user_id !== response.data.user.user_id
+
+    viewData.user = deleteSensitiveData(response.data.user, isViewingAnotherUser)
 
     // Get user avatar image
-    if (viewData.user.avatar_s3_hash !== null) {
-      const avatar = await getFileByHash(new Uint8Array(viewData.user.avatar_s3_hash))
+    if (
+      response.data.user.avatar_s3_hash !== null &&
+      response.data.user.avatar_s3_hash !== undefined
+    ) {
+      const avatar = await getFileByHash(
+        new Uint8Array(response.data.user.avatar_s3_hash)
+      )
       const dataurl = `data:${avatar.type};base64,${Buffer.from(
         await avatar.arrayBuffer()
       ).toString("base64")}`
@@ -114,13 +128,97 @@ export async function loadUser(username?: string, request, cookies) {
     }
   }
 
-  const translated = await translate(locales, translateKeys)
+  const internationalization = await translate(locales, translateKeys)
 
-  viewData.internationalization = translated
+  const userEditForm = await superValidate(request, valibot(userEditSchema))
 
   if (errorStatus !== null) {
-    error(errorStatus, viewData)
+    error(errorStatus, { ...viewData, view: response.type, internationalization })
   }
 
-  return viewData
+  return { ...viewData, view: response.type, internationalization, userEditForm }
 }
+
+function deleteSensitiveData(
+  user: UserModel,
+  isViewingAnotherUser: boolean
+): Partial<UserModel> {
+  let sensitiveKeys = ["password", "multi_factor_secret", "multi_factor_recovery_codes"]
+  if (isViewingAnotherUser) {
+    sensitiveKeys = [...sensitiveKeys, "email", "email_is_alias", "email_verified_at"]
+  }
+  return Object.fromEntries(
+    Object.entries(user).filter(([key]) => !sensitiveKeys.includes(key))
+  )
+}
+
+export async function userEditAction({
+  request,
+  cookies,
+  getClientAddress
+}: RequestEvent) {
+  const form = await superValidate(request, valibot(userEditSchema))
+  if (!form.valid) {
+    return fail(400, { form })
+  }
+
+  const sessionToken = cookies.get("wikijump_token")
+  const session = await authGetSession(sessionToken)
+
+  const ipAddress = getClientAddress()
+
+  try {
+    const {
+      name,
+      realName,
+      email,
+      avatar,
+      gender,
+      birthday,
+      location,
+      biography,
+      userPage,
+      locales
+    } = form.data
+
+    const res = await userEdit(session?.user_id, ipAddress, {
+      name,
+      email,
+      locales: locales
+        .replaceAll("_", "-")
+        .replaceAll(",", " ")
+        .split(" ")
+        .filter((v) => v.trim()),
+      avatar,
+      realName,
+      gender,
+      birthday,
+      location,
+      biography,
+      userPage,
+      bypassFilter: false
+    })
+
+    return withFiles({ form, res })
+  } catch (error) {
+    return fail(500, {
+      form,
+      message: error.message,
+      code: error.code,
+      data: error.data
+    })
+  }
+}
+
+export const userEditSchema = object({
+  name: string(),
+  realName: string(),
+  email: string(),
+  avatar: file(),
+  gender: string(),
+  birthday: string(),
+  location: string(),
+  userPage: string(),
+  biography: string(),
+  locales: string()
+})

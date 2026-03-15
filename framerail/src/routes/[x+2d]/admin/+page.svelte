@@ -1,122 +1,123 @@
 <script lang="ts">
-  import { page } from "$app/state"
   import { invalidateAll } from "$app/navigation"
   import { errorPopupState } from "$lib/stores.svelte"
   import { Layout } from "$lib/types"
+  import { superForm } from "sveltekit-superforms"
+  import { untrack } from "svelte"
+
+  import type { PageProps } from "./$types"
+
+  let { data }: PageProps = $props()
 
   let isEdit = $state<boolean>(false)
 
-  async function saveEdit() {
-    const form = document.querySelector<HTMLFormElement>("form#editor")
-    if (!form) return
-    const fsrc = new FormData(form)
-    const fdata = new FormData()
-    for (const [key, val] of fsrc.entries()) {
-      if (val !== page.data.site[key as keyof typeof page.data.site]) fdata.set(key, val)
-    }
-    fdata.set("site-id", page.data.site.site_id)
-    fdata.set("action", "edit")
-    const res = await fetch(`/-/admin`, {
-      method: "POST",
-      body: fdata
-    }).then((res) => res.json())
-    if (res?.message) {
-      errorPopupState.current = {
-        state: true,
-        message: res.message,
-        data: res.data
+  const { form, enhance } = superForm(
+    untrack(() => data.adminForm),
+    {
+      dataType: "json",
+      onSubmit: async ({ jsonData }) => {
+        const submitForm = {
+          ...$form,
+          siteId: data.site.site_id,
+          action: "edit"
+        }
+        jsonData(submitForm)
+      },
+      onResult: async ({ result }) => {
+        console.log(result)
+        if (result.type === "success" && result.data) {
+          isEdit = false
+          await invalidateAll()
+        }
+        if (result.type === "failure" && result.data) {
+          errorPopupState.current = {
+            state: true,
+            message: result.data?.message,
+            data: result.data?.data
+          }
+        }
       }
-    } else {
-      isEdit = false
-      invalidateAll()
     }
+  )
+
+  function handleEdit() {
+    isEdit = true
+    $form.name = data.site.name
+    $form.slug = data.site.slug
+    $form.tagline = data.site.tagline
+    $form.description = data.site.description
+    $form.defaultPage = data.site.default_page
+    $form.locale = data.site.locale
+    $form.layout = data.site.layout ?? Layout.WIKIJUMP
   }
 </script>
 
 <h1>UNTRANSLATED:Admin panel route</h1>
 
-<textarea class="debug">{JSON.stringify(page, null, 2)}</textarea>
+<textarea class="debug">{JSON.stringify(data, null, 2)}</textarea>
 
 {#if isEdit}
-  <form
-    id="editor"
-    class="editor"
-    method="POST"
-    onsubmit={(event) => {
-      event.preventDefault()
-      saveEdit()
-    }}
-  >
+  <form id="editor" class="editor" method="POST" use:enhance>
     <label for="name">
-      {page.data.internationalization?.["site-info.name"]}
+      {data.internationalization?.["site-info.name"]}
     </label>
-    <input
-      name="name"
-      class="site-attribute name"
-      type="text"
-      value={page.data.site.name}
-    />
+    <input name="name" class="site-attribute name" type="text" bind:value={$form.name} />
 
     <label for="slug">
-      {page.data.internationalization?.["site-info.slug"]}
+      {data.internationalization?.["site-info.slug"]}
     </label>
-    <input
-      name="slug"
-      class="site-attribute slug"
-      type="text"
-      value={page.data.site.slug}
-    />
+    <input name="slug" class="site-attribute slug" type="text" bind:value={$form.slug} />
 
     <label for="tagline">
-      {page.data.internationalization?.["site-info.tagline"]}
+      {data.internationalization?.["site-info.tagline"]}
     </label>
     <input
       name="tagline"
       class="site-attribute tagline"
       type="text"
-      value={page.data.site.tagline}
+      bind:value={$form.tagline}
     />
 
     <label for="description">
-      {page.data.internationalization?.["site-info.description"]}
+      {data.internationalization?.["site-info.description"]}
     </label>
     <input
       name="description"
       class="site-attribute description"
       type="text"
-      value={page.data.site.description}
+      bind:value={$form.description}
     />
 
     <label for="default-page">
-      {page.data.internationalization?.["site-info.default-page"]}
+      {data.internationalization?.["site-info.default-page"]}
     </label>
     <input
-      name="default-page"
+      name="defaultPage"
       class="site-attribute default-page"
       type="text"
-      value={page.data.site.default_page}
+      bind:value={$form.defaultPage}
     />
 
     <label for="locale">
-      {page.data.internationalization?.["site-info.locale"]}
+      {data.internationalization?.["site-info.locale"]}
     </label>
     <input
       name="locale"
       class="site-attribute locale"
       type="text"
-      value={page.data.site.locale}
+      bind:value={$form.locale}
     />
 
     <label for="layout">
-      {page.data.internationalization?.["site-info.layout"]}
+      {data.internationalization?.["site-info.layout"]}
     </label>
-    <select name="layout" class="site-attribute layout" value={page.data.site.layout}>
+    <select name="layout" class="site-attribute layout" bind:value={$form.layout}>
       <option value={null}>
-        {page.data.internationalization?.["wiki-page-layout.default"]}
+        {data.internationalization?.["wiki-page-layout.default"]}
       </option>
       {#each Object.values(Layout) as layoutOption (layoutOption)}
         <option value={layoutOption}>
-          {page.data.internationalization?.[`wiki-page-layout.${layoutOption}`]}
+          {data.internationalization?.[`wiki-page-layout.${layoutOption}`]}
         </option>
       {/each}
     </select>
@@ -124,82 +125,79 @@
     <div class="action-row editor-actions">
       <button
         class="action-button editor-button button-cancel clickable"
-        onclick={(event) => {
-          event.stopPropagation()
-          isEdit = false
-        }}
+        onclick={() => (isEdit = false)}
         type="button"
       >
-        {page.data.internationalization?.cancel}
+        {data.internationalization?.cancel}
       </button>
       <button class="action-button editor-button button-save clickable" type="submit">
-        {page.data.internationalization?.save}
+        {data.internationalization?.save}
       </button>
     </div>
   </form>
 {:else}
-  <div class="site-info" data-id={page.data.site.site_id}>
-    {#if page.data.site.name}
+  <div class="site-info" data-id={data.site.site_id}>
+    {#if data.site.name}
       <div class="site-attribute name">
         <span class="site-attribute-label">
-          {page.data.internationalization?.["site-info.name"]}
+          {data.internationalization?.["site-info.name"]}
         </span>
-        <span class="site-attribute-value">{page.data.site.name}</span>
+        <span class="site-attribute-value">{data.site.name}</span>
       </div>
     {/if}
 
-    {#if page.data.site.slug}
+    {#if data.site.slug}
       <div class="site-attribute slug">
         <span class="site-attribute-label">
-          {page.data.internationalization?.["site-info.slug"]}
+          {data.internationalization?.["site-info.slug"]}
         </span>
-        <span class="site-attribute-value">{page.data.site.slug}</span>
+        <span class="site-attribute-value">{data.site.slug}</span>
       </div>
     {/if}
 
-    {#if page.data.site.tagline}
+    {#if data.site.tagline}
       <div class="site-attribute tagline">
         <span class="site-attribute-label">
-          {page.data.internationalization?.["site-info.tagline"]}
+          {data.internationalization?.["site-info.tagline"]}
         </span>
-        <span class="site-attribute-value">{page.data.site.tagline}</span>
+        <span class="site-attribute-value">{data.site.tagline}</span>
       </div>
     {/if}
 
-    {#if page.data.site.description}
+    {#if data.site.description}
       <div class="site-attribute description">
         <span class="site-attribute-label">
-          {page.data.internationalization?.["site-info.description"]}
+          {data.internationalization?.["site-info.description"]}
         </span>
-        <span class="site-attribute-value">{page.data.site.description}</span>
+        <span class="site-attribute-value">{data.site.description}</span>
       </div>
     {/if}
 
-    {#if page.data.site.default_page}
+    {#if data.site.default_page}
       <div class="site-attribute default-page">
         <span class="site-attribute-label">
-          {page.data.internationalization?.["site-info.default-page"]}
+          {data.internationalization?.["site-info.default-page"]}
         </span>
-        <span class="site-attribute-value">{page.data.site.default_page}</span>
+        <span class="site-attribute-value">{data.site.default_page}</span>
       </div>
     {/if}
 
-    {#if page.data.site.locale}
+    {#if data.site.locale}
       <div class="site-attribute locale">
         <span class="site-attribute-label">
-          {page.data.internationalization?.["site-info.locale"]}
+          {data.internationalization?.["site-info.locale"]}
         </span>
-        <span class="site-attribute-value">{page.data.site.locale}</span>
+        <span class="site-attribute-value">{data.site.locale}</span>
       </div>
     {/if}
 
-    {#if page.data.site.layout}
+    {#if data.site.layout}
       <div class="site-attribute layout">
         <span class="site-attribute-label">
-          {page.data.internationalization?.["site-info.layout"]}
+          {data.internationalization?.["site-info.layout"]}
         </span>
-        <span class="site-attribute-value" data-value={page.data.site.layout}>
-          {page.data.internationalization?.[`wiki-page-layout.${page.data.site.layout}`]}
+        <span class="site-attribute-value" data-value={data.site.layout}>
+          {data.internationalization?.[`wiki-page-layout.${data.site.layout}`]}
         </span>
       </div>
     {/if}
@@ -208,13 +206,10 @@
   <div class="action-row editor-actions">
     <button
       class="action-button editor-button button-edit clickable"
-      onclick={(event) => {
-        event.stopPropagation()
-        isEdit = true
-      }}
+      onclick={handleEdit}
       type="button"
     >
-      {page.data.internationalization?.edit}
+      {data.internationalization?.edit}
     </button>
   </div>
 {/if}
