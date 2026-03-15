@@ -1,6 +1,7 @@
 import { client } from "$lib/server/deepwell"
 
 import type {
+  Nullable,
   Optional,
   PageAttribution,
   PageModel,
@@ -16,7 +17,7 @@ export interface Viewer {
   site_file_domain: string
   license_name: string
   license_url: string
-  user_session: Optional<UserSession>
+  user_session: Nullable<UserSession>
 }
 
 /* ----- Page View ----- */
@@ -26,7 +27,7 @@ export interface PageRoute {
 }
 interface PageViewDataBase extends Viewer {
   options: PageOptions
-  redirect_page: Optional<string>
+  redirect_page: Nullable<string>
   wikitext: string
   compiled_body_html: string
   compiled_top_bar_html: Optional<string>

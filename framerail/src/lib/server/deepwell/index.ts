@@ -2,7 +2,7 @@
 
 import { JSONRPCClient } from "json-rpc-2.0"
 
-import type { Optional } from "$lib/types"
+import type { Nullable } from "$lib/types"
 import type { JSONRPCRequest } from "json-rpc-2.0"
 
 export const DEEPWELL_HOST = process.env.DEEPWELL_HOST || "localhost"
@@ -26,7 +26,6 @@ export async function ping(): Promise<void> {
 }
 
 /* ----- INFO ----- */
-
 interface Info {
   package: PackageInfo
   compile_info: CompileInfo
@@ -50,7 +49,7 @@ interface CompileInfo {
   endian: string
   target: string
   threads: number
-  git_commit: Optional<string>
+  git_commit: Nullable<string>
 }
 
 export async function info(): Promise<Info> {

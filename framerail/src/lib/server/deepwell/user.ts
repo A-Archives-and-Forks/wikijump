@@ -1,7 +1,7 @@
 import { client } from "$lib/server/deepwell"
 import { startBlobUpload, uploadToPresignUrl } from "./file"
 
-import type { Maybe, Optional, UserModel, UserType } from "$lib/types"
+import type { Nullable, Optional, UserModel, UserType } from "$lib/types"
 import type { Viewer } from "./views"
 
 /* ----- User View ----- */
@@ -31,18 +31,18 @@ export async function userView(
 
 /* ----- User Edit ----- */
 interface UserEditParams {
-  name?: Maybe<string>
-  email?: Maybe<string>
-  emailVerified?: Maybe<boolean>
-  password?: Maybe<string>
-  locales?: Maybe<string[]>
-  avatar?: Maybe<File>
-  realName?: Maybe<Optional<string>>
-  gender?: Maybe<Optional<string>>
-  birthday?: Maybe<Optional<string>>
-  location?: Maybe<Optional<string>>
-  biography?: Maybe<Optional<string>>
-  userPage?: Maybe<Optional<string>>
+  name?: Optional<string>
+  email?: Optional<string>
+  emailVerified?: Optional<boolean>
+  password?: Optional<string>
+  locales?: Optional<string[]>
+  avatar?: Optional<File>
+  realName?: Optional<Nullable<string>>
+  gender?: Optional<Nullable<string>>
+  birthday?: Optional<Nullable<string>>
+  location?: Optional<Nullable<string>>
+  biography?: Optional<Nullable<string>>
+  userPage?: Optional<Nullable<string>>
   bypassFilter?: boolean
 }
 export async function userEdit(

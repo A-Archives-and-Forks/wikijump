@@ -3,14 +3,14 @@ import defaults from "$lib/defaults"
 import { client } from "$lib/server/deepwell"
 import { startBlobUpload, uploadToPresignUrl } from "$lib/server/deepwell/file"
 
-import type { FileRevisionModel, FileRevisionType, Optional } from "$lib/types"
+import type { FileRevisionModel, FileRevisionType, Nullable, Optional } from "$lib/types"
 
 /* ----- Common Interface ----- */
 export interface PageFile {
   file_id: number
   file_created_at: string
-  file_updated_at: Optional<string>
-  file_deleted_at: Optional<string>
+  file_updated_at: Nullable<string>
+  file_deleted_at: Nullable<string>
   page_id: number
   revision_id: number
   revision_type: FileRevisionType
@@ -18,10 +18,10 @@ export interface PageFile {
   revision_number: number
   revision_user_id: number
   name: string
-  data: Optional<{ inner: string }>
+  data: Nullable<string>
   mime: string
   size: number
-  s3_hash: { inner: string }
+  s3_hash: string
   revision_comments: string
   hidden_fields: string[]
 }
@@ -48,7 +48,7 @@ export async function pageFileGet(
   fileId: number,
   /** Also request the contents of the file */
   data: boolean
-): Promise<Optional<PageFile>> {
+): Promise<Nullable<PageFile>> {
   return await client.request("file_get", {
     site_id: siteId,
     page_id: pageId,
@@ -222,7 +222,7 @@ export async function pageFileRollback(
   revisionNumber: number,
   revisionComments: Optional<string>,
   bypassFilter = false
-): Promise<Optional<PageFile>> {
+): Promise<Nullable<PageFile>> {
   return client.request("file_rollback", {
     site_id: siteId,
     page_id: pageId,
@@ -242,7 +242,7 @@ export async function pageFileRevision(
   pageId: Optional<number>,
   fileId: number,
   revisionNumber: Optional<number>
-): Promise<Optional<FileRevisionModel>> {
+): Promise<Nullable<FileRevisionModel>> {
   return client.request("file_revision_get", {
     site_id: siteId,
     page_id: pageId,

@@ -40,7 +40,7 @@ export async function pageDelete(
 export interface CreatePageRevisionOutput {
   revision_id: number
   revision_number: number
-  parser_errors: Optional<ParseError[]>
+  parser_errors: Nullable<ParseError[]>
 }
 export async function pageEdit(
   siteId: number,
@@ -80,25 +80,25 @@ export interface PageRevisionModelFiltered {
   revision_id: number
   revision_type: PageRevisionType
   created_at: number
-  updated_at: Optional<number>
+  updated_at: Nullable<number>
   from_wikidot: boolean
   revision_number: number
   page_id: number
   site_id: number
   user_id: number
   changes: string[]
-  wikitext: Optional<string>
-  compiled_body_html: Optional<string>
-  compiled_top_bar_html: Optional<string>
-  compiled_side_bar_html: Optional<string>
+  wikitext: Nullable<string>
+  compiled_body_html: Nullable<string>
+  compiled_top_bar_html: Nullable<string>
+  compiled_side_bar_html: Nullable<string>
   compiled_at: number
   compiled_generator: string
-  comments: Optional<string>
+  comments: Nullable<string>
   hidden: string[]
-  title: Optional<string>
-  alt_title: Optional<string>
-  slug: Optional<string>
-  tags: Optional<string[]>
+  title: Nullable<string>
+  alt_title: Nullable<string>
+  slug: Nullable<string>
+  tags: Nullable<string[]>
 }
 export async function pageHistory(
   siteId: number,
@@ -121,7 +121,7 @@ interface PageMove {
   new_slug: string
   revision_id: number
   revision_number: number
-  parser_errors: Optional<ParseError[]>
+  parser_errors: Nullable<ParseError[]>
 }
 export async function pageMove(
   siteId: number,
@@ -151,7 +151,7 @@ export async function pageRevision(
   revisionNumber: Optional<number>,
   compiledHtml?: boolean,
   wikitext?: boolean
-): Promise<Optional<PageRevisionModelFiltered>> {
+): Promise<Nullable<PageRevisionModelFiltered>> {
   return client.request("page_revision_get", {
     site_id: siteId,
     page_id: pageId,
@@ -173,7 +173,7 @@ export async function pageRollback(
   lastRevisionId: number,
   revisionNumber: Optional<number>,
   revisionComments: Optional<string>
-): Promise<Optional<CreatePageRevisionOutput>> {
+): Promise<Nullable<CreatePageRevisionOutput>> {
   return client.request("page_rollback", {
     site_id: siteId,
     page: pageId ?? slug,
@@ -206,7 +206,7 @@ export async function pageVoteCast(
   pageId: Optional<number>,
   userId: number,
   value: number
-): Promise<Optional<PageVoteModel>> {
+): Promise<Nullable<PageVoteModel>> {
   return client.request("vote_set", {
     page_id: pageId,
     user_id: userId,
@@ -254,8 +254,8 @@ export async function pageLayout(
 
 /* ----- Page Parent Update ----- */
 interface PageParentUpdate {
-  added: Optional<number[]>
-  removed: Optional<boolean[]>
+  added: Nullable<number[]>
+  removed: Nullable<boolean[]>
 }
 export async function pageParentUpdate(
   siteId: number,

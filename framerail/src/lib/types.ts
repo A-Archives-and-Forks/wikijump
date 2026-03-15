@@ -1,7 +1,13 @@
 import type { Locales } from "../types"
 export type Optional<T> = T | undefined
 export type Nullable<T> = T | null
-export type Maybe<T> = T | undefined | null
+export type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: JsonValue }
+  | JsonValue[]
 export type TranslateKeys = {
   [P in keyof Locales]?: Record<string, string | number>
 }
@@ -11,8 +17,8 @@ export type TranslatedKeys = Partial<Locales>
 export interface SiteModel {
   site_id: number
   created_at: string
-  updated_at: Optional<string>
-  deleted_at: Optional<string>
+  updated_at: Nullable<string>
+  deleted_at: Nullable<string>
   from_wikidot: boolean
   slug: string
   name: string
@@ -21,8 +27,8 @@ export interface SiteModel {
   locale: string
   default_page: string
   top_bar_page: Nullable<string>
-  preferred_domain: Optional<Nullable<string>>
-  layout: Optional<Layout>
+  preferred_domain: Nullable<string>
+  layout: Nullable<Layout>
   license: License
 }
 
@@ -42,43 +48,44 @@ export interface UserModel {
   user_id: number
   user_type: UserType
   created_at: string
-  updated_at: Optional<string>
-  deleted_at: Optional<string>
+  updated_at: Nullable<string>
+  deleted_at: Nullable<string>
   from_wikidot: boolean
   name: string
   slug: string
   name_changes_left: number
   last_name_change_added_at: string
-  last_renamed_at: Optional<string>
+  last_renamed_at: Nullable<string>
   email: string
-  email_is_alias: Optional<boolean>
-  email_verified_at: Optional<string>
+  email_verified_at: Nullable<string>
+  email_validation_info: Nullable<JsonValue>
+  email_validation_at: Nullable<string>
   password: string
-  multi_factor_secret: Optional<Nullable<string>>
-  multi_factor_recovery_codes: Optional<string[]>
+  multi_factor_secret: Nullable<string>
+  multi_factor_recovery_codes: Nullable<string[]>
   locales: string[]
-  avatar_s3_hash: Optional<Nullable<number[]>>
-  real_name: Optional<Nullable<string>>
-  gender: Optional<Nullable<string>>
-  birthday: Optional<string>
-  location: Optional<Nullable<string>>
-  biography: Optional<Nullable<string>>
-  user_page: Optional<Nullable<string>>
+  avatar_s3_hash: Nullable<number[]>
+  real_name: Nullable<string>
+  gender: Nullable<string>
+  birthday: Nullable<string>
+  location: Nullable<string>
+  biography: Nullable<string>
+  user_page: Nullable<string>
 }
 
 // deepwell src/models/page.rs
 export interface PageModel {
   page_id: number
   created_at: string
-  updated_at: Optional<string>
-  deleted_at: Optional<string>
+  updated_at: Nullable<string>
+  deleted_at: Nullable<string>
   from_wikidot: boolean
   site_id: number
-  latest_revision_id: Optional<number>
+  latest_revision_id: Nullable<number>
   page_category_id: number
   slug: string
-  discussion_thread_id: Optional<number>
-  layout: Optional<Nullable<Layout>>
+  discussion_thread_id: Nullable<number>
+  layout: Nullable<Layout>
 }
 
 // deepwell src/models/page_revision.rs
@@ -86,7 +93,7 @@ export interface PageRevisionModel {
   revision_id: number
   revision_type: PageRevisionType
   created_at: string
-  updated_at: Optional<string>
+  updated_at: Nullable<string>
   revision_number: number
   page_id: number
   site_id: number
@@ -95,14 +102,14 @@ export interface PageRevisionModel {
   changes: string[]
   wikitext_hash: number[]
   compiled_body_html_hash: number[]
-  compiled_top_bar_html_hash: Optional<Nullable<number[]>>
-  compiled_side_bar_html_hash: Optional<Nullable<number[]>>
+  compiled_top_bar_html_hash: Nullable<number[]>
+  compiled_side_bar_html_hash: Nullable<number[]>
   compiled_at: string
   compiled_generator: string
   comments: string
   hidden: string[]
   title: string
-  alt_title: Optional<Nullable<string>>
+  alt_title: Nullable<string>
   slug: string
   tags: string[]
 }
@@ -130,9 +137,9 @@ export interface FileRevisionModel {
 export interface PageVoteModel {
   page_vote_id: number
   created_at: string
-  deleted_at: Optional<string>
-  disabled_at: Optional<string>
-  disabled_by: Optional<number>
+  deleted_at: Nullable<string>
+  disabled_at: Nullable<string>
+  disabled_by: Nullable<number>
   from_wikidot: boolean
   page_id: number
   user_id: number
@@ -142,16 +149,16 @@ export interface PageVoteModel {
 // deepwell src/services/view/options.rs
 export interface PageOptions {
   edit: boolean
-  title: Optional<string>
-  parent: Optional<string>
-  tags: Optional<string>
+  title: Nullable<string>
+  parent: Nullable<string>
+  tags: Nullable<string>
   no_redirect: boolean
   no_render: boolean
   debug: boolean
   renderer: boolean
   comments: boolean
   history: boolean
-  offset: Optional<number>
+  offset: Nullable<number>
   data: string
 }
 
@@ -162,10 +169,10 @@ export interface PageAttribution {
   user_id: number
   created_by: number
   created_at: string
-  overwritten_by: Optional<number>
-  overwritten_at: Optional<string>
-  deleted_by: Optional<number>
-  deleted_at: Optional<string>
+  overwritten_by: Nullable<number>
+  overwritten_at: Nullable<string>
+  deleted_by: Nullable<number>
+  deleted_at: Nullable<string>
   metadata: PageAttributionMetadata
 }
 export interface PageAttributionMetadata {
