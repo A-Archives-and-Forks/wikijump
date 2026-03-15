@@ -11,7 +11,12 @@
     {
         "slug": "test",
         "aliases": ["check"],
-        "domains": [],
+        "domains": [
+            {
+                "domain": "test-site.localhost",
+                "www-redirect": false
+            }
+        ],
         "name": "Test site",
         "tagline": "The other kind of sandbox",
         "description": "Platform testing and experiments",

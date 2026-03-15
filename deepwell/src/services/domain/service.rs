@@ -38,7 +38,11 @@ impl DomainService {
     /// Creates a custom domain for a site.
     pub async fn create_custom(
         ctx: &ServiceContext<'_>,
-        CreateCustomDomain { domain, site_id }: CreateCustomDomain,
+        CreateCustomDomain {
+            domain,
+            site_id,
+            www_redirect,
+        }: CreateCustomDomain,
     ) -> Result<()> {
         info!("Creating custom domain '{domain}' (site ID {site_id})");
 
@@ -81,6 +85,7 @@ impl DomainService {
             domain: Set(domain),
             site_id: Set(site_id),
             created_at: Set(now()),
+            www_redirect: Set(www_redirect),
         };
         model.insert(txn).await.or_raise(make_error)?;
         Ok(())

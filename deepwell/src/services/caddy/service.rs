@@ -112,8 +112,9 @@ impl CaddyService {
                     .order_by_asc(site_domain::Column::Domain)
                     .select_only()
                     .column(site_domain::Column::Domain)
+                    .column(site_domain::Column::WwwRedirect)
                     .filter(site_domain::Column::SiteId.eq(site_id))
-                    .into_tuple()
+                    .into_model::<CustomDomainData>()
                     .all(txn)
                     .await
                     .or_raise(make_error)?;
@@ -193,10 +194,23 @@ fn get_canonical_domain<'s>(config: &'s Config, site_slug: &'s str) -> Cow<'s, s
 }
 
 fn get_preferred_domain<'s>(
+    custom_domains: &[CustomDomainData],
     preferred_domain: &'s Option<String>,
     canonical_domain: &'s str,
-) -> &'s str {
-    preferred_domain.as_deref().unwrap_or(canonical_domain)
+) -> (&'s str, bool) {
+    match preferred_domain {
+        None => (canonical_domain, true),
+        Some(preferred_domain) => {
+            let preferred_domain = preferred_domain.as_str();
+
+            custom_domains
+                .iter()
+                .find(|custom| custom.domain == preferred_domain)
+                .map(|custom| (preferred_domain, custom.www_redirect))
+                // Consistency error: Preferred custom domain should be in the list of the site's custom domains
+                .expect("No matching custom domain for preferred domain")
+        }
+    }
 }
 
 /// Determines the index to give to Caddy to get the site slug from a domain.
