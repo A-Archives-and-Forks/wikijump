@@ -21,21 +21,6 @@
   let fileEditId = $state<number>(0)
   let fileRevisionMap = new SvelteMap<number, FileRevisionModel>()
 
-  function fileSubmit(formData: FormData) {
-    return (input: Parameters<SubmitFunction>[0]) => {
-      return new Promise<XMLHttpRequest>((resolve) => {
-        const xhr = new XMLHttpRequest()
-        xhr.onload = () => {
-          if (xhr.readyState === xhr.DONE) {
-            resolve(xhr)
-          }
-        }
-        xhr.open("POST", input.action, true)
-        xhr.send(formData)
-      })
-    }
-  }
-
   async function getFileList(deleted = false) {
     const res = await fetch("?/fileList", {
       method: "POST",
@@ -72,10 +57,14 @@
   } = superForm(
     untrack(() => data.forms.fileUploadForm),
     {
-      onSubmit: async ({ customRequest, formData }) => {
-        formData.set("siteId", data.site.site_id.toString())
-        formData.set("pageId", data.page?.page_id?.toString() ?? "")
-        customRequest(fileSubmit(formData))
+      dataType: "json",
+      onSubmit: async ({ jsonData }) => {
+        const submitForm = {
+          ...$uploadForm,
+          siteId: data.site.site_id,
+          pageId: data.page?.page_id
+        }
+        jsonData(submitForm)
       },
       onResult: async ({ result }) => {
         if (result.type === "success" && result.data) {
@@ -165,15 +154,16 @@
   } = superForm(
     untrack(() => data.forms.fileMoveForm),
     {
-      onSubmit: async ({ customRequest, formData }) => {
-        formData.set("siteId", data.site.site_id.toString())
-        formData.set("pageId", data.page?.page_id?.toString() ?? "")
-        formData.set("fileId", fileEditId.toString())
-        formData.set(
-          "lastRevisionId",
-          fileMap.get(fileEditId)?.revision_id?.toString() ?? ""
-        )
-        customRequest(fileSubmit(formData))
+      dataType: "json",
+      onSubmit: async ({ jsonData }) => {
+        const submitForm = {
+          ...$uploadForm,
+          siteId: data.site.site_id,
+          pageId: data.page?.page_id,
+          fileId: fileEditId,
+          lastRevisionId: fileMap.get(fileEditId)?.revision_id
+        }
+        jsonData(submitForm)
       },
       onResult: async ({ result }) => {
         if (result.type === "success" && result.data) {
