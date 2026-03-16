@@ -64,6 +64,7 @@ export async function loadUser(request: Request, cookies: Cookies, username?: st
       errorStatus = 500
   }
 
+  // If the username is not the same as the slug, redirect to the slug
   if (
     errorStatus === null &&
     username &&
@@ -89,7 +90,7 @@ export async function loadUser(request: Request, cookies: Cookies, username?: st
     const isViewingAnotherUser =
       response.data.user_session?.user?.user_id !== response.data.user.user_id
 
-    viewData.user = deleteSensitiveData(response.data.user, isViewingAnotherUser)
+    viewData.user = sanitizeUserData(response.data.user, isViewingAnotherUser)
 
     // Get user avatar image
     if (response.data.user.avatar_s3_hash !== null) {
@@ -136,17 +137,48 @@ export async function loadUser(request: Request, cookies: Cookies, username?: st
   return { ...viewData, view: response.type, internationalization, userEditForm }
 }
 
-function deleteSensitiveData(
+function sanitizeUserData(
   user: UserModel,
   isViewingAnotherUser: boolean
 ): Partial<UserModel> {
-  let sensitiveKeys = ["password", "multi_factor_secret", "multi_factor_recovery_codes"]
+  const baseSafeKeys = [
+    "user_id",
+    "user_type",
+    "created_at",
+    "updated_at",
+    "deleted_at",
+    "from_wikidot",
+    "name",
+    "slug",
+    "avatar_s3_hash",
+    "user_page"
+  ]
   if (isViewingAnotherUser) {
-    sensitiveKeys = [...sensitiveKeys, "email", "email_is_alias", "email_verified_at"]
+    const safeKeys = [...baseSafeKeys]
+    return Object.fromEntries(
+      Object.entries(user).filter(([key]) => safeKeys.includes(key))
+    )
+  } else {
+    const safeKeys = [
+      ...baseSafeKeys,
+      "name_changes_left",
+      "last_name_change_added_at",
+      "last_renamed_at",
+      "email",
+      "email_verified_at",
+      "email_validation_info",
+      "email_validation_at",
+      "locales",
+      "real_name",
+      "gender",
+      "birthday",
+      "location",
+      "biography"
+    ]
+    return Object.fromEntries(
+      Object.entries(user).filter(([key]) => safeKeys.includes(key))
+    )
   }
-  return Object.fromEntries(
-    Object.entries(user).filter(([key]) => !sensitiveKeys.includes(key))
-  )
 }
 
 export async function userEditAction({
