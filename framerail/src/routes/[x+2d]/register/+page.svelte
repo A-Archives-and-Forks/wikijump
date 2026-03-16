@@ -118,7 +118,7 @@
         <option value="ko">UNTRANSLATED:ko</option>
         <option value="pl">UNTRANSLATED:pl</option>
         <option value="vi">UNTRANSLATED:vi</option>
-        <option value="zh_Hans">UNTRANSLATED:zh_Hans</option>
+        <option value="zh-Hans">UNTRANSLATED:zh_Hans</option>
       </select>
     </div>
 
