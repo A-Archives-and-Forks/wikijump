@@ -364,7 +364,7 @@
             {new Date(file.file_created_at).toLocaleString()}
           </div>
           <div class="file-attribute updated-at">
-            {new Date(file.file_updated_at ?? file.file_created_at).toLocaleString()}
+            {file.file_updated_at ? new Date(file.file_updated_at).toLocaleString() : "-"}
           </div>
           {#if pageLayoutState.current !== Layout.WIKIDOT}
             <div class="file-attribute mime">

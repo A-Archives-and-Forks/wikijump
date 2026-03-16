@@ -92,10 +92,7 @@ export async function loadUser(request: Request, cookies: Cookies, username?: st
     viewData.user = deleteSensitiveData(response.data.user, isViewingAnotherUser)
 
     // Get user avatar image
-    if (
-      response.data.user.avatar_s3_hash !== null &&
-      response.data.user.avatar_s3_hash !== undefined
-    ) {
+    if (response.data.user.avatar_s3_hash !== null) {
       const avatar = await getFileByHash(
         new Uint8Array(response.data.user.avatar_s3_hash)
       )
