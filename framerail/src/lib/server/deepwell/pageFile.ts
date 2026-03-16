@@ -97,7 +97,7 @@ export async function pageFileDelete(
   siteId: number,
   pageId: number,
   userId: number,
-  fileId: string | number,
+  fileId: number,
   lastRevisionId: number,
   revisionComments: string
 ): Promise<PageFileDelete> {
@@ -217,7 +217,7 @@ export async function pageFileRollback(
   siteId: number,
   pageId: number,
   userId: number,
-  fileId: string | number,
+  fileId: number,
   lastRevisionId: number,
   revisionNumber: number,
   revisionComments: Optional<string>,
