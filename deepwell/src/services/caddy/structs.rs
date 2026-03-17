@@ -18,6 +18,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+use sea_orm::FromQueryResult;
 use std::borrow::Cow;
 use std::collections::HashMap;
 
@@ -97,5 +98,11 @@ pub struct SiteData {
 #[derive(Deserialize, Debug, Default, Clone)]
 pub struct SiteDomainData {
     pub aliases: Vec<String>,
-    pub custom_domains: Vec<String>,
+    pub custom_domains: Vec<CustomDomainData>,
+}
+
+#[derive(Deserialize, FromQueryResult, Debug, Default, Clone)]
+pub struct CustomDomainData {
+    pub domain: String,
+    pub www_redirect: bool,
 }

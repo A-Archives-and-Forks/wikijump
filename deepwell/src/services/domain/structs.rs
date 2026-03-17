@@ -22,4 +22,5 @@
 pub struct CreateCustomDomain {
     pub domain: String,
     pub site_id: i64,
+    pub www_redirect: bool,
 }

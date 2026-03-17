@@ -160,8 +160,7 @@ www.example.com {
 	redir https://mytest.wikijump.test{uri}
 }
 
-example.net,
-www.example.net {
+example.net {
 	redir https://mytest.wikijump.test{uri}
 }
 
@@ -217,18 +216,16 @@ www.scpwiki.com {
 	redir https://scpwiki.com{uri}
 }
 
-scp-wiki.net,
-www.scp-wiki.net {
+scp-wiki.net {
+	redir https://scpwiki.com{uri}
+}
+
+foundation.scp {
 	redir https://scpwiki.com{uri}
 }
 
 scp.foundation,
 www.scp.foundation {
-	redir https://scpwiki.com{uri}
-}
-
-foundation.scp,
-www.foundation.scp {
 	redir https://scpwiki.com{uri}
 }
 

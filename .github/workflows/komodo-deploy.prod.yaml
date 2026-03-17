@@ -9,16 +9,48 @@ jobs:
   # Wait for image push jobs to complete
   # See https://stackoverflow.com/a/75597437
   caddy:
-    uses: ./.github/workflows/docker-build-caddy.prod.yaml
+    uses: ./.github/workflows/docker-build-template.yaml
+    with:
+      image-repository: wikijump/caddy
+      image-name: caddy
+      tier: prod
+      push: true
+    secrets:
+      aws-access-key: ${{ secrets.AWS_ECR_ACCESS_KEY }}
+      aws-secret-key: ${{ secrets.AWS_ECR_SECRET_KEY }}
 
   deepwell:
-    uses: ./.github/workflows/docker-build-deepwell.prod.yaml
+    uses: ./.github/workflows/docker-build-template.yaml
+    with:
+      image-repository: wikijump/deepwell
+      image-name: deepwell
+      tier: prod
+      push: true
+    secrets:
+      aws-access-key: ${{ secrets.AWS_ECR_ACCESS_KEY }}
+      aws-secret-key: ${{ secrets.AWS_ECR_SECRET_KEY }}
 
   framerail:
-    uses: ./.github/workflows/docker-build-framerail.prod.yaml
+    uses: ./.github/workflows/docker-build-template.yaml
+    with:
+      image-repository: wikijump/framerail
+      image-name: framerail
+      tier: prod
+      push: true
+    secrets:
+      aws-access-key: ${{ secrets.AWS_ECR_ACCESS_KEY }}
+      aws-secret-key: ${{ secrets.AWS_ECR_SECRET_KEY }}
 
   wws:
-    uses: ./.github/workflows/docker-build-wws.prod.yaml
+    uses: ./.github/workflows/docker-build-template.yaml
+    with:
+      image-repository: wikijump/wws
+      image-name: wws
+      tier: prod
+      push: true
+    secrets:
+      aws-access-key: ${{ secrets.AWS_ECR_ACCESS_KEY }}
+      aws-secret-key: ${{ secrets.AWS_ECR_SECRET_KEY }}
 
   # Then send webhook notification for Komodo to deploy.
   #

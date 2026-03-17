@@ -101,6 +101,19 @@ fn build_config(main_domain: &str, files_domain: &str) -> Config {
 }
 
 fn build_site_data() -> (SiteData, SiteData) {
+    macro_rules! domain {
+        ($domain:expr $(,)?) => {
+            domain!($domain, true)
+        };
+
+        ($domain:expr, $www_redirect:expr $(,)?) => {
+            CustomDomainData {
+                domain: str!($domain),
+                www_redirect: $www_redirect,
+            }
+        };
+    }
+
     let basic = SiteData {
         sites: vec![
             (1, str!("foo"), None),
@@ -110,7 +123,7 @@ fn build_site_data() -> (SiteData, SiteData) {
             1 => SiteDomainData::default(),
             2 => SiteDomainData {
                 aliases: vec![],
-                custom_domains: vec![str!("example.com")],
+                custom_domains: vec![domain!("example.com")],
             },
         },
     };
@@ -132,19 +145,19 @@ fn build_site_data() -> (SiteData, SiteData) {
             2 => SiteDomainData::default(),
             3 => SiteDomainData {
                 aliases: vec![str!("check")],
-                custom_domains: vec![str!("example.com"), str!("example.net")],
+                custom_domains: vec![domain!("example.com"), domain!("example.net", false)],
             },
             4 => SiteDomainData {
                 aliases: vec![],
-                custom_domains: vec![str!("wandererslibrary.com")],
+                custom_domains: vec![domain!("wandererslibrary.com")],
             },
             5 => SiteDomainData {
                 aliases: vec![str!("scpwiki")],
                 custom_domains: vec![
-                    str!("scpwiki.com"),
-                    str!("scp-wiki.net"),
-                    str!("scp.foundation"),
-                    str!("foundation.scp"),
+                    domain!("scpwiki.com"),
+                    domain!("scp-wiki.net", false),
+                    domain!("foundation.scp", false),
+                    domain!("scp.foundation"),
                 ],
             },
         },
