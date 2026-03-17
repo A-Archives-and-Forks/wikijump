@@ -9,7 +9,7 @@ import { loadSiteInfo } from "$lib/server/load/site-info"
 import { error, redirect } from "@sveltejs/kit"
 import { fail, superValidate, withFiles } from "sveltekit-superforms"
 import { valibot } from "sveltekit-superforms/adapters"
-import { file, object, string } from "valibot"
+import { file, object, optional, string } from "valibot"
 
 import type { Viewer } from "$lib/server/deepwell/views"
 import type { TranslateKeys, UserModel } from "$lib/types"
@@ -215,7 +215,7 @@ export async function userEditAction({
       name,
       email,
       locales: locales
-        .replaceAll("_", "-")
+        ?.replaceAll("_", "-")
         .replaceAll(",", " ")
         .split(" ")
         .filter((v) => v.trim()),
@@ -241,14 +241,14 @@ export async function userEditAction({
 }
 
 export const userEditSchema = object({
-  name: string(),
-  realName: string(),
-  email: string(),
-  avatar: file(),
-  gender: string(),
-  birthday: string(),
-  location: string(),
-  userPage: string(),
-  biography: string(),
-  locales: string()
+  name: optional(string()),
+  realName: optional(string()),
+  email: optional(string()),
+  avatar: optional(file()),
+  gender: optional(string()),
+  birthday: optional(string()),
+  location: optional(string()),
+  userPage: optional(string()),
+  biography: optional(string()),
+  locales: optional(string())
 })

@@ -7,18 +7,54 @@
   import { untrack } from "svelte"
 
   import type { PageProps } from "./$types"
+  import type { userEditSchema } from "$lib/server/load/user"
+  import type { InferOutput } from "valibot"
 
   let { data }: PageProps = $props()
 
   let isEdit = $state<boolean>(false)
 
+  // avatar will always be undefined if not uploaded a new avatar
+  type checkFormType = Omit<InferOutput<typeof userEditSchema>, "avatar">
+
+  let lastSubmitted = $state<checkFormType>({
+    name: untrack(() => data.user?.name ?? ""),
+    realName: untrack(() => data.user?.real_name ?? ""),
+    email: untrack(() => data.user?.email ?? ""),
+    gender: untrack(() => data.user?.gender ?? ""),
+    birthday: untrack(() => data.user?.birthday ?? ""),
+    location: untrack(() => data.user?.location ?? ""),
+    userPage: untrack(() => data.user?.user_page ?? ""),
+    biography: untrack(() => data.user?.biography ?? ""),
+    locales: untrack(() => data.user?.locales?.join(" ") ?? "")
+  })
+
   const { form, enhance } = superForm(
     untrack(() => data.userEditForm),
     {
-      onResult: async ({ result }) => {
+      dataType: "json",
+      onSubmit: ({ jsonData }) => {
+        const { avatar, ...rest } = $form
+        lastSubmitted = rest
+        const submitForm = (
+          Object.entries(rest) as [keyof checkFormType, string][]
+        ).reduce<Partial<InferOutput<typeof userEditSchema>>>(
+          (acc, [key, value]) => {
+            if (value === lastSubmitted[key]) {
+              return acc
+            }
+            return { ...acc, [key]: value }
+          },
+          { avatar }
+        )
+        jsonData(submitForm)
+      },
+      onResult: async ({ result, cancel }) => {
         if (result.type === "success" && result.data) {
           isEdit = false
           await invalidateAll()
+          cancel()
+          $form = untrack(() => ({ ...lastSubmitted, avatar: $form.avatar }))
         }
         if (result.type === "failure" && result.data) {
           errorPopupState.current = {
@@ -32,15 +68,11 @@
   )
   const avatar = fileProxy(form, "avatar")
 
-  $form.name = untrack(() => data.user?.name ?? "")
-  $form.realName = untrack(() => data.user?.real_name ?? "")
-  $form.email = untrack(() => data.user?.email ?? "")
-  $form.gender = untrack(() => data.user?.gender ?? "")
-  $form.birthday = untrack(() => data.user?.birthday ?? "")
-  $form.location = untrack(() => data.user?.location ?? "")
-  $form.userPage = untrack(() => data.user?.user_page ?? "")
-  $form.biography = untrack(() => data.user?.biography ?? "")
-  $form.locales = untrack(() => data.user?.locales?.join(" ") ?? "")
+  // Only update the form once when page is loaded
+  $form = untrack(() => ({
+    ...lastSubmitted,
+    avatar: undefined
+  }))
 </script>
 
 {#if isEdit}
@@ -147,7 +179,7 @@
     </div>
   </form>
 {:else}
-  <Page {data} />
+  <Page {data} userData={{ ...lastSubmitted, avatar: $form.avatar }} />
 
   <div class="action-row editor-actions">
     <button
