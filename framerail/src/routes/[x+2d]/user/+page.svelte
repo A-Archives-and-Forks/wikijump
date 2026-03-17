@@ -35,7 +35,6 @@
       dataType: "json",
       onSubmit: ({ jsonData }) => {
         const { avatar, ...rest } = $form
-        lastSubmitted = rest
         const submitForm = (
           Object.entries(rest) as [keyof checkFormType, string][]
         ).reduce<Partial<InferOutput<typeof userEditSchema>>>(
@@ -47,6 +46,9 @@
           },
           { avatar }
         )
+
+        lastSubmitted = rest
+
         jsonData(submitForm)
       },
       onResult: async ({ result, cancel }) => {
