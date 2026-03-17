@@ -79,7 +79,7 @@ impl UserService {
         };
 
         // Perform filter validation
-        if !bypass_filter {
+        if should_check_filter(bypass_filter, user_type, None) {
             let (result1, result2) = join!(
                 Self::run_name_filter(ctx, &name, &slug),
                 Self::run_email_filter(ctx, &email),
@@ -428,6 +428,9 @@ impl UserService {
 
         // Add fields to update
 
+        let should_check_filter =
+            should_check_filter(input.bypass_filter, user.user_type, Some(user.user_id));
+
         let mut model = user::ActiveModel {
             user_id: Set(user.user_id),
             ..Default::default()
@@ -436,13 +439,13 @@ impl UserService {
         // Add each field
         if let Maybe::Set(name) = input.name {
             // NOTE: Name filter validation occurs in update_name(), not here
-            Self::update_name(ctx, name, &user, &mut model, input.bypass_filter)
+            Self::update_name(ctx, name, &user, &mut model, should_check_filter)
                 .await
                 .or_raise(make_error)?;
         }
 
         if let Maybe::Set(email) = input.email {
-            if !input.bypass_filter {
+            if should_check_filter {
                 Self::run_email_filter(ctx, &email)
                     .await
                     .or_raise(make_error)?;
@@ -561,7 +564,7 @@ impl UserService {
         new_name: String,
         user: &UserModel,
         model: &mut user::ActiveModel,
-        bypass_filter: bool,
+        should_check_filter: bool,
     ) -> Result<()> {
         // Regardless of the number of name change tokens,
         // the user can always change their name if the slug is
@@ -579,7 +582,7 @@ impl UserService {
         };
 
         // Perform filter validation
-        if !bypass_filter {
+        if should_check_filter {
             Self::run_name_filter(ctx, &new_name, &new_slug)
                 .await
                 .or_raise(make_error)?;
@@ -653,7 +656,7 @@ impl UserService {
                 alias_type: AliasType::User,
                 target_id: user.user_id,
                 created_by: user.user_id,
-                bypass_filter,
+                bypass_filter: !should_check_filter,
             },
             false,
         )
@@ -1032,4 +1035,35 @@ fn check_email_validation(
 
     let validation_json = serde_json::to_value(validation_output).or_raise(make_error)?;
     Ok(validation_json)
+}
+
+fn should_check_filter(
+    bypass_filter: bool,
+    user_type: UserType,
+    user_id: Option<i64>,
+) -> bool {
+    use crate::constants::*;
+
+    // If bypass_filter flag is set, never check
+    if bypass_filter {
+        return false;
+    }
+
+    // Don't check for seeded users
+    if let Some(user_id) = user_id
+        && matches!(
+            user_id,
+            ADMIN_USER_ID | SYSTEM_USER_ID | ANONYMOUS_USER_ID | SAMPLE_USER_ID,
+        )
+    {
+        return false;
+    }
+
+    // Check for all non-system, non-site user types
+    //
+    // We exclude site users because those are created automatically
+    // based on the characteristics of a site, so filtering for its
+    // name isn't relevant - if the site was allowed to be created,
+    // so should its site user.
+    !matches!(user_type, UserType::Site | UserType::System)
 }
