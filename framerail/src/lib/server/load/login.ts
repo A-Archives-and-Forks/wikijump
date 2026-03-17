@@ -1,16 +1,26 @@
 import defaults from "$lib/defaults"
+
 import { parseAcceptLangHeader } from "$lib/locales"
+import { authGetSession } from "$lib/server/auth/getSession"
+import { authLogin } from "$lib/server/auth/login"
 import { translate } from "$lib/server/deepwell/translate"
 import { loadSiteInfo } from "$lib/server/load/site-info"
-import type { TranslateKeys } from "$lib/types"
+import { fail } from "@sveltejs/kit"
+import { superValidate } from "sveltekit-superforms"
+import { valibot } from "sveltekit-superforms/adapters"
+import { minLength, object, pipe, string } from "valibot"
 
-export async function loadLoginPage(request, cookies) {
+import type { TranslateKeys } from "$lib/types"
+import type { Cookies, RequestEvent } from "@sveltejs/kit"
+
+export async function loadLoginPage(request: Request, cookies: Cookies) {
   // Set up parameters
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { siteId } = loadSiteInfo(request.headers)
   const sessionToken = cookies.get("wikijump_token")
   const locales = parseAcceptLangHeader(request)
 
-  const viewData: Record<string, any> = {
+  const viewData = {
     isLoggedIn: Boolean(sessionToken)
   }
 
@@ -32,10 +42,53 @@ export async function loadLoginPage(request, cookies) {
     "create-account": {}
   }
 
-  const translated = await translate(locales, translateKeys)
+  const internationalization = await translate(locales, translateKeys)
 
-  viewData.internationalization = translated
+  // superform
+  const loginForm = await superValidate(valibot(loginSchema))
 
   // Return to page for rendering
-  return viewData
+  return { ...viewData, internationalization, loginForm }
 }
+
+export async function loginAction({ request, getClientAddress, cookies }: RequestEvent) {
+  const form = await superValidate(request, valibot(loginSchema))
+
+  if (!form.valid) {
+    return fail(400, { form })
+  }
+
+  const userAgent: string = request.headers.get("User-Agent") ?? ""
+  const ipAddress: string = getClientAddress()
+
+  const { data } = form
+
+  try {
+    const res = await authLogin(data.nameOrEmail, data.password, ipAddress, userAgent)
+
+    if (res.session_token) {
+      const session = await authGetSession(res.session_token)
+      cookies.set("wikijump_token", res.session_token, {
+        path: "/",
+        httpOnly: true,
+        secure: true,
+        sameSite: "lax",
+        expires: new Date(session.expires_at)
+      })
+    }
+
+    return { form, session_token: res.session_token, isLoggedIn: true }
+  } catch (error) {
+    return fail(500, {
+      form,
+      message: error?.message,
+      code: error?.code,
+      data: error?.data
+    })
+  }
+}
+
+const loginSchema = object({
+  nameOrEmail: pipe(string(), minLength(1)),
+  password: pipe(string(), minLength(1))
+})

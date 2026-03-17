@@ -1,6 +1,6 @@
 <script lang="ts">
   import Page from "./[slug]/[...extra]/page.svelte"
-  let { data } = $props()
+  let props = $props()
 </script>
 
-<Page {data} />
+<Page {...props} />

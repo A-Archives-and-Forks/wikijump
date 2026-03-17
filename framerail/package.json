@@ -42,8 +42,10 @@
     "stylelint-order": "^7.0.1",
     "stylelint-scss": "^7.0.0",
     "svelte-eslint-parser": "^1.4.1",
+    "sveltekit-superforms": "^2.30.0",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.56.0"
+    "typescript-eslint": "^8.56.0",
+    "valibot": "^1.2.0"
   },
   "dependencies": {
     "@sveltejs/adapter-node": "^5.5.4",

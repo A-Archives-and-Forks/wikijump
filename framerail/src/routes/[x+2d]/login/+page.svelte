@@ -1,74 +1,61 @@
 <script lang="ts">
-  import { page } from "$app/state"
   import { invalidateAll } from "$app/navigation"
   import { errorPopupState } from "$lib/stores.svelte"
+  import { superForm } from "sveltekit-superforms"
+  import { untrack } from "svelte"
 
-  let isLoggedIn = $state<boolean>(page.data.isLoggedIn)
+  import type { PageProps } from "./$types"
 
-  async function tryLogin() {
-    const form = document.querySelector<HTMLFormElement>("form#login")
-    if (!form) return
-    const fdata = new FormData(form)
-    const res = await fetch(`/-/login`, {
-      method: "POST",
-      body: fdata
-    }).then((res) => res.json())
+  let { data }: PageProps = $props()
 
-    if (res.session_token) {
-      isLoggedIn = true
-      invalidateAll()
-    } else {
-      errorPopupState.current = {
-        state: true,
-        message: res.message,
-        data: res.data
+  let isLoggedIn = $derived<boolean>(data.isLoggedIn)
+
+  const { form, enhance } = superForm(
+    untrack(() => data.loginForm),
+    {
+      onResult: async ({ result }) => {
+        if (result.type === "success" && result.data) {
+          isLoggedIn = true
+          await invalidateAll()
+          return
+        }
+
+        if (result.type === "failure" && result.data) {
+          errorPopupState.current = {
+            state: true,
+            message: result.data?.message,
+            data: result.data?.data
+          }
+        }
       }
     }
-  }
+  )
 </script>
 
 {#if isLoggedIn}
-  {page.data.internationalization?.["login.toast"]}
+  {data.internationalization?.["login.toast"]}
 {:else}
-  <form
-    id="login"
-    class="login-form"
-    method="POST"
-    onsubmit={(event) => {
-      event.preventDefault()
-      tryLogin()
-    }}
-  >
+  <form id="login" class="login-form" method="POST" use:enhance>
     <input
-      name="name-or-email"
+      name="nameOrEmail"
       class="auth-name-or-email"
-      placeholder={page.data.internationalization?.specifier}
+      placeholder={data.internationalization?.specifier}
       type="text"
+      bind:value={$form.nameOrEmail}
     />
     <input
       name="password"
       class="auth-password"
-      placeholder={page.data.internationalization?.password}
+      placeholder={data.internationalization?.password}
       type="password"
+      bind:value={$form.password}
     />
     <div class="action-row auth-actions">
-      <button
-        class="action-button auth-button button-cancel clickable"
-        onclick={(event) => {
-          event.stopPropagation()
-        }}
-        type="button"
-      >
-        {page.data.internationalization?.cancel}
+      <button class="action-button auth-button button-cancel clickable" type="button">
+        {data.internationalization?.cancel}
       </button>
-      <button
-        class="action-button auth-button button-login clickable"
-        onclick={(event) => {
-          event.stopPropagation()
-        }}
-        type="submit"
-      >
-        {page.data.internationalization?.login}
+      <button class="action-button auth-button button-login clickable" type="submit">
+        {data.internationalization?.login}
       </button>
     </div>
   </form>

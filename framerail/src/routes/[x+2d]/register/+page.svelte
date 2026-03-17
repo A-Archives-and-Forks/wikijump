@@ -1,154 +1,133 @@
 <script lang="ts">
-  import { page } from "$app/state"
   import { errorPopupState } from "$lib/stores.svelte"
   import { goto } from "$app/navigation"
   import { resolve } from "$app/paths"
+  import { untrack } from "svelte"
+  import { superForm } from "sveltekit-superforms"
 
-  let isLoggedIn = $state<boolean>(page.data.isLoggedIn)
+  import type { PageProps } from "./$types"
 
-  let password = $state<string>("")
-  let confirmPassword = $state<string>("")
+  let { data }: PageProps = $props()
 
-  const isMismatch = $derived(
-    confirmPassword !== password && confirmPassword.length > 0 && password.length > 0
-  )
-
+  let isLoggedIn = $derived<boolean>(data.isLoggedIn)
   let isRegistered = $state<boolean>(false)
 
-  async function tryRegister() {
-    const form = document.querySelector<HTMLFormElement>("form#register")
-    if (!form) return
-    const fdata = new FormData(form)
+  const { form, enhance, errors } = superForm(
+    untrack(() => data.registerForm),
+    {
+      onResult: async ({ result, cancel }) => {
+        if (result.type === "success" && result.data?.isRegistered) {
+          isRegistered = true
+          cancel()
+          await goto(resolve("/-/login", {}))
+          return
+        }
 
-    const res: {
-      user_id: number
-      slug: string
-    } = await fetch(`/-/register`, {
-      method: "POST",
-      body: fdata
-    }).then((res) => res.json())
-
-    if (res.user_id) {
-      isRegistered = true
-      goto(resolve(`/-/login`, {}))
-    } else {
-      errorPopupState.current = {
-        state: true,
-        message: res.message,
-        data: res.data
+        if (result.type === "failure" && result.data) {
+          errorPopupState.current = {
+            state: true,
+            message: result.data?.message,
+            data: result.data?.data
+          }
+        }
       }
     }
-  }
-
-  function validateMatch(event: FocusEvent, isMismatch: boolean): void {
-    const target = event.target
-    if (target instanceof HTMLInputElement) {
-      if (isMismatch) {
-        target.setCustomValidity(
-          page.data.internationalization?.["error-form.password-mismatch"] ?? ""
-        )
-      } else {
-        target.setCustomValidity("")
-      }
-    }
-  }
+  )
 </script>
 
 {#if isLoggedIn || isRegistered}
-  {page.data.internationalization?.["register.toast"]}
+  {data.internationalization?.["register.toast"]}
 {:else}
-  <form
-    id="register"
-    class="register-form"
-    method="POST"
-    onsubmit={(event) => {
-      event.preventDefault()
-      tryRegister()
-    }}
-  >
+  <form id="register" class="register-form" method="POST" use:enhance>
     <label for="username">
-      {page.data.internationalization?.["username"]}
+      {data.internationalization?.["username"]}
     </label>
     <div class="input-container">
       <input
         id="username"
         name="username"
         class="username"
-        placeholder={page.data.internationalization?.["username.placeholder"]}
+        placeholder={data.internationalization?.["username.placeholder"]}
         required
         type="text"
+        bind:value={$form.username}
       />
-      <p class="description">{page.data.internationalization?.["username.info"]}</p>
+      <p class="description">{data.internationalization?.["username.info"]}</p>
     </div>
 
     <label for="email">
-      {page.data.internationalization?.["email"]}
+      {data.internationalization?.["email"]}
     </label>
     <div class="input-container">
       <input
         id="email"
         name="email"
         class="email"
-        placeholder={page.data.internationalization?.["email.placeholder"]}
+        placeholder={data.internationalization?.["email.placeholder"]}
         required
         type="text"
+        bind:value={$form.email}
       />
-      <p class="description">{page.data.internationalization?.["email.info"]}</p>
+      <p class="description">{data.internationalization?.["email.info"]}</p>
+      {#if $errors.email}
+        <!-- Although `error-api.INVALID_EMAIL` is almost the same as this one, it should
+            get another name in `error-form` to avoid confusion -->
+        <p class="error">UNTRANSLATED: Email format is invalid.</p>
+      {/if}
     </div>
 
     <label for="password">
-      {page.data.internationalization?.["password"]}
+      {data.internationalization?.["password"]}
     </label>
     <div class="input-container">
       <input
         name="password"
         class="auth-password"
-        placeholder={page.data.internationalization?.["password.placeholder"]}
+        placeholder={data.internationalization?.["password.placeholder"]}
         required
         type="password"
-        bind:value={password}
+        bind:value={$form.password}
       />
     </div>
 
     <label for="confirm-password">
-      {page.data.internationalization?.["confirm-password"]}
+      {data.internationalization?.["confirm-password"]}
     </label>
     <div class="input-container">
       <input
-        name="confirm-password"
+        name="confirmPassword"
         class="confirm-password"
-        onblur={(event) => {
-          validateMatch(event, isMismatch)
-        }}
-        oninput={(event) => {
-          const input = event.target as HTMLInputElement
-          input.setCustomValidity("")
-        }}
-        placeholder={page.data.internationalization?.["password.placeholder"]}
+        placeholder={data.internationalization?.["password.placeholder"]}
         required
         type="password"
-        bind:value={confirmPassword}
+        bind:value={$form.confirmPassword}
       />
+      {#if $errors.confirmPassword}
+        <p class="error">
+          {data.internationalization?.["error-form.password-mismatch"]}
+        </p>
+      {/if}
+    </div>
+
+    <label for="locale">UNTRANSLATED:Locale</label>
+    <div class="input-container">
+      <!-- TODO: Implement a multi select component -->
+      <!-- I know it's ugly, but we can implement a better looking component later on -->
+      <select id="locale" name="locale" multiple required bind:value={$form.locale}>
+        <option value="en">UNTRANSLATED:en</option>
+        <option value="ko">UNTRANSLATED:ko</option>
+        <option value="pl">UNTRANSLATED:pl</option>
+        <option value="vi">UNTRANSLATED:vi</option>
+        <option value="zh-Hans">UNTRANSLATED:zh_Hans</option>
+      </select>
     </div>
 
     <div class="action-row auth-actions">
-      <button
-        class="action-button auth-button button-cancel clickable"
-        onclick={(event) => {
-          event.stopPropagation()
-        }}
-        type="button"
-      >
-        {page.data.internationalization?.cancel}
+      <button class="action-button auth-button button-cancel clickable" type="button">
+        {data.internationalization?.cancel}
       </button>
-      <button
-        class="action-button auth-button button-create clickable"
-        onclick={(event) => {
-          event.stopPropagation()
-        }}
-        type="submit"
-      >
-        {page.data.internationalization?.["create-account"]}
+      <button class="action-button auth-button button-create clickable" type="submit">
+        {data.internationalization?.["create-account"]}
       </button>
     </div>
   </form>
@@ -163,10 +142,18 @@
     justify-content: center;
 
     .input-container {
-      .description {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      p {
         margin: 0;
         font-size: 0.8rem;
-        color: #666;
+        &.description {
+          color: #666;
+        }
+        &.error {
+          color: red;
+        }
       }
     }
 

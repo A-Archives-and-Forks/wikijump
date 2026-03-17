@@ -1,130 +1,131 @@
 <script lang="ts">
-  import { page } from "$app/state"
+  import { deserialize } from "$app/forms"
   import { invalidateAll } from "$app/navigation"
-  import { errorPopupState, pageLayoutState, pagePaneState } from "$lib/stores.svelte"
+  import { errorPopupState, pageLayoutState } from "$lib/stores.svelte"
   import { Layout, PagePane } from "$lib/types"
+  import { superForm } from "sveltekit-superforms"
+  import { untrack } from "svelte"
 
-  let parents = $state<string>("")
+  import type { PageProps } from "./$types"
 
-  async function setParents() {
-    const form = document.querySelector<HTMLFormElement>("form#page-parent")
-    if (!form) return
-    const fdata = new FormData(form)
-    fdata.set("site-id", page.data.site.site_id)
-    fdata.set("page-id", page.data.page.page_id)
-    const newParents = (fdata.get("parents")?.toString() ?? "")
-      .split(" ")
-      .filter((p) => p)
-    const oldParents = parents.split(" ").filter((p) => p)
-    const removed: string[] = oldParents.filter((p) => !newParents.includes(p))
-    const common: string[] = oldParents.filter((p) => newParents.includes(p))
-    const added: string[] = newParents.filter((p) => !common.includes(p))
+  let pageParents = $state<string>("")
 
-    if (added.length) fdata.set("add-parents", added.join(" "))
-    if (removed.length) fdata.set("remove-parents", removed.join(" "))
+  let { pagePaneState, data, params }: PageProps & { pagePaneState: PagePane } = $props()
 
-    const res = await fetch(`/${page.data.page.slug}/parent-set`, {
+  const { form, enhance } = superForm(
+    untrack(() => data.forms.pageParentForm),
+    {
+      dataType: "json",
+      onSubmit: async ({ jsonData }) => {
+        const { parents: formParents } = $form
+        const newParents = formParents.split(" ").filter((p) => p)
+        const oldParents = pageParents.split(" ").filter((p) => p)
+        const removed: string[] = oldParents.filter((p) => !newParents.includes(p))
+        const common: string[] = oldParents.filter((p) => newParents.includes(p))
+        const added: string[] = newParents.filter((p) => !common.includes(p))
+
+        const submitForm = {
+          siteId: data.site.site_id,
+          pageId: data.page?.page_id,
+          addParents: added.length ? added : undefined,
+          removeParents: removed.length ? removed : undefined
+        }
+        jsonData(submitForm)
+      },
+      onResult: async ({ result, cancel }) => {
+        if (result.type === "success" && result.data) {
+          cancel()
+          pagePaneState = PagePane.None
+          invalidateAll()
+        }
+        if (result.type === "failure" && result.data) {
+          errorPopupState.current = {
+            state: true,
+            message: result.data.message,
+            data: result.data.data
+          }
+        }
+      }
+    }
+  )
+
+  async function fetchParents() {
+    const res = await fetch(`?/parentGet`, {
       method: "POST",
-      body: fdata
-    }).then((res) => res.json())
-    if (res?.message) {
+      body: JSON.stringify({
+        siteId: data.site.site_id,
+        pageId: data.page?.page_id,
+        slug: params.slug
+      })
+    }).then((res) => res.text())
+
+    const result = deserialize<
+      { res: string[] },
+      { message: string; code: string; data: Record<string, unknown> }
+    >(res)
+
+    if (result.type === "failure" && result.data?.message) {
       errorPopupState.current = {
         state: true,
-        message: res.message,
-        data: res.data
+        message: result.data.message,
+        data: result.data.data
       }
-    } else {
-      pagePaneState.current = PagePane.None
-      invalidateAll()
+    } else if (result.type === "success" && result.data?.res) {
+      pageParents = result.data.res.join(" ")
+      $form.parents = pageParents
     }
   }
 
   $effect(() => {
-    async function fetchParents() {
-      const fdata = new FormData()
-      fdata.set("site-id", page.data.site.site_id)
-      fdata.set("page-id", page.data.page.page_id)
-      const res = await fetch(`/${page.data.page.slug}/parent-get`, {
-        method: "POST",
-        body: fdata
-      }).then((res) => res.json())
-      if (res?.message) {
-        errorPopupState.current = {
-          state: true,
-          message: res.message,
-          data: res.data
-        }
-      } else {
-        parents = res.join(" ")
-      }
-    }
-
     fetchParents()
   })
 </script>
 
 {#if pageLayoutState.current === Layout.WIKIDOT}
   <h1 class="page-parent-header">
-    {page.data.internationalization?.["wiki-page-parent"]}
+    {data.internationalization?.["wiki-page-parent"]}
   </h1>
 {:else}
   <h2 class="page-parent-header">
-    {page.data.internationalization?.["wiki-page-parent"]}
+    {data.internationalization?.["wiki-page-parent"]}
   </h2>
 {/if}
 
-<form
-  id="page-parent"
-  class="page-parent"
-  method="POST"
-  onsubmit={(event) => {
-    event.preventDefault()
-    setParents()
-  }}
->
+<form id="page-parent" class="page-parent" action="?/parentSet" method="POST" use:enhance>
   <input
-    name="parents"
     class="page-parent-new-parents"
-    placeholder={page.data.internationalization?.parents}
+    placeholder={data.internationalization?.parents}
     type="text"
-    value={parents}
+    bind:value={$form.parents}
   />
   {#if pageLayoutState.current === Layout.WIKIDOT}
     <div class="buttons">
       <input
         class="btn btn-danger"
-        onclick={(event) => {
-          event.stopPropagation()
-          pagePaneState.current = PagePane.None
-        }}
+        onclick={() => (pagePaneState = PagePane.None)}
         type="button"
-        value={page.data.internationalization?.cancel}
+        value={data.internationalization?.cancel}
       />
       <input
         class="btn btn-primary"
-        onclick={(event) => event.stopPropagation()}
         type="submit"
-        value={page.data.internationalization?.save}
+        value={data.internationalization?.save}
       />
     </div>
   {:else}
     <div class="action-row page-parent-actions">
       <button
         class="action-button page-parent-button button-cancel clickable"
-        onclick={(event) => {
-          event.stopPropagation()
-          pagePaneState.current = PagePane.None
-        }}
+        onclick={() => (pagePaneState = PagePane.None)}
         type="button"
       >
-        {page.data.internationalization?.cancel}
+        {data.internationalization?.cancel}
       </button>
       <button
         class="action-button page-parent-button button-save clickable"
-        onclick={(event) => event.stopPropagation()}
         type="submit"
       >
-        {page.data.internationalization?.save}
+        {data.internationalization?.save}
       </button>
     </div>
   {/if}

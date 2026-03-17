@@ -1,19 +1,55 @@
 <script lang="ts">
-  import { page } from "$app/state"
+  import { deserialize } from "$app/forms"
   import { invalidateAll } from "$app/navigation"
   import { errorPopupState, pageLayoutState } from "$lib/stores.svelte"
   import { Layout } from "$lib/types"
   import { SvelteMap } from "svelte/reactivity"
 
-  let revisionMap = new SvelteMap<number, Record<string, any>>()
-  let revision = $state<Record<string, any>>({})
+  import type { PageProps } from "./$types"
+  import type {
+    PageRevisionModelFiltered,
+    CreatePageRevisionOutput
+  } from "$lib/server/deepwell/page"
+  import type { Optional } from "$lib/types"
+
+  interface Props extends PageProps {
+    setShowRevision: (val: boolean) => void
+    setRevision: (rev: Optional<PageRevisionModelFiltered>) => void
+  }
+
+  let { setShowRevision, setRevision, data }: Props = $props()
+
+  let revisionMap = new SvelteMap<number, PageRevisionModelFiltered>()
+  let revision = $state<Optional<PageRevisionModelFiltered>>(undefined)
   let showRevisionSource = $state<boolean>(false)
 
-  interface Props {
-    setShowRevision: (val: boolean) => void
-    setRevision: (rev: Record<string, any>) => void
+  async function fetchHistory() {
+    const res = await fetch("?/history", {
+      method: "POST",
+      body: JSON.stringify({
+        siteId: data.site.site_id,
+        pageId: data.page?.page_id
+      })
+    }).then((res) => res.text())
+
+    const result = deserialize<
+      { res: PageRevisionModelFiltered[] },
+      { message: string; code: string; data: Record<string, unknown> }
+    >(res)
+
+    if (result.type === "failure" && result.data?.message) {
+      errorPopupState.current = {
+        state: true,
+        message: result.data.message,
+        data: result.data
+      }
+    } else if (result.type === "success" && result.data?.res) {
+      revisionMap.clear()
+      result.data.res.forEach((rev) => {
+        revisionMap.set(rev.revision_number, rev)
+      })
+    }
   }
-  let { setShowRevision, setRevision }: Props = $props()
 
   async function getRevision(
     revisionNumber: number,
@@ -31,108 +67,101 @@
       revision = rev
     } else {
       // Request from server
-      const fdata = new FormData()
-      fdata.set("site-id", page.data.site.site_id)
-      fdata.set("page-id", page.data.page.page_id)
-      fdata.set("revision-number", revisionNumber.toString())
-      fdata.set("compiled-html", compiledHtml.toString())
-      fdata.set("wikitext", wikitext.toString())
-      const res = await fetch(`/${page.data.page.slug}/revision`, {
+      const res = await fetch("?/revision", {
         method: "POST",
-        body: fdata
-      }).then((res) => res.json())
-      if (res?.message) {
+        body: JSON.stringify({
+          siteId: data.site.site_id,
+          pageId: data.page?.page_id,
+          revisionNumber,
+          compiledHtml,
+          wikitext
+        })
+      }).then((res) => res.text())
+
+      const result = deserialize<
+        { res: Optional<PageRevisionModelFiltered> },
+        { message: string; code: string; data: Record<string, unknown> }
+      >(res)
+
+      if (result.type === "failure" && result.data?.message) {
         errorPopupState.current = {
           state: true,
-          message: res.message,
-          data: res.data
+          message: result.data.message,
+          data: result.data
         }
-      } else if (!rev) {
-        // This is a revision we didn't even cache...?
-        revisionMap.set(res.revision_number, res)
-        setRevision(res)
-      } else if (compiledHtml) {
-        rev.compiled_body_html = res.compiled_body_html
-        setRevision(rev)
-        revision = rev
-      } else if (wikitext) {
-        rev.wikitext = res.wikitext
-        setRevision(rev)
-        revision = rev
+      } else if (result.type === "success" && result.data?.res) {
+        if (!rev) {
+          // This is a revision we didn't even cache...?
+          revisionMap.set(revisionNumber, result.data.res)
+          setRevision(result.data.res)
+        } else if (compiledHtml) {
+          rev.compiled_body_html = result.data.res.compiled_body_html
+          setRevision(rev)
+          revision = rev
+        } else if (wikitext) {
+          rev.wikitext = result.data.res.wikitext
+          setRevision(rev)
+          revision = rev
+        }
       }
     }
   }
 
   async function rollbackRevision(revisionNumber: number, comments?: string) {
-    const fdata = new FormData()
-    fdata.set("site-id", page.data.site.site_id)
-    fdata.set("page-id", page.data.page.page_id)
-    fdata.set("revision-number", revisionNumber.toString())
-    fdata.set("last-revision-id", page.data.page_revision.revision_id.toString())
-    if (comments !== undefined) fdata.set("comments", comments)
-    const res = await fetch(`/${page.data.page.slug}/rollback`, {
+    const res = await fetch("?/rollback", {
       method: "POST",
-      body: fdata
-    }).then((res) => res.json())
-    if (res?.message) {
+      body: JSON.stringify({
+        siteId: data.site.site_id,
+        pageId: data.page?.page_id,
+        revisionNumber,
+        comments
+      })
+    }).then((res) => res.text())
+
+    const result = deserialize<
+      { res: Optional<CreatePageRevisionOutput> },
+      { message: string; code: string; data: Record<string, unknown> }
+    >(res)
+
+    if (result.type === "failure" && result.data?.message) {
       errorPopupState.current = {
         state: true,
-        message: res.message,
-        data: res.data
+        message: result.data.message,
+        data: result.data
       }
-    } else invalidateAll()
+    } else if (result.type === "success" && result.data?.res) {
+      invalidateAll()
+    }
   }
 
   $effect(() => {
-    async function fetchHistory() {
-      const fdata = new FormData()
-      fdata.set("site-id", page.data.site.site_id)
-      fdata.set("page-id", page.data.page.page_id)
-      const res = await fetch(`/${page.data.page.slug}/history`, {
-        method: "POST",
-        body: fdata
-      }).then((res) => res.json())
-      if (res?.message) {
-        errorPopupState.current = {
-          state: true,
-          message: res.message,
-          data: res.data
-        }
-      } else {
-        revisionMap.clear()
-        res.forEach((rev) => {
-          revisionMap.set(rev.revision_number, rev)
-        })
-      }
-    }
-
     fetchHistory()
   })
 </script>
 
 {#if pageLayoutState.current === Layout.WIKIDOT}
   <h1 class="page-revision-header">
-    {page.data.internationalization?.["wiki-page-revision-history"]}
+    {data.internationalization?.["wiki-page-revision-history"]}
   </h1>
   <div class="revision-list">
     <table class="page-history">
       <tbody>
         <tr class="revision-header">
           <td class="revision-attribute revision-number">
-            {page.data.internationalization?.["wiki-page-revision-number"]}
+            {data.internationalization?.["wiki-page-revision-number"]}
           </td>
           <td class="revision-attribute action"></td>
           <td class="revision-attribute revision-type">
-            {page.data.internationalization?.["wiki-page-revision-type"]}
+            {data.internationalization?.["wiki-page-revision-type"]}
           </td>
           <td class="revision-attribute user">
-            {page.data.internationalization?.["wiki-page-revision-user"]}
+            {data.internationalization?.["wiki-page-revision-user"]}
           </td>
           <td class="revision-attribute created-at">
-            {page.data.internationalization?.["wiki-page-revision-created-at"]}
+            {data.internationalization?.["wiki-page-revision-created-at"]}
           </td>
           <td class="revision-attribute comments">
-            {page.data.internationalization?.["wiki-page-revision-comments"]}
+            {data.internationalization?.["wiki-page-revision-comments"]}
           </td>
         </tr>
         <!-- Here we sort the list in descending order. -->
@@ -192,7 +221,7 @@
               {/if}
             </td>
             <td class="revision-attribute revision-type">
-              {page.data.internationalization?.[
+              {data.internationalization?.[
                 `wiki-page-revision-type.${revisionItem.revision_type}`
               ]}
             </td>
@@ -213,30 +242,30 @@
 
   {#if showRevisionSource}
     <div id="history-subarea">
-      <textarea class="page-source" readonly={true}>{revision.wikitext ?? ""}</textarea>
+      <textarea class="page-source" readonly={true}>{revision?.wikitext ?? ""}</textarea>
     </div>
   {/if}
 {:else}
   <h2 class="page-revision-header">
-    {page.data.internationalization?.["wiki-page-revision-history"]}
+    {data.internationalization?.["wiki-page-revision-history"]}
   </h2>
   <div class="revision-list">
     <div class="revision-header">
       <div class="revision-attribute action"></div>
       <div class="revision-attribute revision-number">
-        {page.data.internationalization?.["wiki-page-revision-number"]}
+        {data.internationalization?.["wiki-page-revision-number"]}
       </div>
       <div class="revision-attribute revision-type">
-        {page.data.internationalization?.["wiki-page-revision-type"]}
+        {data.internationalization?.["wiki-page-revision-type"]}
       </div>
       <div class="revision-attribute created-at">
-        {page.data.internationalization?.["wiki-page-revision-created-at"]}
+        {data.internationalization?.["wiki-page-revision-created-at"]}
       </div>
       <div class="revision-attribute user">
-        {page.data.internationalization?.["wiki-page-revision-user"]}
+        {data.internationalization?.["wiki-page-revision-user"]}
       </div>
       <div class="revision-attribute comments">
-        {page.data.internationalization?.["wiki-page-revision-comments"]}
+        {data.internationalization?.["wiki-page-revision-comments"]}
       </div>
     </div>
     <!-- Here we sort the list in descending order. -->
@@ -255,7 +284,7 @@
               }}
               type="button"
             >
-              {page.data.internationalization?.view}
+              {data.internationalization?.view}
             </button>
             <button
               class="action-button view-revision-source clickable"
@@ -268,7 +297,7 @@
               }}
               type="button"
             >
-              {page.data.internationalization?.["wiki-page-view-source"]}
+              {data.internationalization?.["wiki-page-view-source"]}
             </button>
             <button
               class="action-button revision-rollback clickable"
@@ -278,7 +307,7 @@
               }}
               type="button"
             >
-              {page.data.internationalization?.["wiki-page-revision-rollback"]}
+              {data.internationalization?.["wiki-page-revision-rollback"]}
             </button>
           {/if}
         </div>
@@ -286,7 +315,7 @@
           {revisionItem.revision_number}
         </div>
         <div class="revision-attribute revision-type">
-          {page.data.internationalization?.[
+          {data.internationalization?.[
             `wiki-page-revision-type.${revisionItem.revision_type}`
           ]}
         </div>
@@ -304,7 +333,8 @@
   </div>
 
   {#if showRevisionSource}
-    <textarea class="revision-source" readonly={true}>{revision.wikitext ?? ""}</textarea>
+    <textarea class="revision-source" readonly={true}>{revision?.wikitext ?? ""}</textarea
+    >
   {/if}
 {/if}
 
