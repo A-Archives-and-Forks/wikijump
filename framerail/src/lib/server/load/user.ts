@@ -141,7 +141,7 @@ function sanitizeUserData(
   user: UserModel,
   isViewingAnotherUser: boolean
 ): Partial<UserModel> {
-  const baseSafeKeys = [
+  const baseSafeKeys: (keyof UserModel)[] = [
     "user_id",
     "user_type",
     "created_at",
@@ -154,12 +154,13 @@ function sanitizeUserData(
     "user_page"
   ]
   if (isViewingAnotherUser) {
-    const safeKeys = [...baseSafeKeys]
+    // the whitelist for viewing other user profiles should be a subset of that for
+    // viewing their own.
     return Object.fromEntries(
-      Object.entries(user).filter(([key]) => safeKeys.includes(key))
+      baseSafeKeys.filter((key) => key in user).map((key) => [key, user[key]])
     )
   } else {
-    const safeKeys = [
+    const safeKeys: (keyof UserModel)[] = [
       ...baseSafeKeys,
       "name_changes_left",
       "last_name_change_added_at",
@@ -176,7 +177,7 @@ function sanitizeUserData(
       "biography"
     ]
     return Object.fromEntries(
-      Object.entries(user).filter(([key]) => safeKeys.includes(key))
+      safeKeys.filter((key) => key in user).map((key) => [key, user[key]])
     )
   }
 }
