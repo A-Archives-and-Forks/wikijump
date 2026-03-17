@@ -16,7 +16,6 @@
     untrack(() => data.userEditForm),
     {
       onResult: async ({ result }) => {
-        console.log(result)
         if (result.type === "success" && result.data) {
           isEdit = false
           await invalidateAll()

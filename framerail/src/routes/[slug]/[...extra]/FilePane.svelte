@@ -10,7 +10,6 @@
   import type { PageData, RouteParams } from "./$types"
   import type { PageFile, PageFileDelete } from "$lib/server/deepwell/pageFile"
   import type { FileRevisionModel, Optional } from "$lib/types"
-  import type { SubmitFunction } from "@sveltejs/kit"
 
   let { data, params }: { data: PageData; params: RouteParams } = $props()
 

@@ -79,7 +79,6 @@ export async function loginAction({ request, getClientAddress, cookies }: Reques
 
     return { form, session_token: res.session_token, isLoggedIn: true }
   } catch (error) {
-    console.log(error)
     return fail(500, {
       form,
       message: error?.message,

@@ -21,7 +21,6 @@
         }
 
         if (result.type === "failure" && result.data) {
-          console.log(result.data.loginError)
           errorPopupState.current = {
             state: true,
             message: result.data?.message,
