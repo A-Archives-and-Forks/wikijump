@@ -24,11 +24,3 @@ enabled = true
 executions = [
     { execution.type = "BatchDeployStack", execution.params.pattern = "wikijump-dev, *-alerter", enabled = true },
 ]
-
-# TODO fix notifications
-[[procedure.config.stage]]
-name = "Notify"
-enabled = false
-executions = [
-    { execution.type = "SendAlert", execution.params.level = "OK", execution.params.message = "Deployed Wikijump (dev)", execution.params.alerters = [], enabled = false },
-]
