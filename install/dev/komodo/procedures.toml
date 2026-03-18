@@ -1,6 +1,6 @@
 [[procedure]]
 name = "Deploy Dev"
-description = "Automatically deploy Komodo infrastructure and Wikijump dev on push"
+description = "Automatically deploy Wikijump dev on push"
 tags = ["wikijump", "system"]
 
 [[procedure.config.stage]]
@@ -10,23 +10,17 @@ executions = [
     { execution.type = "BatchPullRepo", execution.params.pattern = "wikijump-dev", enabled = true },
 ]
 
+# TODO temporarily disable resource syncs until a long-term decision on managing these is decided
 [[procedure.config.stage]]
 name = "Update Infrastructure"
-enabled = true
+enabled = false
 executions = [
-    { execution.type = "RunSync", execution.params.sync = "wikijump-dev", enabled = true },
+    { execution.type = "RunSync", execution.params.sync = "wikijump-dev", enabled = false },
 ]
 
 [[procedure.config.stage]]
 name = "Deploy Stacks"
 enabled = true
 executions = [
-    { execution.type = "BatchDeployStackIfChanged", execution.params.pattern = "wikijump-dev, *-alerter", enabled = true },
-]
-
-[[procedure.config.stage]]
-name = "Notify"
-enabled = true
-executions = [
-    { execution.type = "SendAlert", execution.params.level = "OK", execution.params.message = "Deployed Wikijump (dev)", execution.params.alerters = [], enabled = true },
+    { execution.type = "BatchDeployStack", execution.params.pattern = "wikijump-dev, *-alerter", enabled = true },
 ]
