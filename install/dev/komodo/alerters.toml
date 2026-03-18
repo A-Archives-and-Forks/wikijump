@@ -63,4 +63,6 @@ alert_types = [
     "ServerUnreachable",
     "ServerDisk",
     "ServerVersionMismatch",
+    # Any custom alerts
+    "Custom",
 ]
