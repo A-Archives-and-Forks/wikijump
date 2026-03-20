@@ -65,6 +65,8 @@ impl DomainService {
             ));
         }
 
+        validate_domain(&domain).or_raise(make_error)?;
+
         let config = ctx.config();
         if domain.ends_with(&config.main_domain) || domain.ends_with(&config.files_domain)
         {
