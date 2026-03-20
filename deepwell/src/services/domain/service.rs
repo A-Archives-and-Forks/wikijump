@@ -27,7 +27,9 @@ use super::prelude::*;
 use crate::models::site::{self, Entity as Site, Model as SiteModel};
 use crate::models::site_domain::{self, Entity as SiteDomain, Model as SiteDomainModel};
 use crate::services::SiteService;
+use regex::Regex;
 use std::borrow::Cow;
+use std::sync::LazyLock;
 
 pub const DEFAULT_SITE_SLUG: &str = "www";
 
@@ -216,4 +218,68 @@ impl DomainService {
 
         Ok(models)
     }
+}
+
+fn validate_domain(domain: &str) -> Result<()> {
+    const PUNYCODE_PREFIX: &str = "xn--";
+    const DOMAIN_MAX_BYTES: usize = 253;
+
+    static DOMAIN_REGEX: LazyLock<Regex> =
+        LazyLock::new(|| Regex::new(r"^[A-Za-z0-9\-\.]{1,253}$").unwrap());
+
+    // First, more user-friendly check for unicode characters
+    let has_unicode = !domain.is_ascii();
+    if !domain.starts_with(PUNYCODE_PREFIX) && has_unicode {
+        error!(
+            "Custom domain '{}' has non-ASCII characters but is not using punycode",
+            domain,
+        );
+        bail!(Error::new(
+            format!(
+                "domain should use punycode to convey non-ASCII characters: {}",
+                domain,
+            ),
+            ErrorType::CustomDomainUsePunycode {
+                domain: str!(domain),
+            }
+        ));
+    }
+
+    // Now do more specific domain validation checks
+    //
+    // * Isn't ASCII (but we aren't giving the punycode-specific error) (reusing this prior result)
+    // * Domains can only be at most 253 bytes long (excludes the trailing null byte / dot)
+    // * Domains may only be composed of the limited subset of characters allowed by DNS
+
+    macro_rules! raise_error {
+        ($($arg:tt)*) => {{
+            let message = format!($($arg)*);
+            error!("Custom domain verification failed, {message}: {domain}");
+            bail!(Error::new(message, ErrorType::InvalidDomainValue { domain: str!(domain) }));
+        }};
+    }
+
+    if has_unicode {
+        raise_error!("punycode domain '{}' has non-ASCII characters", domain);
+    }
+
+    if domain.len() > DOMAIN_MAX_BYTES {
+        raise_error!(
+            "domain '{}' is too long ({} > {})",
+            domain,
+            domain.len(),
+            DOMAIN_MAX_BYTES,
+        );
+    }
+
+    if !DOMAIN_REGEX.is_match(domain) {
+        raise_error!("domain '{}' contains invalid characters", domain);
+    }
+
+    Ok(())
+}
+
+#[test]
+fn test_validate_domain() {
+    todo!()
 }

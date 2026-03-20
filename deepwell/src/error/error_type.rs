@@ -215,6 +215,12 @@ pub enum ErrorType {
     // 5400
     CustomDomainSubdomain,
     CustomDomainWrongSite,
+    CustomDomainUsePunycode {
+        domain: String,
+    },
+    InvalidDomainValue {
+        domain: String,
+    },
 
     // 6000
     Relation,
@@ -457,6 +463,8 @@ impl ErrorType {
             // 5400 - Domains
             ErrorType::CustomDomainWrongSite => 5400,
             ErrorType::CustomDomainSubdomain => 5401,
+            ErrorType::CustomDomainUsePunycode { .. } => 5402,
+            ErrorType::InvalidDomainValue { .. } => 5403,
 
             //
             // 6000 -- Client / Request Errors - Composite Data
@@ -688,6 +696,12 @@ impl ErrorType {
             }
             ErrorType::CustomDomainWrongSite => {
                 "Cannot use custom domain, as it belongs to a different site"
+            }
+            ErrorType::CustomDomainUsePunycode { .. } => {
+                "Submitted domain values should use punycode"
+            }
+            ErrorType::InvalidDomainValue { .. } => {
+                "Domain value contains unexpected characters"
             }
 
             // 6000
