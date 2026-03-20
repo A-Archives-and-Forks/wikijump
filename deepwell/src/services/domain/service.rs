@@ -292,5 +292,49 @@ fn validate_domain(domain: &str) -> Result<()> {
 
 #[test]
 fn test_validate_domain() {
-    todo!()
+    macro_rules! test_ok {
+        ($domain:expr $(,)?) => {
+            validate_domain($domain).expect("domain was detected as invalid")
+        };
+    }
+
+    macro_rules! test_err {
+        ($domain:expr $(,)?) => {
+            validate_domain($domain).expect_err("domain was detected as valid")
+        };
+    }
+
+    test_err!("");
+    test_ok!("example.com");
+    test_ok!("ftp.example.com");
+    test_ok!("foo.bar.baz.example.com");
+    test_err!(
+        "this.domain.is.far.far.too.long.and.not.permitted.by.the.dns.standard.xxxxxxxx.xxxxxxxx.xxxxxxxx.xxxxxxxx.xxxxxxxx.xxxxxxxx.xxxxxxxx.xxxxxxxx.xxxxxxxx.xxxxxxxx.xxxxxxxx.xxxxxxxx.xxxxxxxx.xxxxxxxx.xxxxxxxx.xxxxxxxx.xxxxxxxx.xxxxxxxx.xxxxxxxx.xxxxxxxx.example.net",
+    );
+    test_ok!("alpha1.beta2.my-host.wikijump.dev");
+    test_ok!("ALLUPPERCASEANDABITLONG.COM");
+    test_ok!("foo.bar.somesite.co.uk");
+    test_err!("this has whitespace in it");
+    test_err!(" this-has-whitespace-too ");
+    test_err!("site1\n.com");
+    test_err!("ascii$but^not_valid.net");
+
+    // Punycode tests
+    test_err!("bücher.tld");
+    test_err!("xn--bücher.tld");
+    test_ok!("xn--bcher-kva.tld");
+    test_err!("例.tld");
+    test_ok!("xn--fsq.tld");
+    test_err!("🦘.tld");
+    test_ok!("xn--ot9h.tld");
+    test_err!("правда.ru");
+    test_ok!("xn--80aafi6cg.ru");
+    test_err!("ความสงบสุข.th");
+    test_ok!("xn--22cdj0f7a9awc1e5c.th");
+    test_err!("도메인.or.kr");
+    test_ok!("xn--hq1bm8jm9l.or.kr");
+    test_err!("ドメイン名例.co.jp");
+    test_ok!("xn--eckwd4c7cu47r2wf.co.jp");
+    test_err!("MajiでKoiする5秒前.co.jp");
+    test_ok!("xn--MajiKoi5-783gue6qz075azm5e.co.jp");
 }
