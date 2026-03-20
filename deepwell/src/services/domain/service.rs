@@ -57,7 +57,10 @@ impl DomainService {
 
         // Correctness checks
 
-        if Self::custom_domain_exists(ctx, &domain).await? {
+        if Self::custom_domain_exists(ctx, &domain)
+            .await
+            .or_raise(make_error)?
+        {
             error!("Custom domain '{domain}' already exists, cannot create");
             bail!(Error::new(
                 format!("cannot create domain '{}', already exists", domain),
@@ -71,7 +74,8 @@ impl DomainService {
         if domain.ends_with(&config.main_domain) || domain.ends_with(&config.files_domain)
         {
             error!(
-                "Custom domains cannot be subdomains of the Wikijump main or files domain: {domain}"
+                "Custom domains cannot be subdomains of the Wikijump main domain ('{}') or files domain ('{}'): {}",
+                config.main_domain, config.files_domain, domain,
             );
             bail!(Error::new(
                 format!(
