@@ -253,6 +253,7 @@ fn validate_domain(domain: &str) -> Result<()> {
 
     // Now do more specific domain validation checks
     //
+    // * Domain cannot be an empty string
     // * Isn't ASCII (but we aren't giving the punycode-specific error) (reusing this prior result)
     // * Domains can only be at most 253 bytes long (excludes the trailing null byte / dot)
     // * Domains may only be composed of the limited subset of characters allowed by DNS
@@ -263,6 +264,10 @@ fn validate_domain(domain: &str) -> Result<()> {
             error!("Custom domain verification failed, {message}: {domain}");
             bail!(Error::new(message, ErrorType::InvalidDomainValue { domain: str!(domain) }));
         }};
+    }
+
+    if domain.is_empty() {
+        raise_error!("domain cannot be empty");
     }
 
     if has_unicode {
