@@ -18,5 +18,22 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+use super::prelude::*;
+use uuid::Uuid;
+use uuid::fmt::Hyphenated;
+
 #[derive(Debug)]
 pub struct AuthorizationTokenService;
+
+impl AuthorizationTokenService {
+    fn generate(object_type: AuthorizedObject) -> String {
+        let mut buffer = [0; 36];
+        // TODO assert
+
+        Uuid::new_v4().hyphenated().encode_upper(&mut buffer);
+        let uuid_str = str::from_utf8(&buffer)
+            .expect("UUID hyphenated formatter produced non-UTF-8 output");
+
+        format!("{}-{}", object_type.code(), uuid_str)
+    }
+}
