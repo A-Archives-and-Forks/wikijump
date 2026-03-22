@@ -57,7 +57,7 @@ sent = Đã gửi
 settings = Cài đặt
 sidebar = Thanh cạnh
 tags = Tag
-terms = Điều khoản
+terms-conditions = Điều khoản
 upload = Tải lên
 
 search = Tìm kiếm

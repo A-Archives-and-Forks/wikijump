@@ -81,8 +81,8 @@
         >
         |
         <a href={resolve("/", {})}
-          >{page.data?.internationalization?.terms ??
-            page.error?.internationalization?.terms}</a
+          >{page.data?.internationalization?.["terms-conditions"] ??
+            page.error?.internationalization?.["terms-conditions"]}</a
         >
         |
         <a href={resolve("/", {})}
@@ -125,8 +125,8 @@
         <ul class="footer-items">
           <li class="footer-item">
             <a href={resolve("/", {})}
-              >{page.data?.internationalization?.terms ??
-                page.error?.internationalization?.terms}</a
+              >{page.data?.internationalization?.["terms-conditions"] ??
+                page.error?.internationalization?.["terms-conditions"]}</a
             >
           </li>
           <li class="footer-item">

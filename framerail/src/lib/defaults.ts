@@ -7,7 +7,7 @@ const defaults = {
 
     // Footer
     "footer-powered-by": {},
-    "terms": {},
+    "terms-conditions": {},
     "privacy": {},
     "docs": {},
     "security": {},

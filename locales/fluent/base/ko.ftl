@@ -57,7 +57,7 @@ sent = 보냄
 settings = 설정
 sidebar = 사이드바
 tags = 태그
-terms = 이용 약관
+terms-conditions = 이용 약관
 upload = 업로드
 
 search = 검색
