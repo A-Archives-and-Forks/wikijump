@@ -11,6 +11,7 @@ COPY --from=builder /usr/bin/caddy /usr/bin/caddy
 RUN apk add --no-cache curl jq
 
 # Install files
+COPY ./install/prod/caddy/Caddyfile /etc/caddy/Caddyfile
 COPY ./install/prod/caddy/start.sh /usr/local/bin/wikijump-start-caddy
 COPY ./install/prod/caddy/health-check.sh /usr/local/bin/wikijump-health-check
 COPY ./install/prod/caddy/generate-caddyfile.sh /usr/local/bin/wikijump-generate-caddyfile
