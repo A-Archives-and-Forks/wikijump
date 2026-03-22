@@ -21,7 +21,7 @@ deploy.wjfiles.com {
 http://,
 https:// {
 	respond 502 {
-		body "ERROR XF-1005"
+		body "ERROR XF-1005\nBackend still starting up or fatal error"
 		close
 	}
 }
