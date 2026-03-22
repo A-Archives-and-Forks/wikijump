@@ -38,6 +38,10 @@
   <ErrorPopup exitPrompt={closeErrorPopup} />
 {/if}
 
+<svelte:head>
+  <title>{pageData?.site?.name}</title>
+</svelte:head>
+
 {#if pageLayoutState.current === Layout.WIKIDOT}
   <style global>
     /* Use Sigma 10 as default Wikidot theme for now */

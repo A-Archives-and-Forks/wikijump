@@ -62,6 +62,10 @@
   })
 </script>
 
+<svelte:head>
+  <title>{data.page_revision?.title} | {data.site.name}</title>
+</svelte:head>
+
 {#if pageLayoutState.current === Layout.WIKIDOT}
   {#if data.options?.debug}
     <h2>UNTRANSLATED:Debug Response</h2>

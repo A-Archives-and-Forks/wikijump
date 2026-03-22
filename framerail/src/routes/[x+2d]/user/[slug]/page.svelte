@@ -26,6 +26,10 @@
   })
 </script>
 
+<svelte:head>
+  <title>{data.user?.name ?? data.user?.slug} | {data?.site?.name}</title>
+</svelte:head>
+
 <h1>UNTRANSLATED: Loaded user profile</h1>
 
 <textarea class="debug">{JSON.stringify(data, null, 2)}</textarea>
