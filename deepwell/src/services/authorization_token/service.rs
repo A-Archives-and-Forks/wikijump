@@ -19,6 +19,7 @@
  */
 
 use super::prelude::*;
+use crate::types::ArrayLength;
 use uuid::Uuid;
 use uuid::fmt::Hyphenated;
 
@@ -27,9 +28,10 @@ pub struct AuthorizationTokenService;
 
 impl AuthorizationTokenService {
     fn generate(object_type: AuthorizedObject) -> String {
-        let mut buffer = [0; 36];
-        // TODO assert
+        type TokenBuffer = [u8; 36];
+        const_assert_eq!(TokenBuffer::LENGTH, Hyphenated::LENGTH);
 
+        let mut buffer: TokenBuffer = [0; 36];
         Uuid::new_v4().hyphenated().encode_upper(&mut buffer);
         let uuid_str = str::from_utf8(&buffer)
             .expect("UUID hyphenated formatter produced non-UTF-8 output");
