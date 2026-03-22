@@ -64,6 +64,15 @@ pub enum FallbackError {
 
     /// Unable to fetch a hosted text block from S3.
     TextBlockS3Fetch,
+
+    /// Unable to generate the initial Caddyfile.
+    ///
+    /// NOTE: This enum variant is never used in wws.
+    /// This is because it is used by caddy when it cannot reach DEEPWELL
+    /// to generate its initial Caddyfile (which is a pre-requisite to ever
+    /// routing any requests to wws, which in this scenario is probably down too).
+    #[allow(dead_code)]
+    CannotGenerateCaddyfile,
 }
 
 impl FallbackError {
@@ -78,6 +87,7 @@ impl FallbackError {
             FallbackError::BasicErrorDirect => 1002,
             FallbackError::RedirectMain => 1003,
             FallbackError::TextBlockS3Fetch => 1004,
+            FallbackError::CannotGenerateCaddyfile => 1005,
         }
     }
 
@@ -89,6 +99,7 @@ impl FallbackError {
                 StatusCode::GATEWAY_TIMEOUT
             }
             FallbackError::TextBlockS3Fetch => StatusCode::INTERNAL_SERVER_ERROR,
+            FallbackError::CannotGenerateCaddyfile => StatusCode::BAD_GATEWAY,
         }
     }
 }
