@@ -21,7 +21,7 @@
 
   function setLayout() {
     if (page.route.id?.startsWith("/[x+2d]/")) {
-      // this is an blueprint page, use Wikijump layout
+      // this is a special page, use Wikijump layout
       pageLayoutState.current = Layout.WIKIJUMP
     } else {
       pageLayoutState.current =
@@ -112,6 +112,7 @@
         {@html wjBanner}
       </div>
     {/snippet}
+
     {#snippet topBar()}
       {@html page.data?.compiled_top_bar_html ?? page.error?.compiled_top_bar_html ?? ""}
     {/snippet}

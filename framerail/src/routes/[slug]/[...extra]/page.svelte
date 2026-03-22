@@ -299,9 +299,9 @@
   {#if data.options?.debug}
     <h2>UNTRANSLATED:Debug Response</h2>
   {:else if showRevision}
-    <h2>{revision?.title}</h2>
+    <h2 class="page-title">{revision?.title}</h2>
   {:else}
-    <h2>{data.page_revision?.title}</h2>
+    <h2 class="page-title">{data.page_revision?.title}</h2>
   {/if}
 
   <hr />
