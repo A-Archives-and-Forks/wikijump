@@ -27,6 +27,13 @@ use uuid::fmt::Hyphenated;
 pub struct AuthorizationTokenService;
 
 impl AuthorizationTokenService {
+    pub async fn create(
+        ctx: &ServiceContext<'_>,
+        object_type: AuthorizedObject,
+    ) -> Result<String> {
+        todo!()
+    }
+
     fn generate(object_type: AuthorizedObject) -> String {
         type TokenBuffer = [u8; 36];
         const_assert_eq!(TokenBuffer::LENGTH, Hyphenated::LENGTH);
@@ -37,5 +44,13 @@ impl AuthorizationTokenService {
             .expect("UUID hyphenated formatter produced non-UTF-8 output");
 
         format!("{}-{}", object_type.code(), uuid_str)
+    }
+
+    pub async fn verify(
+        ctx: &ServiceContext<'_>,
+        token: &str,
+        object_type: AuthorizedObject,
+    ) -> Result<()> {
+        todo!()
     }
 }
