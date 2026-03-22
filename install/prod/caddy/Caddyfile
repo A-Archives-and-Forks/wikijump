@@ -1,0 +1,27 @@
+# Provisional Caddyfile
+#
+# This is meant to be used as a default in the case
+# where DEEPWELL cannot be reached yet (or is erroring
+# for reasons unknown).
+#
+# This enables minimum caddy function until a later Caddyfile
+# update cronjob succeeds or the issue can be fixed manually.
+#
+# Variables (denoted by '<<NAME>>') are replaced in wikijump-start-caddy.
+
+deploy.wikijump.com {
+	reverse_proxy <<DEPLOY_HOST>>
+}
+
+deploy.wjfiles.com {
+	redir https://deploy.wikijump.com
+}
+
+# Display fallback error
+http://,
+https:// {
+	respond 502 {
+		body "ERROR XF-1005"
+		close
+	}
+}
