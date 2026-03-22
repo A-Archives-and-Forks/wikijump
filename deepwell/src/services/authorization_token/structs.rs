@@ -18,4 +18,25 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-// TODO
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub enum AuthorizedObject {
+    /// Authorizes the creation of a site.
+    Site,
+
+    /// Authorizes the creation of a new user (even if registrations are disabled).
+    User,
+
+    /// Authorizes the creation of a bot user.
+    BotUser,
+}
+
+impl AuthorizedObject {
+    #[inline]
+    pub fn code(self) -> char {
+        match self {
+            AuthorizedObject::Site => 'S',
+            AuthorizedObject::User => 'U',
+            AuthorizedObject::BotUser => 'B',
+        }
+    }
+}
