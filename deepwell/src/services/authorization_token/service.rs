@@ -111,7 +111,7 @@ impl AuthorizationTokenService {
         let make_error = || {
             Error::new(
                 "failed to verify authorization token, already used or invalid",
-                ErrorType::AuthorizationToken,
+                ErrorType::InvalidAuthorizationToken,
             )
         };
 
@@ -125,13 +125,31 @@ impl AuthorizationTokenService {
             bail!(make_error());
         }
 
-        // TODO query
-        let _ = ();
+        let txn = ctx.transaction();
+        let token_id: i32 = AuthorizationToken::find()
+            .select_only()
+            .column(authorization_token::Column::TokenId)
+            .filter(authorization_token::Column::TokenValue.eq(token))
+            .into_tuple()
+            .one(txn)
+            .await
+            .or_raise(make_error)?
+            .ok_or_raise(make_error)?;
+
+        info!(
+            "Successfully matched token with row ID {}, will remove and return OK",
+            token_id,
+        );
+
+        AuthorizationToken::delete_by_id(token_id)
+            .exec(txn)
+            .await
+            .or_raise(make_error)?;
 
         // TODO audit log
         let _ = ip_address;
 
-        todo!()
+        Ok(())
     }
 }
 
