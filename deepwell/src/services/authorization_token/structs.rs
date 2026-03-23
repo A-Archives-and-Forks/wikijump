@@ -18,7 +18,10 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+use std::net::IpAddr;
+
+#[derive(Serialize, Deserialize, Debug, Copy, Clone, Hash, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
 pub enum AuthorizedObject {
     /// Authorizes the creation of a site.
     Site,
@@ -39,4 +42,11 @@ impl AuthorizedObject {
             AuthorizedObject::BotUser => 'B',
         }
     }
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct CreateAuthorizationToken {
+    pub r#type: AuthorizedObject,
+    pub creating_user_id: i64,
+    pub ip_address: IpAddr,
 }

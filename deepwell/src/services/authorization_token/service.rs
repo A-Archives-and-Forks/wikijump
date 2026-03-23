@@ -19,7 +19,11 @@
  */
 
 use super::prelude::*;
+use crate::models::authorization_token::{
+    self, Entity as AuthorizationToken, Model as AuthorizationTokenModel,
+};
 use crate::types::ArrayLength;
+use std::net::IpAddr;
 use uuid::Uuid;
 use uuid::fmt::Hyphenated;
 
@@ -31,9 +35,41 @@ pub struct AuthorizationTokenService;
 impl AuthorizationTokenService {
     pub async fn create(
         ctx: &ServiceContext<'_>,
-        object_type: AuthorizedObject,
+        CreateAuthorizationToken {
+            r#type: object_type,
+            creating_user_id,
+            ip_address,
+        }: CreateAuthorizationToken,
     ) -> Result<String> {
-        todo!()
+        let token = Self::generate(object_type);
+        assert_eq!(token.len(), AUTHORIZATION_TOKEN_LENGTH);
+
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to create new authorization token for scope {:?} (created by user ID {})",
+                    object_type, creating_user_id,
+                ),
+                ErrorType::AuthorizationToken,
+            )
+        };
+
+        let txn = ctx.transaction();
+        let model = authorization_token::ActiveModel {
+            token_value: Set(token.clone()),
+            created_by: Set(creating_user_id),
+            ..Default::default()
+        };
+
+        // TODO audit log
+        let _ = ip_address;
+
+        AuthorizationToken::insert(model)
+            .exec(txn)
+            .await
+            .or_raise(make_error)?;
+
+        Ok(token)
     }
 
     fn generate(object_type: AuthorizedObject) -> String {
