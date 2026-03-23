@@ -131,6 +131,7 @@ pub enum ErrorType {
         session_user_id: i64,
     },
     EmptyPassword,
+    AuthorizationTokenInvalid,
 
     // 4000
     BadRequest,
@@ -384,6 +385,7 @@ impl ErrorType {
             ErrorType::Session => 3003,
             ErrorType::SessionUserId { .. } => 3004,
             ErrorType::EmptyPassword => 3005,
+            ErrorType::AuthorizationTokenInvalid => 3006,
 
             // 3100 - Permissions
             // TODO
@@ -612,6 +614,9 @@ impl ErrorType {
                 "User associated with the session does not match the active user"
             }
             ErrorType::EmptyPassword => "A password was required, but not provided",
+            ErrorType::AuthorizationTokenInvalid => {
+                "Provided authorization token was invalid"
+            }
 
             // 4000
             ErrorType::BadRequest => "The request is in some way malformed or incorrect",

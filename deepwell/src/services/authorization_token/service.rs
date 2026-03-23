@@ -88,9 +88,57 @@ impl AuthorizationTokenService {
         ctx: &ServiceContext<'_>,
         token: &str,
         object_type: AuthorizedObject,
+        ip_address: IpAddr,
     ) -> Result<()> {
+        info!(
+            "Verifying authorization token '{}' (scope {:?})",
+            token, object_type,
+        );
+
+        if token.len() != AUTHORIZATION_TOKEN_LENGTH {
+            bail!(Error::new(
+                format!(
+                    "passed authorization token has an invalid length (actual {} ≠ expected {} bytes)",
+                    token.len(),
+                    AUTHORIZATION_TOKEN_LENGTH,
+                ),
+                ErrorType::BadRequest
+            ));
+        }
+
+        let make_error = || {
+            Error::new(
+                "failed to verify authorization token, already used or invalid",
+                ErrorType::AuthorizationToken,
+            )
+        };
+
+        let char_code = first_char(token);
+        if object_type.code() != char_code {
+            error!(
+                "Authorization token has char code '{}', but this scope is '{}'",
+                char_code,
+                object_type.code(),
+            );
+            bail!(make_error());
+        }
+
+        // TODO query
+        let _ = ();
+
+        // TODO audit log
+        let _ = ip_address;
+
         todo!()
     }
+}
+
+/// Gets the first unicode codepoint in a string.
+///
+/// # Panics
+/// If the string is empty.
+fn first_char(string: &str) -> char {
+    string.chars().next().expect("empty string")
 }
 
 #[test]
@@ -104,10 +152,6 @@ fn generate_token() {
         )
         .unwrap()
     });
-
-    fn first_char(string: &str) -> char {
-        string.chars().next().expect("empty string")
-    }
 
     fn test(object_type: AuthorizedObject) {
         let token = AuthorizationTokenService::generate(object_type);
