@@ -47,6 +47,7 @@ impl AuthorizedObject {
 #[derive(Deserialize, Debug, Clone)]
 pub struct CreateAuthorizationToken {
     pub r#type: AuthorizedObject,
+    pub description: String,
     pub creating_user_id: i64,
     pub ip_address: IpAddr,
 }

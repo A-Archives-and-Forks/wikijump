@@ -635,6 +635,7 @@ CREATE TABLE authorization_token (
     token_value TEXT NOT NULL UNIQUE,
     created_by BIGINT NOT NULL REFERENCES "user"(user_id),
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+    description TEXT NOT NULL,
 
     CONSTRAINT token_value_valid CHECK (token_value SIMILAR TO '[A-Z]-[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}')
 );

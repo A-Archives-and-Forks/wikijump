@@ -37,6 +37,7 @@ impl AuthorizationTokenService {
         ctx: &ServiceContext<'_>,
         CreateAuthorizationToken {
             r#type: object_type,
+            description,
             creating_user_id,
             ip_address,
         }: CreateAuthorizationToken,
@@ -58,6 +59,7 @@ impl AuthorizationTokenService {
         let model = authorization_token::ActiveModel {
             token_value: Set(token.clone()),
             created_by: Set(creating_user_id),
+            description: Set(description),
             ..Default::default()
         };
 
