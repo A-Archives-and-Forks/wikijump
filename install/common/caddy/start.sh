@@ -5,7 +5,7 @@
 # and a web server is running.
 #
 # Note that the caddy health check will return failure during that time.
-if [ nc -z deepwell 2747 ] && wikijump-generate-caddyfile; then
+if nc -z deepwell 2747 && wikijump-generate-caddyfile; then
 	echo 'Installing generated Caddyfile...'
 	mv /tmp/Caddyfile /etc/caddy/Caddyfile
 else
