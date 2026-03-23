@@ -86,6 +86,13 @@ impl AuthorizationTokenService {
         format!("{}-{}", object_type.code(), uuid_str)
     }
 
+    /// Verifies that an authorization token is valid, consuming it.
+    ///
+    /// This validates a token has been properly issued for its respective
+    /// scope, and following this, removes the token.
+    ///
+    /// If this method returns `Ok(())`, then the user may proceed with the
+    /// action described by `AuthorizedObject` and `token` is no longer valid.
     pub async fn verify(
         ctx: &ServiceContext<'_>,
         token: &str,
