@@ -626,9 +626,7 @@ impl ErrorType {
             ErrorType::ForumCategoryNotFound => "Forum category does not exist",
             ErrorType::ForumThreadNotFound => "Forum thread does not exist",
             ErrorType::ForumPostNotFound => "Forum post does not exist",
-            ErrorType::ForumPostRevisionNotFound => {
-                "Forum post revision does not exist"
-            }
+            ErrorType::ForumPostRevisionNotFound => "Forum post revision does not exist",
 
             // 2100
             ErrorType::UserExists => "Cannot perform, user already exists",

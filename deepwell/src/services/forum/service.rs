@@ -206,7 +206,11 @@ impl ForumService {
         ctx: &ServiceContext<'_>,
         key: GetForumGroup,
     ) -> Result<ForumGroupModel> {
-        find_or_error!(Self::get_group_optional(ctx, key), "forum group", ForumGroup)
+        find_or_error!(
+            Self::get_group_optional(ctx, key),
+            "forum group",
+            ForumGroup
+        )
     }
 
     pub async fn get_group_direct_optional(
