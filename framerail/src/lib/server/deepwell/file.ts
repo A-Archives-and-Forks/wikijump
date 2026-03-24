@@ -4,7 +4,7 @@ export async function getFileByHash(
   /** Either a Uint8Array or a hex string */
   fileHash: Uint8Array | string
 ): Promise<Blob> {
-  let res = await client.request(
+  const res = await client.request(
     "blob_get",
     typeof fileHash === "string" ? fileHash : Buffer.from(fileHash).toString("hex")
   )

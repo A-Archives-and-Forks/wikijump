@@ -28,8 +28,9 @@ CREATE TABLE "user" (
     last_name_change_added_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
     last_renamed_at TIMESTAMP WITH TIME ZONE,
     email TEXT NOT NULL,  -- Can be empty, for instance with system accounts.
-    email_is_alias BOOLEAN,
     email_verified_at TIMESTAMP WITH TIME ZONE,
+    email_validation_info JSON,  -- Can be NULL if validation was skipped
+    email_validation_at TIMESTAMP WITH TIME ZONE,
     password TEXT NOT NULL,
     multi_factor_secret TEXT,
     multi_factor_recovery_codes TEXT[],
@@ -48,6 +49,9 @@ CREATE TABLE "user" (
 
     -- Both MFA columns should either be set or unset
     CHECK ((multi_factor_secret IS NULL) = (multi_factor_recovery_codes IS NULL)),
+
+    -- Both email validation columns should either be set or unset
+    CHECK ((email_validation_info IS NULL) = (email_validation_at IS NULL)),
 
     -- Locale must be unset for system users, but set for everyone else.
     CHECK ((user_type = 'system' AND locales = '{}') OR (user_type != 'system' AND locales != '{}')),
@@ -151,6 +155,7 @@ CREATE TABLE site_domain (
     domain TEXT PRIMARY KEY,
     site_id BIGINT NOT NULL REFERENCES site(site_id),
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+    www_redirect BOOLEAN NOT NULL,
 
     CHECK (length(domain) > 0)
 );
@@ -622,6 +627,20 @@ CREATE TABLE text_block (
 );
 
 --
+-- Authorization Tokens
+--
+
+CREATE TABLE authorization_token (
+    token_id SERIAL PRIMARY KEY,
+    token_value TEXT NOT NULL UNIQUE,
+    created_by BIGINT NOT NULL REFERENCES "user"(user_id),
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+    description TEXT NOT NULL,
+
+    CONSTRAINT token_value_valid CHECK (token_value SIMILAR TO '[A-Z]-[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}')
+);
+
+--
 -- Direct Messages
 --
 
@@ -691,7 +710,7 @@ CREATE TABLE message_draft (
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
     updated_at TIMESTAMP WITH TIME ZONE,
     user_id BIGINT NOT NULL REFERENCES "user"(user_id),
-    recipients JSONB NOT NULL,
+    recipients JSON NOT NULL,
 
     -- Text contents
     subject TEXT NOT NULL,

@@ -16,6 +16,6 @@ COPY ./install/local/framerail/health-check.sh /usr/local/bin/wikijump-health-ch
 # Install node dependencies
 RUN pnpm install
 
-EXPOSE 3000
+EXPOSE 3393
 ENV FRAMERAIL_ENV=local
 CMD ["pnpm", "dev"]

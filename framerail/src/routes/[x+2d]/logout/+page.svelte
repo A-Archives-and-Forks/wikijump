@@ -1,17 +1,34 @@
 <script lang="ts">
-  import { page } from "$app/stores"
+  import { deserialize } from "$app/forms"
   import { invalidateAll } from "$app/navigation"
+  import { errorPopupState } from "$lib/stores.svelte"
 
-  let isLoggedIn = $page.data.isLoggedIn
+  import type { PageProps } from "./$types"
+
+  let { data }: PageProps = $props()
+
+  let isLoggedIn = $derived<boolean>(data.isLoggedIn)
 
   async function tryLogout() {
-    let res = await fetch(`/-/logout`, {
-      method: "DELETE"
-    }).then((res) => res.ok)
+    const res = await fetch(`?/logout`, {
+      method: "POST",
+      body: new FormData()
+    }).then((res) => res.text())
 
-    if (res) {
+    const result = deserialize<
+      { success: boolean },
+      { message: string; code: string; data: Record<string, unknown> }
+    >(res)
+
+    if (result.type === "success" && result.data?.success) {
       isLoggedIn = false
-      invalidateAll()
+      await invalidateAll()
+    } else if (result.type === "failure") {
+      errorPopupState.current = {
+        state: true,
+        message: result.data?.message ?? null,
+        data: result.data?.data
+      }
     }
   }
 </script>
@@ -20,12 +37,12 @@
   <div class="action-row auth-actions">
     <button
       class="action-button auth-button button-logout clickable"
+      onclick={tryLogout}
       type="button"
-      on:click={tryLogout}
     >
-      {$page.data.internationalization?.logout}
+      {data.internationalization?.logout}
     </button>
   </div>
 {:else}
-  {$page.data.internationalization?.["logout.toast"]}
+  {data.internationalization?.["logout.toast"]}
 {/if}

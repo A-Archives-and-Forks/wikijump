@@ -115,11 +115,15 @@ impl FilterService {
 
         info!("Updating filter with ID {filter_id}");
 
+        let regex2 = regex.to_option().cloned();
         let make_error = || {
-            Error::new(
-                format!("failed to update filter ID {}", filter_id),
-                ErrorType::Filter,
-            )
+            let mut message = format!("failed to update filter ID {filter_id}");
+
+            if let Some(regex) = regex2 {
+                str_write!(&mut message, " (new regex '{regex}')");
+            }
+
+            Error::new(message, ErrorType::Filter)
         };
 
         let mut model = filter::ActiveModel {
@@ -398,11 +402,12 @@ impl FilterService {
             ..
         } in filters
         {
-            regexes.push(regex);
             filter_data.push(FilterSummary {
                 filter_id,
+                regex: str!(regex.as_str()),
                 description,
             });
+            regexes.push(regex);
         }
 
         let regex_set = RegexSet::new(regexes).or_raise(|| {

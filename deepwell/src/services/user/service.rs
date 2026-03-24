@@ -24,12 +24,13 @@ use crate::models::user::{self, Entity as User, Model as UserModel};
 use crate::services::alias::CreateAlias;
 use crate::services::audit::{AuditEvent, AuditService};
 use crate::services::blob::{BlobService, FinalizeBlobUploadOutput};
-use crate::services::email::{EmailClassification, EmailService};
+use crate::services::email::{EmailClassification, EmailService, EmailValidationOutput};
 use crate::services::filter::{FilterClass, FilterType};
 use crate::services::{AliasService, FilterService, PasswordService};
 use crate::utils::regex_replace_in_place;
 use regex::Regex;
 use sea_orm::ActiveValue;
+use serde_json::Value as JsonValue;
 use std::borrow::Cow;
 use std::cmp;
 use std::net::IpAddr;
@@ -78,7 +79,7 @@ impl UserService {
         };
 
         // Perform filter validation
-        if !bypass_filter {
+        if should_check_filter(bypass_filter, user_type, None) {
             let (result1, result2) = join!(
                 Self::run_name_filter(ctx, &name, &slug),
                 Self::run_email_filter(ctx, &email),
@@ -154,6 +155,7 @@ impl UserService {
         let alias_exists = AliasService::exists(ctx, AliasType::User, &slug)
             .await
             .or_raise(make_error)?;
+
         if alias_exists {
             error!("User alias with conflicting slug already exists, cannot create");
             error!("Checked slug '{slug}'");
@@ -201,19 +203,21 @@ impl UserService {
         //
         // Also bypass email verification if it's empty (obviously invalid).
         // We've already checked for empty emails above (e.g. system users can have empty emails).
-        let email_is_alias = if !bypass_email_verification && !email.is_empty() {
-            let email_validation_output =
-                EmailService::validate(&email).await.or_raise(make_error)?;
-
-            let is_alias =
-                check_email_validation(&slug, email_validation_output.classification)
+        let (email_validation_json, email_validation_at) =
+            if !bypass_email_verification && !email.is_empty() {
+                let email_validation_output = EmailService::validate(ctx, &email)
+                    .await
                     .or_raise(make_error)?;
 
-            Some(is_alias)
-        } else {
-            // Skipping email verification
-            None
-        };
+                let email_validation_json =
+                    check_email_validation(&slug, &email_validation_output)
+                        .or_raise(make_error)?;
+
+                (Some(email_validation_json), Some(now()))
+            } else {
+                // Skipping email validation
+                (None, None)
+            };
 
         // Insert new model
         let user = user::ActiveModel {
@@ -222,8 +226,9 @@ impl UserService {
             slug: Set(slug.clone()),
             name_changes_left: Set(ctx.config().default_name_changes),
             email: Set(email.clone()),
-            email_is_alias: Set(email_is_alias),
-            email_verified_at: Set(email_is_alias.map(|_| now())),
+            email_verified_at: Set(None),
+            email_validation_info: Set(email_validation_json),
+            email_validation_at: Set(email_validation_at),
             password: Set(password),
             multi_factor_secret: Set(None),
             multi_factor_recovery_codes: Set(None),
@@ -423,6 +428,9 @@ impl UserService {
 
         // Add fields to update
 
+        let should_check_filter =
+            should_check_filter(input.bypass_filter, user.user_type, Some(user.user_id));
+
         let mut model = user::ActiveModel {
             user_id: Set(user.user_id),
             ..Default::default()
@@ -431,30 +439,30 @@ impl UserService {
         // Add each field
         if let Maybe::Set(name) = input.name {
             // NOTE: Name filter validation occurs in update_name(), not here
-            Self::update_name(ctx, name, &user, &mut model, input.bypass_filter)
+            Self::update_name(ctx, name, &user, &mut model, should_check_filter)
                 .await
                 .or_raise(make_error)?;
         }
 
         if let Maybe::Set(email) = input.email {
-            if !input.bypass_filter {
+            if should_check_filter {
                 Self::run_email_filter(ctx, &email)
                     .await
                     .or_raise(make_error)?;
             }
 
             // Validate email
-            let email_validation_output =
-                EmailService::validate(&email).await.or_raise(make_error)?;
+            let email_validation_output = EmailService::validate(ctx, &email)
+                .await
+                .or_raise(make_error)?;
 
-            let is_alias = check_email_validation(
-                &user.slug,
-                email_validation_output.classification,
-            )?;
+            let email_validation_json =
+                check_email_validation(&user.slug, &email_validation_output)
+                    .or_raise(make_error)?;
 
             model.email = Set(email);
-            model.email_is_alias = Set(Some(is_alias));
-            model.email_verified_at = Set(Some(now()))
+            model.email_validation_info = Set(Some(email_validation_json));
+            model.email_validation_at = Set(Some(now()))
         }
 
         if let Maybe::Set(email_verified) = input.email_verified {
@@ -556,7 +564,7 @@ impl UserService {
         new_name: String,
         user: &UserModel,
         model: &mut user::ActiveModel,
-        bypass_filter: bool,
+        should_check_filter: bool,
     ) -> Result<()> {
         // Regardless of the number of name change tokens,
         // the user can always change their name if the slug is
@@ -574,7 +582,7 @@ impl UserService {
         };
 
         // Perform filter validation
-        if !bypass_filter {
+        if should_check_filter {
             Self::run_name_filter(ctx, &new_name, &new_slug)
                 .await
                 .or_raise(make_error)?;
@@ -648,7 +656,7 @@ impl UserService {
                 alias_type: AliasType::User,
                 target_id: user.user_id,
                 created_by: user.user_id,
-                bypass_filter,
+                bypass_filter: !should_check_filter,
             },
             false,
         )
@@ -971,17 +979,31 @@ fn check_user_name(config: &Config, slug: &str, name: &str) -> Result<()> {
 
 fn check_email_validation(
     user_slug: &str,
-    classification: EmailClassification,
-) -> Result<bool> {
-    match classification {
+    validation_output: &EmailValidationOutput,
+) -> Result<JsonValue> {
+    let make_error = || {
+        Error::new(
+            format!(
+                "failed to validate email for user '{}':\n{:#?}",
+                user_slug, validation_output,
+            ),
+            ErrorType::EmailVerification,
+        )
+    };
+
+    match validation_output.classification {
         EmailClassification::Normal => {
-            info!("User {user_slug}'s email was verified successfully");
-            Ok(false)
+            info!("User {user_slug}'s email was validated successfully");
         }
 
         EmailClassification::Alias => {
-            info!("User {user_slug}'s email was verified successfully (as an alias)");
-            Ok(true)
+            info!("User {user_slug}'s email was validated successfully (is an alias)");
+        }
+
+        EmailClassification::Role => {
+            info!(
+                "User {user_slug}'s email was verified successfully (is a role account)"
+            );
         }
 
         EmailClassification::Disposable => {
@@ -994,6 +1016,14 @@ fn check_email_validation(
             ));
         }
 
+        EmailClassification::Spam => {
+            error!("User {user_slug}'s email is spam and did not pass verification",);
+            bail!(Error::new(
+                "cannot create user, email address flagged as spam",
+                ErrorType::DisallowedEmail,
+            ));
+        }
+
         EmailClassification::Invalid => {
             error!("User {user_slug}'s email is invalid and did not pass verification");
             bail!(Error::new(
@@ -1002,4 +1032,38 @@ fn check_email_validation(
             ));
         }
     }
+
+    let validation_json = serde_json::to_value(validation_output).or_raise(make_error)?;
+    Ok(validation_json)
+}
+
+fn should_check_filter(
+    bypass_filter: bool,
+    user_type: UserType,
+    user_id: Option<i64>,
+) -> bool {
+    use crate::constants::*;
+
+    // If bypass_filter flag is set, never check
+    if bypass_filter {
+        return false;
+    }
+
+    // Don't check for seeded users
+    if let Some(user_id) = user_id
+        && matches!(
+            user_id,
+            ADMIN_USER_ID | SYSTEM_USER_ID | ANONYMOUS_USER_ID | SAMPLE_USER_ID,
+        )
+    {
+        return false;
+    }
+
+    // Check for all non-system, non-site user types
+    //
+    // We exclude site users because those are created automatically
+    // based on the characteristics of a site, so filtering for its
+    // name isn't relevant - if the site was allowed to be created,
+    // so should its site user.
+    !matches!(user_type, UserType::Site | UserType::System)
 }

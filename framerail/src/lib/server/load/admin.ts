@@ -1,30 +1,60 @@
 import defaults from "$lib/defaults"
+
 import { parseAcceptLangHeader } from "$lib/locales"
+import { authGetSession } from "$lib/server/auth/getSession"
+import { siteUpdate } from "$lib/server/deepwell/admin"
 import { translate } from "$lib/server/deepwell/translate"
 import { adminView } from "$lib/server/deepwell/views"
 import { loadSiteInfo } from "$lib/server/load/site-info"
-import type { TranslateKeys } from "$lib/types"
+import { Layout } from "$lib/types"
 import { error } from "@sveltejs/kit"
+import { fail, superValidate } from "sveltekit-superforms"
+import { valibot } from "sveltekit-superforms/adapters"
+import {
+  literal,
+  nullable,
+  number,
+  object,
+  optional,
+  string,
+  enum as vEnum
+} from "valibot"
 
-export async function loadAdminPage(request, cookies) {
+import type { TranslateKeys } from "$lib/types"
+import type { Cookies, RequestEvent } from "@sveltejs/kit"
+
+export async function loadAdminPage(request: Request, cookies: Cookies) {
   const { siteId } = loadSiteInfo(request.headers)
   const sessionToken = cookies.get("wikijump_token")
   let locales = parseAcceptLangHeader(request)
 
-  if (!locales.includes(defaults.fallbackLocale)) locales.push(defaults.fallbackLocale)
+  const response = await adminView(
+    siteId,
+    [...locales, defaults.fallbackLocale],
+    sessionToken
+  )
 
-  const response = await adminView(siteId, locales, sessionToken)
-
-  let translateKeys: TranslateKeys = {
-    ...defaults.translateKeys
+  if (response.data?.user_session?.user?.locales) {
+    locales = [
+      ...response.data.user_session.user.locales,
+      ...locales.filter(
+        (locale) => !response.data.user_session?.user.locales.includes(locale)
+      )
+    ]
   }
 
-  const viewData = response.data
-  viewData.view = response.type
+  if (response.data?.site?.locale && !locales.includes(response.data.site.locale)) {
+    locales.push(response.data.site.locale)
+  }
 
-  translateKeys["footer-license-unless"] = {
-    license: viewData.license_name,
-    "license_url": viewData.license_url
+  if (!locales.includes(defaults.fallbackLocale)) locales.push(defaults.fallbackLocale)
+
+  let translateKeys: TranslateKeys = {
+    ...defaults.translateKeys,
+    "footer-license-unless": {
+      license: response.data.license_name,
+      "license_url": response.data.license_url
+    }
   }
 
   let errorStatus = null
@@ -35,21 +65,13 @@ export async function loadAdminPage(request, cookies) {
     case "admin_permissions":
       errorStatus = 401
       break
-    case "site_missing":
-      errorStatus = 404
-      break
     default:
       // Unexpected response type!
       // There is an inconsistency between here / DEEPWELL
       errorStatus = 500
   }
 
-  if (errorStatus !== null) {
-    translateKeys = {
-      ...translateKeys,
-      "site-not-exist": {}
-    }
-  } else {
+  if (errorStatus === null) {
     translateKeys = {
       ...translateKeys,
 
@@ -72,9 +94,16 @@ export async function loadAdminPage(request, cookies) {
     }
   }
 
-  const translated = await translate(locales, translateKeys)
+  const internationalization = await translate(locales, translateKeys)
 
-  viewData.internationalization = translated
+  const adminForm = await superValidate(request, valibot(adminSchema))
+
+  const viewData = {
+    ...response.data,
+    view: response.type,
+    internationalization,
+    adminForm
+  }
 
   if (errorStatus !== null) {
     error(errorStatus, viewData)
@@ -82,3 +111,58 @@ export async function loadAdminPage(request, cookies) {
 
   return viewData
 }
+
+export async function adminAction({ request, getClientAddress, cookies }: RequestEvent) {
+  const form = await superValidate(request, valibot(adminSchema))
+
+  if (!form.valid) {
+    return fail(400, { form })
+  }
+
+  const sessionToken = cookies.get("wikijump_token")
+  const ipAddress = getClientAddress()
+  const session = await authGetSession(sessionToken)
+
+  try {
+    if (form.data.action === "edit") {
+      const { name, slug, tagline, description, defaultPage, locale, layout, siteId } =
+        form.data
+
+      const res = await siteUpdate(
+        siteId,
+        session?.user_id,
+        ipAddress,
+        name,
+        slug,
+        tagline,
+        description,
+        defaultPage,
+        locale,
+        layout
+      )
+
+      return { form, res }
+    }
+
+    return { form, res: null }
+  } catch (error) {
+    return fail(500, {
+      form,
+      message: error?.message,
+      code: error?.code,
+      data: error?.data
+    })
+  }
+}
+
+const adminSchema = object({
+  name: string(),
+  slug: string(),
+  tagline: string(),
+  description: string(),
+  defaultPage: string(),
+  locale: string(),
+  layout: vEnum(Layout),
+  siteId: number(),
+  action: optional(nullable(literal("edit")))
+})

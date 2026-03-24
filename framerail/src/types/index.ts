@@ -1,127 +1,398 @@
 export interface Locales {
-  readonly "-service-name": string
-  readonly "message-loading": string
-  readonly "goto-home": string
-  readonly "goto-service": string
-  readonly "base-title": string
-  readonly "navigated-to": string
-  readonly about: string
-  readonly account: string
-  readonly "alt-title": string
-  readonly applications: string
-  readonly avatar: string
-  readonly breadcrumbs: string
-  readonly cancel: string
-  readonly change: string
-  readonly clear: string
-  readonly close: string
-  readonly dashboard: string
-  readonly delete: string
-  readonly docs: string
-  readonly download: string
-  readonly edit: string
-  readonly editor: string
-  readonly footer: string
-  readonly general: string
-  readonly header: string
-  readonly help: string
-  readonly history: string
-  readonly inbox: string
-  readonly invitations: string
-  readonly license: string
-  readonly load: string
-  readonly "main-content": string
-  readonly messages: string
-  readonly move: string
-  readonly navigation: string
-  readonly notifications: string
-  readonly preview: string
-  readonly privacy: string
-  readonly profile: string
-  readonly publish: string
-  readonly "reveal-sidebar": string
-  readonly save: string
-  readonly security: string
-  readonly send: string
-  readonly sent: string
-  readonly settings: string
-  readonly sidebar: string
-  readonly tags: string
-  readonly terms: string
-  readonly title: string
-  readonly upload: string
-  readonly view: string
-  readonly search: string
-  readonly login: string
-  readonly logout: string
-  readonly register: string
-  readonly specifier: string
-  readonly username: string
-  readonly email: string
-  readonly password: string
-  readonly "confirm-password": string
-  readonly "forgot-password": string
-  readonly "reset-password": string
-  readonly "remember-me": string
-  readonly "create-account": string
-  readonly "field-required": string
-  readonly "characters-left": string
-  readonly "hold-to-show-password": string
-  readonly "error-404": string
-  readonly "error-form": string
-  readonly "error-api": string
-  readonly "error-418": string
-  readonly "cmftml-undocumented-block": string
-  readonly "cmftml-lint": string
-  readonly "cmftml-accepts": string
-  readonly "cmftml-argument-none": string
-  readonly "cmftml-argument-value": string
-  readonly "cmftml-argument-map": string
-  readonly "cmftml-argument-value-map": string
-  readonly "cmftml-body-none": string
-  readonly "cmftml-body-raw": string
-  readonly "cmftml-body-elements": string
-  readonly "cmftml-body-other": string
-  readonly "dashboard-profile": string
-  readonly "dashboard-account": string
-  readonly "dashboard-account-allow-messages": string
-  readonly "emails-subscribed": string
-  readonly "emails-unsubscribe": string
-  readonly "emails-verify-email": string
-  readonly "emails-reset-password": string
-  readonly "footer-powered-by": string
-  readonly "footer-part-of": string
-  readonly "footer-menu": string
-  readonly "footer-license": string
-  readonly "footer-license-unless": string
-  readonly "notification-bell-status": string
-  readonly sheaf: string
-  readonly "sheaf-preview": string
-  readonly "sheaf-stats": string
-  readonly "sheaf-settings": string
-  readonly "spellcheck-word": string
-  readonly "spellcheck-add-word": string
-  readonly "spellcheck-accept": string
-  readonly "spellcheck-source": string
-  readonly "spinny-label": string
-  readonly "user-profile-info": string
-  readonly "user-not-exist": string
-  readonly "wiki-auth-verify-email": string
-  readonly "wiki-auth-verify-email-link": string
-  readonly "password-recovery": string
-  readonly "wiki-page-category": string
-  readonly "wiki-page-revision": string
-  readonly "wiki-page-last-edit": string
-  readonly "wiki-page-view-source": string
-  readonly "wiki-page-revision-number": string
-  readonly "wiki-page-revision-created-at": string
-  readonly "wiki-page-revision-user": string
-  readonly "wiki-page-revision-comments": string
-  readonly "wiki-page-move-new-slug": string
-  readonly "wiki-page-missing": string
-  readonly "wiki-page-private": string
-  readonly "wiki-page-banned": string
-  readonly "wiki-page-site-slug": string
-  readonly "wiki-page-site-custom": string
-  readonly "wiki-page-no-render": string
+  "site-info": string
+  "site-info.name": string
+  "site-info.slug": string
+  "site-info.tagline": string
+  "site-info.description": string
+  "site-info.default-page": string
+  "site-info.locale": string
+  "site-info.layout": string
+  "admin-unauthorized": string
+  "-service-name": string
+  "message-loading": string
+  "goto-home": string
+  "goto-service": string
+  "base-title": string
+  "navigated-to": string
+  about: string
+  account: string
+  "alt-title": string
+  applications: string
+  avatar: string
+  breadcrumbs: string
+  cancel: string
+  change: string
+  clear: string
+  close: string
+  confirm: string
+  dashboard: string
+  delete: string
+  docs: string
+  download: string
+  edit: string
+  editor: string
+  error: string
+  files: string
+  footer: string
+  general: string
+  header: string
+  help: string
+  history: string
+  inbox: string
+  invitations: string
+  layout: string
+  load: string
+  "main-content": string
+  messages: string
+  move: string
+  navigation: string
+  notifications: string
+  options: string
+  parents: string
+  preview: string
+  privacy: string
+  profile: string
+  publish: string
+  restore: string
+  "reveal-sidebar": string
+  save: string
+  security: string
+  send: string
+  sent: string
+  settings: string
+  sidebar: string
+  tags: string
+  terms: string
+  title: string
+  upload: string
+  view: string
+  vote: string
+  search: string
+  "search.placeholder": string
+  login: string
+  "login.toast": string
+  logout: string
+  "logout.toast": string
+  register: string
+  "register.toast": string
+  specifier: string
+  "specifier.placeholder": string
+  username: string
+  "username.placeholder": string
+  "username.info": string
+  email: string
+  "email.placeholder": string
+  "email.info": string
+  password: string
+  "password.placeholder": string
+  "confirm-password": string
+  "forgot-password": string
+  "forgot-password.question": string
+  "reset-password": string
+  "remember-me": string
+  "create-account": string
+  "field-required": string
+  "characters-left": string
+  "hold-to-show-password": string
+  "error-404": string
+  "error-404.generic": string
+  "error-404.page": string
+  "error-404.user": string
+  "error-form": string
+  "error-form.missing-fields": string
+  "error-form.password-mismatch": string
+  "error-api": string
+  "error-api.GENERIC": string
+  "error-api.INTERNAL": string
+  "error-api.NO_CONNECTION": string
+  "error-api.BAD_SYNTAX": string
+  "error-api.FORBIDDEN": string
+  "error-api.NOT_FOUND": string
+  "error-api.CONFLICT": string
+  "error-api.ACCOUNT_ALREADY_VERIFIED": string
+  "error-api.ACCOUNT_NO_EMAIL": string
+  "error-api.ALREADY_LOGGED_IN": string
+  "error-api.FAILED_TO_UPDATE_PROFILE": string
+  "error-api.INVALID_AVATAR": string
+  "error-api.INVALID_EMAIL": string
+  "error-api.INVALID_LANGUAGE_CODE": string
+  "error-api.INVALID_PASSWORD": string
+  "error-api.INVALID_SESSION": string
+  "error-api.INVALID_SPECIFIER": string
+  "error-api.INVALID_USERNAME": string
+  "error-api.LOGIN_FAILED": string
+  "error-api.NOT_LOGGED_IN": string
+  "error-api.UNKNOWN_EMAIL": string
+  "error-api.UNKNOWN_USER": string
+  "error-api.WRONG_PASSWORD": string
+  "error-418": string
+  "basic-error-site-slug": string
+  "basic-error-site-slug.title": string
+  "basic-error-site-custom": string
+  "basic-error-site-custom.title": string
+  "basic-error-page-slug": string
+  "basic-error-page-slug.title": string
+  "basic-error-page-fetch": string
+  "basic-error-page-fetch.title": string
+  "basic-error-file-name": string
+  "basic-error-file-name.title": string
+  "basic-error-file-fetch": string
+  "basic-error-file-fetch.title": string
+  "basic-error-text-block": string
+  "basic-error-text-block.title": string
+  "basic-error-file-root": string
+  "basic-error-file-root.title": string
+  "cmftml-undocumented-block": string
+  "cmftml-lint": string
+  "cmftml-lint.warning-source": string
+  "cmftml-lint.recursion-depth-exceeded": string
+  "cmftml-lint.end-of-input": string
+  "cmftml-lint.no-rules-matched": string
+  "cmftml-lint.rule-failed": string
+  "cmftml-lint.not-start-of-line": string
+  "cmftml-lint.invalid-include": string
+  "cmftml-lint.list-empty": string
+  "cmftml-lint.list-contains-non-item": string
+  "cmftml-lint.list-item-outside-list": string
+  "cmftml-lint.list-depth-exceeded": string
+  "cmftml-lint.table-contains-non-row": string
+  "cmftml-lint.table-row-contains-non-cell": string
+  "cmftml-lint.table-row-outside-table": string
+  "cmftml-lint.table-cell-outside-table": string
+  "cmftml-lint.footnotes-nested": string
+  "cmftml-lint.blockquote-depth-exceeded": string
+  "cmftml-lint.no-such-block": string
+  "cmftml-lint.block-disallows-star": string
+  "cmftml-lint.block-disallows-score": string
+  "cmftml-lint.block-missing-name": string
+  "cmftml-lint.block-missing-close-brackets": string
+  "cmftml-lint.black-malformed-arguments": string
+  "cmftml-lint.block-missing-arguments": string
+  "cmftml-lint.block-expected-end": string
+  "cmftml-lint.block-end-mismatch": string
+  "cmftml-lint.no-such-module": string
+  "cmftml-lint.module-missing-name": string
+  "cmftml-lint.no-such-page": string
+  "cmftml-lint.invalid-url": string
+  "cmftml-accepts": string
+  "cmftml-accepts.star": string
+  "cmftml-accepts.score": string
+  "cmftml-accepts.newlines": string
+  "cmftml-accepts.html-attributes": string
+  "cmftml-argument-none": string
+  "cmftml-argument-none.info": string
+  "cmftml-argument-value": string
+  "cmftml-argument-value.info": string
+  "cmftml-argument-map": string
+  "cmftml-argument-map.info": string
+  "cmftml-argument-value-map": string
+  "cmftml-argument-value-map.info": string
+  "cmftml-body-none": string
+  "cmftml-body-none.info": string
+  "cmftml-body-raw": string
+  "cmftml-body-raw.info": string
+  "cmftml-body-elements": string
+  "cmftml-body-elements.info": string
+  "cmftml-body-other": string
+  "cmftml-body-other.info": string
+  "dashboard-profile": string
+  "dashboard-profile.name": string
+  "dashboard-profile.pronouns": string
+  "dashboard-profile.birthday": string
+  "dashboard-profile.location": string
+  "dashboard-profile.about": string
+  "dashboard-profile.signature": string
+  "dashboard-profile.save": string
+  "dashboard-profile.toast": string
+  "dashboard-account": string
+  "dashboard-account.username": string
+  "dashboard-account.language": string
+  "dashboard-account.allow-messages": string
+  "dashboard-account.accepts-invites": string
+  "dashboard-account.save": string
+  "dashboard-account.toast": string
+  "dashboard-account-allow-messages": string
+  "dashboard-account-allow-messages.registered": string
+  "dashboard-account-allow-messages.co-members": string
+  "dashboard-account-allow-messages.nobody": string
+  "emails-subscribed": string
+  "emails-unsubscribe": string
+  "emails-unsubscribe.text": string
+  "emails-unsubscribe.copy": string
+  "emails-verify-email": string
+  "emails-verify-email.subject": string
+  "emails-verify-email.greeting": string
+  "emails-verify-email.intro": string
+  "emails-verify-email.action": string
+  "emails-verify-email.outro": string
+  "emails-reset-password": string
+  "emails-reset-password.subject": string
+  "emails-reset-password.greeting": string
+  "emails-reset-password.intro": string
+  "emails-reset-password.action": string
+  "emails-reset-password.expires": string
+  "emails-reset-password.outro": string
+  "footer-powered-by": string
+  "footer-part-of": string
+  "footer-menu": string
+  "footer-menu.report-bug": string
+  "footer-menu.report-flag": string
+  "footer-license": string
+  "footer-license-unless": string
+  license: string
+  "license.cc-by-sa-4-0": string
+  "license.cc-by-4-0": string
+  "license.cc-by-nd-4-0": string
+  "license.cc-by-nc-4-0": string
+  "license.cc-by-nc-sa-4-0": string
+  "license.cc-by-nc-nd-4-0": string
+  "license.cc-by-sa-3-0": string
+  "license.cc-by-3-0": string
+  "license.cc-by-nd-3-0": string
+  "license.cc-by-nc-3-0": string
+  "license.cc-by-nc-sa-3-0": string
+  "license.cc-by-nc-nd-3-0": string
+  "license.cc-by-sa-2-5": string
+  "license.cc-by-2-5": string
+  "license.cc-by-nd-2-5": string
+  "license.cc-by-nc-2-5": string
+  "license.cc-by-nc-sa-2-5": string
+  "license.cc-by-nc-nd-2-5": string
+  "license.gnu-fdl-1-3": string
+  "license.gnu-fdl-1-2": string
+  "license.gnu-fdl-1-1": string
+  "license.cc0": string
+  "notification-bell-status": string
+  "notification-bell-status.read": string
+  "notification-bell-status.unread": string
+  "notification-bell-status.unread-with-count": string
+  sheaf: string
+  "sheaf.title": string
+  "sheaf.version": string
+  "sheaf-preview": string
+  "sheaf-preview.open": string
+  "sheaf-preview.close": string
+  "sheaf-preview.result": string
+  "sheaf-preview.html": string
+  "sheaf-preview.css": string
+  "sheaf-preview.ast": string
+  "sheaf-preview.tokens": string
+  "sheaf-preview.editor-ast": string
+  "sheaf-preview.compile": string
+  "sheaf-preview.patch": string
+  "sheaf-preview.total": string
+  "sheaf-preview.rendering": string
+  "sheaf-preview.performance": string
+  "sheaf-stats": string
+  "sheaf-stats.chars": string
+  "sheaf-stats.bytes": string
+  "sheaf-stats.words": string
+  "sheaf-stats.lines": string
+  "sheaf-settings": string
+  "sheaf-settings.debug-mode": string
+  "sheaf-settings.dark-mode": string
+  "sheaf-settings.spellcheck": string
+  "spellcheck-word": string
+  "spellcheck-word.misspelled": string
+  "spellcheck-word.forbidden": string
+  "spellcheck-word.warned": string
+  "spellcheck-add-word": string
+  "spellcheck-add-word.tooltip": string
+  "spellcheck-accept": string
+  "spellcheck-source": string
+  "spinny-label": string
+  "spinny-label.active": string
+  "spinny-label.error": string
+  "spinny-label.success": string
+  "spinny-label.warning": string
+  "user-profile-info": string
+  "user-profile-info.name": string
+  "user-profile-info.real-name": string
+  "user-profile-info.email": string
+  "user-profile-info.avatar": string
+  "user-profile-info.pronouns": string
+  "user-profile-info.birthday": string
+  "user-profile-info.location": string
+  "user-profile-info.since": string
+  "user-profile-info.biography": string
+  "user-profile-info.gender": string
+  "user-profile-info.user-page": string
+  "user-profile-info.locales": string
+  "user-not-exist": string
+  "user-not-logged-in": string
+  "wiki-auth-verify-email": string
+  "wiki-auth-verify-email.intro": string
+  "wiki-auth-verify-email.email-sent": string
+  "wiki-auth-verify-email.resend-email": string
+  "wiki-auth-verify-email-link": string
+  "wiki-auth-verify-email-link.waiting": string
+  "wiki-auth-verify-email-link.please-interact": string
+  "wiki-auth-verify-email-link.instructions": string
+  "wiki-auth-verify-email-link.success": string
+  "password-recovery": string
+  "password-recovery.email-sent": string
+  "wiki-page-category": string
+  "wiki-page-revision": string
+  "wiki-page-last-edit": string
+  "wiki-page-source": string
+  "wiki-page-view-source": string
+  "wiki-page-revision-history": string
+  "wiki-page-revision-number": string
+  "wiki-page-revision-created-at": string
+  "wiki-page-revision-user": string
+  "wiki-page-revision-comments": string
+  "wiki-page-revision-rollback": string
+  "wiki-page-revision-type": string
+  "wiki-page-revision-type.create": string
+  "wiki-page-revision-type.regular": string
+  "wiki-page-revision-type.move": string
+  "wiki-page-revision-type.delete": string
+  "wiki-page-revision-type.rollback": string
+  "wiki-page-revision-type.undelete": string
+  "wiki-page-revision-type.undo": string
+  "wiki-page-vote": string
+  "wiki-page-vote.set": string
+  "wiki-page-vote.remove": string
+  "wiki-page-vote.list": string
+  "wiki-page-vote.score": string
+  "wiki-page-edit": string
+  "wiki-page-create": string
+  "wiki-page-move": string
+  "wiki-page-move.new-slug": string
+  "wiki-page-layout": string
+  "wiki-page-layout.default": string
+  "wiki-page-layout.wikidot": string
+  "wiki-page-layout.wikijump": string
+  "wiki-page-delete": string
+  "wiki-page-restore": string
+  "wiki-page-restore.select": string
+  "wiki-page-deleted": string
+  "wiki-page-file-no-files": string
+  "wiki-page-file-upload": string
+  "wiki-page-file-upload.select": string
+  "wiki-page-file-upload.name": string
+  "wiki-page-file-move-destination-page": string
+  "wiki-page-file": string
+  "wiki-page-file.name": string
+  "wiki-page-file.created-at": string
+  "wiki-page-file.updated-at": string
+  "wiki-page-file.mime": string
+  "wiki-page-file.size": string
+  "wiki-page-file.page": string
+  "wiki-page-file-revision-type": string
+  "wiki-page-file-revision-type.create": string
+  "wiki-page-file-revision-type.regular": string
+  "wiki-page-file-revision-type.move": string
+  "wiki-page-file-revision-type.delete": string
+  "wiki-page-file-revision-type.rollback": string
+  "wiki-page-file-revision-type.undelete": string
+  "wiki-page-file-revision-type.undo": string
+  "wiki-page-file-restore": string
+  "wiki-page-file-restore.new-page": string
+  "wiki-page-file-restore.new-name": string
+  "wiki-page-parent": string
+  "wiki-page-missing": string
+  "wiki-page-private": string
+  "wiki-page-banned": string
+  "wiki-page-no-render": string
 }

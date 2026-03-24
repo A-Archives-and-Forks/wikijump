@@ -1,115 +1,133 @@
 <script lang="ts">
-  import { page } from "$app/stores"
   import { goto } from "$app/navigation"
-  import { useErrorPopup, usePageLayoutState } from "$lib/stores"
+  import { errorPopupState, pageLayoutState } from "$lib/stores.svelte"
   import { Layout } from "$lib/types"
-  let showErrorPopup = useErrorPopup()
-  let pageLayout = usePageLayoutState()
+  import { resolve } from "$app/paths"
+  import { superForm } from "sveltekit-superforms"
+  import { untrack } from "svelte"
+
+  import type { PageProps } from "./$types"
+
+  let { data, params }: PageProps = $props()
 
   function cancelEdit() {
-    let options: string[] = []
-    if ($page.data.options.no_render) options.push("norender")
-    if ($page.data.options.no_redirect) options.push("noredirect")
-    options = options.map((opt) => `/${opt}`)
-    goto(`/${$page.data.page.slug}${options.join("")}`, {
+    const options: string[] = Object.entries({
+      norender: data.options.no_render,
+      noredirect: data.options.no_redirect
+    })
+      .filter(([, enabled]) => enabled)
+      .map(([key]) => `/${key}`)
+
+    goto(resolve(`/${params.slug}${options.join("")}`, {}), {
       noScroll: true
     })
   }
 
-  async function saveEdit() {
-    let form = document.getElementById("editor")
-    let fdata = new FormData(form)
-    fdata.set("site-id", $page.data.site.site_id)
-    fdata.set("page-id", $page.data.page.page_id)
-    fdata.set("last-revision-id", $page.data.page_revision.revision_id)
-    let res = await fetch(`/${$page.data.page.slug}/edit`, {
-      method: "POST",
-      body: fdata
-    }).then((res) => res.json())
-    if (res?.message) {
-      showErrorPopup.set({
-        state: true,
-        message: res.message,
-        data: res.data
-      })
-    } else {
-      goto(`/${$page.data.page.slug}`, {
-        noScroll: true
-      })
+  const { form, enhance } = superForm(
+    untrack(() => data.forms.pageEditForm),
+    {
+      dataType: "json",
+      onSubmit: async ({ jsonData }) => {
+        const submitForm = {
+          ...$form,
+          siteId: data.site.site_id,
+          pageId: data.page?.page_id,
+          lastRevisionId: data.page_revision?.revision_id
+        }
+        jsonData(submitForm)
+      },
+      onResult: async ({ result, cancel }) => {
+        if (result.type === "success" && result.data) {
+          cancel()
+          goto(resolve(`/${params.slug}`, {}), {
+            noScroll: true
+          })
+        }
+        if (result.type === "failure" && result.data) {
+          errorPopupState.current = {
+            state: true,
+            message: result.data.message,
+            data: result.data.data
+          }
+        }
+      }
     }
-  }
+  )
+
+  $form.title = untrack(() => data.page_revision?.title ?? "")
+  $form.altTitle = untrack(() => data.page_revision?.alt_title ?? "")
+  $form.wikitext = untrack(() => data.wikitext)
+  $form.tags = untrack(() => data.page_revision?.tags?.join(" ") ?? "")
+  $form.comments = untrack(() => data.page_revision?.comments ?? "")
 </script>
 
-{#if $pageLayout === Layout.WIKIDOT}
+{#if pageLayoutState.current === Layout.WIKIDOT}
   <h1 class="page-edit-header">
-    {$page.data.internationalization?.["wiki-page-edit"]}
+    {data.internationalization?.["wiki-page-edit"]}
   </h1>
 {:else}
   <h2 class="page-edit-header">
-    {$page.data.internationalization?.["wiki-page-edit"]}
+    {data.internationalization?.["wiki-page-edit"]}
   </h2>
 {/if}
 
-<form id="editor" class="editor" method="POST" on:submit|preventDefault={saveEdit}>
+<form id="editor" class="editor" action="?/edit" method="POST" use:enhance>
   <input
     name="title"
     class="editor-title"
-    placeholder={$page.data.internationalization?.title}
+    placeholder={data.internationalization?.title}
     type="text"
-    value={$page.data.page_revision.title}
+    bind:value={$form.title}
   />
   <input
-    name="alt-title"
+    name="altTitle"
     class="editor-alt-title"
-    placeholder={$page.data.internationalization?.["alt-title"]}
+    placeholder={data.internationalization?.["alt-title"]}
     type="text"
-    value={$page.data.page_revision.alt_title}
+    bind:value={$form.altTitle}
   />
-  <textarea name="wikitext" class="editor-wikitext">{$page.data.wikitext}</textarea>
+  <textarea name="wikitext" class="editor-wikitext" bind:value={$form.wikitext}
+  ></textarea>
   <input
     name="tags"
     class="editor-tags"
-    placeholder={$page.data.internationalization?.tags}
+    placeholder={data.internationalization?.tags}
     type="text"
-    value={$page.data.page_revision.tags.join(" ")}
+    bind:value={$form.tags}
   />
   <textarea
     name="comments"
     class="editor-comments"
-    placeholder={$page.data.internationalization?.["wiki-page-revision-comments"]}
-  />
-  {#if $pageLayout === Layout.WIKIDOT}
+    placeholder={data.internationalization?.["wiki-page-revision-comments"]}
+    bind:value={$form.comments}
+  ></textarea>
+  {#if pageLayoutState.current === Layout.WIKIDOT}
     <div class="buttons alignleft">
       <input
         name="cancel"
         class="btn btn-danger"
+        onclick={cancelEdit}
         type="button"
-        value={$page.data.internationalization?.cancel}
-        on:click|stopPropagation={cancelEdit}
+        value={data.internationalization?.cancel}
       />
       <input
         name="save"
         class="btn btn-primary"
         type="submit"
-        value={$page.data.internationalization?.save}
-        on:click|stopPropagation
+        value={data.internationalization?.save}
       />
     </div>
   {:else}
     <div class="action-row editor-actions">
       <button
         class="action-button editor-button button-cancel clickable"
+        onclick={cancelEdit}
         type="button"
-        on:click|stopPropagation={cancelEdit}
       >
-        {$page.data.internationalization?.cancel}
+        {data.internationalization?.cancel}
       </button>
-      <button
-        class="action-button editor-button button-save clickable"
-        type="submit"
-        on:click|stopPropagation
-      >
-        {$page.data.internationalization?.save}
+      <button class="action-button editor-button button-save clickable" type="submit">
+        {data.internationalization?.save}
       </button>
     </div>
   {/if}

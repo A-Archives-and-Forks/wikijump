@@ -1,13 +1,26 @@
 import { client } from "$lib/server/deepwell"
-import type { Optional } from "$lib/types"
 import { startBlobUpload, uploadToPresignUrl } from "./file"
 
+import type { Nullable, Optional, UserModel, UserType } from "$lib/types"
+import type { Viewer } from "./views"
+
+/* ----- User View ----- */
+interface UserViewFound {
+  type: "user_found"
+  data: Viewer & {
+    user: UserModel
+  }
+}
+interface UserViewMissing {
+  type: "user_missing"
+  data: Viewer
+}
 export async function userView(
   siteId: number,
   locales: string[],
   sessionToken: Optional<string>,
   username?: string
-): Promise<object> {
+): Promise<UserViewFound | UserViewMissing> {
   return client.request("user_view", {
     site_id: siteId,
     session_token: sessionToken,
@@ -16,18 +29,36 @@ export async function userView(
   })
 }
 
+/* ----- User Edit ----- */
+interface UserEditParams {
+  name?: Optional<string>
+  email?: Optional<string>
+  emailVerified?: Optional<boolean>
+  password?: Optional<string>
+  locales?: Optional<string[]>
+  avatar?: Optional<File>
+  realName?: Optional<Nullable<string>>
+  gender?: Optional<Nullable<string>>
+  birthday?: Optional<Nullable<string>>
+  location?: Optional<Nullable<string>>
+  biography?: Optional<Nullable<string>>
+  userPage?: Optional<Nullable<string>>
+  bypassFilter?: boolean
+}
 export async function userEdit(
   userId: number,
   userIpAddr: string,
-  params: Record<string, any>
-): Promise<object> {
-  let data: Record<string, any> = {}
-  if (params.name !== undefined && typeof params.name === "string")
+  params: UserEditParams
+): Promise<UserModel> {
+  const data: Record<string, any> = {}
+  if (params.name !== undefined && typeof params.name === "string") {
     data.name = params.name
-  if (params.email !== undefined && typeof params.email === "string")
+  }
+  if (params.email !== undefined && typeof params.email === "string") {
     data.email = params.email
-  if (params.real_name !== undefined && typeof params.real_name === "string") {
-    if (params.real_name) data.real_name = params.real_name
+  }
+  if (params.realName !== undefined && typeof params.realName === "string") {
+    if (params.realName) data.real_name = params.realName
     else data.real_name = null
   }
   if (params.gender !== undefined && typeof params.gender === "string") {
@@ -46,14 +77,18 @@ export async function userEdit(
     if (params.biography) data.biography = params.biography
     else data.biography = null
   }
-  if (params.user_page !== undefined && typeof params.user_page === "string") {
-    if (params.user_page) data.user_page = params.user_page
+  if (params.userPage !== undefined && typeof params.userPage === "string") {
+    if (params.userPage) data.user_page = params.userPage
     else data.user_page = null
   }
-  if (Array.isArray(params.locales) && params.locales.every((v) => typeof v === "string"))
+  if (
+    Array.isArray(params.locales) &&
+    params.locales.every((v) => typeof v === "string")
+  ) {
     data.locales = params.locales
+  }
   if (params.avatar instanceof File && params.avatar.type.startsWith("image/")) {
-    let presign = await startBlobUpload(userId, params.avatar.size)
+    const presign = await startBlobUpload(userId, params.avatar.size)
     await uploadToPresignUrl(presign.presign_url, params.avatar)
     data.avatar_uploaded_blob_id = presign.pending_blob_id
   } else if (params.avatar !== undefined && params.avatar === null) data.avatar = null
@@ -62,5 +97,32 @@ export async function userEdit(
     user: userId,
     ip_address: userIpAddr,
     ...data
+  })
+}
+
+/* ----- User Create ----- */
+interface UserCreate {
+  user_id: number
+  slug: string
+}
+export async function userCreate(
+  userType: UserType,
+  name: string,
+  email: string,
+  locales: string[],
+  password: string,
+  ipAddress: string,
+  bypassFilter = false,
+  bypassEmailVerification = false
+): Promise<UserCreate> {
+  return client.request("user_create", {
+    user_type: userType,
+    name,
+    email,
+    locales,
+    password,
+    ip_address: ipAddress,
+    bypass_filter: bypassFilter,
+    bypass_email_verification: bypassEmailVerification
   })
 }

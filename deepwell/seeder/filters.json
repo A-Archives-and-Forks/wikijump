@@ -14,9 +14,17 @@
         "user": true
     },
     {
+        "site": "www",
+        "regex": "^(foo|bar)-",
+        "description": "Pages or files starting with foo or bar aren't allowed (example)",
+        "case-sensitive": true,
+        "page": true,
+        "file": true
+    },
+    {
         "site": null,
-        "regex": "^.*@example\\.com$",
-        "description": "Cannot join using example.com emails (example)",
+        "regex": "^.*@example\\.net$",
+        "description": "Cannot join using example.net emails (example)",
         "case-sensitive": false,
         "email": true
     },
@@ -166,6 +174,27 @@
         "description": "Reserved name (secure)",
         "case-sensitive": false,
         "user": true
+    },
+    {
+        "site": null,
+        "regex": "^acme$",
+        "description": "Reserved name (acme)",
+        "case-sensitive": false,
+        "user": false
+    },
+    {
+        "site": null,
+        "regex": "^dns$",
+        "description": "Reserved name (dns)",
+        "case-sensitive": false,
+        "user": false
+    },
+    {
+        "site": null,
+        "regex": "^ech$",
+        "description": "Reserved name (ech) (for Encrypted ClientHello)",
+        "case-sensitive": false,
+        "user": false
     },
     {
         "site": null,

@@ -1,19 +1,20 @@
 import { client } from "$lib/server/deepwell"
-import type { Nullable, Optional } from "$lib/types"
 import { Layout } from "$lib/types"
+
+import type { Nullable, Optional, SiteModel } from "$lib/types"
 
 export async function siteUpdate(
   siteId: number,
   userId: number,
   userIpAddr: string,
-  name: Optional<String>,
-  slug: Optional<String>,
-  tagline: Optional<String>,
-  description: Optional<String>,
-  defaultPage: Optional<String>,
-  locale: Optional<String>,
+  name: Optional<string>,
+  slug: Optional<string>,
+  tagline: Optional<string>,
+  description: Optional<string>,
+  defaultPage: Optional<string>,
+  locale: Optional<string>,
   layout: Optional<Nullable<Layout>>
-): Promise<object> {
+): Promise<SiteModel> {
   return client.request("site_update", {
     site: siteId,
     user_id: userId,
@@ -25,7 +26,7 @@ export async function siteUpdate(
     locale,
     layout:
       layout !== undefined
-        ? Layout[layout?.toUpperCase() as keyof typeof Layout] ?? null
+        ? (Layout[layout?.toUpperCase() as keyof typeof Layout] ?? null)
         : undefined,
     ip_address: userIpAddr
   })

@@ -60,6 +60,7 @@ mod context;
 pub mod alias;
 pub mod audit;
 pub mod authentication;
+pub mod authorization_token;
 pub mod basic_error;
 pub mod blob;
 pub mod blueprint;
@@ -100,6 +101,7 @@ pub mod vote;
 
 pub use self::alias::AliasService;
 pub use self::authentication::AuthenticationService;
+pub use self::authorization_token::AuthorizationTokenService;
 pub use self::basic_error::BasicErrorService;
 pub use self::blob::BlobService;
 pub use self::blueprint::BlueprintPageService;

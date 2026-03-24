@@ -1,0 +1,28 @@
+[[stack]]
+name = "wikijump-dev"
+description = "Wikijump deployment for the dev tier"
+tags = ["wikijump"]
+[stack.config]
+server = "Local"
+links = [
+    "https://github.com/scpwiki/wikijump",
+    "https://wikijump.org",
+]
+project_name = "wikijump"
+run_build = true
+destroy_before_deploy = true
+linked_repo = "wikijump-dev"
+run_directory = "install/dev"
+file_paths = ["docker-compose.yaml"]
+# Pass-through variables/secrets defined in variables.toml
+environment = """
+POSTGRES_PASSWORD=[[POSTGRES_PASSWORD]]
+S3_FILES_BUCKET=[[S3_FILES_BUCKET]]
+S3_TEXT_BLOCKS_BUCKET=[[S3_TEXT_BLOCKS_BUCKET]]
+S3_CUSTOM_ENDPOINT=[[S3_CUSTOM_ENDPOINT]]
+S3_REGION_NAME=[[S3_REGION_NAME]]
+S3_PATH_STYLE=[[S3_PATH_STYLE]]
+S3_ACCESS_KEY_ID=[[S3_ACCESS_KEY_ID]]
+S3_SECRET_ACCESS_KEY=[[S3_SECRET_ACCESS_KEY]]
+DIGITALOCEAN_API_TOKEN=[[DIGITALOCEAN_API_TOKEN]]
+"""

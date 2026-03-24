@@ -5,7 +5,10 @@ export async function authLogin(
   password: string,
   ipAddress: string,
   userAgent: string
-): Promise<object> {
+): Promise<{
+  session_token: string
+  needs_mfa: boolean
+}> {
   return client.request("login", {
     name_or_email: nameOrEmail,
     password,

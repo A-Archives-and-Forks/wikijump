@@ -19,6 +19,7 @@
  */
 
 use crate::hash::BlobHash;
+use crate::services::filter::FilterSummary;
 use crate::services::view::ViewType;
 use fluent::FluentError;
 use fluent_syntax::parser::ParserError as FluentParserError;
@@ -87,6 +88,7 @@ pub enum ErrorType {
     Filter,
     CustomDomain,
     Alias,
+    AuthorizationToken,
     #[allow(dead_code)] // TEMP
     Forum,
     #[allow(dead_code)] // TEMP
@@ -146,6 +148,7 @@ pub enum ErrorType {
         session_user_id: i64,
     },
     EmptyPassword,
+    InvalidAuthorizationToken,
 
     // 4000
     BadRequest,
@@ -201,6 +204,7 @@ pub enum ErrorType {
     FilterViolation {
         field: String,
         value: String,
+        failed: Vec<FilterSummary>,
     },
     FilterRegexInvalid {
         regex: String,
@@ -230,6 +234,12 @@ pub enum ErrorType {
     // 5400
     CustomDomainSubdomain,
     CustomDomainWrongSite,
+    CustomDomainUsePunycode {
+        domain: String,
+    },
+    InvalidDomainValue {
+        domain: String,
+    },
 
     // 6000
     Relation,
@@ -345,12 +355,13 @@ impl ErrorType {
             ErrorType::Filter => 1318,
             ErrorType::CustomDomain => 1319,
             ErrorType::Alias => 1320,
-            ErrorType::Forum => 1321,
-            ErrorType::ForumGroup => 1322,
-            ErrorType::ForumCategory => 1323,
-            ErrorType::ForumThread => 1324,
-            ErrorType::ForumPost => 1325,
-            ErrorType::ForumPostRevision => 1326,
+            ErrorType::AuthorizationToken => 1321,
+            ErrorType::Forum => 1322,
+            ErrorType::ForumGroup => 1323,
+            ErrorType::ForumCategory => 1324,
+            ErrorType::ForumThread => 1325,
+            ErrorType::ForumPost => 1326,
+            ErrorType::ForumPostRevision => 1327,
 
             //
             // 2000 -- Data Consistency
@@ -402,6 +413,7 @@ impl ErrorType {
             ErrorType::Session => 3003,
             ErrorType::SessionUserId { .. } => 3004,
             ErrorType::EmptyPassword => 3005,
+            ErrorType::InvalidAuthorizationToken => 3006,
 
             // 3100 - Permissions
             // TODO
@@ -483,6 +495,8 @@ impl ErrorType {
             // 5400 - Domains
             ErrorType::CustomDomainWrongSite => 5400,
             ErrorType::CustomDomainSubdomain => 5401,
+            ErrorType::CustomDomainUsePunycode { .. } => 5402,
+            ErrorType::InvalidDomainValue { .. } => 5403,
 
             //
             // 6000 -- Client / Request Errors - Composite Data
@@ -579,6 +593,9 @@ impl ErrorType {
             ErrorType::Filter => "Failed to act on a filter",
             ErrorType::CustomDomain => "Failed to act on a custom domain",
             ErrorType::Alias => "Failed to act on an object alias",
+            ErrorType::AuthorizationToken => {
+                "Failed to create or verify an authorization token"
+            }
             ErrorType::Forum => "Failed to act on a forum object",
             ErrorType::ForumGroup => "Failed to act on a forum group",
             ErrorType::ForumCategory => "Failed to act on a forum category",
@@ -638,6 +655,9 @@ impl ErrorType {
                 "User associated with the session does not match the active user"
             }
             ErrorType::EmptyPassword => "A password was required, but not provided",
+            ErrorType::InvalidAuthorizationToken => {
+                "Provided authorization token was invalid"
+            }
 
             // 4000
             ErrorType::BadRequest => "The request is in some way malformed or incorrect",
@@ -728,6 +748,12 @@ impl ErrorType {
             ErrorType::CustomDomainWrongSite => {
                 "Cannot use custom domain, as it belongs to a different site"
             }
+            ErrorType::CustomDomainUsePunycode { .. } => {
+                "Submitted domain values should use punycode"
+            }
+            ErrorType::InvalidDomainValue { .. } => {
+                "Domain value contains unexpected characters"
+            }
 
             // 6000
             ErrorType::Relation => "Cannot perform relation operation",
@@ -770,8 +796,21 @@ impl ErrorType {
     pub fn data(&self) -> JsonValue {
         use crate::hash::blob_hash_to_hex;
         use serde_json::json;
+        use std::fmt::Display;
+
+        fn misc_errors_to_json<T: Display>(errors: &[T]) -> JsonValue {
+            errors
+                .iter()
+                .map(|e| JsonValue::from(str!(e)))
+                .collect::<Vec<_>>()
+                .into()
+        }
 
         match self {
+            ErrorType::GetView(view_type) => json!(view_type),
+            ErrorType::Fluent(errors) => misc_errors_to_json(errors),
+            ErrorType::FluentParser(errors) => misc_errors_to_json(errors),
+            ErrorType::Cryptography(extra) => json!(extra),
             ErrorType::SessionUserId {
                 active_user_id,
                 session_user_id,
@@ -779,13 +818,39 @@ impl ErrorType {
                 "active_user_id": active_user_id,
                 "session_user_id": session_user_id,
             }),
-            ErrorType::BlobSizeMismatch { expected, actual } => json!({
-                "expected": expected,
-                "actual": actual,
-            }),
             ErrorType::FileNameTooLong { length, maximum } => json!({
                 "length": length,
                 "maximum": maximum,
+            }),
+            ErrorType::LocaleInvalid { locale } | ErrorType::LocaleMissing { locale } => {
+                json!({ "locale": locale })
+            }
+            ErrorType::LocaleMessageMissing { message_key }
+            | ErrorType::LocaleMessageValueMissing { message_key } => json!({
+                "message_key": message_key,
+            }),
+            ErrorType::LocaleMessageAttributeMissing {
+                message_key,
+                attribute,
+            } => json!({
+                "message_key": message_key,
+                "attribute": attribute,
+            }),
+            ErrorType::FilterViolation {
+                field,
+                value,
+                failed,
+            } => json!({
+                "field": field,
+                "value": value,
+                "failed": failed,
+            }),
+            ErrorType::FilterRegexInvalid { regex } => json!({
+                "regex": regex,
+            }),
+            ErrorType::BlobSizeMismatch { expected, actual } => json!({
+                "expected": expected,
+                "actual": actual,
             }),
             ErrorType::BlobBlacklisted(bytes) => json!(*blob_hash_to_hex(bytes)),
             _ => json!(null),

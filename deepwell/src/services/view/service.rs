@@ -117,19 +117,13 @@ impl ViewService {
             alt_title: None,
             score: ScoreValue::Integer(0), // TODO configurable default score value
             tags: vec![],
-
-            // TODO Determine what locale should be passed here.
-            //      There are ways we can determine which locale
-            //      was used for a particular message, but there
-            //      are several messages in play here, each of
-            //      which may technically be a slightly different
-            //      locale (in case of fallbacks etc).
+            // NOTE: The [[date]] block is now localized through
+            // PageInfo.language, which means the value passed here
+            // should be &site.locale.
             //
-            //      For now, just use the declared first locale
-            //      passed in by the requester, since that's
-            //      presumably what'd they'd *like* the message
-            //      to be in, if translations are available.
-            language: Cow::Owned(str!(&locales[0])),
+            // If we ever want to change this, we need to evaluate the
+            // impact on FTML first.
+            language: cow!(&site.locale),
         };
 
         // Helper structures to designate which variant of GetPageViewOutput to return.
@@ -523,11 +517,7 @@ impl ViewService {
             site: cow!(viewer.site.slug),
             score: ScoreValue::Integer(0),
             tags: vec![],
-            language: if !locales.is_empty() {
-                Cow::Owned(locales[0].to_string())
-            } else {
-                cow!(viewer.site.locale)
-            },
+            language: cow!(viewer.site.locale),
         };
 
         let GetBlueprintPageOutput {

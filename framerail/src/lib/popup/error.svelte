@@ -1,14 +1,16 @@
 <script lang="ts">
-  export let exitPrompt: () => void
-  import { onMount, onDestroy } from "svelte"
-  import { page } from "$app/stores"
-  import { useErrorPopup, usePageLayoutState } from "$lib/stores"
+  import { page } from "$app/state"
+  import { errorPopupState, pageLayoutState } from "$lib/stores.svelte"
   import { Layout } from "$lib/types"
-  let showErrorPopup = useErrorPopup()
-  let pageLayout = usePageLayoutState()
-  function containerExitPrompt(e: Event) {
-    e.preventDefault()
-    let classList = (e.target as HTMLElement).classList
+
+  interface Props {
+    exitPrompt: () => void
+  }
+  let { exitPrompt }: Props = $props()
+
+  function containerExitPrompt(event: MouseEvent) {
+    event.preventDefault()
+    const classList = (event.target as HTMLElement).classList
     if (
       classList.contains("modal-container") ||
       classList.contains("odialog-container") ||
@@ -18,59 +20,57 @@
       exitPrompt()
     }
   }
-  const escKeydown = (e: KeyboardEvent) => {
-    if (e.code.toLowerCase() === "escape") exitPrompt()
+  const escKeydown = (event: KeyboardEvent) => {
+    if (event.code.toLowerCase() === "escape") exitPrompt()
   }
-  onMount(() => {
+  $effect(() => {
     window.addEventListener("keydown", escKeydown)
-  })
-  onDestroy(() => {
-    window.removeEventListener("keydown", escKeydown)
+    return () => window.removeEventListener("keydown", escKeydown)
   })
 </script>
 
-{#if $pageLayout === Layout.WIKIDOT}
+{#if pageLayoutState.current === Layout.WIKIDOT}
   <div
     id="odialog-shader"
     class="odialog-shader"
+    onclick={containerExitPrompt}
+    onkeydown={escKeydown}
     role="presentation"
-    on:click={containerExitPrompt}
-    on:keydown={escKeydown}
-  />
+  ></div>
   <div
     id="odialog-container"
     style:--basalt-compat="block"
     class="odialog-container"
+    onclick={containerExitPrompt}
+    onkeydown={escKeydown}
     role="presentation"
-    on:click={containerExitPrompt}
-    on:keydown={escKeydown}
   >
     <div id="owindow-1" class="owindow error">
       <div class="title modal-header">
-        {$page.data?.internationalization?.error ??
-          $page.error?.internationalization?.error}
+        {page.data?.internationalization?.error ??
+          page.error?.internationalization?.error}
       </div>
       <div class="content modal-body">
         <h1 id="modal-title">
-          {$showErrorPopup.message}
+          {errorPopupState.current.message}
         </h1>
-        {#if $showErrorPopup.data}
+        {#if errorPopupState.current.data}
           <p id="model-message-extra" class="modal-message-extra">
-            {$showErrorPopup.data}
+            {errorPopupState.current.data.call_trace}
           </p>
         {/if}
       </div>
       <div class="button-bar modal-footer">
-        <!-- svelte-ignore a11y-invalid-attribute -->
+        <!-- svelte-ignore a11y_invalid_attribute -->
         <a
           class="btn btn-default button button-close-message"
           href="javascript:;"
+          onclick={containerExitPrompt}
+          onkeydown={escKeydown}
           role="button"
           tabindex="0"
-          on:click={containerExitPrompt}
-          on:keydown={escKeydown}
-          >{$page.data?.internationalization?.close ??
-            $page.error?.internationalization?.close}</a
+          >{page.data?.internationalization?.close ??
+            page.error?.internationalization?.close}</a
         >
       </div>
     </div>
@@ -80,21 +80,21 @@
     class="modal-container"
     aria-describedby="modal-message"
     aria-labelledby="modal-title"
+    onclick={containerExitPrompt}
+    onkeydown={escKeydown}
     role="presentation"
-    on:click={containerExitPrompt}
-    on:keydown={escKeydown}
   >
     <div class="modal error-modal">
       <h2 id="modal-title">
-        {$page.data?.internationalization?.error ??
-          $page.error?.internationalization?.error}
+        {page.data?.internationalization?.error ??
+          page.error?.internationalization?.error}
       </h2>
       <div id="modal-message" class="modal-message">
-        {$showErrorPopup.message}
+        {errorPopupState.current.message}
       </div>
-      {#if $showErrorPopup.data}
+      {#if errorPopupState.current.data}
         <div id="model-message-extra" class="modal-message-extra">
-          {$showErrorPopup.data}
+          {errorPopupState.current.data.call_trace}
         </div>
       {/if}
     </div>
@@ -133,5 +133,8 @@
   }
   .modal h2 {
     margin-top: 0;
+  }
+  .modal-message-extra {
+    white-space: pre-wrap;
   }
 </style>

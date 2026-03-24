@@ -1,192 +1,213 @@
 <script lang="ts">
-  import { page } from "$app/stores"
+  import { page } from "$app/state"
+  import { deserialize } from "$app/forms"
+  import { resolve } from "$app/paths"
   import { goto, invalidateAll } from "$app/navigation"
-  import { useErrorPopup, usePageLayoutState } from "$lib/stores"
   import { Layout } from "$lib/types"
-  let showErrorPopup = useErrorPopup()
-  let pageLayout = usePageLayoutState()
+  import { pageLayoutState, errorPopupState } from "$lib/stores.svelte"
+  import { superForm } from "sveltekit-superforms"
+  import { untrack } from "svelte"
 
-  let showRestoreAction = false
-  let deletedPages: Record<string, any>[] = []
+  import type { PageData } from "./$types"
+  import type { PageDeletedGet } from "$lib/server/deepwell/page"
+
+  let errorData: PageData | null = $derived(page.error as unknown as PageData)
+
+  let showRestoreAction = $state<boolean>(false)
+  let deletedPages = $state<PageDeletedGet[]>([])
 
   function cancelCreate() {
-    goto(`/${$page.params.slug}`, {
+    goto(resolve(`/${page.params.slug}`, {}), {
       noScroll: true
     })
   }
 
-  async function saveCreate() {
-    let form = document.getElementById("editor")
-    let fdata = new FormData(form)
-    fdata.set("site-id", $page.error.site.site_id)
-    fdata.set("slug", $page.params.slug)
-    let res = await fetch(`/${$page.params.slug}/edit`, {
-      method: "POST",
-      body: fdata
-    }).then((res) => res.json())
-    if (res?.message) {
-      showErrorPopup.set({
-        state: true,
-        message: res.message,
-        data: res.data
-      })
-    } else {
-      goto(`/${$page.params.slug}`, {
-        noScroll: true
-      })
+  const { form: editForm, enhance: editEnhance } = superForm(
+    untrack(() => errorData.forms.pageEditForm),
+    {
+      dataType: "json",
+      onSubmit: async ({ jsonData }) => {
+        const submitForm = {
+          ...$editForm,
+          siteId: errorData.site.site_id,
+          slug: page.params.slug
+        }
+        jsonData(submitForm)
+      },
+      onResult: async ({ result, cancel }) => {
+        if (result.type === "success" && result.data) {
+          cancel()
+          goto(resolve(`/${page.params.slug}`, {}), {
+            noScroll: true
+          })
+        }
+        if (result.type === "failure" && result.data) {
+          errorPopupState.current = {
+            state: true,
+            message: result.data.message,
+            data: result.data.data
+          }
+        }
+      }
     }
-  }
+  )
 
   async function getDeleted() {
-    let fdata = new FormData()
-    fdata.set("site-id", $page.error.site.site_id)
-    let res = await fetch(`/${$page.params.slug}/deleted-get`, {
+    const res = await fetch(`?/deletedGet`, {
       method: "POST",
-      body: fdata
-    }).then((res) => res.json())
-    if (res?.message) {
-      showErrorPopup.set({
-        state: true,
-        message: res.message,
-        data: res.data
+      body: JSON.stringify({
+        siteId: errorData?.site.site_id,
+        slug: page.params.slug
       })
-    } else {
-      deletedPages = res
+    }).then((res) => res.text())
+    const result = deserialize<
+      { res: PageDeletedGet[] },
+      { message: string; code: string; data: Record<string, unknown> }
+    >(res)
+    if (result.type === "failure" && result.data?.message) {
+      errorPopupState.current = {
+        state: true,
+        message: result.data?.message,
+        data: result.data?.data
+      }
+    } else if (result.type === "success" && result.data?.res) {
+      deletedPages = result.data.res
       showRestoreAction = true
     }
   }
 
-  async function handleRestore() {
-    let form = document.getElementById("page-restore")
-    let fdata = new FormData(form)
-    fdata.set("site-id", $page.error.site.site_id)
-    let res = await fetch(`/${$page.params.slug}/restore`, {
-      method: "POST",
-      body: fdata
-    }).then((res) => res.json())
-    if (res?.message) {
-      showErrorPopup.set({
-        state: true,
-        message: res.message,
-        data: res.data
-      })
-    } else {
-      showRestoreAction = false
-      invalidateAll()
+  const { form: restoreForm, enhance: restoreEnhance } = superForm(
+    untrack(() => errorData.forms.pageRestoreForm),
+    {
+      dataType: "json",
+      onSubmit: async ({ jsonData }) => {
+        const submitForm = {
+          ...$restoreForm,
+          siteId: errorData.site.site_id
+        }
+        jsonData(submitForm)
+      },
+      onResult: async ({ result }) => {
+        if (result.type === "success" && result.data) {
+          showRestoreAction = false
+          invalidateAll()
+        }
+        if (result.type === "failure" && result.data) {
+          errorPopupState.current = {
+            state: true,
+            message: result.data.message,
+            data: result.data.data
+          }
+        }
+      }
     }
-  }
+  )
 </script>
 
 <h1>UNTRANSLATED:Svelte Error</h1>
 
-<p><textarea class="debug">{JSON.stringify($page, null, 2)}</textarea></p>
+<p><textarea class="debug">{JSON.stringify(page, null, 2)}</textarea></p>
 
-<!--
-Use svelte-switch-case package with {#switch data.view}
-as soon as we can figure out prettier support for it.
--->
-{#if $page.error.view === "missing"}
+{#if errorData.view === "missing"}
   UNTRANSLATED:Page not found
 
-  {#if $page.error.options?.edit}
-    {#if $pageLayout === Layout.WIKIDOT}
+  {#if errorData.options?.edit}
+    {#if pageLayoutState.current === Layout.WIKIDOT}
       <h1 class="page-create-header">
-        {$page.error?.internationalization?.["wiki-page-create"]}
+        {errorData.internationalization?.["wiki-page-create"]}
       </h1>
     {:else}
       <h2 class="page-create-header">
-        {$page.error?.internationalization?.["wiki-page-create"]}
+        {errorData.internationalization?.["wiki-page-create"]}
       </h2>
     {/if}
 
-    <form id="editor" class="editor" method="POST" on:submit|preventDefault={saveCreate}>
+    <form id="editor" class="editor" action="?/edit" method="POST" use:editEnhance>
       <input
         name="title"
         class="editor-title"
-        placeholder={$page.error.internationalization?.title}
+        placeholder={errorData.internationalization?.title}
         type="text"
+        bind:value={$editForm.title}
       />
       <input
-        name="alt-title"
+        name="altTitle"
         class="editor-alt-title"
-        placeholder={$page.error.internationalization?.["alt-title"]}
+        placeholder={errorData.internationalization?.["alt-title"]}
         type="text"
+        bind:value={$editForm.altTitle}
       />
-      <textarea name="wikitext" class="editor-wikitext" />
+      <textarea name="wikitext" class="editor-wikitext" bind:value={$editForm.wikitext}
+      ></textarea>
       <input
         name="tags"
         class="editor-tags"
-        placeholder={$page.error.internationalization?.tags}
+        placeholder={errorData.internationalization?.tags}
         type="text"
+        bind:value={$editForm.tags}
       />
-      <select name="layout" class="editor-layout">
-        <option value={null}
-          >{$page.error.internationalization?.["wiki-page-layout.default"]}</option
-        >
-        {#each Object.values(Layout) as layoutOption}
-          <option value={layoutOption}
-            >{$page.error.internationalization?.[
-              `wiki-page-layout.${layoutOption}`
-            ]}</option
-          >
+      <select name="layout" class="editor-layout" bind:value={$editForm.layout}>
+        <option value={null}>
+          {errorData.internationalization?.["wiki-page-layout.default"]}
+        </option>
+        {#each Object.values(Layout) as layoutOption (layoutOption.toString())}
+          <option value={layoutOption}>
+            {errorData.internationalization?.[`wiki-page-layout.${layoutOption}`]}
+          </option>
         {/each}
       </select>
       <textarea
         name="comments"
         class="editor-comments"
-        placeholder={$page.error.internationalization?.["wiki-page-revision-comments"]}
-      />
-      {#if $pageLayout === Layout.WIKIDOT}
+        placeholder={errorData.internationalization?.["wiki-page-revision-comments"]}
+        bind:value={$editForm.comments}
+      ></textarea>
+      {#if pageLayoutState.current === Layout.WIKIDOT}
         <div class="buttons">
           <input
             class="btn btn-danger"
+            onclick={cancelCreate}
             type="button"
-            value={$page.error.internationalization?.cancel}
-            on:click|stopPropagation={cancelCreate}
+            value={errorData.internationalization?.cancel}
           />
           <input
             class="btn btn-primary"
             type="submit"
-            value={$page.error.internationalization?.save}
-            on:click|stopPropagation
+            value={errorData.internationalization?.save}
           />
         </div>
       {:else}
         <div class="action-row editor-actions">
           <button
             class="action-button editor-button button-cancel clickable"
+            onclick={cancelCreate}
             type="button"
-            on:click|stopPropagation={cancelCreate}
           >
-            {$page.error.internationalization?.cancel}
+            {errorData.internationalization?.cancel}
           </button>
-          <button
-            class="action-button editor-button button-save clickable"
-            type="submit"
-            on:click|stopPropagation
-          >
-            {$page.error.internationalization?.save}
+          <button class="action-button editor-button button-save clickable" type="submit">
+            {errorData.internationalization?.save}
           </button>
         </div>
       {/if}
     </form>
   {:else}
     <div id="page-content">
-      {@html $page.error.compiled_body_html}
+      {@html errorData.compiled_body_html}
     </div>
 
-    {#if $pageLayout === Layout.WIKIDOT}
+    {#if pageLayoutState.current === Layout.WIKIDOT}
       <div id="page-options-container">
         <div id="page-options-bottom" class="page-options-bottom">
-          <!-- svelte-ignore a11y-invalid-attribute -->
+          <!-- svelte-ignore a11y_invalid_attribute -->
           <a
             id="restore-button"
             class="btn btn-default"
             href="javascript:;"
+            onclick={getDeleted}
             type="button"
-            on:click={getDeleted}
           >
-            {$page.error.internationalization?.restore}
+            {errorData.internationalization?.restore}
           </a>
         </div>
       </div>
@@ -194,46 +215,53 @@ as soon as we can figure out prettier support for it.
       <div class="action-row editor-actions">
         <button
           class="action-button editor-button button-restore clickable"
+          onclick={getDeleted}
           type="button"
-          on:click={getDeleted}
         >
-          {$page.error.internationalization?.restore}
+          {errorData.internationalization?.restore}
         </button>
       </div>
     {/if}
 
     {#if showRestoreAction}
-      {#if $pageLayout === Layout.WIKIDOT}
+      {#if pageLayoutState.current === Layout.WIKIDOT}
         <div id="action-area">
           <h1 class="page-restore-header">
-            {$page.error?.internationalization?.["wiki-page-restore"]}
+            {errorData.internationalization?.["wiki-page-restore"]}
           </h1>
 
           <form
             id="page-restore"
             class="page-restore"
+            action="?/restore"
             method="POST"
-            on:submit|preventDefault={handleRestore}
+            use:restoreEnhance
           >
             <fieldset>
-              <legend
-                >{$page.error.internationalization?.["wiki-page-restore-select"]}</legend
-              >
-              {#each deletedPages as deletedPage}
+              <legend>
+                {errorData.internationalization?.["wiki-page-restore.select"]}
+              </legend>
+              {#each deletedPages as deletedPage (deletedPage.page_id)}
                 <input
                   id={`restore-page-id-${deletedPage.page_id}`}
-                  name="page-id"
+                  name="pageId"
                   class="page-restore-id"
+                  checked={$restoreForm.pageId === deletedPage.page_id}
                   type="radio"
                   value={deletedPage.page_id}
                 />
                 <label for={`restore-page-id-${deletedPage.page_id}`}>
-                  <span class="page-restore-title">{deletedPage.title}</span
-                  >{#if deletedPage.alt_title}&nbsp;-&nbsp;<span
-                      class="page-restore-alt-title">{deletedPage.alt_title}</span
-                    >{/if} (<span class="page-restore-rating"
-                    >{(deletedPage.rating > 0 ? "+" : "") + deletedPage.rating}</span
-                  >) - {$page.error.internationalization?.["wiki-page-deleted"].replace(
+                  <span class="page-restore-title">{deletedPage.title}</span>
+                  {#if deletedPage.alt_title}
+                    &nbsp;-&nbsp;
+                    <span class="page-restore-alt-title">
+                      {deletedPage.alt_title}
+                    </span>
+                  {/if} (
+                  <span class="page-restore-rating">
+                    {(deletedPage.rating > 0 ? "+" : "") + deletedPage.rating}
+                  </span>
+                  ) - {errorData.internationalization?.["wiki-page-deleted"]?.replace(
                     "{$datetime}",
                     new Date(deletedPage.page_deleted_at).toLocaleString()
                   )}
@@ -245,49 +273,49 @@ as soon as we can figure out prettier support for it.
             <textarea
               name="comments"
               class="page-restore-comments"
-              placeholder={$page.error.internationalization?.[
+              placeholder={errorData.internationalization?.[
                 "wiki-page-revision-comments"
               ]}
-            />
+              bind:value={$restoreForm.comments}
+            ></textarea>
 
             <div class="buttons">
               <input
                 class="btn btn-primary"
+                onclick={() => (showRestoreAction = false)}
                 type="button"
-                value={$page.error.internationalization?.cancel}
-                on:click|stopPropagation={() => {
-                  showRestoreAction = false
-                }}
+                value={errorData.internationalization?.cancel}
               />
               <input
                 class="btn btn-primary"
                 type="submit"
-                value={$page.error.internationalization?.restore}
-                on:click|stopPropagation
+                value={errorData.internationalization?.restore}
               />
             </div>
           </form>
         </div>
       {:else}
         <h2 class="page-restore-header">
-          {$page.error?.internationalization?.["wiki-page-restore"]}
+          {errorData.internationalization?.["wiki-page-restore"]}
         </h2>
 
         <form
           id="page-restore"
           class="page-restore"
+          action="?/restore"
           method="POST"
-          on:submit|preventDefault={handleRestore}
+          use:restoreEnhance
         >
           <fieldset>
-            <legend
-              >{$page.error.internationalization?.["wiki-page-restore-select"]}</legend
-            >
-            {#each deletedPages as deletedPage}
+            <legend>
+              {errorData.internationalization?.["wiki-page-restore.select"]}
+            </legend>
+            {#each deletedPages as deletedPage (deletedPage.page_id)}
               <input
                 id={`restore-page-id-${deletedPage.page_id}`}
-                name="page-id"
+                name="pageId"
                 class="page-restore-id"
+                checked={$restoreForm.pageId === deletedPage.page_id}
                 type="radio"
                 value={deletedPage.page_id}
               />
@@ -297,7 +325,7 @@ as soon as we can figure out prettier support for it.
                     class="page-restore-alt-title">{deletedPage.alt_title}</span
                   >{/if} (<span class="page-restore-rating"
                   >{(deletedPage.rating > 0 ? "+" : "") + deletedPage.rating}</span
-                >) - {$page.error.internationalization?.["wiki-page-deleted"].replace(
+                >) - {errorData.internationalization?.["wiki-page-deleted"]?.replace(
                   "{$datetime}",
                   new Date(deletedPage.page_deleted_at).toLocaleString()
                 )}
@@ -309,36 +337,32 @@ as soon as we can figure out prettier support for it.
           <textarea
             name="comments"
             class="page-restore-comments"
-            placeholder={$page.error.internationalization?.[
-              "wiki-page-revision-comments"
-            ]}
-          />
+            placeholder={errorData.internationalization?.["wiki-page-revision-comments"]}
+            bind:value={$restoreForm.comments}
+          ></textarea>
 
           <div class="action-row page-restore-actions">
             <button
               class="action-button page-restore-button button-cancel clickable"
+              onclick={() => (showRestoreAction = false)}
               type="button"
-              on:click|stopPropagation={() => {
-                showRestoreAction = false
-              }}
             >
-              {$page.error.internationalization?.cancel}
+              {errorData.internationalization?.cancel}
             </button>
             <button
               class="action-button page-restore-button button-restore clickable"
               type="submit"
-              on:click|stopPropagation
             >
-              {$page.error.internationalization?.restore}
+              {errorData.internationalization?.restore}
             </button>
           </div>
         </form>
       {/if}
     {/if}
   {/if}
-{:else if $page.error.view === "permissions"}
+{:else if errorData.view === "permissions"}
   UNTRANSLATED:Lacks permissions for page
-  {@html $page.error.compiled_body_html}
+  {@html errorData.compiled_body_html}
 {:else}
   UNTRANSLATED:Fatal error: Unable to display view
 {/if}

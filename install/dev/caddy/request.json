@@ -5,7 +5,9 @@
 	"params": {
 		"debug": false,
 		"local": false,
-		"framerail_host": "framerail:3000",
-		"wws_host": "wws:7000"
+		"wildcard_cert": "digitalocean {env.DIGITALOCEAN_API_TOKEN}",
+		"deploy_host": "host.docker.internal:9120",
+		"framerail_host": "framerail:3393",
+		"wws_host": "wws:3466"
 	}
 }

@@ -11,7 +11,7 @@ services:
       - "POSTGRES_INITDB_ARGS=--locale en_US.UTF-8"
     ports:
       - "5432:5432"
-    restart: always
+    restart: unless-stopped
     healthcheck:
       test: ["CMD", "wikijump-health-check"]
       interval: 10s
@@ -20,33 +20,33 @@ services:
 
   files:
     build: minio
-    restart: always
+    restart: unless-stopped
     environment:
       - "MINIO_ROOT_USER=minio"
       - "MINIO_ROOT_PASSWORD=defaultpassword"
       - "MINIO_REGION_NAME=local"
       - "INITIAL_BUCKETS=deepwell-files deepwell-text-blocks"
       - "DATA_DIR=/data"  # You can add a volume for /data if you wish
+    ports:
+      - "9000:9000"
+      - "9001:9001"
     healthcheck:
       test: ["CMD", "/healthcheck.sh"]
       interval: 10s
       timeout: 5s
       retries: 3
-    ports:
-      - "9000:9000"
-      - "9001:9001"
 
   cache:
     build: valkey
-    restart: always
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
     # You can add a volume for /data if you wish
     healthcheck:
       test: ["CMD", "valkey-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 3
-    ports:
-      - "6379:6379"
 
   deepwell:
     build:
@@ -68,7 +68,7 @@ services:
       - "S3_CUSTOM_ENDPOINT=http://files:9000"
       - "S3_ACCESS_KEY_ID=minio"
       - "S3_SECRET_ACCESS_KEY=defaultpassword"
-    restart: always
+    restart: unless-stopped
     healthcheck:
       test: ["CMD", "wikijump-health-check"]
       interval: 120s
@@ -89,12 +89,12 @@ services:
       context: ../..
       dockerfile: install/local/framerail/Dockerfile
     ports:
-      - "3000:3000"
+      - "3393:3393"
     links:
       - deepwell
     environment:
       - "DEEPWELL_HOST=deepwell"
-    restart: always
+    restart: unless-stopped
     healthcheck:
       test: ["CMD", "wikijump-health-check"]
       interval: 120s
@@ -109,13 +109,13 @@ services:
       context: ../..
       dockerfile: install/local/wws/Dockerfile
     ports:
-      - "7000:7000"
+      - "3466:3466"
     links:
       - deepwell
       - cache
       - files
     environment:
-      - "ADDRESS=[::]:7000"
+      - "ADDRESS=[::]:3466"
       - "DEEPWELL_URL=http://deepwell:2747"
       - "REDIS_URL=redis://cache"
       - "S3_FILES_BUCKET=deepwell-files"
@@ -125,7 +125,7 @@ services:
       - "S3_CUSTOM_ENDPOINT=http://files:9000"
       - "S3_ACCESS_KEY_ID=minio"
       - "S3_SECRET_ACCESS_KEY=defaultpassword"
-    restart: always
+    restart: unless-stopped
     healthcheck:
       test: ["CMD", "wikijump-health-check"]
       interval: 120s
@@ -152,7 +152,7 @@ services:
     links:
       - framerail
       - wws
-    restart: always
+    restart: unless-stopped
     healthcheck:
       test: ["CMD", "wikijump-health-check"]
       interval: 30s

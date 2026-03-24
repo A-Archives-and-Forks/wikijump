@@ -1,0 +1,7 @@
+[[builder]]
+name = "Local"
+tags = ["system"]
+
+[builder.config]
+type = "Server"
+params.server_id = "Local"

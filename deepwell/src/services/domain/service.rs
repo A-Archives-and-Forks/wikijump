@@ -27,7 +27,9 @@ use super::prelude::*;
 use crate::models::site::{self, Entity as Site, Model as SiteModel};
 use crate::models::site_domain::{self, Entity as SiteDomain, Model as SiteDomainModel};
 use crate::services::SiteService;
+use regex::Regex;
 use std::borrow::Cow;
+use std::sync::LazyLock;
 
 pub const DEFAULT_SITE_SLUG: &str = "www";
 
@@ -38,7 +40,11 @@ impl DomainService {
     /// Creates a custom domain for a site.
     pub async fn create_custom(
         ctx: &ServiceContext<'_>,
-        CreateCustomDomain { domain, site_id }: CreateCustomDomain,
+        CreateCustomDomain {
+            domain,
+            site_id,
+            www_redirect,
+        }: CreateCustomDomain,
     ) -> Result<()> {
         info!("Creating custom domain '{domain}' (site ID {site_id})");
 
@@ -51,7 +57,10 @@ impl DomainService {
 
         // Correctness checks
 
-        if Self::custom_domain_exists(ctx, &domain).await? {
+        if Self::custom_domain_exists(ctx, &domain)
+            .await
+            .or_raise(make_error)?
+        {
             error!("Custom domain '{domain}' already exists, cannot create");
             bail!(Error::new(
                 format!("cannot create domain '{}', already exists", domain),
@@ -59,11 +68,14 @@ impl DomainService {
             ));
         }
 
+        validate_domain(&domain).or_raise(make_error)?;
+
         let config = ctx.config();
         if domain.ends_with(&config.main_domain) || domain.ends_with(&config.files_domain)
         {
             error!(
-                "Custom domains cannot be subdomains of the Wikijump main or files domain: {domain}"
+                "Custom domains cannot be subdomains of the Wikijump main domain ('{}') or files domain ('{}'): {}",
+                config.main_domain, config.files_domain, domain,
             );
             bail!(Error::new(
                 format!(
@@ -81,6 +93,7 @@ impl DomainService {
             domain: Set(domain),
             site_id: Set(site_id),
             created_at: Set(now()),
+            www_redirect: Set(www_redirect),
         };
         model.insert(txn).await.or_raise(make_error)?;
         Ok(())
@@ -211,4 +224,117 @@ impl DomainService {
 
         Ok(models)
     }
+}
+
+fn validate_domain(domain: &str) -> Result<()> {
+    const PUNYCODE_PREFIX: &str = "xn--";
+    const DOMAIN_MAX_BYTES: usize = 253;
+
+    static DOMAIN_REGEX: LazyLock<Regex> =
+        LazyLock::new(|| Regex::new(r"^[A-Za-z0-9\-\.]{1,253}$").unwrap());
+
+    // First, more user-friendly check for unicode characters
+    let has_unicode = !domain.is_ascii();
+    if !domain.starts_with(PUNYCODE_PREFIX) && has_unicode {
+        error!(
+            "Custom domain '{}' has non-ASCII characters but is not using punycode",
+            domain,
+        );
+        bail!(Error::new(
+            format!(
+                "domain should use punycode to convey non-ASCII characters: {}",
+                domain,
+            ),
+            ErrorType::CustomDomainUsePunycode {
+                domain: str!(domain),
+            }
+        ));
+    }
+
+    // Now do more specific domain validation checks
+    //
+    // * Domain cannot be an empty string
+    // * Isn't ASCII (but we aren't giving the punycode-specific error) (reusing this prior result)
+    // * Domains can only be at most 253 bytes long (excludes the trailing null byte / dot)
+    // * Domains may only be composed of the limited subset of characters allowed by DNS
+
+    macro_rules! raise_error {
+        ($($arg:tt)*) => {{
+            let message = format!($($arg)*);
+            error!("Custom domain verification failed, {message}: {domain}");
+            bail!(Error::new(message, ErrorType::InvalidDomainValue { domain: str!(domain) }));
+        }};
+    }
+
+    if domain.is_empty() {
+        raise_error!("domain cannot be empty");
+    }
+
+    if has_unicode {
+        raise_error!("punycode domain '{}' has non-ASCII characters", domain);
+    }
+
+    if domain.len() > DOMAIN_MAX_BYTES {
+        raise_error!(
+            "domain '{}' is too long ({} > {})",
+            domain,
+            domain.len(),
+            DOMAIN_MAX_BYTES,
+        );
+    }
+
+    if !DOMAIN_REGEX.is_match(domain) {
+        raise_error!("domain '{}' contains invalid characters", domain);
+    }
+
+    Ok(())
+}
+
+#[test]
+fn test_validate_domain() {
+    macro_rules! test_ok {
+        ($domain:expr $(,)?) => {
+            validate_domain($domain).expect("domain was detected as invalid")
+        };
+    }
+
+    macro_rules! test_err {
+        ($domain:expr $(,)?) => {
+            validate_domain($domain).expect_err("domain was detected as valid")
+        };
+    }
+
+    test_err!("");
+    test_ok!("example.com");
+    test_ok!("ftp.example.com");
+    test_ok!("foo.bar.baz.example.com");
+    test_err!(
+        "this.domain.is.far.far.too.long.and.not.permitted.by.the.dns.standard.xxxxxxxx.xxxxxxxx.xxxxxxxx.xxxxxxxx.xxxxxxxx.xxxxxxxx.xxxxxxxx.xxxxxxxx.xxxxxxxx.xxxxxxxx.xxxxxxxx.xxxxxxxx.xxxxxxxx.xxxxxxxx.xxxxxxxx.xxxxxxxx.xxxxxxxx.xxxxxxxx.xxxxxxxx.xxxxxxxx.example.net",
+    );
+    test_ok!("alpha1.beta2.my-host.wikijump.dev");
+    test_ok!("ALLUPPERCASEANDABITLONG.COM");
+    test_ok!("foo.bar.somesite.co.uk");
+    test_err!("this has whitespace in it");
+    test_err!(" this-has-whitespace-too ");
+    test_err!("site1\n.com");
+    test_err!("ascii$but^not_valid.net");
+
+    // Punycode tests
+    test_err!("bücher.tld");
+    test_err!("xn--bücher.tld");
+    test_ok!("xn--bcher-kva.tld");
+    test_err!("例.tld");
+    test_ok!("xn--fsq.tld");
+    test_err!("🦘.tld");
+    test_ok!("xn--ot9h.tld");
+    test_err!("правда.ru");
+    test_ok!("xn--80aafi6cg.ru");
+    test_err!("ความสงบสุข.th");
+    test_ok!("xn--22cdj0f7a9awc1e5c.th");
+    test_err!("도메인.or.kr");
+    test_ok!("xn--hq1bm8jm9l.or.kr");
+    test_err!("ドメイン名例.co.jp");
+    test_ok!("xn--eckwd4c7cu47r2wf.co.jp");
+    test_err!("MajiでKoiする5秒前.co.jp");
+    test_ok!("xn--MajiKoi5-783gue6qz075azm5e.co.jp");
 }

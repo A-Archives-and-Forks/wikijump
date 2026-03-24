@@ -1,6 +1,9 @@
 // TODO refactor into proper TS service
 
-import { JSONRPCClient, type JSONRPCRequest } from "json-rpc-2.0"
+import { JSONRPCClient } from "json-rpc-2.0"
+
+import type { Nullable } from "$lib/types"
+import type { JSONRPCRequest } from "json-rpc-2.0"
 
 export const DEEPWELL_HOST = process.env.DEEPWELL_HOST || "localhost"
 export const DEEPWELL_PORT = process.env.DEEPWELL_PORT || 2747
@@ -22,7 +25,34 @@ export async function ping(): Promise<void> {
   await client.request("ping", {})
 }
 
-export async function info(): Promise<Record<string, any>> {
+/* ----- INFO ----- */
+interface Info {
+  package: PackageInfo
+  compile_info: CompileInfo
+
+  current_time: string
+  hostname: string
+  config_path: string
+}
+
+interface PackageInfo {
+  name: string
+  description: string
+  license: string
+  repository: string
+  version: string
+}
+
+interface CompileInfo {
+  built_at: string
+  rustc_version: string
+  endian: string
+  target: string
+  threads: number
+  git_commit: Nullable<string>
+}
+
+export async function info(): Promise<Info> {
   return client.request("info", {})
 }
 

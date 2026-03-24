@@ -1,0 +1,68 @@
+[[stack]]
+name = "discord-alerter"
+description = "Infrastructure alerts to Discord"
+tags = ["system"]
+# NOTE: Komodo does have a stock Discord notifier, we're not using it
+#       since the foxxmd one is more featureful.
+[stack.config]
+server = "Local"
+file_contents = """
+services:
+  alerter:
+    image: foxxmd/komodo-discord-alerter:latest
+    restart: unless-stopped
+    env_file:
+      - ./.env
+    ports:
+      - "7100:7000"
+    extra_hosts:
+      - host.docker.internal:host-gateway
+"""
+environment = """
+## Required
+
+## Destination webhook URL
+DISCORD_WEBHOOK = [[DISCORD_WEBHOOK]]
+
+## Optional
+
+## Set whether to include Komodo Severity Level in notification title
+LEVEL_IN_TITLE=false
+
+# Prefixes messages with a checkmark when the Alert is in the 'Resolved' state
+INDICATE_RESOLVED=true
+
+# Filter if an alert is pushed based on its Resolved status
+# * leave unset to push all alerts
+# * otherwise, alerts will only be pushed if Alert is one of the comma-separated states set here
+#ALLOW_RESOLVED_TYPE=resolved,unresolved
+
+## Delay alerts with below types for X milliseconds
+## and cancel pushing alert if it is resolved within that time
+UNRESOLVED_TIMEOUT_TYPES=ServerCpu,ServerMem
+UNRESOLVED_TIMEOUT=5000
+"""
+
+[[alerter]]
+name = "discord-webhook"
+description = "Infrastructure alerts to Discord"
+tags = ["system"]
+[alerter.config]
+enabled = true
+endpoint.type = "Custom"
+endpoint.params.url = "http://host.docker.internal:7100"
+alert_types = [
+    # Deployment / build status
+    "BuildFailed",
+    "RepoBuildFailed",
+    "ActionFailed",
+    "ProcedureFailed",
+    # Application health
+    "StackStateChange",
+    # Not build-related, but critical
+    "ServerUnreachable",
+    "ServerDisk",
+    "ServerVersionMismatch",
+    # Any custom alerts
+    "Custom",
+]

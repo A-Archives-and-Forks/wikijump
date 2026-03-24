@@ -1,9 +1,17 @@
-FROM caddy:alpine
+# Set up DNS ACME challenge providers
+FROM public.ecr.aws/docker/library/caddy:builder-alpine AS builder
+ARG PROVIDER=digitalocean
+
+RUN xcaddy build --with github.com/caddy-dns/${PROVIDER}
+
+FROM public.ecr.aws/docker/library/caddy:latest
+COPY --from=builder /usr/bin/caddy /usr/bin/caddy
 
 # Install dependencies
 RUN apk add --no-cache curl jq
 
 # Install files
+COPY ./install/dev/caddy/Caddyfile /etc/caddy/Caddyfile
 COPY ./install/dev/caddy/start.sh /usr/local/bin/wikijump-start-caddy
 COPY ./install/dev/caddy/health-check.sh /usr/local/bin/wikijump-health-check
 COPY ./install/dev/caddy/generate-caddyfile.sh /usr/local/bin/wikijump-generate-caddyfile

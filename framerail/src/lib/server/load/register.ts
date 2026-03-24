@@ -1,0 +1,117 @@
+import defaults from "$lib/defaults"
+
+import { parseAcceptLangHeader } from "$lib/locales"
+import { translate } from "$lib/server/deepwell/translate"
+import { userCreate } from "$lib/server/deepwell/user"
+import { loadSiteInfo } from "$lib/server/load/site-info"
+import { fail } from "@sveltejs/kit"
+import { superValidate } from "sveltekit-superforms"
+import { valibot } from "sveltekit-superforms/adapters"
+import {
+  array,
+  email,
+  forward,
+  minLength,
+  object,
+  optional,
+  partialCheck,
+  pipe,
+  string
+} from "valibot"
+
+import { UserType, type TranslateKeys } from "$lib/types"
+import type { Cookies, RequestEvent } from "@sveltejs/kit"
+
+export async function loadRegisterPage(request: Request, cookies: Cookies) {
+  // Set up parameters
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { siteId } = loadSiteInfo(request.headers)
+  const sessionToken = cookies.get("wikijump_token")
+  const locales = parseAcceptLangHeader(request)
+
+  const viewData = {
+    isLoggedIn: Boolean(sessionToken)
+  }
+
+  if (!locales.includes(defaults.fallbackLocale)) locales.push(defaults.fallbackLocale)
+
+  const translateKeys: TranslateKeys = {
+    ...defaults.translateKeys,
+
+    // Page actions
+    "cancel": {},
+    "register": {},
+
+    // misc
+    "username": {},
+    "username.placeholder": {},
+    "username.info": {},
+    "email": {},
+    "email.placeholder": {},
+    "email.info": {},
+    "password": {},
+    "password.placeholder": {},
+    "confirm-password": {},
+    "register.toast": {},
+    "create-account": {},
+
+    // errors
+    "error-form.password-mismatch": {}
+  }
+
+  const internationalization = await translate(locales, translateKeys)
+
+  // superform
+  const registerForm = await superValidate(valibot(registerSchema))
+
+  // Return to page for rendering
+  return { ...viewData, internationalization, registerForm }
+}
+
+export async function registerAction({ request, getClientAddress }: RequestEvent) {
+  const form = await superValidate(request, valibot(registerSchema))
+
+  if (!form.valid) {
+    return fail(400, { form })
+  }
+
+  const ipAddress = getClientAddress()
+  const { data } = form
+
+  try {
+    const res = await userCreate(
+      UserType.Regular,
+      data.username,
+      data.email,
+      data.locale,
+      data.password,
+      ipAddress
+    )
+
+    return { form, res, isRegistered: true }
+  } catch (error) {
+    return fail(500, {
+      form,
+      message: error?.message,
+      code: error?.code,
+      data: error?.data
+    })
+  }
+}
+
+const registerSchema = pipe(
+  object({
+    username: pipe(string(), minLength(1)),
+    email: pipe(string(), email(), minLength(1)),
+    password: pipe(string(), minLength(1)),
+    confirmPassword: pipe(string(), minLength(1)),
+    locale: pipe(optional(array(string()), ["en"]), minLength(1))
+  }),
+  forward(
+    partialCheck(
+      [["password"], ["confirmPassword"]],
+      ({ password, confirmPassword }) => password === confirmPassword
+    ),
+    ["confirmPassword"]
+  )
+)

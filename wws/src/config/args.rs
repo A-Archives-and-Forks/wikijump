@@ -38,7 +38,7 @@ impl Default for Arguments {
             enable_trace: true,
             enable_deepwell_check: true,
             pid_file: None,
-            address: "[::]:7000".parse().unwrap(),
+            address: "[::]:3466".parse().unwrap(),
         }
     }
 }

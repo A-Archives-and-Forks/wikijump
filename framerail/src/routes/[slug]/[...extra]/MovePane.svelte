@@ -1,107 +1,98 @@
 <script lang="ts">
-  import { page } from "$app/stores"
+  import { page } from "$app/state"
   import { goto } from "$app/navigation"
-  import { useErrorPopup, usePageLayoutState, usePagePaneState } from "$lib/stores"
+  import { errorPopupState, pageLayoutState } from "$lib/stores.svelte"
   import { Layout, PagePane } from "$lib/types"
-  let showErrorPopup = useErrorPopup()
-  let pagePaneState = usePagePaneState()
-  let pageLayout = usePageLayoutState()
-  let moveInputNewSlugElem: HTMLInputElement
+  import { resolve } from "$app/paths"
+  import { superForm } from "sveltekit-superforms"
+  import { untrack } from "svelte"
 
-  async function handleMove() {
-    let form = document.getElementById("page-move")
-    let fdata = new FormData(form)
-    let newSlug = fdata.get("new-slug")
-    if (!newSlug) {
-      moveInputNewSlugElem.classList.add("error")
-      return
-    } else {
-      moveInputNewSlugElem.classList.remove("error")
+  import type { PageProps } from "./$types"
+
+  let { pagePaneState, data }: PageProps & { pagePaneState: PagePane } = $props()
+
+  const { form, enhance } = superForm(
+    untrack(() => data.forms.pageMoveForm),
+    {
+      dataType: "json",
+      onSubmit: async ({ jsonData }) => {
+        const submitForm = {
+          ...$form,
+          siteId: data.site.site_id,
+          pageId: data.page?.page_id,
+          lastRevisionId: data.page_revision?.revision_id
+        }
+        jsonData(submitForm)
+      },
+      onResult: async ({ result, cancel }) => {
+        if (result.type === "success" && result.data) {
+          cancel()
+          goto(resolve(`/${result.data.res.new_slug}`, {}), {
+            noScroll: true
+          })
+          pagePaneState = PagePane.None
+        }
+        if (result.type === "failure" && result.data) {
+          errorPopupState.current = {
+            state: true,
+            message: result.data.message,
+            data: result.data.data
+          }
+        }
+      }
     }
-    fdata.set("site-id", $page.data.site.site_id)
-    fdata.set("page-id", $page.data.page.page_id)
-    fdata.set("last-revision-id", $page.data.page_revision.revision_id)
-    let res = await fetch(`/${$page.data.page.slug}/move`, {
-      method: "POST",
-      body: fdata
-    }).then((res) => res.json())
-    if (res?.message) {
-      showErrorPopup.set({
-        state: true,
-        message: res.message,
-        data: res.data
-      })
-    } else {
-      goto(`/${newSlug}`, {
-        noScroll: true
-      })
-      pagePaneState.set(PagePane.None)
-    }
-  }
+  )
 </script>
 
-{#if $pageLayout === Layout.WIKIDOT}
+{#if pageLayoutState.current === Layout.WIKIDOT}
   <h1 class="page-move-header">
-    {$page.data.internationalization?.["wiki-page-move"]}
+    {page.data.internationalization?.["wiki-page-move"]}
   </h1>
 {:else}
   <h2 class="page-move-header">
-    {$page.data.internationalization?.["wiki-page-move"]}
+    {page.data.internationalization?.["wiki-page-move"]}
   </h2>
 {/if}
 
-<form
-  id="page-move"
-  class="page-move"
-  method="POST"
-  on:submit|preventDefault={handleMove}
->
+<form id="page-move" class="page-move" action="?/move" method="POST" use:enhance>
   <input
-    bind:this={moveInputNewSlugElem}
     name="new-slug"
     class="page-move-new-slug"
-    placeholder={$page.data.internationalization?.["wiki-page-move-new-slug"]}
+    placeholder={data.internationalization?.["wiki-page-move.new-slug"]}
     type="text"
+    bind:value={$form.newSlug}
   />
   <textarea
     name="comments"
     class="page-move-comments"
-    placeholder={$page.data.internationalization?.["wiki-page-revision-comments"]}
-  />
-  {#if $pageLayout === Layout.WIKIDOT}
+    placeholder={data.internationalization?.["wiki-page-revision-comments"]}
+    bind:value={$form.comments}
+  ></textarea>
+  {#if pageLayoutState.current === Layout.WIKIDOT}
     <div class="buttons">
       <input
         class="btn btn-danger"
+        onclick={() => (pagePaneState = PagePane.None)}
         type="button"
-        value={$page.data.internationalization?.cancel}
-        on:click|stopPropagation={() => {
-          pagePaneState.set(PagePane.None)
-        }}
+        value={data.internationalization?.cancel}
       />
       <input
         class="btn btn-primary"
         type="submit"
-        value={$page.data.internationalization?.move}
-        on:click|stopPropagation
+        value={data.internationalization?.move}
       />
     </div>
   {:else}
     <div class="action-row page-move-actions">
       <button
         class="action-button page-move-button button-cancel clickable"
+        onclick={() => (pagePaneState = PagePane.None)}
         type="button"
-        on:click|stopPropagation={() => {
-          pagePaneState.set(PagePane.None)
-        }}
       >
-        {$page.data.internationalization?.cancel}
+        {data.internationalization?.cancel}
       </button>
-      <button
-        class="action-button page-move-button button-move clickable"
-        type="submit"
-        on:click|stopPropagation
-      >
-        {$page.data.internationalization?.move}
+      <button class="action-button page-move-button button-move clickable" type="submit">
+        {data.internationalization?.move}
       </button>
     </div>
   {/if}

@@ -1,0 +1,7 @@
+[[server]]
+name = "Local"
+description = "Local server, running Komodo Core"
+tags = ["wikijump", "komodo-core"]
+[server.config]
+address = "http://periphery:8120"
+enabled = true

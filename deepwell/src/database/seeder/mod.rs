@@ -52,8 +52,7 @@ use std::net::{IpAddr, Ipv6Addr};
 use std::path::{Path, PathBuf};
 
 /// The IP address to record for any seeded data.
-/// This is just `localhost`.
-pub const SEED_IP_ADDRESS: IpAddr = IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 1));
+pub const SEED_IP_ADDRESS: IpAddr = IpAddr::V6(Ipv6Addr::LOCALHOST);
 
 pub async fn seed(state: &ServerState) -> Result<()> {
     info!("Running seeder...");
@@ -214,17 +213,25 @@ pub async fn seed(state: &ServerState) -> Result<()> {
 
         if let Some(preferred_domain) = &site.preferred_domain {
             assert!(
-                site.domains.contains(preferred_domain),
+                site.domains.iter().any(|d| d.domain() == preferred_domain),
                 "The site's preferred domain must be a listed custom domain",
             );
         }
 
-        for domain in site.domains {
-            info!("Creating site domain '{domain}'");
+        for site_domain in site.domains {
+            let (domain, www_redirect) = site_domain.into_fields();
+            info!("Creating site domain '{domain}' (www redirect: {www_redirect})");
 
-            DomainService::create_custom(&ctx, CreateCustomDomain { site_id, domain })
-                .await
-                .or_raise(make_error)?;
+            DomainService::create_custom(
+                &ctx,
+                CreateCustomDomain {
+                    site_id,
+                    domain,
+                    www_redirect,
+                },
+            )
+            .await
+            .or_raise(make_error)?;
         }
 
         SiteService::update(

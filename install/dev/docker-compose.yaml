@@ -1,11 +1,52 @@
 services:
-  deepwell:
+  database:
     build:
       context: ../..
-      dockerfile: install/dev/deepwell/Dockerfile
+      dockerfile: install/dev/postgres/Dockerfile
+    environment:
+      - "POSTGRES_DB=wikijump"
+      - "POSTGRES_USER=wikijump"
+      - "POSTGRES_PASSWORD=${POSTGRES_PASSWORD}"
+      - "POSTGRES_HOST_AUTH_METHOD=md5"
+      - "POSTGRES_INITDB_ARGS=--locale en_US.UTF-8"
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wikijump-health-check"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+  cache:
+    build: valkey
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  deepwell:
+    image: 575596218155.dkr.ecr.us-east-2.amazonaws.com/wikijump/deepwell:dev
     ports:
       - "2747:2747"
-    restart: always
+    links:
+      - cache
+      - database
+    environment:
+      - "DATABASE_URL=postgres://wikijump:${POSTGRES_PASSWORD}@database/wikijump"
+      - "REDIS_URL=redis://cache"
+      - "S3_FILES_BUCKET=${S3_FILES_BUCKET}"
+      - "S3_TEXT_BLOCKS_BUCKET=${S3_TEXT_BLOCKS_BUCKET}"
+      - "S3_REGION_NAME=${S3_REGION_NAME}"
+      - "S3_CUSTOM_ENDPOINT=${S3_CUSTOM_ENDPOINT}"
+      - "S3_PATH_STYLE=${S3_PATH_STYLE}"
+      - "S3_ACCESS_KEY_ID=${S3_ACCESS_KEY_ID}"
+      - "S3_SECRET_ACCESS_KEY=${S3_SECRET_ACCESS_KEY}"
+    restart: unless-stopped
     healthcheck:
       test: ["CMD", "wikijump-health-check"]
       interval: 120s
@@ -15,16 +56,14 @@ services:
       start_interval: 10s
 
   framerail:
-    build:
-      context: ../..
-      dockerfile: install/dev/framerail/Dockerfile
+    image: 575596218155.dkr.ecr.us-east-2.amazonaws.com/wikijump/framerail:dev
     ports:
-      - "3000:3000"
+      - "3393:3393"
     links:
       - deepwell
     environment:
       - "DEEPWELL_HOST=deepwell"
-    restart: always
+    restart: unless-stopped
     healthcheck:
       test: ["CMD", "wikijump-health-check"]
       interval: 120s
@@ -35,17 +74,24 @@ services:
         condition: service_healthy
 
   wws:
-    build:
-      context: ../..
-      dockerfile: install/dev/wws/Dockerfile
+    image: 575596218155.dkr.ecr.us-east-2.amazonaws.com/wikijump/wws:dev
     ports:
-      - "7000:7000"
+      - "3466:3466"
     links:
       - deepwell
+      - cache
     environment:
-      - "ADDRESS=[::]:7000"
+      - "ADDRESS=[::]:3466"
       - "DEEPWELL_URL=http://deepwell:2747"
-    restart: always
+      - "REDIS_URL=redis://cache"
+      - "S3_FILES_BUCKET=${S3_FILES_BUCKET}"
+      - "S3_TEXT_BLOCKS_BUCKET=${S3_TEXT_BLOCKS_BUCKET}"
+      - "S3_REGION_NAME=${S3_REGION_NAME}"
+      - "S3_CUSTOM_ENDPOINT=${S3_CUSTOM_ENDPOINT}"
+      - "S3_PATH_STYLE=${S3_PATH_STYLE}"
+      - "S3_ACCESS_KEY_ID=${S3_ACCESS_KEY_ID}"
+      - "S3_SECRET_ACCESS_KEY=${S3_SECRET_ACCESS_KEY}"
+    restart: unless-stopped
     healthcheck:
       test: ["CMD", "wikijump-health-check"]
       interval: 120s
@@ -56,9 +102,7 @@ services:
         condition: service_healthy
 
   caddy:
-    build:
-      context: ../..
-      dockerfile: install/dev/caddy/Dockerfile
+    image: 575596218155.dkr.ecr.us-east-2.amazonaws.com/wikijump/caddy:dev
     ports:
       - "80:80"
       - "443:443"
@@ -66,7 +110,9 @@ services:
     links:
       - framerail
       - wws
-    restart: always
+    environment:
+      - "DIGITALOCEAN_API_TOKEN=${DIGITALOCEAN_API_TOKEN}"
+    restart: unless-stopped
     healthcheck:
       test: ["CMD", "wikijump-health-check"]
       interval: 30s
@@ -75,3 +121,10 @@ services:
     depends_on:
       deepwell:
         condition: service_healthy
+    volumes:
+      - caddy:/data/caddy
+    extra_hosts:
+      - host.docker.internal:host-gateway
+
+volumes:
+  caddy:

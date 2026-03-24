@@ -1,0 +1,12 @@
+[[repo]]
+name = "wikijump-dev"
+tags = ["wikijump"]
+[repo.config]
+server = "Local"
+builder = "Local"
+repo = "scpwiki/wikijump"
+branch = "develop"
+links = [
+    "https://github.com/scpwiki/wikijump",
+    "https://wikijump.org",
+]
