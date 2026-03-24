@@ -60,7 +60,7 @@ impl ForumService {
                     "failed to create forum group in site ID {} by user ID {}",
                     site_id, user_id,
                 ),
-                ErrorType::Forum,
+                ErrorType::ForumGroup,
             )
         };
 
@@ -100,7 +100,7 @@ impl ForumService {
                     "failed to update forum group ID {} by user ID {}",
                     forum_group_id, user_id,
                 ),
-                ErrorType::Forum,
+                ErrorType::ForumGroup,
             )
         };
 
@@ -149,7 +149,7 @@ impl ForumService {
                     "failed to delete forum group ID {} by user ID {}",
                     forum_group_id, user_id,
                 ),
-                ErrorType::Forum,
+                ErrorType::ForumGroup,
             )
         };
 
@@ -195,7 +195,7 @@ impl ForumService {
                         "failed to get forum group ID {} in site ID {}",
                         forum_group_id, site_id,
                     ),
-                    ErrorType::Forum,
+                    ErrorType::ForumGroup,
                 )
             })?;
 
@@ -206,15 +206,7 @@ impl ForumService {
         ctx: &ServiceContext<'_>,
         key: GetForumGroup,
     ) -> Result<ForumGroupModel> {
-        Ok(Self::get_group_optional(ctx, key).await?.ok_or_else(|| {
-            Error::new(
-                format!(
-                    "forum group ID {} does not exist in site ID {}",
-                    key.forum_group_id, key.site_id,
-                ),
-                ErrorType::BadRequest,
-            )
-        })?)
+        find_or_error!(Self::get_group_optional(ctx, key), "forum group", ForumGroup)
     }
 
     pub async fn get_group_direct_optional(
@@ -237,7 +229,7 @@ impl ForumService {
             .or_raise(|| {
                 Error::new(
                     format!("failed to get forum group ID {} directly", forum_group_id),
-                    ErrorType::Forum,
+                    ErrorType::ForumGroup,
                 )
             })?;
 
@@ -249,15 +241,10 @@ impl ForumService {
         forum_group_id: i64,
         include_deleted: bool,
     ) -> Result<ForumGroupModel> {
-        Ok(
-            Self::get_group_direct_optional(ctx, forum_group_id, include_deleted)
-                .await?
-                .ok_or_else(|| {
-                    Error::new(
-                        format!("forum group ID {} does not exist", forum_group_id),
-                        ErrorType::BadRequest,
-                    )
-                })?,
+        find_or_error!(
+            Self::get_group_direct_optional(ctx, forum_group_id, include_deleted),
+            "forum group",
+            ForumGroup,
         )
     }
 
@@ -284,7 +271,7 @@ impl ForumService {
             .or_raise(|| {
                 Error::new(
                     format!("failed to list forum groups in site ID {}", site_id),
-                    ErrorType::Forum,
+                    ErrorType::ForumGroup,
                 )
             })?;
 
@@ -325,7 +312,7 @@ impl ForumService {
                     "failed to create forum category in group ID {} by user ID {}",
                     forum_group_id, user_id,
                 ),
-                ErrorType::Forum,
+                ErrorType::ForumCategory,
             )
         };
 
@@ -371,7 +358,7 @@ impl ForumService {
                     "failed to update forum category ID {} by user ID {}",
                     forum_category_id, user_id,
                 ),
-                ErrorType::Forum,
+                ErrorType::ForumCategory,
             )
         };
 
@@ -513,7 +500,7 @@ impl ForumService {
                     "failed to delete forum category ID {} by user ID {}",
                     forum_category_id, user_id,
                 ),
-                ErrorType::Forum,
+                ErrorType::ForumCategory,
             )
         };
 
@@ -559,7 +546,7 @@ impl ForumService {
                         "failed to get forum category ID {} in site ID {}",
                         forum_category_id, site_id,
                     ),
-                    ErrorType::Forum,
+                    ErrorType::ForumCategory,
                 )
             })?;
 
@@ -570,17 +557,11 @@ impl ForumService {
         ctx: &ServiceContext<'_>,
         key: GetForumCategory,
     ) -> Result<ForumCategoryModel> {
-        Ok(Self::get_category_optional(ctx, key)
-            .await?
-            .ok_or_else(|| {
-                Error::new(
-                    format!(
-                        "forum category ID {} does not exist in site ID {}",
-                        key.forum_category_id, key.site_id,
-                    ),
-                    ErrorType::BadRequest,
-                )
-            })?)
+        find_or_error!(
+            Self::get_category_optional(ctx, key),
+            "forum category",
+            ForumCategory,
+        )
     }
 
     pub async fn get_category_direct_optional(
@@ -606,7 +587,7 @@ impl ForumService {
                         "failed to get forum category ID {} directly",
                         forum_category_id,
                     ),
-                    ErrorType::Forum,
+                    ErrorType::ForumCategory,
                 )
             })?;
 
@@ -618,15 +599,10 @@ impl ForumService {
         forum_category_id: i64,
         include_deleted: bool,
     ) -> Result<ForumCategoryModel> {
-        Ok(
-            Self::get_category_direct_optional(ctx, forum_category_id, include_deleted)
-                .await?
-                .ok_or_else(|| {
-                    Error::new(
-                        format!("forum category ID {} does not exist", forum_category_id),
-                        ErrorType::BadRequest,
-                    )
-                })?,
+        find_or_error!(
+            Self::get_category_direct_optional(ctx, forum_category_id, include_deleted),
+            "forum category",
+            ForumCategory,
         )
     }
 
@@ -658,7 +634,7 @@ impl ForumService {
             .or_raise(|| {
                 Error::new(
                     format!("failed to list forum categories in site ID {}", site_id),
-                    ErrorType::Forum,
+                    ErrorType::ForumCategory,
                 )
             })?;
 
@@ -741,7 +717,7 @@ impl ForumService {
                         "failed to determine next forum group sort index in site ID {}",
                         site_id,
                     ),
-                    ErrorType::Forum,
+                    ErrorType::ForumGroup,
                 )
             })?;
 
@@ -768,7 +744,7 @@ impl ForumService {
                         "failed to determine next forum category sort index in group ID {}",
                         forum_group_id,
                     ),
-                    ErrorType::Forum,
+                    ErrorType::ForumCategory,
                 )
             })?;
 

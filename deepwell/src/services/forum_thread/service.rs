@@ -37,7 +37,7 @@ impl ForumThreadService {
         CreateForumThread {
             forum_category_id,
             user_id,
-            page_id,
+            associated_page_id,
             title,
             description,
             sticky,
@@ -52,7 +52,7 @@ impl ForumThreadService {
                         "failed to create forum thread in category ID {}",
                         forum_category_id,
                     ),
-                    ErrorType::Forum,
+                    ErrorType::ForumThread,
                 )
             })?;
 
@@ -61,7 +61,7 @@ impl ForumThreadService {
             forum_category_id: Set(category.forum_category_id),
             forum_group_id: Set(category.forum_group_id),
             site_id: Set(category.site_id),
-            page_id: Set(page_id),
+            page_id: Set(associated_page_id),
             created_by: Set(user_id),
             title: Set(title),
             description: Set(description),
@@ -76,7 +76,7 @@ impl ForumThreadService {
                     "failed to create forum thread in category ID {} by user ID {}",
                     forum_category_id, user_id,
                 ),
-                ErrorType::Forum,
+                ErrorType::ForumThread,
             )
         })?;
 
@@ -105,7 +105,7 @@ impl ForumThreadService {
                     "failed to update forum thread ID {} by user ID {}",
                     forum_thread_id, user_id,
                 ),
-                ErrorType::Forum,
+                ErrorType::ForumThread,
             )
         };
 
@@ -221,7 +221,7 @@ impl ForumThreadService {
                     "failed to delete forum thread ID {} by user ID {}",
                     forum_thread_id, user_id,
                 ),
-                ErrorType::Forum,
+                ErrorType::ForumThread,
             )
         };
 
@@ -269,7 +269,7 @@ impl ForumThreadService {
                     "failed to touch activity for forum thread ID {}",
                     forum_thread_id,
                 ),
-                ErrorType::Forum,
+                ErrorType::ForumThread,
             )
         })?;
 
@@ -286,7 +286,7 @@ impl ForumThreadService {
                     "failed to touch activity for forum thread ID {}",
                     forum_thread_id,
                 ),
-                ErrorType::Forum,
+                ErrorType::ForumThread,
             )
         })?;
 
@@ -315,7 +315,7 @@ impl ForumThreadService {
             .or_raise(|| {
                 Error::new(
                     format!("failed to get forum thread ID {}", forum_thread_id),
-                    ErrorType::Forum,
+                    ErrorType::ForumThread,
                 )
             })?;
 
@@ -326,12 +326,7 @@ impl ForumThreadService {
         ctx: &ServiceContext<'_>,
         key: GetForumThread,
     ) -> Result<ForumThreadModel> {
-        Ok(Self::get_optional(ctx, key).await?.ok_or_else(|| {
-            Error::new(
-                format!("forum thread ID {} does not exist", key.forum_thread_id),
-                ErrorType::BadRequest,
-            )
-        })?)
+        find_or_error!(Self::get_optional(ctx, key), "forum thread", ForumThread)
     }
 
     pub async fn list(
@@ -384,7 +379,7 @@ impl ForumThreadService {
                     "failed to list forum threads in category ID {}",
                     forum_category_id,
                 ),
-                ErrorType::Forum,
+                ErrorType::ForumThread,
             )
         })?;
 

@@ -89,6 +89,16 @@ pub enum ErrorType {
     Alias,
     #[allow(dead_code)] // TEMP
     Forum,
+    #[allow(dead_code)] // TEMP
+    ForumGroup,
+    #[allow(dead_code)] // TEMP
+    ForumCategory,
+    #[allow(dead_code)] // TEMP
+    ForumThread,
+    #[allow(dead_code)] // TEMP
+    ForumPost,
+    #[allow(dead_code)] // TEMP
+    ForumPostRevision,
 
     // 2000
     #[allow(dead_code)]
@@ -110,6 +120,11 @@ pub enum ErrorType {
     MessageDraftNotFound,
     BlobNotFound,
     TextNotFound,
+    ForumGroupNotFound,
+    ForumCategoryNotFound,
+    ForumThreadNotFound,
+    ForumPostNotFound,
+    ForumPostRevisionNotFound,
 
     // 2100
     UserExists,
@@ -331,6 +346,11 @@ impl ErrorType {
             ErrorType::CustomDomain => 1319,
             ErrorType::Alias => 1320,
             ErrorType::Forum => 1321,
+            ErrorType::ForumGroup => 1322,
+            ErrorType::ForumCategory => 1323,
+            ErrorType::ForumThread => 1324,
+            ErrorType::ForumPost => 1325,
+            ErrorType::ForumPostRevision => 1326,
 
             //
             // 2000 -- Data Consistency
@@ -355,6 +375,11 @@ impl ErrorType {
             ErrorType::MessageDraftNotFound => 2015,
             ErrorType::BlobNotFound => 2016,
             ErrorType::TextNotFound => 2017,
+            ErrorType::ForumGroupNotFound => 2018,
+            ErrorType::ForumCategoryNotFound => 2019,
+            ErrorType::ForumThreadNotFound => 2020,
+            ErrorType::ForumPostNotFound => 2021,
+            ErrorType::ForumPostRevisionNotFound => 2022,
 
             // 2100 - Already Exists
             ErrorType::UserExists => 2100,
@@ -555,6 +580,11 @@ impl ErrorType {
             ErrorType::CustomDomain => "Failed to act on a custom domain",
             ErrorType::Alias => "Failed to act on an object alias",
             ErrorType::Forum => "Failed to act on a forum object",
+            ErrorType::ForumGroup => "Failed to act on a forum group",
+            ErrorType::ForumCategory => "Failed to act on a forum category",
+            ErrorType::ForumThread => "Failed to act on a forum thread",
+            ErrorType::ForumPost => "Failed to act on a forum post",
+            ErrorType::ForumPostRevision => "Failed to act on a forum post revision",
 
             // 2000
             ErrorType::GeneralNotFound => "Unspecified entity does not exist",
@@ -575,6 +605,13 @@ impl ErrorType {
             ErrorType::MessageDraftNotFound => "Message draft does not exist",
             ErrorType::BlobNotFound => "Blob item does not exist",
             ErrorType::TextNotFound => "Text item does not exist",
+            ErrorType::ForumGroupNotFound => "Forum group does not exist",
+            ErrorType::ForumCategoryNotFound => "Forum category does not exist",
+            ErrorType::ForumThreadNotFound => "Forum thread does not exist",
+            ErrorType::ForumPostNotFound => "Forum post does not exist",
+            ErrorType::ForumPostRevisionNotFound => {
+                "Forum post revision does not exist"
+            }
 
             // 2100
             ErrorType::UserExists => "Cannot perform, user already exists",

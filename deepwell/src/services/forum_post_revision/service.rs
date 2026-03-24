@@ -54,7 +54,7 @@ impl ForumPostRevisionService {
                     "failed to create first revision for forum post ID {} in thread ID {} by user ID {}",
                     post.forum_post_id, post.forum_thread_id, user_id,
                 ),
-                ErrorType::Forum,
+                ErrorType::ForumPostRevision,
             )
         };
 
@@ -118,7 +118,7 @@ impl ForumPostRevisionService {
                     "failed to create new revision for forum post ID {} in thread ID {} by user ID {}",
                     post.forum_post_id, post.forum_thread_id, user_id,
                 ),
-                ErrorType::Forum,
+                ErrorType::ForumPostRevision,
             )
         };
 
@@ -231,7 +231,7 @@ impl ForumPostRevisionService {
                     "failed to update forum post revision ID {} by user ID {}",
                     forum_post_revision_id, user_id,
                 ),
-                ErrorType::Forum,
+                ErrorType::ForumPostRevision,
             )
         };
 
@@ -269,7 +269,7 @@ impl ForumPostRevisionService {
                         "failed to get latest revision for forum post ID {}",
                         forum_post_id,
                     ),
-                    ErrorType::Forum,
+                    ErrorType::ForumPostRevision,
                 )
             })?;
 
@@ -280,7 +280,7 @@ impl ForumPostRevisionService {
                     "no latest revision exists for forum post ID {}",
                     forum_post_id,
                 ),
-                ErrorType::BadRequest,
+                ErrorType::ForumPostRevisionNotFound,
             )),
         }
     }
@@ -307,7 +307,7 @@ impl ForumPostRevisionService {
                         "failed to get forum post revision number {} for post ID {}",
                         revision_number, forum_post_id,
                     ),
-                    ErrorType::Forum,
+                    ErrorType::ForumPostRevision,
                 )
             })?;
 
@@ -318,15 +318,11 @@ impl ForumPostRevisionService {
         ctx: &ServiceContext<'_>,
         key: GetForumPostRevision,
     ) -> Result<ForumPostRevisionModel> {
-        Ok(Self::get_optional(ctx, key).await?.ok_or_else(|| {
-            Error::new(
-                format!(
-                    "forum post revision number {} does not exist for post ID {}",
-                    key.revision_number, key.forum_post_id,
-                ),
-                ErrorType::BadRequest,
-            )
-        })?)
+        find_or_error!(
+            Self::get_optional(ctx, key),
+            "forum post revision",
+            ForumPostRevision,
+        )
     }
 
     pub async fn get_direct(
@@ -343,7 +339,7 @@ impl ForumPostRevisionService {
                         "failed to get forum post revision ID {} directly",
                         forum_post_revision_id,
                     ),
-                    ErrorType::Forum,
+                    ErrorType::ForumPostRevision,
                 )
             })?;
 
@@ -353,7 +349,7 @@ impl ForumPostRevisionService {
                     "forum post revision ID {} does not exist",
                     forum_post_revision_id,
                 ),
-                ErrorType::BadRequest,
+                ErrorType::ForumPostRevisionNotFound,
             )
         })?)
     }
@@ -370,7 +366,7 @@ impl ForumPostRevisionService {
                         "failed to count revisions for forum post ID {}",
                         forum_post_id,
                     ),
-                    ErrorType::Forum,
+                    ErrorType::ForumPostRevision,
                 )
             })?;
 
@@ -395,7 +391,7 @@ impl ForumPostRevisionService {
                     forum_post_id,
                     limit,
                 ),
-                ErrorType::Forum,
+                ErrorType::ForumPostRevision,
             )
         };
 
@@ -453,12 +449,12 @@ impl ForumPostRevisionService {
                         "failed to get site ID {} to render forum post revision",
                         site_id,
                     ),
-                    ErrorType::Forum,
+                    ErrorType::ForumPostRevision,
                 )
             })?;
 
         let settings = WikitextSettings::from_mode(
-            WikitextMode::DirectMessage,
+            WikitextMode::ForumPost,
             ctx.config().message_layout,
         );
         let page_info = PageInfo {

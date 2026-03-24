@@ -26,7 +26,7 @@ use crate::types::Maybe;
 pub struct CreateForumThread {
     pub forum_category_id: i64,
     pub user_id: i64,
-    pub page_id: Option<i64>,
+    pub associated_page_id: Option<i64>,
     pub title: String,
     #[serde(default)]
     pub description: String,

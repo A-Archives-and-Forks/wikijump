@@ -43,7 +43,7 @@ impl ForumPostService {
         ctx: &ServiceContext<'_>,
         CreateForumPost {
             forum_thread_id,
-            parent_post_id,
+            mut parent_post_id,
             user_id,
             title,
             wikitext,
@@ -57,7 +57,7 @@ impl ForumPostService {
                     "failed to create forum post in thread ID {} by user ID {}",
                     forum_thread_id, user_id,
                 ),
-                ErrorType::Forum,
+                ErrorType::ForumPost,
             )
         };
 
@@ -71,11 +71,11 @@ impl ForumPostService {
         .await
         .or_raise(make_error)?;
 
-        if let Some(parent_post_id) = parent_post_id {
+        if let Some(original_parent_post_id) = parent_post_id {
             let parent_post = Self::get(
                 ctx,
                 GetForumPost {
-                    forum_post_id: parent_post_id,
+                    forum_post_id: original_parent_post_id,
                     include_deleted: false,
                 },
             )
@@ -87,7 +87,7 @@ impl ForumPostService {
                     format!(
                         "cannot create reply in thread ID {}, parent post ID {} belongs to thread ID {}",
                         thread.forum_thread_id,
-                        parent_post_id,
+                        original_parent_post_id,
                         parent_post.forum_thread_id,
                     ),
                     ErrorType::BadRequest,
@@ -97,7 +97,6 @@ impl ForumPostService {
             let parent_depth = Self::get_depth(ctx, &parent_post)
                 .await
                 .or_raise(make_error)?;
-            let child_depth = parent_depth + 1;
 
             let max_nest_level = SettingsService::get_forum_max_nest_level(
                 ctx,
@@ -107,14 +106,11 @@ impl ForumPostService {
             .await
             .or_raise(make_error)?;
 
-            if child_depth > max_nest_level {
-                bail!(Error::new(
-                    format!(
-                        "cannot create forum post at depth {}, max nesting depth is {}",
-                        child_depth, max_nest_level,
-                    ),
-                    ErrorType::BadRequest,
-                ));
+            // Wikidot's logic is to cap the depth at the max nest level,
+            // so if the parent is already at the max, the reply is placed
+            // at the same depth rather than failing.
+            if parent_depth >= max_nest_level {
+                parent_post_id = parent_post.parent_post_id;
             }
         }
 
@@ -196,7 +192,7 @@ impl ForumPostService {
                     "failed to update forum post ID {} by user ID {}",
                     forum_post_id, user_id,
                 ),
-                ErrorType::Forum,
+                ErrorType::ForumPost,
             )
         };
 
@@ -287,7 +283,7 @@ impl ForumPostService {
             .or_raise(|| {
                 Error::new(
                     format!("failed to get forum post ID {}", forum_post_id),
-                    ErrorType::Forum,
+                    ErrorType::ForumPost,
                 )
             })?;
 
@@ -298,12 +294,7 @@ impl ForumPostService {
         ctx: &ServiceContext<'_>,
         key: GetForumPost,
     ) -> Result<ForumPostModel> {
-        Ok(Self::get_optional(ctx, key).await?.ok_or_else(|| {
-            Error::new(
-                format!("forum post ID {} does not exist", key.forum_post_id),
-                ErrorType::BadRequest,
-            )
-        })?)
+        find_or_error!(Self::get_optional(ctx, key), "forum post", ForumPost)
     }
 
     pub async fn list(
@@ -343,7 +334,7 @@ impl ForumPostService {
                         "failed to list forum posts in thread ID {}",
                         forum_thread_id,
                     ),
-                    ErrorType::Forum,
+                    ErrorType::ForumPost,
                 )
             })?;
 
@@ -366,7 +357,7 @@ impl ForumPostService {
                     "failed to get structured forum posts for thread ID {}",
                     forum_thread_id,
                 ),
-                ErrorType::Forum,
+                ErrorType::ForumPost,
             )
         };
 
