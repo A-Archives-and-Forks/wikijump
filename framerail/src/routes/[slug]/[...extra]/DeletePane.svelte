@@ -8,7 +8,11 @@
 
   import type { PageProps } from "./$types"
 
-  let { pagePaneState, data, params }: PageProps & { pagePaneState: PagePane } = $props()
+  let {
+    pagePaneState = $bindable(),
+    data,
+    params
+  }: PageProps & { pagePaneState: PagePane } = $props()
 
   const { form, enhance } = superForm(
     untrack(() => data.forms.pageDeleteForm),

@@ -56,7 +56,9 @@
         </h1>
         {#if errorPopupState.current.data}
           <p id="model-message-extra" class="modal-message-extra">
-            {errorPopupState.current.data.call_trace}
+            {typeof errorPopupState.current.data === "string"
+              ? errorPopupState.current.data
+              : errorPopupState.current.data.call_trace}
           </p>
         {/if}
       </div>
@@ -94,7 +96,9 @@
       </div>
       {#if errorPopupState.current.data}
         <div id="model-message-extra" class="modal-message-extra">
-          {errorPopupState.current.data.call_trace}
+          {typeof errorPopupState.current.data === "string"
+            ? errorPopupState.current.data
+            : errorPopupState.current.data.call_trace}
         </div>
       {/if}
     </div>

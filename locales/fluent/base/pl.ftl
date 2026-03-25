@@ -57,7 +57,7 @@ sent = Wysłano
 settings = Ustawienia
 sidebar = Pasek boczny
 tags = Tagi
-terms = Warunki
+terms-conditions = Warunki
 upload = Przekaż plik
 
 search = Szukaj

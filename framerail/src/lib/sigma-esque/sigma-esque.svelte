@@ -3,21 +3,21 @@
 </script>
 
 <div class="sigma-esque-container">
-  <div class="header">
+  <header class="header">
     {@render header?.()}
-  </div>
+  </header>
 
-  <div class="top-bar">
+  <nav class="top-bar">
     {@render topBar?.()}
-  </div>
+  </nav>
 
-  <div class="page-content-container">
+  <article class="page-content-container">
     {@render content?.()}
-  </div>
+  </article>
 
-  <div class="footer">
+  <footer class="footer">
     {@render footer?.()}
-  </div>
+  </footer>
 </div>
 
 <!-- Ignoring the styling as being a theme it will inevitably style other elements in the entire layout -->

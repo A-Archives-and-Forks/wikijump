@@ -38,7 +38,10 @@ export default defineConfig(
       "no-unneeded-ternary": "warn",
       "operator-assignment": "warn",
       "prefer-exponentiation-operator": "warn",
-      curly: ["warn", "multi-line"]
+      curly: ["warn", "multi-line"],
+
+      // this rule interferes with setting bindable component prop in svelte
+      "no-useless-assignment": "warn"
     }
   },
   ts.configs.recommended,

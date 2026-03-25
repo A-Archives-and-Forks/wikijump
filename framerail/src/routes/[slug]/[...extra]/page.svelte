@@ -62,6 +62,10 @@
   })
 </script>
 
+<svelte:head>
+  <title>{data.page_revision?.title} | {data.site.name}</title>
+</svelte:head>
+
 {#if pageLayoutState.current === Layout.WIKIDOT}
   {#if data.options?.debug}
     <h2>UNTRANSLATED:Debug Response</h2>
@@ -279,11 +283,11 @@
         </h1>
         <div class="page-source">{data.wikitext ?? ""}</div>
       {:else if pagePaneState === PagePane.Move}
-        <MovePane {pagePaneState} {...props} />
+        <MovePane bind:pagePaneState {...props} />
       {:else if pagePaneState === PagePane.Layout}
-        <LayoutPane {pagePaneState} {...props} />
+        <LayoutPane bind:pagePaneState {...props} />
       {:else if pagePaneState === PagePane.Parent}
-        <ParentPane {pagePaneState} {...props} />
+        <ParentPane bind:pagePaneState {...props} />
       {:else if pagePaneState === PagePane.Vote}
         <VotePane {...props} />
       {:else if pagePaneState === PagePane.File}
@@ -291,7 +295,7 @@
       {:else if pagePaneState === PagePane.History}
         <HistoryPane {setRevision} {setShowRevision} {...props} />
       {:else if pagePaneState === PagePane.Delete}
-        <DeletePane {pagePaneState} {...props} />
+        <DeletePane bind:pagePaneState {...props} />
       {/if}
     </div>
   {/if}
@@ -299,9 +303,9 @@
   {#if data.options?.debug}
     <h2>UNTRANSLATED:Debug Response</h2>
   {:else if showRevision}
-    <h2>{revision?.title}</h2>
+    <h2 class="page-title">{revision?.title}</h2>
   {:else}
-    <h2>{data.page_revision?.title}</h2>
+    <h2 class="page-title">{data.page_revision?.title}</h2>
   {/if}
 
   <hr />
@@ -424,11 +428,11 @@
   {/if}
 
   {#if pagePaneState === PagePane.Move}
-    <MovePane {pagePaneState} {...props} />
+    <MovePane bind:pagePaneState {...props} />
   {:else if pagePaneState === PagePane.Layout}
-    <LayoutPane {pagePaneState} {...props} />
+    <LayoutPane bind:pagePaneState {...props} />
   {:else if pagePaneState === PagePane.Parent}
-    <ParentPane {pagePaneState} {...props} />
+    <ParentPane bind:pagePaneState {...props} />
   {:else if pagePaneState === PagePane.Vote}
     <VotePane {...props} />
   {:else if pagePaneState === PagePane.File}
@@ -436,7 +440,7 @@
   {:else if pagePaneState === PagePane.History}
     <HistoryPane {setRevision} {setShowRevision} {...props} />
   {:else if pagePaneState === PagePane.Delete}
-    <DeletePane {pagePaneState} {...props} />
+    <DeletePane bind:pagePaneState {...props} />
   {/if}
 {/if}
 
