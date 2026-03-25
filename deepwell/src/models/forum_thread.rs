@@ -11,7 +11,6 @@ pub struct Model {
     pub forum_category_id: i64,
     pub forum_group_id: i64,
     pub site_id: i64,
-    #[sea_orm(unique)]
     pub page_id: Option<i64>,
     pub created_by: i64,
     #[serde(with = "time::serde::rfc3339")]
@@ -39,15 +38,7 @@ pub enum Relation {
         on_update = "NoAction",
         on_delete = "NoAction"
     )]
-    ForumCategory2,
-    #[sea_orm(
-        belongs_to = "super::forum_category::Entity",
-        from = "(Column::ForumCategoryId, Column::SiteId)",
-        to = "(super::forum_category::Column::ForumCategoryId, super::forum_category::Column::SiteId)",
-        on_update = "NoAction",
-        on_delete = "NoAction"
-    )]
-    ForumCategory1,
+    ForumCategory,
     #[sea_orm(
         belongs_to = "super::forum_group::Entity",
         from = "Column::ForumGroupId",
@@ -55,15 +46,11 @@ pub enum Relation {
         on_update = "NoAction",
         on_delete = "NoAction"
     )]
-    ForumGroup2,
-    #[sea_orm(
-        belongs_to = "super::forum_group::Entity",
-        from = "(Column::ForumGroupId, Column::SiteId)",
-        to = "(super::forum_group::Column::ForumGroupId, super::forum_group::Column::SiteId)",
-        on_update = "NoAction",
-        on_delete = "NoAction"
-    )]
-    ForumGroup1,
+    ForumGroup,
+    #[sea_orm(has_many = "super::forum_post::Entity")]
+    ForumPost,
+    #[sea_orm(has_many = "super::forum_post_revision::Entity")]
+    ForumPostRevision,
     #[sea_orm(has_many = "super::forum_thread_lock::Entity")]
     ForumThreadLock,
     #[sea_orm(
@@ -89,15 +76,7 @@ pub enum Relation {
         on_update = "NoAction",
         on_delete = "NoAction"
     )]
-    User3,
-    #[sea_orm(
-        belongs_to = "super::user::Entity",
-        from = "Column::DeletedBy",
-        to = "super::user::Column::UserId",
-        on_update = "NoAction",
-        on_delete = "NoAction"
-    )]
-    User2,
+    User1,
     #[sea_orm(
         belongs_to = "super::user::Entity",
         from = "Column::UpdatedBy",
@@ -105,7 +84,39 @@ pub enum Relation {
         on_update = "NoAction",
         on_delete = "NoAction"
     )]
-    User1,
+    User2,
+    #[sea_orm(
+        belongs_to = "super::user::Entity",
+        from = "Column::DeletedBy",
+        to = "super::user::Column::UserId",
+        on_update = "NoAction",
+        on_delete = "NoAction"
+    )]
+    User3,
+}
+
+impl Related<super::forum_category::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::ForumCategory.def()
+    }
+}
+
+impl Related<super::forum_group::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::ForumGroup.def()
+    }
+}
+
+impl Related<super::forum_post::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::ForumPost.def()
+    }
+}
+
+impl Related<super::forum_post_revision::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::ForumPostRevision.def()
+    }
 }
 
 impl Related<super::forum_thread_lock::Entity> for Entity {

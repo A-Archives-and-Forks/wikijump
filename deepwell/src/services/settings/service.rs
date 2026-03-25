@@ -19,8 +19,9 @@
  */
 
 use super::prelude::*;
+use crate::services::forum::GetForumCategory;
 use crate::services::{
-    CategoryService, PageRevisionService, PageService, SiteService, TextService,
+    CategoryService, ForumService, PageRevisionService, PageService, SiteService,
 };
 use crate::types::parse_layout;
 use ftml::layout::Layout;
@@ -296,5 +297,84 @@ impl SettingsService {
             compiled_top_bar_html,
             compiled_side_bar_html,
         })
+    }
+
+    /// Gets forum settings, combining site defaults and category overrides.
+    ///
+    /// Category settings (if specified) override site-level defaults.
+    #[allow(dead_code)] // TODO
+    pub async fn get_forum_settings(
+        ctx: &ServiceContext<'_>,
+        site_id: i64,
+        forum_category_id: Option<i64>,
+    ) -> Result<ForumStructureSettings> {
+        let make_error = || {
+            Error::new(
+                match forum_category_id {
+                    Some(forum_category_id) => format!(
+                        "failed to get forum settings for site ID {}, category ID {}",
+                        site_id, forum_category_id,
+                    ),
+                    None => format!(
+                        "failed to get forum settings for site ID {}, no category",
+                        site_id,
+                    ),
+                },
+                ErrorType::Forum,
+            )
+        };
+
+        let defaults = SiteService::get_forum_settings(ctx, Reference::Id(site_id))
+            .await
+            .or_raise(make_error)?;
+
+        let category = match forum_category_id {
+            Some(forum_category_id) => Some(
+                ForumService::get_category(
+                    ctx,
+                    GetForumCategory {
+                        site_id,
+                        forum_category_id,
+                        include_deleted: false,
+                    },
+                )
+                .await
+                .or_raise(make_error)?,
+            ),
+            None => None,
+        };
+
+        Ok(ForumStructureSettings {
+            max_nest_level: category
+                .as_ref()
+                .and_then(|category| category.max_nest_level)
+                .unwrap_or(defaults.max_nest_level),
+            per_page_discussion: category
+                .as_ref()
+                .and_then(|category| category.per_page_discussion)
+                .unwrap_or(defaults.per_page_discussion),
+        })
+    }
+
+    #[allow(dead_code)] // TODO
+    #[inline]
+    pub async fn get_forum_max_nest_level(
+        ctx: &ServiceContext<'_>,
+        site_id: i64,
+        forum_category_id: Option<i64>,
+    ) -> Result<i16> {
+        let settings = Self::get_forum_settings(ctx, site_id, forum_category_id).await?;
+        Ok(settings.max_nest_level)
+    }
+
+    #[allow(dead_code)] // TODO
+    #[inline]
+    pub async fn get_forum_per_page_discussion(
+        ctx: &ServiceContext<'_>,
+        site_id: i64,
+        forum_category_id: Option<i64>,
+    ) -> Result<bool> {
+        let settings = Self::get_forum_settings(ctx, site_id, forum_category_id).await?;
+        Ok(settings.per_page_discussion)
     }
 }

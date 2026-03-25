@@ -785,7 +785,6 @@ CREATE TABLE forum_group (
     sort_index INTEGER NOT NULL CHECK (sort_index >= 0),
     from_wikidot BOOLEAN NOT NULL DEFAULT false,
 
-    UNIQUE (site_id, sort_index),
     UNIQUE (forum_group_id, site_id),
     CHECK ((updated_by IS NULL) = (updated_at IS NULL)),
     CHECK ((deleted_by IS NULL) = (deleted_at IS NULL))
@@ -812,7 +811,6 @@ CREATE TABLE forum_category (
     per_page_discussion BOOLEAN DEFAULT false,
     layout TEXT,
 
-    UNIQUE (forum_group_id, sort_index),
     -- Required for (forum_category_id, site_id) composite FKs from denormalized child rows.
     UNIQUE (forum_category_id, site_id),
     CHECK ((updated_by IS NULL) = (updated_at IS NULL)),
@@ -943,6 +941,11 @@ ALTER TABLE page
         FOREIGN KEY (discussion_thread_id) REFERENCES forum_thread(forum_thread_id);
 
 -- Forum indexes
+-- Keep sort order unique only among active rows; deleted rows should not reserve positions.
+CREATE UNIQUE INDEX forum_group_sort_active_unique_idx ON forum_group (site_id, sort_index)
+    WHERE deleted_at IS NULL;
+CREATE UNIQUE INDEX forum_category_sort_active_unique_idx ON forum_category (forum_group_id, sort_index)
+    WHERE deleted_at IS NULL;
 CREATE INDEX forum_group_sort_idx ON forum_group (site_id, sort_index);
 CREATE INDEX forum_category_sort_idx ON forum_category (forum_group_id, sort_index);
 CREATE INDEX forum_category_site_sort_idx ON forum_category (site_id, sort_index);

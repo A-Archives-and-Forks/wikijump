@@ -40,15 +40,13 @@ pub enum Relation {
         on_update = "NoAction",
         on_delete = "NoAction"
     )]
-    ForumGroup2,
-    #[sea_orm(
-        belongs_to = "super::forum_group::Entity",
-        from = "(Column::ForumGroupId, Column::SiteId)",
-        to = "(super::forum_group::Column::ForumGroupId, super::forum_group::Column::SiteId)",
-        on_update = "NoAction",
-        on_delete = "NoAction"
-    )]
-    ForumGroup1,
+    ForumGroup,
+    #[sea_orm(has_many = "super::forum_post::Entity")]
+    ForumPost,
+    #[sea_orm(has_many = "super::forum_post_revision::Entity")]
+    ForumPostRevision,
+    #[sea_orm(has_many = "super::forum_thread::Entity")]
+    ForumThread,
     #[sea_orm(
         belongs_to = "super::site::Entity",
         from = "Column::SiteId",
@@ -64,15 +62,7 @@ pub enum Relation {
         on_update = "NoAction",
         on_delete = "NoAction"
     )]
-    User3,
-    #[sea_orm(
-        belongs_to = "super::user::Entity",
-        from = "Column::DeletedBy",
-        to = "super::user::Column::UserId",
-        on_update = "NoAction",
-        on_delete = "NoAction"
-    )]
-    User2,
+    User1,
     #[sea_orm(
         belongs_to = "super::user::Entity",
         from = "Column::UpdatedBy",
@@ -80,7 +70,39 @@ pub enum Relation {
         on_update = "NoAction",
         on_delete = "NoAction"
     )]
-    User1,
+    User2,
+    #[sea_orm(
+        belongs_to = "super::user::Entity",
+        from = "Column::DeletedBy",
+        to = "super::user::Column::UserId",
+        on_update = "NoAction",
+        on_delete = "NoAction"
+    )]
+    User3,
+}
+
+impl Related<super::forum_group::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::ForumGroup.def()
+    }
+}
+
+impl Related<super::forum_post::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::ForumPost.def()
+    }
+}
+
+impl Related<super::forum_post_revision::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::ForumPostRevision.def()
+    }
+}
+
+impl Related<super::forum_thread::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::ForumThread.def()
+    }
 }
 
 impl Related<super::site::Entity> for Entity {

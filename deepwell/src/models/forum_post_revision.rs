@@ -26,6 +26,7 @@ pub struct Model {
     pub wikitext_hash: Vec<u8>,
     #[sea_orm(column_type = "VarBinary(StringLen::None)")]
     pub compiled_html_hash: Vec<u8>,
+    #[serde(with = "time::serde::rfc3339")]
     pub compiled_at: TimeDateTimeWithTimeZone,
     #[sea_orm(column_type = "Text")]
     pub compiled_generator: String,
@@ -42,15 +43,7 @@ pub enum Relation {
         on_update = "NoAction",
         on_delete = "NoAction"
     )]
-    ForumCategory2,
-    #[sea_orm(
-        belongs_to = "super::forum_category::Entity",
-        from = "(Column::ForumCategoryId, Column::SiteId)",
-        to = "(super::forum_category::Column::ForumCategoryId, super::forum_category::Column::SiteId)",
-        on_update = "NoAction",
-        on_delete = "NoAction"
-    )]
-    ForumCategory1,
+    ForumCategory,
     #[sea_orm(
         belongs_to = "super::forum_group::Entity",
         from = "Column::ForumGroupId",
@@ -58,15 +51,7 @@ pub enum Relation {
         on_update = "NoAction",
         on_delete = "NoAction"
     )]
-    ForumGroup2,
-    #[sea_orm(
-        belongs_to = "super::forum_group::Entity",
-        from = "(Column::ForumGroupId, Column::SiteId)",
-        to = "(super::forum_group::Column::ForumGroupId, super::forum_group::Column::SiteId)",
-        on_update = "NoAction",
-        on_delete = "NoAction"
-    )]
-    ForumGroup1,
+    ForumGroup,
     #[sea_orm(
         belongs_to = "super::forum_post::Entity",
         from = "Column::ForumPostId",
@@ -74,15 +59,7 @@ pub enum Relation {
         on_update = "NoAction",
         on_delete = "NoAction"
     )]
-    ForumPost2,
-    #[sea_orm(
-        belongs_to = "super::forum_post::Entity",
-        from = "(Column::ForumPostId, Column::SiteId)",
-        to = "(super::forum_post::Column::ForumPostId, super::forum_post::Column::SiteId)",
-        on_update = "NoAction",
-        on_delete = "NoAction"
-    )]
-    ForumPost1,
+    ForumPost,
     #[sea_orm(
         belongs_to = "super::forum_thread::Entity",
         from = "Column::ForumThreadId",
@@ -90,15 +67,7 @@ pub enum Relation {
         on_update = "NoAction",
         on_delete = "NoAction"
     )]
-    ForumThread2,
-    #[sea_orm(
-        belongs_to = "super::forum_thread::Entity",
-        from = "(Column::ForumThreadId, Column::SiteId)",
-        to = "(super::forum_thread::Column::ForumThreadId, super::forum_thread::Column::SiteId)",
-        on_update = "NoAction",
-        on_delete = "NoAction"
-    )]
-    ForumThread1,
+    ForumThread,
     #[sea_orm(
         belongs_to = "super::site::Entity",
         from = "Column::SiteId",
@@ -131,6 +100,30 @@ pub enum Relation {
         on_delete = "NoAction"
     )]
     User,
+}
+
+impl Related<super::forum_category::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::ForumCategory.def()
+    }
+}
+
+impl Related<super::forum_group::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::ForumGroup.def()
+    }
+}
+
+impl Related<super::forum_post::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::ForumPost.def()
+    }
+}
+
+impl Related<super::forum_thread::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::ForumThread.def()
+    }
 }
 
 impl Related<super::site::Entity> for Entity {
