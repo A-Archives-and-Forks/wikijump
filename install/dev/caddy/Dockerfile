@@ -18,6 +18,10 @@ COPY ./install/dev/caddy/generate-caddyfile.sh /usr/local/bin/wikijump-generate-
 COPY ./install/dev/caddy/update-caddyfile.sh /usr/local/bin/wikijump-update-caddyfile
 COPY ./install/dev/caddy/request.json /etc/caddy-request.json
 
+# Set up provisional Caddyfile
+# Ensure deploy host matches with request.json
+RUN sed -i "s/<<DEPLOY_HOST>>/$(jq -r .params.deploy_host /etc/caddy-request.json)/" /etc/caddy/Caddyfile
+
 # Set up cron
 COPY ./install/dev/caddy/crontab /etc/caddy/crontab
 RUN crontab -u daemon /etc/caddy/crontab && \

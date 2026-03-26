@@ -6,15 +6,11 @@
 #
 # This enables minimum caddy function until a later Caddyfile
 # update cronjob succeeds or the issue can be fixed manually.
-#
-# Variables (denoted by '<<NAME>>') are replaced in the image build.
 
-deploy.wikijump.dev {
-	reverse_proxy <<DEPLOY_HOST>>
-}
-
-deploy.wjfiles.dev {
-	redir https://deploy.wikijump.dev
+{
+	debug
+	local_certs
+	skip_install_trust
 }
 
 # Display fallback error

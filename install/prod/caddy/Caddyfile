@@ -7,7 +7,7 @@
 # This enables minimum caddy function until a later Caddyfile
 # update cronjob succeeds or the issue can be fixed manually.
 #
-# Variables (denoted by '<<NAME>>') are replaced in wikijump-start-caddy.
+# Variables (denoted by '<<NAME>>') are replaced in the image build.
 
 deploy.wikijump.com {
 	reverse_proxy <<DEPLOY_HOST>>
@@ -18,10 +18,13 @@ deploy.wjfiles.com {
 }
 
 # Display fallback error
-http://,
-https:// {
+http:// {
 	respond 502 {
-		body "ERROR XF-1005\nBackend still starting up or fatal error"
+		body <<EOF
+		ERROR XF-1005
+		Backend still starting up or fatal error
+		EOF
+
 		close
 	}
 }

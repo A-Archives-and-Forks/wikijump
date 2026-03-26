@@ -4,6 +4,7 @@ FROM caddy:alpine
 RUN apk add --no-cache curl jq
 
 # Install files
+COPY ./install/local/caddy/Caddyfile /etc/caddy/Caddyfile
 COPY ./install/local/caddy/start.sh /usr/local/bin/wikijump-start-caddy
 COPY ./install/local/caddy/health-check.sh /usr/local/bin/wikijump-health-check
 COPY ./install/local/caddy/generate-caddyfile.sh /usr/local/bin/wikijump-generate-caddyfile

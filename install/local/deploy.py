@@ -37,7 +37,7 @@ if __name__ == "__main__":
         action="store_true",
         help="Do not change directory before attempting to run docker-compose",
     )
-    argparser.add_argument("action", nargs=argparse.REMAINDER)
+    argparser.add_argument("command", nargs=argparse.REMAINDER)
     args = argparser.parse_args()
 
     # Get into the right context
@@ -59,7 +59,7 @@ if __name__ == "__main__":
     if not args.no_dev:
         cmdline.extend(("-f", "docker-compose.dev.yaml"))
 
-    cmdline.extend(args.action)
+    cmdline.extend(args.command)
 
     # We use exec instead of subprocess since this is just a launch script,
     # it doesn't need to do any work after starting docker-compose.

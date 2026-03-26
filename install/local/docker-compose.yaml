@@ -150,6 +150,7 @@ services:
       - "443:443"
       - "443:443/udp"
     links:
+      - deepwell
       - framerail
       - wws
     restart: unless-stopped
@@ -158,6 +159,3 @@ services:
       interval: 30s
       timeout: 2s
       retries: 3
-    depends_on:
-      deepwell:
-        condition: service_healthy
