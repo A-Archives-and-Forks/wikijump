@@ -54,10 +54,6 @@ services:
       dockerfile: install/local/deepwell/Dockerfile
     ports:
       - "2747:2747"
-    links:
-      - cache
-      - database
-      - files
     environment:
       - "DATABASE_URL=postgres://wikijump:wikijump@database/wikijump"
       - "REDIS_URL=redis://cache"
@@ -90,8 +86,6 @@ services:
       dockerfile: install/local/framerail/Dockerfile
     ports:
       - "3393:3393"
-    links:
-      - deepwell
     environment:
       - "DEEPWELL_HOST=deepwell"
     restart: unless-stopped
@@ -110,10 +104,6 @@ services:
       dockerfile: install/local/wws/Dockerfile
     ports:
       - "3466:3466"
-    links:
-      - deepwell
-      - cache
-      - files
     environment:
       - "ADDRESS=[::]:3466"
       - "DEEPWELL_URL=http://deepwell:2747"
@@ -149,10 +139,6 @@ services:
       - "80:80"
       - "443:443"
       - "443:443/udp"
-    links:
-      - deepwell
-      - framerail
-      - wws
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wikijump-health-check"]
