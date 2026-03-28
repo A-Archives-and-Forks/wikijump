@@ -461,7 +461,6 @@ impl ForumPostService {
         GetStructuredForumPosts {
             forum_thread_id,
             start_post_id,
-            include_deleted: _,
             limit,
             max_depth,
         }: GetStructuredForumPosts,
