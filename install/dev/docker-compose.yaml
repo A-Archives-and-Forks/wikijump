@@ -64,9 +64,6 @@ services:
       interval: 120s
       timeout: 2s
       retries: 3
-    depends_on:
-      deepwell:
-        condition: service_healthy
 
   wws:
     image: 575596218155.dkr.ecr.us-east-2.amazonaws.com/wikijump/wws:dev
@@ -89,9 +86,6 @@ services:
       interval: 120s
       timeout: 2s
       retries: 3
-    depends_on:
-      deepwell:
-        condition: service_healthy
 
   caddy:
     image: 575596218155.dkr.ecr.us-east-2.amazonaws.com/wikijump/caddy:dev
