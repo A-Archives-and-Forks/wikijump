@@ -33,9 +33,6 @@ services:
     image: 575596218155.dkr.ecr.us-east-2.amazonaws.com/wikijump/deepwell:dev
     ports:
       - "2747:2747"
-    links:
-      - cache
-      - database
     environment:
       - "DATABASE_URL=postgres://wikijump:${POSTGRES_PASSWORD}@database/wikijump"
       - "REDIS_URL=redis://cache"
@@ -59,8 +56,6 @@ services:
     image: 575596218155.dkr.ecr.us-east-2.amazonaws.com/wikijump/framerail:dev
     ports:
       - "3393:3393"
-    links:
-      - deepwell
     environment:
       - "DEEPWELL_HOST=deepwell"
     restart: unless-stopped
@@ -69,17 +64,11 @@ services:
       interval: 120s
       timeout: 2s
       retries: 3
-    depends_on:
-      deepwell:
-        condition: service_healthy
 
   wws:
     image: 575596218155.dkr.ecr.us-east-2.amazonaws.com/wikijump/wws:dev
     ports:
       - "3466:3466"
-    links:
-      - deepwell
-      - cache
     environment:
       - "ADDRESS=[::]:3466"
       - "DEEPWELL_URL=http://deepwell:2747"
@@ -97,9 +86,6 @@ services:
       interval: 120s
       timeout: 2s
       retries: 3
-    depends_on:
-      deepwell:
-        condition: service_healthy
 
   caddy:
     image: 575596218155.dkr.ecr.us-east-2.amazonaws.com/wikijump/caddy:dev
@@ -107,10 +93,6 @@ services:
       - "80:80"
       - "443:443"
       - "443:443/udp"
-    links:
-      - deepwell
-      - framerail
-      - wws
     environment:
       - "DIGITALOCEAN_API_TOKEN=${DIGITALOCEAN_API_TOKEN}"
     restart: unless-stopped
