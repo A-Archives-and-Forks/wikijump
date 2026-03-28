@@ -1,7 +1,7 @@
 [[procedure]]
 name = "Deploy Dev"
 description = "Automatically deploy Wikijump dev on push"
-tags = ["wikijump", "system"]
+tags = ["wikijump"]
 
 [[procedure.config.stage]]
 name = "Pull Wikijump"
