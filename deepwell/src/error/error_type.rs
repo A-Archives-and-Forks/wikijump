@@ -196,6 +196,9 @@ pub enum ErrorType {
     FileMimeEmpty,
     FileNotDeleted,
 
+    // 4500
+    ForumPostNotDeleted,
+
     // 5000
     LocaleInvalid {
         locale: String,
@@ -481,6 +484,9 @@ impl ErrorType {
             ErrorType::FileMimeEmpty => 4403,
             ErrorType::FileNotDeleted => 4404,
 
+            // 4500 - Forum
+            ErrorType::ForumPostNotDeleted => 4500,
+
             //
             // 5000 -- Client / Request Errors - Ancillary Data Objects
             //
@@ -730,6 +736,9 @@ impl ErrorType {
             }
             ErrorType::FileMimeEmpty => "File MIME type cannot be empty",
             ErrorType::FileNotDeleted => "Cannot restore a non-deleted file",
+
+            // 4500
+            ErrorType::ForumPostNotDeleted => "Cannot restore a non-deleted forum post",
 
             // 5000
             ErrorType::LocaleInvalid { .. } => "Invalid locale name",
