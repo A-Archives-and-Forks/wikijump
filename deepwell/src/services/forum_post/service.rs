@@ -261,6 +261,121 @@ impl ForumPostService {
         }))
     }
 
+    /// Soft-deletes a forum post without removing child posts.
+    ///
+    /// The post is marked as deleted via `deleted_at` / `deleted_by`,
+    /// but its children remain visible so that the thread structure
+    /// is preserved.
+    pub async fn delete(
+        ctx: &ServiceContext<'_>,
+        DeleteForumPost {
+            forum_post_id,
+            user_id,
+        }: DeleteForumPost,
+    ) -> Result<ForumPostModel> {
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to delete forum post ID {} by user ID {}",
+                    forum_post_id, user_id,
+                ),
+                ErrorType::ForumPost,
+            )
+        };
+
+        let post = Self::get(
+            ctx,
+            GetForumPost {
+                forum_post_id,
+                include_deleted: false,
+            },
+        )
+        .await
+        .or_raise(make_error)?;
+
+        let model = forum_post::ActiveModel {
+            forum_post_id: Set(post.forum_post_id),
+            deleted_by: Set(Some(user_id)),
+            deleted_at: Set(Some(now())),
+            updated_at: Set(Some(now())),
+            ..Default::default()
+        };
+
+        let post = model.update(ctx.transaction()).await.or_raise(make_error)?;
+
+        ForumThreadService::touch_activity(
+            ctx,
+            TouchForumThread {
+                forum_thread_id: post.forum_thread_id,
+                user_id: Some(user_id),
+            },
+        )
+        .await
+        .or_raise(make_error)?;
+
+        Ok(post)
+    }
+
+    pub async fn restore(
+        ctx: &ServiceContext<'_>,
+        RestoreForumPost {
+            forum_post_id,
+            user_id,
+        }: RestoreForumPost,
+    ) -> Result<ForumPostModel> {
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to restore forum post ID {} by user ID {}",
+                    forum_post_id, user_id,
+                ),
+                ErrorType::ForumPost,
+            )
+        };
+
+        let post = Self::get(
+            ctx,
+            GetForumPost {
+                forum_post_id,
+                include_deleted: true,
+            },
+        )
+        .await
+        .or_raise(make_error)?;
+
+        if post.deleted_at.is_none() {
+            bail!(Error::new(
+                format!(
+                    "cannot restore forum post ID {} that isn't deleted",
+                    forum_post_id
+                ),
+                ErrorType::ForumPostNotDeleted,
+            ));
+        }
+
+        let model = forum_post::ActiveModel {
+            forum_post_id: Set(post.forum_post_id),
+            deleted_by: Set(None),
+            deleted_at: Set(None),
+            updated_at: Set(Some(now())),
+            ..Default::default()
+        };
+
+        let post = model.update(ctx.transaction()).await.or_raise(make_error)?;
+
+        ForumThreadService::touch_activity(
+            ctx,
+            TouchForumThread {
+                forum_thread_id: post.forum_thread_id,
+                user_id: Some(user_id),
+            },
+        )
+        .await
+        .or_raise(make_error)?;
+
+        Ok(post)
+    }
+
     pub async fn get_optional(
         ctx: &ServiceContext<'_>,
         GetForumPost {
@@ -346,7 +461,7 @@ impl ForumPostService {
         GetStructuredForumPosts {
             forum_thread_id,
             start_post_id,
-            include_deleted,
+            include_deleted: _,
             limit,
             max_depth,
         }: GetStructuredForumPosts,
@@ -361,13 +476,17 @@ impl ForumPostService {
             )
         };
 
+        // Always include deleted posts so that the tree structure is
+        // preserved. If a middle post is deleted, its children must
+        // still appear under it. The caller checks `deleted_at` to
+        // decide how to render the placeholder.
         let posts = Self::list(
             ctx,
             GetForumPosts {
                 forum_thread_id,
                 parent_post_id: None,
                 start_post_id,
-                include_deleted,
+                include_deleted: true,
                 limit,
             },
         )
@@ -458,9 +577,13 @@ impl ForumPostService {
         let mut nodes = Vec::new();
 
         for post in posts {
-            let latest_revision = post
-                .latest_revision_id
-                .and_then(|id| revisions_by_id.get(&id).cloned());
+            // Don't expose revision content for deleted posts.
+            let latest_revision = if post.deleted_at.is_none() {
+                post.latest_revision_id
+                    .and_then(|id| revisions_by_id.get(&id).cloned())
+            } else {
+                None
+            };
 
             let replies = if depth < max_depth {
                 Self::build_post_nodes(

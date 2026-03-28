@@ -98,6 +98,18 @@ pub struct GetStructuredForumPosts {
     pub max_depth: Option<u16>,
 }
 
+#[derive(Deserialize, Debug, Copy, Clone)]
+pub struct DeleteForumPost {
+    pub forum_post_id: i64,
+    pub user_id: i64,
+}
+
+#[derive(Deserialize, Debug, Copy, Clone)]
+pub struct RestoreForumPost {
+    pub forum_post_id: i64,
+    pub user_id: i64,
+}
+
 #[derive(Serialize, Debug, Clone)]
 pub struct ForumPostNode {
     pub post: ForumPostModel,
