@@ -1,4 +1,4 @@
-name: '[backend] Docker build Valkey (LOCAL)'
+name: '[backend] Docker build Valkey (local)'
 
 on:
   pull_request:
