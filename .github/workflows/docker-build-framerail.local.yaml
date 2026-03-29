@@ -1,4 +1,4 @@
-name: '[backend] Docker build Framerail (LOCAL)'
+name: '[backend] Docker build Framerail (local)'
 
 on:
   pull_request:

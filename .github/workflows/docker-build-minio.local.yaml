@@ -1,4 +1,4 @@
-name: '[backend] Docker build Minio (LOCAL)'
+name: '[backend] Docker build Minio (local)'
 
 on:
   pull_request:
