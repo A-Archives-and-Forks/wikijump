@@ -1,4 +1,4 @@
-name: '[backend] Docker build DEEPWELL (LOCAL)'
+name: '[backend] Docker build DEEPWELL (local)'
 
 on:
   pull_request:

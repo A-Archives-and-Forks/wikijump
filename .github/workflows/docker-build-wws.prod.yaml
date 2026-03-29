@@ -1,4 +1,4 @@
-name: '[backend] Docker build WWS (PROD)'
+name: '[backend] Docker build WWS (prod)'
 
 on:
   pull_request:
