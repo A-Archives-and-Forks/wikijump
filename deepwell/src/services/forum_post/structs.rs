@@ -91,11 +91,21 @@ pub struct GetForumPosts {
 pub struct GetStructuredForumPosts {
     pub forum_thread_id: i64,
     pub start_post_id: Option<i64>,
-    #[serde(default)]
-    pub include_deleted: bool,
     #[serde(default = "default_limit")]
     pub limit: u64,
     pub max_depth: Option<u16>,
+}
+
+#[derive(Deserialize, Debug, Copy, Clone)]
+pub struct DeleteForumPost {
+    pub forum_post_id: i64,
+    pub user_id: i64,
+}
+
+#[derive(Deserialize, Debug, Copy, Clone)]
+pub struct RestoreForumPost {
+    pub forum_post_id: i64,
+    pub user_id: i64,
 }
 
 #[derive(Serialize, Debug, Clone)]
