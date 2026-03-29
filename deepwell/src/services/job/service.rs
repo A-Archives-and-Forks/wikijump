@@ -49,7 +49,7 @@ pub const JOB_QUEUE_DELAY: Option<Duration> = None;
 ///
 /// (But as a general code principle there shouldn't be huge jobs, they should
 /// just use IDs and references to items in the database.)
-pub const JOB_QUEUE_MAXIMUM_SIZE: Option<i32> = Some(1024);
+pub const JOB_QUEUE_MAXIMUM_SIZE: Option<i64> = Some(1024);
 
 #[derive(Debug)]
 pub struct JobService;
