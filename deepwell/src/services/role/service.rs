@@ -528,7 +528,7 @@ impl RoleService {
         };
 
         // Collect virtual roles to apply based on flags
-        let mut applied_virtual_roles = Vec::new();
+        let mut applied_virtual_roles = Vec::with_capacity(4); // At most 4 virtual roles at a time
         if is_logged_in {
             applied_virtual_roles.push(SystemRole::Registered);
         }
