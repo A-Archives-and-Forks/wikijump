@@ -34,6 +34,7 @@ pub struct SeedData {
     pub pages: HashMap<String, Vec<Page>>,
     pub files: HashMap<String, HashMap<String, Vec<File>>>,
     pub filters: Vec<Filter>,
+    pub roles: Vec<Role>,
 }
 
 impl SeedData {
@@ -77,6 +78,10 @@ impl SeedData {
         let filters: Vec<Filter> =
             Self::load_json(&mut path, "filters").or_raise(make_error)?;
 
+        // Load roles template
+        let roles: Vec<Role> =
+            Self::load_json(&mut path, "roles").or_raise(make_error)?;
+
         // Build and return
         Ok(SeedData {
             users,
@@ -84,6 +89,7 @@ impl SeedData {
             pages: site_pages,
             files,
             filters,
+            roles,
         })
     }
 
@@ -244,6 +250,16 @@ pub struct File {
 
     #[serde(default)]
     pub deleted: bool,
+}
+
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "kebab-case")]
+pub struct Role {
+    pub name: String,
+    pub description: String,
+    pub is_virtual: bool,
+    pub level: i32,
+    pub permissions: Vec<String>,
 }
 
 #[inline]

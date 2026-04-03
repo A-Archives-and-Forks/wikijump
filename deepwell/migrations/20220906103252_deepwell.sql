@@ -957,6 +957,67 @@ CREATE INDEX forum_post_latest_revision_idx ON forum_post (latest_revision_id);
 CREATE INDEX forum_post_revision_lookup_idx ON forum_post_revision (forum_post_id, revision_number DESC);
 
 --
+-- Role / permission system
+--
+
+-- Roles in a site.
+CREATE TABLE role (
+    role_id BIGSERIAL PRIMARY KEY,
+
+    -- Denotes a unique role in a site. A user may be an admin in one site but a regular site member in another.
+    site_id BIGINT NOT NULL REFERENCES site(site_id),
+    name TEXT NOT NULL,
+    description TEXT NOT NULL,
+    from_wikidot BOOLEAN NOT NULL DEFAULT false,
+
+    -- Virtual roles are invisible to the user, granted by the system under specific conditions
+    -- e.g. Guest role granted when a non-member visits the site,
+    -- or Author role granted when a user interacts with a page they authored.
+    -- Virtual roles are visible to admins where they can select the role's permissions.
+    -- Virtual roles cannot be manually assigned.
+    is_virtual BOOLEAN NOT NULL DEFAULT false,
+
+    -- Rudimentary role hierarchy.
+    -- Roles with higher level are granted more permissions than roles with lower levels.
+    -- Users with role management permissions can only grant roles with lower levels and affect users of lower levels.
+    level INTEGER NOT NULL CHECK (level >= 0),
+
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+    updated_at TIMESTAMP WITH TIME ZONE,
+    deleted_at TIMESTAMP WITH TIME ZONE,
+
+    UNIQUE (site_id, name)
+);
+
+-- Role permissions (1-to-many)
+CREATE TABLE role_permission (
+    permission_id BIGSERIAL PRIMARY KEY,
+    role_id BIGINT NOT NULL REFERENCES role(role_id),
+    -- Denormalized to avoid a join when filtering permissions by site.
+    site_id BIGINT NOT NULL REFERENCES site(site_id),
+    resource_type TEXT NOT NULL,
+    -- Polymorphic reference to a resource category. For example, if the resource_type is "forum_category", then this references forum_category_id.
+    -- NULL means the permission applies to all resources of the given type
+    resource_category_id BIGINT,
+    action TEXT NOT NULL,
+    UNIQUE (site_id, role_id, resource_type, resource_category_id, action)
+);
+
+-- User role assignments (many-to-many)
+CREATE TABLE user_role (
+    user_id BIGINT NOT NULL REFERENCES "user"(user_id),
+    role_id BIGINT NOT NULL REFERENCES role(role_id),
+    -- Denormalized FK to avoid a join. (Remember, roles are tied to a specific site)
+    site_id BIGINT NOT NULL REFERENCES site(site_id),
+
+    assigned_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+    assigned_by BIGINT NOT NULL REFERENCES "user"(user_id),
+    expires_at TIMESTAMP WITH TIME ZONE,
+    deleted_at TIMESTAMP WITH TIME ZONE,
+    PRIMARY KEY (user_id, role_id)
+);
+
+--
 -- Audit Log
 --
 
