@@ -30,11 +30,14 @@ use crate::services::page_revision::{
     CreatePageRevisionBody, CreatePageRevisionOutput, CreateResurrectionPageRevision,
     CreateTombstonePageRevision,
 };
+use crate::services::permission::{
+    CheckPermissionContext, PermissionInput, PermissionService,
+};
 use crate::services::{
     CategoryService, FilterService, PageRevisionService, SiteService, TextBlockService,
     TextService,
 };
-use crate::types::{PageId, PageOrder};
+use crate::types::{Action, PageId, PageOrder, Reference, Resource};
 use crate::utils::{get_category_name, trim_default};
 use ftml::layout::Layout;
 use ref_map::*;
@@ -1236,6 +1239,38 @@ impl PageService {
         raise_multiple!(result1, result2, result3; make_error);
 
         Ok(())
+    }
+
+    pub async fn check_user_permission(
+        ctx: &ServiceContext<'_>,
+        permission_context: &CheckPermissionContext<'_>,
+        action: Action,
+    ) -> Result<bool> {
+        let make_error =
+            || Error::new("failed to check user permissions for page", ErrorType::Page);
+
+        let page_ref = match permission_context.page_reference {
+            Some(ref page_reference) => page_reference,
+            None => {
+                bail!(make_error());
+            }
+        };
+
+        let page_model = Self::get(ctx, permission_context.site_id, page_ref.clone())
+            .await
+            .or_raise(make_error)?;
+
+        PermissionService::check_user_can(
+            ctx,
+            permission_context,
+            PermissionInput {
+                resource_type: Resource::Page,
+                resource_category: Some(Reference::Id(page_model.page_category_id)),
+                action,
+            },
+        )
+        .await
+        .or_raise(make_error)
     }
 }
 

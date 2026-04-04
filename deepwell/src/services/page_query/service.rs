@@ -28,13 +28,12 @@ use crate::models::page_parent::{self, Entity as PageParent};
 use crate::models::{page_revision, text};
 use crate::services::{PageService, ParentService};
 use sea_query::{Expr, Query};
-use std::convert::Infallible;
 
 #[derive(Debug)]
 pub struct PageQueryService;
 
 impl PageQueryService {
-    pub async fn execute(
+    pub async fn find(
         ctx: &ServiceContext<'_>,
         PageQuery {
             current_page_id,
@@ -67,8 +66,9 @@ impl PageQueryService {
             order,
             pagination,
             variables,
+            fields,
         }: PageQuery<'_>,
-    ) -> Result<Infallible> {
+    ) -> Result<FoundPages> {
         info!("Building ListPages query from specification");
 
         let make_error =
@@ -439,9 +439,48 @@ impl PageQueryService {
         //      3. [14, 13, 12, 11, 10]
 
         // Execute it!
-        let result = query.all(txn).await.or_raise(make_error)?;
+        let pages = query.all(txn).await.or_raise(make_error)?;
 
-        // TODO implement query construction
-        todo!()
+        debug!("Query returned {} pages, building FoundPages", pages.len());
+
+        let rows = pages
+            .into_iter()
+            .map(|page| FoundPageRow {
+                page_id: page.page_id,
+                site_id: page.site_id,
+                slug: if fields.slug { Some(page.slug) } else { None },
+                page_category_id: if fields.page_category_id {
+                    Some(page.page_category_id)
+                } else {
+                    None
+                },
+                page_revision_id: if fields.page_revision_id {
+                    page.latest_revision_id
+                } else {
+                    None
+                },
+                created_at: if fields.created_at {
+                    Some(page.created_at)
+                } else {
+                    None
+                },
+                updated_at: if fields.updated_at {
+                    page.updated_at
+                } else {
+                    None
+                },
+                // Fields that require a revision join are not
+                // yet populated from the query. These will be
+                // implemented when the revision join is added.
+                title: None,      // TODO: requires revision join
+                alt_title: None,  // TODO: requires revision join
+                tags: None,       // TODO: requires revision join
+                created_by: None, // TODO: requires revision join
+                updated_by: None, // TODO: requires revision join
+                score: None,      // TODO: requires vote join
+            })
+            .collect();
+
+        Ok(FoundPages { pages: rows })
     }
 }

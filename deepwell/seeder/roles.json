@@ -1,0 +1,117 @@
+[
+    {
+        "name": "root",
+        "description": "Root user with full site permissions",
+        "is-virtual": false,
+        "is-system": true,
+        "level": 100,
+        "permissions": [
+            "page:view",
+            "page:edit",
+            "page:system:edit",
+            "page:create",
+            "page:delete",
+            "page:rename",
+            "role:view",
+            "role:assign"
+        ]
+    },
+    {
+        "name": "admin",
+        "description": "Site administrator with full control",
+        "is-virtual": false,
+        "is-system": false,
+        "level": 99,
+        "permissions": [
+            "page:view",
+            "page:edit",
+            "page:system:edit",
+            "page:create",
+            "page:delete",
+            "page:rename",
+            "role:view",
+            "role:assign"
+        ]
+    },
+    {
+        "name": "moderator",
+        "description": "Site moderator with full control over pages",
+        "is-virtual": false,
+        "is-system": false,
+        "level": 90,
+        "permissions": [
+            "page:view",
+            "page:edit",
+            "page:create",
+            "page:delete",
+            "role:view"
+        ]
+    },
+    {
+        "name": "member",
+        "description": "Regular site member",
+        "is-virtual": false,
+        "is-system": true,
+        "level": 10,
+        "permissions": [
+            "page:view",
+            "page:edit",
+            "page:create"
+        ]
+    },
+    {
+        "name": "guest",
+        "description": "Virtual role for all non-members, including registered and anonymous users.",
+        "is-virtual": true,
+        "is-system": true,
+        "level": 1,
+        "permissions": [
+            "page:view"
+        ]
+    },
+    {
+        "name": "registered",
+        "description": "Virtual role for registered and logged-in users.",
+        "is-virtual": true,
+        "is-system": true,
+        "level": 1,
+        "permissions": [
+            "page:view"
+        ]
+    },
+    {
+        "name": "anonymous",
+        "description": "Virtual role for unregistered or logged out users.",
+        "is-virtual": true,
+        "is-system": true,
+        "level": 1,
+        "permissions": [
+            "page:view"
+        ]
+    },
+    {
+        "name": "everyone",
+        "description": "Virtual role for all users, regardless of membership or registration status.",
+        "is-virtual": true,
+        "is-system": true,
+        "level": 1,
+        "permissions": [
+            "page:view"
+        ]
+    },
+    {
+        "name": "page-author",
+        "description": "Virtual role granted to the user when they visit a page that they authored, based on the page attribution metadata.",
+        "is-virtual": true,
+        "is-system": true,
+        "level": 1,
+        "permissions": [
+            "page:view",
+            "page:edit",
+            "page:create",
+            "page:delete",
+            "page:rename"
+        ]
+    }
+]
+
