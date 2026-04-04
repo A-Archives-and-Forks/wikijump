@@ -39,12 +39,12 @@ use wikidot_normalize::normalize;
 
 const MULTIPART_BOUNDARY: &str = "wikijump_byteranges";
 
-// Reject requests with more than this many ranges to limit DoS surface
+/// Reject requests with more than this many ranges to limit DoS surface
 const MAX_RANGES: usize = 10;
 
-// Maximum total bytes we'll buffer for a multipart/byteranges response.
-// Beyond this, the multipart request is rejected with 416
-const MAX_MULTIPART_BYTES: u64 = 8 * 1024 * 1024;
+/// Maximum total bytes we'll buffer for a `multipart/byteranges` response.
+/// Beyond this, the multipart request is rejected with 416 (Range Not Satisfiable)
+const MAX_MULTIPART_BYTES: u64 = 8 * 1024 * 1024; // 8 MiB
 
 // HTTP Range support (see RFC 9110 §14)
 
@@ -200,7 +200,7 @@ fn percent_encode_rfc5987(s: &str) -> String {
             | b'`'
             | b'|'
             | b'~' => {
-                out.push(*byte as char);
+                out.push(char::from(*byte));
             }
             _ => {
                 let _ = write!(out, "%{byte:02X}");
