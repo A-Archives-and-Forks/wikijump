@@ -29,7 +29,7 @@ use axum::{
     extract::{Path, State},
     http::{
         Method, StatusCode,
-        header::{self, HeaderMap},
+        header::{self, HeaderMap, HeaderValue},
     },
     response::{IntoResponse, Response},
 };
@@ -41,6 +41,10 @@ const MULTIPART_BOUNDARY: &str = "wikijump_byteranges";
 
 // Reject requests with more than this many ranges to limit DoS surface
 const MAX_RANGES: usize = 10;
+
+// Maximum total bytes we'll buffer for a multipart/byteranges response.
+// Beyond this, the multipart request is rejected with 416
+const MAX_MULTIPART_BYTES: u64 = 8 * 1024 * 1024;
 
 // HTTP Range support (see RFC 9110 §14)
 
@@ -151,6 +155,61 @@ fn parse_range_header(value: &str, file_size: u64) -> ParsedRange {
     }
 }
 
+fn content_disposition_attachment(filename: &str) -> HeaderValue {
+    if filename.is_ascii() {
+        let escaped = filename.replace('\\', "\\\\").replace('"', "\\\"");
+        let value = format!("attachment; filename=\"{escaped}\"");
+        HeaderValue::from_str(&value)
+            .unwrap_or_else(|_| HeaderValue::from_static("attachment"))
+    } else {
+        let ascii_fallback: String = filename
+            .chars()
+            .map(|c| {
+                if c.is_ascii_graphic() && c != '"' && c != '\\' {
+                    c
+                } else {
+                    '_'
+                }
+            })
+            .collect();
+        let encoded = percent_encode_rfc5987(filename);
+        let value = format!(
+            "attachment; filename=\"{ascii_fallback}\"; filename*=UTF-8''{encoded}"
+        );
+        HeaderValue::from_bytes(value.as_bytes())
+            .unwrap_or_else(|_| HeaderValue::from_static("attachment"))
+    }
+}
+
+fn percent_encode_rfc5987(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    for byte in s.as_bytes() {
+        match byte {
+            b'A'..=b'Z'
+            | b'a'..=b'z'
+            | b'0'..=b'9'
+            | b'!'
+            | b'#'
+            | b'$'
+            | b'&'
+            | b'+'
+            | b'-'
+            | b'.'
+            | b'^'
+            | b'_'
+            | b'`'
+            | b'|'
+            | b'~' => {
+                out.push(*byte as char);
+            }
+            _ => {
+                let _ = write!(out, "%{byte:02X}");
+            }
+        }
+    }
+    out
+}
+
 // File info lookup (no S3 body fetch)
 
 async fn fetch_file_info(
@@ -184,11 +243,31 @@ async fn fetch_full_body(
         .await
     {
         Ok(ResponseDataStream { bytes, status_code }) => {
-            assert_eq!(
-                status_code,
-                StatusCode::OK,
-                "get_object_stream() succeeded but did not reply 200",
-            );
+            if status_code != 200 {
+                let site_id = get_site_id(headers);
+                error!(
+                    site_id = site_id,
+                    page_slug = page_slug,
+                    filename = filename,
+                    s3_hash = &file_info.s3_hash,
+                    status_code = status_code,
+                    "S3 get_object_stream returned unexpected status",
+                );
+
+                let response = build_basic_error_response(
+                    state,
+                    headers,
+                    BasicError::FileFetch {
+                        site_id,
+                        page_slug,
+                        filename,
+                    },
+                )
+                .await;
+
+                return Err(response);
+            }
+
             Ok(Body::from_stream(bytes))
         }
         Err(error) => {
@@ -224,6 +303,34 @@ async fn fetch_full_body(
     }
 }
 
+// Fetch a single byte range as a stream by cloning the bucket and
+// injecting an HTTP Range header, so we never buffer the range in memory
+async fn fetch_range_stream(
+    state: &ServerState,
+    file_info: &FileData,
+    range: ByteRange,
+) -> Result<Body, s3::error::S3Error> {
+    let mut bucket = (*state.s3_files_bucket).clone();
+    bucket.add_header("range", &format!("bytes={}-{}", range.start, range.end));
+    let ResponseDataStream { bytes, status_code } =
+        bucket.get_object_stream(&file_info.s3_hash).await?;
+
+    if status_code != 206 {
+        error!(
+            s3_hash = &file_info.s3_hash,
+            status_code = status_code,
+            "S3 range stream returned unexpected status (expected 206)",
+        );
+        return Err(s3::error::S3Error::HttpFailWithBody(
+            status_code,
+            format!("expected 206, got {status_code}"),
+        ));
+    }
+
+    Ok(Body::from_stream(bytes))
+}
+
+// Fetch a single byte range into memory (used for multipart assembly)
 async fn fetch_range_bytes(
     state: &ServerState,
     file_info: &FileData,
@@ -233,6 +340,19 @@ async fn fetch_range_bytes(
         .s3_files_bucket
         .get_object_range(&file_info.s3_hash, range.start, Some(range.end))
         .await?;
+
+    if resp.status_code() != 206 {
+        error!(
+            s3_hash = &file_info.s3_hash,
+            status_code = resp.status_code(),
+            "S3 range get returned unexpected status (expected 206)",
+        );
+        return Err(s3::error::S3Error::HttpFailWithBody(
+            resp.status_code(),
+            format!("expected 206, got {}", resp.status_code()),
+        ));
+    }
+
     Ok(resp.to_vec())
 }
 
@@ -275,10 +395,9 @@ fn base_headers(
         .header(header::ACCEPT_RANGES, "bytes");
 
     if as_attachment {
-        let escaped = filename.replace('"', "\\\"");
         builder = builder.header(
             header::CONTENT_DISPOSITION,
-            format!("attachment; filename=\"{escaped}\""),
+            content_disposition_attachment(filename),
         );
     }
 
@@ -372,6 +491,17 @@ async fn serve_file(
             .await
         }
         ParsedRange::Satisfiable(ranges) => {
+            let total: u64 = ranges.iter().map(|r| r.len()).sum();
+            if total > MAX_MULTIPART_BYTES {
+                return build_or_500(
+                    Response::builder()
+                        .status(StatusCode::RANGE_NOT_SATISFIABLE)
+                        .header(header::CONTENT_RANGE, format!("bytes */{file_size}"))
+                        .header(header::ACCEPT_RANGES, "bytes")
+                        .body(Body::empty()),
+                );
+            }
+
             serve_multi_range(
                 state,
                 file_info,
@@ -428,8 +558,8 @@ async fn serve_single_range(
     let body = if is_head {
         Body::empty()
     } else {
-        match fetch_range_bytes(state, file_info, range).await {
-            Ok(d) => Body::from(d),
+        match fetch_range_stream(state, file_info, range).await {
+            Ok(b) => b,
             Err(error) => {
                 error!(
                     s3_hash = &file_info.s3_hash,
@@ -569,6 +699,8 @@ pub async fn handle_file_download(
 mod tests {
     use super::*;
 
+    // ------------ Range parser tests ------------
+
     fn ranges(value: &str, size: u64) -> Vec<(u64, u64)> {
         match parse_range_header(value, size) {
             ParsedRange::Satisfiable(rs) => rs.iter().map(|r| (r.start, r.end)).collect(),
@@ -646,5 +778,46 @@ mod tests {
     fn skip_unsatisfiable_keep_good() {
         // First range is past EOF, second is valid.
         assert_eq!(ranges("bytes=99999-100000, 0-99", 12345), vec![(0, 99)]);
+    }
+
+    // ------------ Content-Disposition tests ------------
+
+    #[test]
+    fn disposition_ascii() {
+        let val = content_disposition_attachment("report.pdf");
+        assert_eq!(val.to_str().unwrap(), "attachment; filename=\"report.pdf\"");
+    }
+
+    #[test]
+    fn disposition_escapes_quotes() {
+        let val = content_disposition_attachment("say\"hello\".txt");
+        assert_eq!(
+            val.to_str().unwrap(),
+            "attachment; filename=\"say\\\"hello\\\".txt\"",
+        );
+    }
+
+    #[test]
+    fn disposition_escapes_backslash() {
+        let val = content_disposition_attachment("back\\slash.txt");
+        assert_eq!(
+            val.to_str().unwrap(),
+            "attachment; filename=\"back\\\\slash.txt\"",
+        );
+    }
+
+    #[test]
+    fn disposition_non_ascii() {
+        let val = content_disposition_attachment("données.csv");
+        let s = std::str::from_utf8(val.as_bytes()).unwrap();
+        assert!(s.contains("filename=\"donn_es.csv\""));
+        assert!(s.contains("filename*=UTF-8''donn%C3%A9es.csv"));
+    }
+
+    #[test]
+    fn rfc5987_encode() {
+        assert_eq!(percent_encode_rfc5987("hello world"), "hello%20world");
+        assert_eq!(percent_encode_rfc5987("a/b"), "a%2Fb");
+        assert_eq!(percent_encode_rfc5987("simple"), "simple");
     }
 }
