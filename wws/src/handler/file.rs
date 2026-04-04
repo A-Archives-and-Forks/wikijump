@@ -72,6 +72,8 @@ enum ParsedRange {
     NotSatisfiable,
 }
 
+// Range request format reference:
+// https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Range_requests#multipart_ranges
 fn parse_range_header(value: &str, file_size: u64) -> ParsedRange {
     let spec = match value.trim().strip_prefix("bytes=") {
         Some(s) => s,
@@ -140,6 +142,11 @@ fn parse_range_header(value: &str, file_size: u64) -> ParsedRange {
         }
 
         if ranges.len() > MAX_RANGES {
+            error!(
+                "Requested too many ranges, rejecting ({} > {})",
+                ranges.len(),
+                MAX_RANGES
+            );
             return ParsedRange::None;
         }
     }
@@ -732,9 +739,38 @@ mod tests {
 
     #[test]
     fn multiple() {
+        // With and without whitespace after the comma.
         assert_eq!(
             ranges("bytes=0-99, 200-299", 12345),
             vec![(0, 99), (200, 299)],
+        );
+        assert_eq!(
+            ranges("bytes=0-99,200-299", 12345),
+            vec![(0, 99), (200, 299)],
+        );
+
+        // Mixed with an open-ended range.
+        assert_eq!(
+            ranges("bytes=0-99,500-", 12345),
+            vec![(0, 99), (500, 12344)],
+        );
+
+        // Mixed with a suffix range.
+        assert_eq!(
+            ranges("bytes=0-99,-100", 12345),
+            vec![(0, 99), (12245, 12344)],
+        );
+
+        // Closed, open-ended, and suffix together.
+        assert_eq!(
+            ranges("bytes=0-99, 500-, -100", 12345),
+            vec![(0, 99), (500, 12344), (12245, 12344)],
+        );
+
+        // More than two ranges.
+        assert_eq!(
+            ranges("bytes=0-9,20-29,40-49", 12345),
+            vec![(0, 9), (20, 29), (40, 49)],
         );
     }
 
