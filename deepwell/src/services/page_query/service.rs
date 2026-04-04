@@ -440,9 +440,8 @@ impl PageQueryService {
 
         // Execute it!
         let pages = query.all(txn).await.or_raise(make_error)?;
-        let total = pages.len();
 
-        debug!("Query returned {total} pages, building FoundPages");
+        debug!("Query returned {} pages, building FoundPages", pages.len());
 
         let rows = pages
             .into_iter()
@@ -450,6 +449,16 @@ impl PageQueryService {
                 page_id: page.page_id,
                 site_id: page.site_id,
                 slug: if fields.slug { Some(page.slug) } else { None },
+                page_category_id: if fields.page_category_id {
+                    Some(page.page_category_id)
+                } else {
+                    None
+                },
+                page_revision_id: if fields.page_revision_id {
+                    page.latest_revision_id
+                } else {
+                    None
+                },
                 created_at: if fields.created_at {
                     Some(page.created_at)
                 } else {
@@ -472,6 +481,6 @@ impl PageQueryService {
             })
             .collect();
 
-        Ok(FoundPages { pages: rows, total })
+        Ok(FoundPages { pages: rows })
     }
 }

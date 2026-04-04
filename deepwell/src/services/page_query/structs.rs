@@ -291,6 +291,8 @@ pub struct FoundPageFields {
     pub title: bool,
     pub alt_title: bool,
     pub slug: bool,
+    pub page_category_id: bool,
+    pub page_revision_id: bool,
     pub tags: bool,
     pub created_at: bool,
     pub created_by: bool,
@@ -316,6 +318,10 @@ pub struct FoundPageRow {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub slug: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub page_category_id: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub page_revision_id: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub tags: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(with = "time::serde::rfc3339::option")]
@@ -338,5 +344,11 @@ pub struct FoundPageRow {
 #[derive(Serialize, Debug, Clone, PartialEq)]
 pub struct FoundPages {
     pub pages: Vec<FoundPageRow>,
-    pub total: usize,
+}
+
+impl FoundPages {
+    #[inline]
+    pub fn total(&self) -> usize {
+        self.pages.len()
+    }
 }
