@@ -22,7 +22,6 @@ use super::prelude::*;
 use crate::models::page::{self, Entity as Page, Model as PageModel};
 use crate::models::page_category::Model as PageCategoryModel;
 use crate::models::page_revision::Model as PageRevisionModel;
-use crate::models::sea_orm_active_enums::PageRevisionType;
 use crate::services::audit::{AuditEvent, AuditService};
 use crate::services::filter::{FilterClass, FilterType};
 use crate::services::page_revision::{
@@ -37,6 +36,7 @@ use crate::services::{
     CategoryService, FilterService, PageRevisionService, SiteService, TextBlockService,
     TextService,
 };
+use crate::types::PageRevisionType;
 use crate::types::{Action, PageId, PageOrder, Reference, Resource};
 use crate::utils::{get_category_name, trim_default};
 use ftml::layout::Layout;

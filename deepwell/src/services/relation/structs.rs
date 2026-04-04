@@ -19,9 +19,32 @@
  */
 
 use crate::models::relation;
-use crate::models::sea_orm_active_enums::RelationObjectType;
-use sea_orm::{ColumnTrait, Condition, DeriveActiveEnum, DeriveValueType, EnumIter};
+use sea_orm::{ColumnTrait, Condition, DeriveValueType, EnumIter};
 use strum_macros::{Display, EnumString};
+
+#[derive(
+    EnumIter,
+    Serialize,
+    Deserialize,
+    Debug,
+    Copy,
+    Clone,
+    Hash,
+    PartialEq,
+    Eq,
+    DeriveValueType,
+    EnumString,
+    Display,
+)]
+#[sea_orm(value_type = "String")]
+#[serde(rename_all = "kebab-case")]
+#[strum(serialize_all = "kebab_case", ascii_case_insensitive)]
+pub enum RelationObjectType {
+    Site,
+    User,
+    Page,
+    File,
+}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum RelationObject {

@@ -25,7 +25,7 @@ use crate::locales::Localizations;
 use fluent::FluentArgs;
 use unic_langid::LanguageIdentifier;
 
-pub use crate::models::sea_orm_active_enums::License;
+pub use crate::types::License;
 
 impl License {
     pub fn url(self) -> &'static str {

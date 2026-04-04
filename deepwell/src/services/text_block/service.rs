@@ -35,12 +35,13 @@
 //! nothing here is needed.
 
 use super::prelude::*;
-use crate::models::sea_orm_active_enums::TextBlockType;
 use crate::models::text_block::{
     self, Entity as TextBlockTable, Model as TextBlockModel,
 };
-use sea_orm::{ActiveEnum, strum::IntoEnumIterator};
+use crate::types::TextBlockType;
+use sea_orm::ActiveEnum;
 use std::collections::HashSet;
+use strum::IntoEnumIterator;
 
 /// Write out the S3 filename for this hosted text block.
 ///

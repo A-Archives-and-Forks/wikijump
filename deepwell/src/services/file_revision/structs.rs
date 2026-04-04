@@ -19,9 +19,9 @@
  */
 
 use super::prelude::*;
-use crate::models::sea_orm_active_enums::FileRevisionType;
 use crate::services::page_revision::PageRevisionCountOutput;
 use crate::types::FetchDirection;
+use crate::types::FileRevisionType;
 
 #[derive(Debug, Clone)]
 pub struct CreateFileRevision {

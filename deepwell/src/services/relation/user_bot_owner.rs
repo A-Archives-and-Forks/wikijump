@@ -19,8 +19,8 @@
  */
 
 use super::prelude::*;
-use crate::models::sea_orm_active_enums::UserType;
 use crate::models::user::Model as UserModel;
+use crate::types::UserType;
 use crate::utils::trim_spaces_in_place;
 use time::OffsetDateTime;
 

@@ -19,11 +19,11 @@
  */
 
 use super::prelude::*;
-use crate::models::sea_orm_active_enums::AliasType;
 use crate::models::site::Model as SiteModel;
 use crate::services::site::{
     CreateSite, CreateSiteOutput, GetSite, GetSiteOutput, UpdateSite,
 };
+use crate::types::AliasType;
 
 pub async fn site_create(
     ctx: &ServiceContext<'_>,

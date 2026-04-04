@@ -24,6 +24,7 @@ mod array;
 mod bytes;
 mod connection_type;
 mod conversion_error;
+mod enums;
 mod fetch_direction;
 mod file_details;
 mod file_order;
@@ -39,6 +40,10 @@ pub use self::array::ArrayLength;
 pub use self::bytes::Bytes;
 pub use self::connection_type::ConnectionType;
 pub use self::conversion_error::{EnumConversionError, parse_layout};
+pub use self::enums::{
+    AliasType, FileRevisionType, License, MessageRecipientType, PageRevisionType,
+    TextBlockType, UserType,
+};
 pub use self::fetch_direction::FetchDirection;
 pub use self::file_details::FileDetails;
 pub use self::file_order::FileOrder;

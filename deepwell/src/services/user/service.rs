@@ -19,7 +19,6 @@
  */
 
 use super::prelude::*;
-use crate::models::sea_orm_active_enums::{AliasType, UserType};
 use crate::models::user::{self, Entity as User, Model as UserModel};
 use crate::services::alias::CreateAlias;
 use crate::services::audit::{AuditEvent, AuditService};
@@ -27,6 +26,7 @@ use crate::services::blob::{BlobService, FinalizeBlobUploadOutput};
 use crate::services::email::{EmailClassification, EmailService, EmailValidationOutput};
 use crate::services::filter::{FilterClass, FilterType};
 use crate::services::{AliasService, FilterService, PasswordService};
+use crate::types::{AliasType, UserType};
 use crate::utils::regex_replace_in_place;
 use regex::Regex;
 use sea_orm::ActiveValue;

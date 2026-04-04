@@ -2,7 +2,7 @@
 
 use crate::services::relation::RelationType;
 
-use super::sea_orm_active_enums::RelationObjectType;
+use crate::services::relation::RelationObjectType;
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 

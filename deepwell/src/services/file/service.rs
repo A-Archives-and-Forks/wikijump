@@ -24,7 +24,6 @@ use crate::models::file::{self, Entity as File, Model as FileModel};
 use crate::models::file_revision::{
     self, Entity as FileRevision, Model as FileRevisionModel,
 };
-use crate::models::sea_orm_active_enums::FileRevisionType;
 use crate::services::blob::{EMPTY_BLOB_HASH, EMPTY_BLOB_MIME, FinalizeBlobUploadOutput};
 use crate::services::file_revision::{
     CreateFileRevision, CreateFileRevisionBody, CreateFirstFileRevision,
@@ -34,6 +33,7 @@ use crate::services::file_revision::{
 use crate::services::filter::{FilterClass, FilterType};
 use crate::services::{BlobService, FileRevisionService, FilterService, PageService};
 use crate::types::FileOrder;
+use crate::types::FileRevisionType;
 use crate::utils::trim_spaces_in_place;
 use sea_orm::ActiveValue;
 

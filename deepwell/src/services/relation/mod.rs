@@ -36,7 +36,6 @@ mod prelude {
     pub use super::super::prelude::*;
     pub use super::*;
     pub use crate::models::relation::Model as RelationModel;
-    pub use crate::models::sea_orm_active_enums::RelationObjectType;
     pub use paste::paste;
 }
 

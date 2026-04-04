@@ -20,9 +20,9 @@
 
 use super::prelude::*;
 use crate::models::alias::Model as AliasModel;
-use crate::models::sea_orm_active_enums::UserType;
 use crate::models::user::Model as UserModel;
 use crate::types::Bytes;
+use crate::types::UserType;
 use std::net::IpAddr;
 use time::Date;
 

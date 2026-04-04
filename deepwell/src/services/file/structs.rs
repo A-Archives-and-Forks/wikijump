@@ -18,10 +18,10 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use crate::models::sea_orm_active_enums::FileRevisionType;
 use crate::services::file_revision::{
     CreateFileRevisionOutput, CreateFirstFileRevisionOutput,
 };
+use crate::types::FileRevisionType;
 use crate::types::{Bytes, FileDetails, Maybe, Reference};
 use serde_json::Value as JsonValue;
 use time::OffsetDateTime;
