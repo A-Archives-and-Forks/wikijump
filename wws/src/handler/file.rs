@@ -511,17 +511,23 @@ async fn serve_full(
     let body = if params.is_head {
         Body::empty()
     } else {
-        match fetch_full_body(state, headers, file_info, page_slug, params.filename).await {
+        match fetch_full_body(state, headers, file_info, page_slug, params.filename).await
+        {
             Ok(b) => b,
             Err(resp) => return resp,
         }
     };
 
     build_or_500(
-        base_headers(StatusCode::OK, params.etag, params.as_attachment, params.filename)
-            .header(header::CONTENT_TYPE, &file_info.mime)
-            .header(header::CONTENT_LENGTH, params.file_size)
-            .body(body),
+        base_headers(
+            StatusCode::OK,
+            params.etag,
+            params.as_attachment,
+            params.filename,
+        )
+        .header(header::CONTENT_TYPE, &file_info.mime)
+        .header(header::CONTENT_LENGTH, params.file_size)
+        .body(body),
     )
 }
 
@@ -548,14 +554,20 @@ async fn serve_single_range(
         }
     };
 
-    let content_range = format!("bytes {}-{}/{}", range.start, range.end, params.file_size);
+    let content_range =
+        format!("bytes {}-{}/{}", range.start, range.end, params.file_size);
 
     build_or_500(
-        base_headers(StatusCode::PARTIAL_CONTENT, params.etag, params.as_attachment, params.filename)
-            .header(header::CONTENT_TYPE, &file_info.mime)
-            .header(header::CONTENT_RANGE, content_range)
-            .header(header::CONTENT_LENGTH, range.len())
-            .body(body),
+        base_headers(
+            StatusCode::PARTIAL_CONTENT,
+            params.etag,
+            params.as_attachment,
+            params.filename,
+        )
+        .header(header::CONTENT_TYPE, &file_info.mime)
+        .header(header::CONTENT_RANGE, content_range)
+        .header(header::CONTENT_LENGTH, range.len())
+        .body(body),
     )
 }
 
@@ -570,10 +582,15 @@ async fn serve_multi_range(
     if params.is_head {
         let len = multipart_content_length(&file_info.mime, ranges, params.file_size);
         return build_or_500(
-            base_headers(StatusCode::PARTIAL_CONTENT, params.etag, params.as_attachment, params.filename)
-                .header(header::CONTENT_TYPE, content_type)
-                .header(header::CONTENT_LENGTH, len)
-                .body(Body::empty()),
+            base_headers(
+                StatusCode::PARTIAL_CONTENT,
+                params.etag,
+                params.as_attachment,
+                params.filename,
+            )
+            .header(header::CONTENT_TYPE, content_type)
+            .header(header::CONTENT_LENGTH, len)
+            .body(Body::empty()),
         );
     }
 
@@ -610,10 +627,15 @@ async fn serve_multi_range(
     body.extend_from_slice(format!("--{MULTIPART_BOUNDARY}--\r\n").as_bytes());
 
     build_or_500(
-        base_headers(StatusCode::PARTIAL_CONTENT, params.etag, params.as_attachment, params.filename)
-            .header(header::CONTENT_TYPE, content_type)
-            .header(header::CONTENT_LENGTH, body.len())
-            .body(Body::from(body)),
+        base_headers(
+            StatusCode::PARTIAL_CONTENT,
+            params.etag,
+            params.as_attachment,
+            params.filename,
+        )
+        .header(header::CONTENT_TYPE, content_type)
+        .header(header::CONTENT_LENGTH, body.len())
+        .body(Body::from(body)),
     )
 }
 
