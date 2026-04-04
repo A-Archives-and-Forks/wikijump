@@ -3,6 +3,8 @@
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
+use crate::types::ConnectionType;
+
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, Serialize, Deserialize)]
 #[sea_orm(table_name = "page_connection")]
 pub struct Model {
@@ -10,8 +12,8 @@ pub struct Model {
     pub from_page_id: i64,
     #[sea_orm(primary_key, auto_increment = false)]
     pub to_page_id: i64,
-    #[sea_orm(primary_key, auto_increment = false, column_type = "Text")]
-    pub connection_type: String,
+    #[sea_orm(primary_key, auto_increment = false)]
+    pub connection_type: ConnectionType,
     #[serde(with = "time::serde::rfc3339")]
     pub created_at: TimeDateTimeWithTimeZone,
     #[serde(with = "time::serde::rfc3339::option")]

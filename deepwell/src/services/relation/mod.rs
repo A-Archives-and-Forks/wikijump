@@ -146,7 +146,7 @@ impl RelationService {
 
         let metadata = serde_json::to_value(metadata).or_raise(make_error)?;
         let model = relation::ActiveModel {
-            relation_type: Set(str!(relation_type.value())),
+            relation_type: Set(relation_type),
             dest_type: Set(dest_type),
             dest_id: Set(dest_id),
             from_type: Set(from_type),
@@ -327,7 +327,7 @@ impl RelationService {
         let relations = Relation::find()
             .filter(
                 Condition::all()
-                    .add(relation::Column::RelationType.eq(relation_type.value()))
+                    .add(relation::Column::RelationType.eq(relation_type))
                     .add(object_type_column.eq(object_type))
                     .add(object_id_column.eq(object_id))
                     .add(relation::Column::DeletedAt.is_null()),

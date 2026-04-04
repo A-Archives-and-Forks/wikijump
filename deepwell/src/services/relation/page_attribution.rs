@@ -140,7 +140,7 @@ impl RelationService {
             .check(RelationObjectType::Page, RelationObjectType::User);
 
         let model = relation::ActiveModel {
-            relation_type: Set(str!(RelationType::PageAttribution.value())),
+            relation_type: Set(RelationType::PageAttribution),
             dest_type: Set(RelationObjectType::Page),
             dest_id: Set(page_id),
             from_type: Set(RelationObjectType::User),
@@ -336,7 +336,7 @@ fn page_attribution_condition(
     metadata_json: &serde_json::Value,
 ) -> Condition {
     Condition::all()
-        .add(relation::Column::RelationType.eq(RelationType::PageAttribution.value()))
+        .add(relation::Column::RelationType.eq(RelationType::PageAttribution))
         .add(relation::Column::DestType.eq(RelationObjectType::Page))
         .add(relation::Column::DestId.eq(page_id))
         .add(relation::Column::FromType.eq(RelationObjectType::User))
@@ -349,7 +349,7 @@ fn page_attribution_condition(
 /// Builds a condition for querying all page attribution entries for a page.
 fn page_attributions_condition(page_id: i64) -> Condition {
     Condition::all()
-        .add(relation::Column::RelationType.eq(RelationType::PageAttribution.value()))
+        .add(relation::Column::RelationType.eq(RelationType::PageAttribution))
         .add(relation::Column::DestType.eq(RelationObjectType::Page))
         .add(relation::Column::FromType.eq(RelationObjectType::User))
         .add(relation::Column::DestId.eq(page_id))
@@ -358,7 +358,7 @@ fn page_attributions_condition(page_id: i64) -> Condition {
 }
 
 fn convert_model(model: RelationModel) -> Result<PageAttribution> {
-    assert_eq!(model.relation_type, RelationType::PageAttribution.value());
+    assert_eq!(model.relation_type, RelationType::PageAttribution);
     assert_eq!(model.dest_type, RelationObjectType::Page);
     assert_eq!(model.from_type, RelationObjectType::User);
 

@@ -19,11 +19,28 @@
  */
 
 use crate::error::prelude::*;
+use sea_orm::{TryFromU64, entity::prelude::*};
 use std::str::FromStr;
 use strum_macros::EnumIter;
+use strum_macros::{Display, EnumString};
 
-#[derive(EnumIter, Serialize, Deserialize, Debug, Copy, Clone, Hash, PartialEq, Eq)]
+#[derive(
+    EnumIter,
+    Serialize,
+    Deserialize,
+    Debug,
+    Copy,
+    Clone,
+    Hash,
+    PartialEq,
+    Eq,
+    DeriveValueType,
+    EnumString,
+    Display,
+)]
+#[sea_orm(value_type = "String")]
 #[serde(rename_all = "kebab-case")]
+#[strum(serialize_all = "kebab_case", ascii_case_insensitive)]
 pub enum ConnectionType {
     IncludeMessy,
     IncludeElements,
@@ -32,30 +49,11 @@ pub enum ConnectionType {
     Redirect,
 }
 
-impl ConnectionType {
-    pub fn name(self) -> &'static str {
-        match self {
-            ConnectionType::IncludeMessy => "include-messy",
-            ConnectionType::IncludeElements => "include-elements",
-            ConnectionType::Component => "component",
-            ConnectionType::Link => "link",
-            ConnectionType::Redirect => "redirect",
-        }
-    }
-}
-
-impl FromStr for ConnectionType {
-    type Err = EnumConversionError;
-
-    fn from_str(value: &str) -> StdResult<ConnectionType, EnumConversionError> {
-        match value {
-            "include-messy" => Ok(ConnectionType::IncludeMessy),
-            "include-elements" => Ok(ConnectionType::IncludeElements),
-            "component" => Ok(ConnectionType::Component),
-            "link" => Ok(ConnectionType::Link),
-            "redirect" => Ok(ConnectionType::Redirect),
-            _ => Err(EnumConversionError::new("ConnectionType", value)),
-        }
+impl TryFromU64 for ConnectionType {
+    fn try_from_u64(_: u64) -> std::result::Result<Self, DbErr> {
+        Err(DbErr::ConvertFromU64(
+            "cannot construct ConnectionType from u64; auto_increment must be false for this primary key",
+        ))
     }
 }
 
@@ -70,8 +68,8 @@ fn name_serde() {
             serde_json::from_str(&output).expect("Unable to deserialize JSON");
 
         assert_eq!(
-            &serde_name,
-            variant.name(),
+            serde_name,
+            variant.to_string(),
             "Serde name does not match variant name",
         );
 

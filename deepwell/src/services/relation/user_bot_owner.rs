@@ -215,7 +215,7 @@ fn models_to_owners(models: Vec<RelationModel>) -> Result<Vec<UserBotOwner>> {
         let metadata: UserBotMetadata =
             serde_json::from_value(model.metadata).or_raise(make_error)?;
 
-        assert_eq!(model.relation_type, "bot-owner");
+        assert_eq!(model.relation_type, RelationType::UserBotOwner);
         assert_eq!(model.dest_type, RelationObjectType::User);
         assert_eq!(model.from_type, RelationObjectType::User);
 

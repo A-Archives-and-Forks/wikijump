@@ -38,11 +38,8 @@ macro_rules! make_contype_condition {
     ($table_name:ident, $connection_types:expr $(,)?) => {
         // Layer 1: Option<&[ConnectionType]> -> Option<Condition>
         $connection_types.map(|connection_types| {
-            // Layer 2: &[ConnectionType] -> [&str]
-            $table_name::Column::ConnectionType.is_in(
-                // Layer 3: ConnectionType::name -> &str
-                connection_types.iter().map(|ctype| ctype.name()),
-            )
+            // Layer 2: &[ConnectionType] -> [&ConnectionType]
+            $table_name::Column::ConnectionType.is_in(connection_types.iter().copied())
         })
     };
 }
@@ -403,7 +400,7 @@ async fn update_connections(
     {
         for connection in connections {
             let to_page_id = connection.to_page_id;
-            let connection_type = parse_connection_type!(connection, make_error);
+            let connection_type = connection.connection_type;
 
             match counts.remove(&(to_page_id, connection_type)) {
                 // Connection exists, count is the same. Do nothing.
@@ -433,7 +430,7 @@ async fn update_connections(
             |(&(to_page_id, connection_type), count)| page_connection::ActiveModel {
                 from_page_id: Set(from_page_id),
                 to_page_id: Set(to_page_id),
-                connection_type: Set(str!(connection_type.name())),
+                connection_type: Set(connection_type),
                 created_at: NotSet,
                 updated_at: NotSet,
                 count: Set(*count),
@@ -484,7 +481,7 @@ async fn update_connections_missing(
         for connection in connections {
             let to_site_id = connection.to_site_id;
             let to_page_slug = connection.to_page_slug.clone();
-            let connection_type = parse_connection_type!(connection, make_error);
+            let connection_type = connection.connection_type;
 
             match counts.remove(&(to_site_id, to_page_slug.clone(), connection_type)) {
                 // Connection exists, count is the same. Do nothing.
@@ -517,7 +514,7 @@ async fn update_connections_missing(
                     from_page_id: Set(from_page_id),
                     to_site_id: Set(to_site_id),
                     to_page_slug: Set(str!(to_page_slug)),
-                    connection_type: Set(str!(connection_type.name())),
+                    connection_type: Set(connection_type),
                     created_at: NotSet,
                     updated_at: NotSet,
                     count: Set(*count),
@@ -621,7 +618,7 @@ async fn count_connections(
         Error::new(
             format!(
                 "failed to count {} connections from site '{}' page '{}' for site ID {}",
-                connection_type.name(),
+                connection_type,
                 match site_slug {
                     Some(s) => s.as_str(),
                     None => "<current>",

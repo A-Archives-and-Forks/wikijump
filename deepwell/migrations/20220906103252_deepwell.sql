@@ -8,16 +8,9 @@
 -- User
 --
 
-CREATE TYPE user_type AS ENUM (
-    'regular',
-    'system',
-    'site',
-    'bot'
-);
-
 CREATE TABLE "user" (
     user_id BIGSERIAL PRIMARY KEY,
-    user_type user_type NOT NULL DEFAULT 'regular',
+    user_type TEXT NOT NULL DEFAULT 'regular',
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
     updated_at TIMESTAMP WITH TIME ZONE,
     deleted_at TIMESTAMP WITH TIME ZONE,
@@ -68,35 +61,6 @@ CREATE TABLE "user" (
 );
 
 --
--- Licenses
---
-
-CREATE TYPE license AS ENUM (
-    'cc-by-sa-4.0',     -- Creative Commons Attribution-ShareAlike 4.0
-    'cc-by-4.0',        -- Creative Commons Attribution 4.0
-    'cc-by-nd-4.0',     -- Creative Commons Attribution-NoDerivs 4.0
-    'cc-by-nc-4.0',     -- Creative Commons Attribution-NonCommercial 4.0
-    'cc-by-nc-sa-4.0',  -- Creative Commons Attribution-NonCommercial-ShareAlike 4.0
-    'cc-by-nc-nd-4.0',  -- Creative Commons Attribution-NonCommerical-NoDerivs 4.0
-    'cc-by-sa-3.0',     -- Creative Commons Attribution-ShareAlike 3.0
-    'cc-by-3.0',        -- Creative Commons Attribution 3.0
-    'cc-by-nd-3.0',     -- Creative Commons Attribution-NoDerivs 3.0
-    'cc-by-nc-3.0',     -- Creative Commons Attribution-NonCommercial 3.0
-    'cc-by-nc-sa-3.0',  -- Creative Commons Attribution-NonCommercial-ShareAlike 3.0
-    'cc-by-nc-nd-3.0',  -- Creative Commons Attribution-NonCommercial-NoDerivs 3.0
-    'cc-by-sa-2.5',     -- Creative Commons Attribution-ShareAlike 2.5
-    'cc-by-2.5',        -- Creative Commons Attribution 2.5
-    'cc-by-nd-2.5',     -- Creative Commons Attribution-NoDerivs 2.5
-    'cc-by-nc-2.5',     -- Creative Commons Attribution-NonCommercial 2.5
-    'cc-by-nc-sa-2.5',  -- Creative Commons Attribution-NonCommercial-ShareAlike 2.5
-    'cc-by-nc-nd-2.5',  -- Creative Commons Attribution-NonCommercial-NoDerivs 2.5
-    'gnu-fdl-1.3',      -- GNU Free Documentation License 1.3
-    'gnu-fdl-1.2',      -- GNU Free Documentation License 1.2
-    'gnu-fdl-1.1',      -- GNU Free Documentation License 1.1
-    'cc0'               -- Public Domain (CC0)
-);
-
---
 -- Site
 --
 
@@ -139,7 +103,7 @@ CREATE TABLE site (
     -- then it must be one of these site domains, it cannot belong to another site.
     preferred_domain TEXT,
     layout TEXT,                -- Default page layout for the site
-    license license NOT NULL,   -- Default content license for the site
+    license TEXT NOT NULL,   -- Default content license for the site
 
     -- Special condition
     -- The preferred site for the special 'www' site (the main page) must always be the
@@ -168,14 +132,9 @@ ALTER TABLE site
 -- Aliases
 --
 
-CREATE TYPE alias_type AS ENUM (
-    'site',
-    'user'
-);
-
 CREATE TABLE alias (
     alias_id BIGSERIAL PRIMARY KEY,
-    alias_type alias_type NOT NULL,
+    alias_type TEXT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
     created_by BIGINT NOT NULL REFERENCES "user"(user_id),
     target_id BIGINT NOT NULL,
@@ -190,19 +149,12 @@ CREATE TABLE alias (
 
 -- See docs/relation.md for more information
 
-CREATE TYPE relation_object_type AS ENUM (
-    'site',
-    'user',
-    'page',
-    'file'
-);
-
 CREATE TABLE relation (
     relation_id BIGSERIAL PRIMARY KEY,
-    relation_type TEXT NOT NULL,  -- check enum value at runtime
-    dest_type relation_object_type NOT NULL,
+    relation_type TEXT NOT NULL,
+    dest_type TEXT NOT NULL,
     dest_id BIGINT NOT NULL,
-    from_type relation_object_type NOT NULL,
+    from_type TEXT NOT NULL,
     from_id BIGINT NOT NULL,
     metadata JSONB NOT NULL DEFAULT '{}',
     created_by BIGINT NOT NULL REFERENCES "user"(user_id),
@@ -294,28 +246,6 @@ CREATE TABLE page (
 -- Page revisions and contents
 --
 
--- Enum types for page_revision
-CREATE TYPE page_revision_type AS ENUM (
-    -- standard
-    'regular',
-    'rollback',
-    'undo',
-
-    -- special
-    'create',
-    'delete',
-    'undelete',
-    'move'
-);
-
-CREATE TYPE page_revision_change AS ENUM (
-    'wikitext',
-    'title',
-    'alt_title',
-    'slug',
-    'tags'
-);
-
 -- No unique constraint for 'contents' because that would create
 -- create a separate index, which will impact performance.
 --
@@ -332,7 +262,7 @@ CREATE TABLE text (
 -- Main revision table
 CREATE TABLE page_revision (
     revision_id BIGSERIAL PRIMARY KEY,
-    revision_type page_revision_type NOT NULL DEFAULT 'regular',
+    revision_type TEXT NOT NULL DEFAULT 'regular',
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
     updated_at TIMESTAMP WITH TIME ZONE,
     revision_number INT NOT NULL,
@@ -427,15 +357,6 @@ CREATE TABLE page_lock (
 -- Page backlinks tracking
 --
 
--- Enum types for page backlinks
-CREATE TYPE page_connection_type AS ENUM (
-    'include-messy',
-    'include-elements',
-    'component',
-    'link',
-    'redirect'
-);
-
 CREATE TABLE page_link (
     page_id BIGINT REFERENCES page(page_id),
     url TEXT,
@@ -449,7 +370,7 @@ CREATE TABLE page_link (
 CREATE TABLE page_connection (
     from_page_id BIGINT REFERENCES page(page_id),
     to_page_id BIGINT REFERENCES page(page_id),
-    connection_type TEXT, -- Cannot use page_connection_type right now because Sea-ORM issues
+    connection_type TEXT,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
     updated_at TIMESTAMP WITH TIME ZONE,
     count INT NOT NULL CHECK (count > 0),
@@ -519,25 +440,6 @@ CREATE TABLE blob_blacklist (
 -- Files
 --
 
--- Enum types for file_revision
-CREATE TYPE file_revision_type AS ENUM (
-    -- standard
-    'regular',
-    'rollback',
-
-    -- special
-    'create',
-    'delete',
-    'undelete',
-    'move'
-);
-
-CREATE TYPE file_revision_change AS ENUM (
-    'name',
-    'blob',
-    'mime'
-);
-
 CREATE TABLE file (
     file_id BIGSERIAL PRIMARY KEY,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
@@ -553,7 +455,7 @@ CREATE TABLE file (
 
 CREATE TABLE file_revision (
     revision_id BIGSERIAL PRIMARY KEY,
-    revision_type file_revision_type NOT NULL,
+    revision_type TEXT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
     revision_number INTEGER NOT NULL,
     file_id BIGINT NOT NULL REFERENCES file(file_id),
@@ -610,13 +512,8 @@ CREATE TABLE file_revision (
 -- Hosted Text Blocks
 --
 
-CREATE TYPE text_block_type AS ENUM (
-    'code',
-    'html'
-);
-
 CREATE TABLE text_block (
-    block_type text_block_type NOT NULL,
+    block_type TEXT NOT NULL,
     page_id BIGINT NOT NULL REFERENCES page(page_id),
     block_index SMALLINT NOT NULL CHECK (block_index > 0),
     block_name TEXT CHECK (length(block_name) > 0),
@@ -643,12 +540,6 @@ CREATE TABLE authorization_token (
 --
 -- Direct Messages
 --
-
-CREATE TYPE message_recipient_type AS ENUM (
-    'regular',
-    'cc',
-    'bcc'
-);
 
 -- A "record" is the underlying message data, with its contents, attachments,
 -- and associated metadata such as sender and recipient(s).
@@ -700,7 +591,7 @@ CREATE TABLE message (
 CREATE TABLE message_recipient (
     record_id TEXT NOT NULL REFERENCES message_record(external_id),
     recipient_id BIGINT NOT NULL REFERENCES "user"(user_id),
-    recipient_type message_recipient_type NOT NULL,
+    recipient_type TEXT NOT NULL,
 
     PRIMARY KEY (record_id, recipient_id, recipient_type)
 );
