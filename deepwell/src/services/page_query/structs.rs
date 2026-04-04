@@ -22,11 +22,8 @@
 #![allow(dead_code)] // TEMP
 
 use super::prelude::*;
-use crate::models::{
-    page::Model as PageModel, page_parent::Model as PageParentModel,
-    page_revision::Model as PageRevisionModel,
-};
 use crate::services::score::ScoreValue;
+use sea_orm::prelude::TimeDateTimeWithTimeZone;
 use std::borrow::Cow;
 use time::OffsetDateTime;
 
@@ -281,17 +278,65 @@ pub struct PageQuery<'a> {
     pub order: Option<OrderBySelector>,
     pub pagination: PaginationSelector,
     pub variables: &'a [PageQueryVariables<'a>],
+    pub fields: FoundPageFields,
 }
 
-#[derive(Serialize, Debug, PartialEq, Clone)]
-pub struct PageQueryOutput<'a>(&'a [PageResult]);
+/// Specifies which optional fields to include in the query results.
+///
+/// Fields required for filtering or ordering are always fetched
+/// internally, but only appear in the output if requested here.
+#[derive(Deserialize, Serialize, Debug, Clone, Default, PartialEq, Eq)]
+#[serde(default)]
+pub struct FoundPageFields {
+    pub title: bool,
+    pub alt_title: bool,
+    pub slug: bool,
+    pub tags: bool,
+    pub created_at: bool,
+    pub created_by: bool,
+    pub updated_at: bool,
+    pub updated_by: bool,
+    pub score: bool,
+}
 
-#[derive(Serialize, Debug, PartialEq, Clone)]
-pub struct PageResult {
-    metadata: PageModel,
-    last_revision: PageRevisionModel,
-    // last_comment: TODO,
-    page_parents: Vec<PageParentModel>,
-    wikitext: String,
-    score: f32,
+/// A single page row in the query results.
+///
+/// Fields are optional because callers specify which fields
+/// they need via `FoundPageFields`. Fields not requested will
+/// be `None` to avoid unnecessary data transfer.
+#[derive(Serialize, Debug, Clone, PartialEq)]
+pub struct FoundPageRow {
+    pub page_id: i64,
+    pub site_id: i64,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub alt_title: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub slug: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tags: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(with = "time::serde::rfc3339::option")]
+    pub created_at: Option<TimeDateTimeWithTimeZone>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub created_by: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(with = "time::serde::rfc3339::option")]
+    pub updated_at: Option<TimeDateTimeWithTimeZone>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub updated_by: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub score: Option<f32>,
+}
+
+/// The result of `PageQueryService::find()`.
+///
+/// Contains an ordered list of pages matching the query,
+/// with only the requested fields populated.
+#[derive(Serialize, Debug, Clone, PartialEq)]
+pub struct FoundPages {
+    pub pages: Vec<FoundPageRow>,
+    pub total: usize,
 }
