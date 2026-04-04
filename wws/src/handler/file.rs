@@ -442,6 +442,14 @@ fn multipart_content_length(mime: &str, ranges: &[ByteRange], file_size: u64) ->
 
 // ------------ Core serve logic ------------
 
+struct ServeParams<'a> {
+    etag: &'a str,
+    as_attachment: bool,
+    filename: &'a str,
+    file_size: u64,
+    is_head: bool,
+}
+
 async fn serve_file(
     state: &ServerState,
     method: &Method,
@@ -454,21 +462,17 @@ async fn serve_file(
     let file_size = file_info.size as u64;
     let etag = format!("\"{}\"", file_info.s3_hash);
     let is_head = *method == Method::HEAD;
+    let params = ServeParams {
+        etag: &etag,
+        as_attachment,
+        filename,
+        file_size,
+        is_head,
+    };
 
     match evaluate_range(headers, &etag, file_size) {
         ParsedRange::None => {
-            serve_full(
-                state,
-                headers,
-                file_info,
-                &etag,
-                as_attachment,
-                page_slug,
-                filename,
-                file_size,
-                is_head,
-            )
-            .await
+            serve_full(state, headers, file_info, page_slug, &params).await
         }
         ParsedRange::NotSatisfiable => build_or_500(
             Response::builder()
@@ -478,17 +482,7 @@ async fn serve_file(
                 .body(Body::empty()),
         ),
         ParsedRange::Satisfiable(ref ranges) if ranges.len() == 1 => {
-            serve_single_range(
-                state,
-                file_info,
-                &etag,
-                as_attachment,
-                filename,
-                ranges[0],
-                file_size,
-                is_head,
-            )
-            .await
+            serve_single_range(state, file_info, ranges[0], &params).await
         }
         ParsedRange::Satisfiable(ranges) => {
             let total: u64 = ranges.iter().map(|r| r.len()).sum();
@@ -502,17 +496,7 @@ async fn serve_file(
                 );
             }
 
-            serve_multi_range(
-                state,
-                file_info,
-                &etag,
-                as_attachment,
-                filename,
-                &ranges,
-                file_size,
-                is_head,
-            )
-            .await
+            serve_multi_range(state, file_info, &ranges, &params).await
         }
     }
 }
@@ -521,26 +505,22 @@ async fn serve_full(
     state: &ServerState,
     headers: &HeaderMap,
     file_info: &FileData,
-    etag: &str,
-    as_attachment: bool,
     page_slug: &str,
-    filename: &str,
-    file_size: u64,
-    is_head: bool,
+    params: &ServeParams<'_>,
 ) -> Response {
-    let body = if is_head {
+    let body = if params.is_head {
         Body::empty()
     } else {
-        match fetch_full_body(state, headers, file_info, page_slug, filename).await {
+        match fetch_full_body(state, headers, file_info, page_slug, params.filename).await {
             Ok(b) => b,
             Err(resp) => return resp,
         }
     };
 
     build_or_500(
-        base_headers(StatusCode::OK, etag, as_attachment, filename)
+        base_headers(StatusCode::OK, params.etag, params.as_attachment, params.filename)
             .header(header::CONTENT_TYPE, &file_info.mime)
-            .header(header::CONTENT_LENGTH, file_size)
+            .header(header::CONTENT_LENGTH, params.file_size)
             .body(body),
     )
 }
@@ -548,14 +528,10 @@ async fn serve_full(
 async fn serve_single_range(
     state: &ServerState,
     file_info: &FileData,
-    etag: &str,
-    as_attachment: bool,
-    filename: &str,
     range: ByteRange,
-    file_size: u64,
-    is_head: bool,
+    params: &ServeParams<'_>,
 ) -> Response {
-    let body = if is_head {
+    let body = if params.is_head {
         Body::empty()
     } else {
         match fetch_range_stream(state, file_info, range).await {
@@ -572,10 +548,10 @@ async fn serve_single_range(
         }
     };
 
-    let content_range = format!("bytes {}-{}/{file_size}", range.start, range.end);
+    let content_range = format!("bytes {}-{}/{}", range.start, range.end, params.file_size);
 
     build_or_500(
-        base_headers(StatusCode::PARTIAL_CONTENT, etag, as_attachment, filename)
+        base_headers(StatusCode::PARTIAL_CONTENT, params.etag, params.as_attachment, params.filename)
             .header(header::CONTENT_TYPE, &file_info.mime)
             .header(header::CONTENT_RANGE, content_range)
             .header(header::CONTENT_LENGTH, range.len())
@@ -586,19 +562,15 @@ async fn serve_single_range(
 async fn serve_multi_range(
     state: &ServerState,
     file_info: &FileData,
-    etag: &str,
-    as_attachment: bool,
-    filename: &str,
     ranges: &[ByteRange],
-    file_size: u64,
-    is_head: bool,
+    params: &ServeParams<'_>,
 ) -> Response {
     let content_type = format!("multipart/byteranges; boundary={MULTIPART_BOUNDARY}");
 
-    if is_head {
-        let len = multipart_content_length(&file_info.mime, ranges, file_size);
+    if params.is_head {
+        let len = multipart_content_length(&file_info.mime, ranges, params.file_size);
         return build_or_500(
-            base_headers(StatusCode::PARTIAL_CONTENT, etag, as_attachment, filename)
+            base_headers(StatusCode::PARTIAL_CONTENT, params.etag, params.as_attachment, params.filename)
                 .header(header::CONTENT_TYPE, content_type)
                 .header(header::CONTENT_LENGTH, len)
                 .body(Body::empty()),
@@ -626,9 +598,9 @@ async fn serve_multi_range(
             part_header,
             "--{MULTIPART_BOUNDARY}\r\n\
              Content-Type: {}\r\n\
-             Content-Range: bytes {}-{}/{file_size}\r\n\
+             Content-Range: bytes {}-{}/{}\r\n\
              \r\n",
-            file_info.mime, range.start, range.end,
+            file_info.mime, range.start, range.end, params.file_size,
         );
         body.extend_from_slice(part_header.as_bytes());
         body.extend_from_slice(&data);
@@ -638,7 +610,7 @@ async fn serve_multi_range(
     body.extend_from_slice(format!("--{MULTIPART_BOUNDARY}--\r\n").as_bytes());
 
     build_or_500(
-        base_headers(StatusCode::PARTIAL_CONTENT, etag, as_attachment, filename)
+        base_headers(StatusCode::PARTIAL_CONTENT, params.etag, params.as_attachment, params.filename)
             .header(header::CONTENT_TYPE, content_type)
             .header(header::CONTENT_LENGTH, body.len())
             .body(Body::from(body)),
