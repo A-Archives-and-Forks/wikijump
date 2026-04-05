@@ -62,21 +62,46 @@ async fn translate_strings() {
         ctx,
         r#"{"locales": [], "messages": {"license": {}, "base-title": {"title": "foo"}}}"#,
     );
-    assert_contains_error!(error, ErrorType::NoLocalesSpecified);
+    assert_contains_error!(&error, ErrorType::NoLocalesSpecified);
+    assert_no_error!(
+        &error,
+        ErrorType::BadRequest
+            | ErrorType::LocaleInvalid { .. }
+            | ErrorType::LocaleMissing { .. }
+            | ErrorType::LocaleMessageMissing { .. }
+            | ErrorType::LocaleMessageValueMissing { .. }
+            | ErrorType::LocaleMessageAttributeMissing { .. }
+    );
 
     let error = run_endpoint_err!(
         endpoints::locale::translate_strings,
         ctx,
         r#"{"locales": ["fr_FR"], "messages": {"license": {}}, "strip_message_keys": ["base-title"]}"#,
     );
-    assert_contains_error!(error, ErrorType::BadRequest);
+    assert_contains_error!(&error, ErrorType::BadRequest);
+    assert_no_error!(
+        &error,
+        ErrorType::LocaleInvalid { .. }
+            | ErrorType::LocaleMissing { .. }
+            | ErrorType::LocaleMessageMissing { .. }
+            | ErrorType::LocaleMessageValueMissing { .. }
+            | ErrorType::LocaleMessageAttributeMissing { .. }
+    );
 
     let error = run_endpoint_err!(
         endpoints::locale::translate_strings,
         ctx,
         r#"{"locales": ["fr_FR"], "messages": {"license": {}, "base-title": {"title": "foo"}}, "strip_message_keys": ["xyz-invalid-key"]}"#,
     );
-    assert_contains_error!(error, ErrorType::BadRequest);
+    assert_contains_error!(&error, ErrorType::BadRequest);
+    assert_no_error!(
+        &error,
+        ErrorType::LocaleInvalid { .. }
+            | ErrorType::LocaleMissing { .. }
+            | ErrorType::LocaleMessageMissing { .. }
+            | ErrorType::LocaleMessageValueMissing { .. }
+            | ErrorType::LocaleMessageAttributeMissing { .. }
+    );
 
     // Success cases
 
