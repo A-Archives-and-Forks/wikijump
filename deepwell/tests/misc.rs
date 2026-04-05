@@ -22,6 +22,7 @@
 mod common;
 
 use deepwell::endpoints;
+use deepwell::error::prelude::*;
 use deepwell::services::ServiceContext;
 use serde_json::json;
 use time::OffsetDateTime;
@@ -47,7 +48,7 @@ async fn misc() {
 
     // yield_error
     let error = run_endpoint_err!(endpoints::misc::yield_error, ctx);
-    assert!(matches!(error, ServiceError::BadRequest));
+    assert_contains_error!(error, ErrorType::BadRequest);
 
     // config_dump
     let config = run_endpoint!(endpoints::misc::config_dump, ctx);

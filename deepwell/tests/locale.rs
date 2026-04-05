@@ -62,21 +62,21 @@ async fn translate_strings() {
         ctx,
         r#"{"locales": [], "messages": {"license": {}, "base-title": {"title": "foo"}}}"#,
     );
-    assert!(matches!(error, ServiceError::NoLocalesSpecified));
+    assert_contains_error!(error, ErrorType::NoLocalesSpecified);
 
     let error = run_endpoint_err!(
         endpoints::locale::translate_strings,
         ctx,
         r#"{"locales": ["fr_FR"], "messages": {"license": {}}, "strip_message_keys": ["base-title"]}"#,
     );
-    assert!(matches!(error, ServiceError::BadRequest));
+    assert_contains_error!(error, ErrorType::BadRequest);
 
     let error = run_endpoint_err!(
         endpoints::locale::translate_strings,
         ctx,
         r#"{"locales": ["fr_FR"], "messages": {"license": {}, "base-title": {"title": "foo"}}, "strip_message_keys": ["xyz-invalid-key"]}"#,
     );
-    assert!(matches!(error, ServiceError::BadRequest));
+    assert_contains_error!(error, ErrorType::BadRequest);
 
     // Success cases
 
