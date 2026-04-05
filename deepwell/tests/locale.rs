@@ -121,6 +121,24 @@ async fn translate_strings() {
             | ErrorType::LocaleMessageAttributeMissing { .. }
     );
 
+    let error = run_endpoint_err!(
+        endpoints::locale::translate_strings,
+        ctx,
+        r#"{"locales": ["en"], "messages": {"xyz-invalid-key": {}}}"#,
+    );
+    assert_contains_error!(
+        error,
+        ErrorType::LocaleMessageMissing { message_key } if message_key == "xyz-invalid-key",
+    );
+    assert_no_error!(
+        error,
+        ErrorType::BadRequest
+            | ErrorType::LocaleInvalid { .. }
+            | ErrorType::LocaleMessageMissing { .. }
+            | ErrorType::LocaleMessageValueMissing { .. }
+            | ErrorType::LocaleMessageAttributeMissing { .. }
+    );
+
     // Success cases
 
     let output = run_endpoint!(
@@ -143,15 +161,6 @@ async fn translate_strings() {
     assert!(output.contains_key("close"));
 
     // Null outputs
-
-    // No message
-    let output = run_endpoint!(
-        endpoints::locale::translate_strings,
-        ctx,
-        r#"{"locales": ["en"], "messages": {"xyz": {}}}"#,
-    );
-    assert_eq!(output.len(), 1);
-    assert!(output["xyz"].is_none());
 
     // No message value
     let output = run_endpoint!(
