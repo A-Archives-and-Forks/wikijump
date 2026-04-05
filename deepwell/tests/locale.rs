@@ -113,7 +113,10 @@ async fn translate_strings() {
     );
     assert_contains_error!(
         error,
-        ErrorType::LocaleMissing { locale } if locale == "xyz_US",
+        // it first tries xyz_US, which doesn't exist
+        // it then tries xyz, which also doesn't exist
+        // and it has no more fallbacks so that is what it returns
+        ErrorType::LocaleMissing { locale } if locale == "xyz",
     );
     assert_no_error!(
         error,
