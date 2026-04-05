@@ -26,6 +26,7 @@ mod assert;
 #[macro_use]
 mod runner;
 
+pub use self::assert::extract_error;
 pub use self::runner::setup;
 
 // Endpoint invocation

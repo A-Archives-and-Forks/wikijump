@@ -20,6 +20,33 @@
 
 //! Functions and macros for performing assertions in tests.
 
+use deepwell::error::prelude::*;
+use exn::{Exn, Frame};
+
+/// Extract the deepwell error from the `Exn<Error>` which matches a condition.
+///
+/// This walks the error tree until it finds the first `Error` type which
+/// matches the `ErrorType`-based condition passed in.
+pub fn extract_error<'e, F>(
+    exn_error: &'e Exn<Error>,
+    condition: fn(&ErrorType) -> bool,
+) -> Option<&'e Error> {
+    fn walk<'e>(
+        frame: &'e Frame,
+        condition: fn(&ErrorType) -> bool,
+    ) -> Option<&'e Error> {
+        match frame.error().downcast_ref::<Error>() {
+            Some(found) if condition(&found.error_type) => Some(&found),
+            _ => frame
+                .children()
+                .iter()
+                .find_map(|frame| walk(frame, condition)),
+        }
+    }
+
+    walk(exn_error.frame(), condition)
+}
+
 /// Allows for equality assertions on `Option<String>` without boilerplate.
 ///
 /// This avoids the type annoyance that comes with these two types,
