@@ -22,7 +22,7 @@
 mod common;
 
 use deepwell::endpoints;
-use deepwell::services::{Error as ServiceError, ServiceContext};
+use deepwell::services::ServiceContext;
 use serde_json::json;
 use time::OffsetDateTime;
 
