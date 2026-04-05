@@ -20,6 +20,8 @@
 
 //! Functions and macros for performing assertions in tests.
 
+#![allow(unused)]
+
 use deepwell::error::prelude::*;
 use exn::{Exn, Frame};
 
