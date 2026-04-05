@@ -118,7 +118,7 @@ async fn translate_strings() {
     let output = run_endpoint!(
         endpoints::locale::translate_strings,
         ctx,
-        r#"{"locales": ["fr_BE", "fr_FR", "de"], "messages": {"alt-title": {}, "close": {}}}"#,
+        r#"{"locales": ["zh", "zh_Hans", "ko"], "messages": {"alt-title": {}, "close": {}}}"#,
     );
     assert_eq!(output.len(), 2);
     assert!(output.contains_key("alt-title"));
