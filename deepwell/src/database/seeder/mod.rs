@@ -113,6 +113,11 @@ pub async fn seed(state: &ServerState) -> Result<()> {
     for user in users {
         info!("Creating seed user '{}' (ID {})", user.name, user.id);
 
+        if user.id > 0 {
+            // Specially seeded users should have negative values.
+            panic!("Seed user '{}' has positive ID {}", user.name, user.id);
+        }
+
         // Create users
         let CreateUserOutput { user_id, slug } = UserService::create(
             &ctx,
