@@ -27,14 +27,14 @@ use exn::{Exn, Frame};
 ///
 /// This walks the error tree until it finds the first `Error` type which
 /// matches the `ErrorType`-based condition passed in.
-pub fn extract_error<'e, F>(
-    exn_error: &'e Exn<Error>,
-    condition: fn(&ErrorType) -> bool,
-) -> Option<&'e Error> {
-    fn walk<'e>(
-        frame: &'e Frame,
-        condition: fn(&ErrorType) -> bool,
-    ) -> Option<&'e Error> {
+pub fn extract_error<'e, F>(exn_error: &'e Exn<Error>, condition: F) -> Option<&'e Error>
+where
+    F: Fn(&ErrorType) -> bool + Copy,
+{
+    fn walk<'e, F>(frame: &'e Frame, condition: F) -> Option<&'e Error>
+    where
+        F: Fn(&ErrorType) -> bool + Copy,
+    {
         match frame.error().downcast_ref::<Error>() {
             Some(found) if condition(&found.error_type) => Some(&found),
             _ => frame
