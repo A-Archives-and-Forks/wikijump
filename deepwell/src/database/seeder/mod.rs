@@ -42,8 +42,7 @@ use crate::services::relation::{
 use crate::services::role::{CreateRoleInput, GrantUserRoleInput, RoleService};
 use crate::services::site::{CreateSite, CreateSiteOutput, SiteService, UpdateSiteBody};
 use crate::services::user::{CreateUser, CreateUserOutput, UpdateUserBody, UserService};
-use crate::types::AliasType;
-use crate::types::{Action, Maybe, Reference, Resource};
+use crate::types::{Action, AliasType, Maybe, Reference, Resource};
 use crate::utils::now;
 use arrayvec::ArrayVec;
 use sea_orm::{

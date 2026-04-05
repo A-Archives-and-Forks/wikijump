@@ -25,8 +25,7 @@ use crate::services::relation::{
     UserBotOwner,
 };
 use crate::services::user::{CreateUser, CreateUserOutput, GetUser, UpdateUserBody};
-use crate::types::UserType;
-use crate::types::{Maybe, Reference};
+use crate::types::{Maybe, Reference, UserType};
 use std::net::IpAddr;
 
 // Structs

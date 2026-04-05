@@ -29,7 +29,7 @@
 
 use super::prelude::*;
 use crate::services::UserService;
-use crate::types::UserType;
+use crate::types::{RelationObjectType, RelationType, UserType};
 
 impl_relation!(SiteUser, Site, site_id, User, user_id, (), NO_CREATE_IMPL);
 

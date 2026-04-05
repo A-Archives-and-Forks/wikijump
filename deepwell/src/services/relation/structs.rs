@@ -19,32 +19,8 @@
  */
 
 use crate::models::relation;
+use crate::types::{RelationObjectType, RelationType};
 use sea_orm::{ColumnTrait, Condition, DeriveValueType, EnumIter};
-use strum_macros::{Display, EnumString};
-
-#[derive(
-    EnumIter,
-    Serialize,
-    Deserialize,
-    Debug,
-    Copy,
-    Clone,
-    Hash,
-    PartialEq,
-    Eq,
-    DeriveValueType,
-    EnumString,
-    Display,
-)]
-#[sea_orm(value_type = "String")]
-#[serde(rename_all = "kebab-case")]
-#[strum(serialize_all = "kebab_case", ascii_case_insensitive)]
-pub enum RelationObjectType {
-    Site,
-    User,
-    Page,
-    File,
-}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum RelationObject {
@@ -146,51 +122,6 @@ impl RelationObjectTypes {
 pub enum RelationDirection {
     Dest,
     From,
-}
-
-#[derive(
-    EnumIter,
-    Serialize,
-    Deserialize,
-    Debug,
-    Copy,
-    Clone,
-    Hash,
-    PartialEq,
-    Eq,
-    DeriveValueType,
-    EnumString,
-    Display,
-)]
-#[sea_orm(value_type = "String")]
-#[serde(rename_all = "kebab-case")]
-#[strum(serialize_all = "kebab_case", ascii_case_insensitive)]
-pub enum RelationType {
-    SiteUser,
-    #[strum(to_string = "ban")]
-    SiteBan,
-    #[allow(dead_code)] // TEMP
-    #[strum(to_string = "application")]
-    SiteApplication,
-    #[strum(to_string = "member")]
-    SiteMember,
-    #[strum(to_string = "star")]
-    PageStar,
-    #[strum(to_string = "watch")]
-    PageWatch,
-    PageAttribution,
-    #[strum(to_string = "follow")]
-    UserFollow,
-    #[allow(dead_code)] // TEMP
-    #[strum(to_string = "contact")]
-    UserContact,
-    #[allow(dead_code)] // TEMP
-    #[strum(to_string = "contact-request")]
-    UserContactRequest,
-    #[strum(to_string = "block")]
-    UserBlock,
-    #[strum(to_string = "bot-owner")]
-    UserBotOwner,
 }
 
 impl RelationType {

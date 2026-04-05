@@ -29,8 +29,7 @@ use crate::models::message_record::{
 };
 use crate::services::render::{RenderOutput, RenderService};
 use crate::services::{RelationService, TextService, UserService};
-use crate::types::MessageRecipientType;
-use crate::types::UserType;
+use crate::types::{MessageRecipientType, UserType};
 use crate::utils::validate_locale;
 use cuid2::cuid;
 use ftml::data::{PageInfo, ScoreValue};

@@ -21,8 +21,7 @@
 use super::prelude::*;
 use crate::services::page_revision::CreatePageRevisionOutput;
 use crate::services::score::ScoreValue;
-use crate::types::PageRevisionType;
-use crate::types::{PageDetails, PageId};
+use crate::types::{PageDetails, PageId, PageRevisionType};
 use ftml::layout::Layout;
 use ftml::parsing::ParseError;
 use std::net::IpAddr;

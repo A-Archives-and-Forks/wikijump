@@ -29,8 +29,7 @@ use crate::services::{
     LinkService, OutdateService, PageService, ParentService, RenderService, ScoreService,
     SettingsService, SiteService, TextService,
 };
-use crate::types::PageRevisionType;
-use crate::types::{FetchDirection, PageId, RerenderDepth};
+use crate::types::{FetchDirection, PageId, PageRevisionType, RerenderDepth};
 use crate::utils::{split_category, split_category_name, trim_default};
 use ftml::data::PageInfo;
 use ftml::layout::Layout;

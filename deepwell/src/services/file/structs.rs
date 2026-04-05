@@ -21,8 +21,7 @@
 use crate::services::file_revision::{
     CreateFileRevisionOutput, CreateFirstFileRevisionOutput,
 };
-use crate::types::FileRevisionType;
-use crate::types::{Bytes, FileDetails, Maybe, Reference};
+use crate::types::{Bytes, FileDetails, FileRevisionType, Maybe, Reference};
 use serde_json::Value as JsonValue;
 use time::OffsetDateTime;
 

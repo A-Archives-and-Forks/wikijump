@@ -24,8 +24,7 @@ use crate::models::site::{self, Entity as Site};
 use crate::models::user::{self, Entity as User};
 use crate::services::filter::{FilterClass, FilterType};
 use crate::services::{FilterService, SiteService, UserService};
-use crate::types::AliasType;
-use crate::types::Reference;
+use crate::types::{AliasType, Reference};
 use crate::utils::get_regular_slug;
 
 #[derive(Debug)]

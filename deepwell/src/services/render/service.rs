@@ -25,8 +25,7 @@ use crate::services::settings::{NavigationPageWikitext, SettingsService};
 use crate::services::text_block::{
     MIME_HTML, TextBlock, TextBlockService, mime_for_language,
 };
-use crate::types::PageId;
-use crate::types::TextBlockType;
+use crate::types::{PageId, TextBlockType};
 use ftml::{prelude::*, tree::CodeBlock};
 use tokio::time::timeout;
 

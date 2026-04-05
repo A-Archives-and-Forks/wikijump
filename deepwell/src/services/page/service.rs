@@ -36,8 +36,7 @@ use crate::services::{
     CategoryService, FilterService, PageRevisionService, SiteService, TextBlockService,
     TextService,
 };
-use crate::types::PageRevisionType;
-use crate::types::{Action, PageId, PageOrder, Reference, Resource};
+use crate::types::{Action, PageId, PageOrder, PageRevisionType, Reference, Resource};
 use crate::utils::{get_category_name, trim_default};
 use ftml::layout::Layout;
 use ref_map::*;

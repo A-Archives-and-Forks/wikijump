@@ -21,9 +21,8 @@ use super::prelude::*;
 use crate::endpoints::site;
 use crate::error::{Error, ErrorType};
 use crate::models::prelude::{Role, RolePermission};
-use crate::models::role_permission;
 use crate::models::role_permission::Model as RolePermissionModel;
-use crate::models::{role, user_role};
+use crate::models::{role, role_permission, user_role};
 use crate::services::ServiceContext;
 use crate::services::permission::{
     CheckPermissionContext, PermissionCache, PermissionInput, resolve_category_reference,

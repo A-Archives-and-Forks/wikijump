@@ -68,6 +68,7 @@ pub use self::user_follow::*;
 
 use super::prelude::*;
 use crate::models::relation::{self, Entity as Relation, Model as RelationModel};
+use crate::types::{RelationObjectType, RelationType};
 use serde::Serialize;
 
 // Base service exists here.

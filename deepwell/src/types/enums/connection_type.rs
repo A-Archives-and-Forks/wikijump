@@ -1,5 +1,5 @@
 /*
- * types/connection_type.rs
+ * types/enums/connection_type.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
  * Copyright (C) 2019-2026 Wikijump Team
@@ -18,11 +18,9 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use crate::error::prelude::*;
-use sea_orm::{TryFromU64, entity::prelude::*};
-use std::str::FromStr;
-use strum_macros::EnumIter;
-use strum_macros::{Display, EnumString};
+use sea_orm::DeriveValueType;
+use serde::{Deserialize, Serialize};
+use strum_macros::{Display, EnumIter, EnumString};
 
 #[derive(
     EnumIter,
@@ -49,13 +47,7 @@ pub enum ConnectionType {
     Redirect,
 }
 
-impl TryFromU64 for ConnectionType {
-    fn try_from_u64(_: u64) -> std::result::Result<Self, DbErr> {
-        Err(DbErr::ConvertFromU64(
-            "cannot construct ConnectionType from u64; auto_increment must be false for this primary key",
-        ))
-    }
-}
+impl_try_from_u64!(ConnectionType);
 
 /// Ensure `ConnectionType::name()` produces the same output as serde.
 #[test]

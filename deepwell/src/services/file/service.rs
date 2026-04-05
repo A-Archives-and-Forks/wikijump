@@ -32,8 +32,7 @@ use crate::services::file_revision::{
 };
 use crate::services::filter::{FilterClass, FilterType};
 use crate::services::{BlobService, FileRevisionService, FilterService, PageService};
-use crate::types::FileOrder;
-use crate::types::FileRevisionType;
+use crate::types::{FileOrder, FileRevisionType};
 use crate::utils::trim_spaces_in_place;
 use sea_orm::ActiveValue;
 
