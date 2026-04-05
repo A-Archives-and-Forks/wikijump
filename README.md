@@ -15,6 +15,11 @@
          alt="DEEPWELL build status">
   </a>
 
+  <a href="https://github.com/scpwiki/wikijump/actions?query=workflow%3A%22%5Bwws%5D+Rust%22">
+    <img src="https://github.com/scpwiki/wikijump/workflows/%5Bwws%5D%20Rust/badge.svg"
+         alt="WWS build status">
+  </a>
+
   <a href="https://github.com/scpwiki/wikijump/actions?query=workflow%3A%22%5Bframerail%5D+Typescript%22">
     <img src="https://github.com/scpwiki/wikijump/workflows/%5Bframerail%5D%20Typescript/badge.svg"
          alt="Framerail build status">
