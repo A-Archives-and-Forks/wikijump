@@ -52,9 +52,13 @@ macro_rules! run_endpoint {
     };
 
     ($endpoint:expr => $ctx:expr, $params:expr) => {
-        $endpoint(&$ctx, $params).await.expect(
-            concat!("Call to method '", stringify!($endpoint), "' failed")
-        )
+        // Not using .expect() because we want a custom panic message
+        match $endpoint(&$ctx, $params).await {
+            Ok(result) => result,
+            Err(error) => {
+                panic!("Call to method '{}' failed!\n{:?}", stringify!($endpoint), error);
+            }
+        }
     };
 }
 
@@ -69,9 +73,17 @@ macro_rules! run_endpoint_err {
     };
 
     ($endpoint:expr => $ctx:expr, $params:expr) => {
-        $endpoint(&$ctx, $params).await.expect_err(
-            concat!("Call to method '", stringify!($endpoint), "' succeeded when it should have failed")
-        )
+        // Not using .expect_err() because we want a custom panic message
+        match $endpoint(&$ctx, $params).await {
+            Err(error) => error,
+            Ok(result) => {
+                panic!(
+                    "Call to method '{}' succeeded when it should have failed\n{:?}",
+                    stringify!($endpoint),
+                    result,
+                );
+            }
+        }
     };
 }
 
