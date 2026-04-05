@@ -54,16 +54,19 @@ where
 /// This is a wrapper macro for `extract_error()` which allows you to pass in a pattern
 /// to be evaluated in `matches!`.
 macro_rules! extract_error {
-    ($exn_error:expr, $pattern:pat $(,)?) => {
-        crate::common::extract_error(&$exn_error, |etype| matches!(etype, $pattern))
+    ($exn_error:expr, $pattern:pat $(if $guard:expr)? $(,)?) => {
+        crate::common::extract_error(
+            &$exn_error,
+            |etype| matches!(etype, $pattern $(if $guard)?),
+        )
     };
 }
 
 /// Asserts that there exists an error type matching the given pattern within the `Exn<Error>`.
 macro_rules! assert_contains_error {
-    ($exn_error:expr, $pattern:pat $(,)?) => {{
+    ($exn_error:expr, $pattern:pat $(if $guard:expr)? $(,)?) => {{
         let exn_error = &$exn_error;
-        let extracted = extract_error!(exn_error, $pattern);
+        let extracted = extract_error!(exn_error, $pattern $(if $guard)?);
         assert!(
             extracted.is_some(),
             "Cannot find error within trace matching '{}':\n{:?}",
@@ -75,9 +78,9 @@ macro_rules! assert_contains_error {
 
 /// Asserts that there are no erroras within the `Exn<Error>` matching the given pattern.
 macro_rules! assert_no_error {
-    ($exn_error:expr, $pattern:pat $(,)?) => {{
+    ($exn_error:expr, $pattern:pat $(if $guard:expr)? $(,)?) => {{
         let exn_error = &$exn_error;
-        let extracted = extract_error!(exn_error, $pattern);
+        let extracted = extract_error!(exn_error, $pattern $(if $guard)?);
         assert!(
             extracted.is_none(),
             "Found error within trace matching '{}': {:?}\n{:?}",
