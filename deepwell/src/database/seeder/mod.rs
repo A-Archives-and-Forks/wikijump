@@ -83,9 +83,11 @@ pub async fn seed(state: &ServerState) -> Result<()> {
     restart_sequence(&txn, "user_user_id_seq")
         .await
         .or_raise(make_error)?;
+
     restart_sequence(&txn, "page_page_id_seq")
         .await
         .or_raise(make_error)?;
+
     restart_sequence(&txn, "site_site_id_seq")
         .await
         .or_raise(make_error)?;
