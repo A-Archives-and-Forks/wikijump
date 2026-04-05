@@ -25,7 +25,7 @@
 /// This avoids the type annoyance that comes with these two types,
 /// for improved readability within test code.
 ///
-/// This code is simple, readable, and doens't work:
+/// This code is simple, readable, and doesn't work:
 /// ```compile_fail
 /// let left: Option<String> = Some(str!("foo"));
 /// assert_eq!(left, Some("foo"));
