@@ -79,16 +79,48 @@ pub async fn seed(state: &ServerState) -> Result<()> {
         return Ok(());
     }
 
-    // Reset sequences so IDs are consistent
-    restart_sequence(&txn, "user_user_id_seq")
+    // Modify ID sequences so that they exhibit Wikidot compatibility.
+    //
+    // This property means that no valid Wikidot ID for a class of object
+    // can ever also be a valid Wikijump ID for that same class of object.
+    // We do this by putting the start ID for new Wikijump IDs well above
+    // what the Wikidot value is likely to reach by the time the project
+    // hits production.
+    //
+    // Some classes of object are not assigned compatibility IDs, either
+    // because the ID value does not matter, is unused, or is not exposed.
+    //
+    // See https://scuttle.atlassian.net/browse/WJ-964
+
+    restart_sequence_with(&txn, "user_user_id_seq", 20000000)
         .await
         .or_raise(make_error)?;
 
-    restart_sequence(&txn, "page_page_id_seq")
+    restart_sequence_with(&txn, "site_site_id_seq", 6000000)
         .await
         .or_raise(make_error)?;
 
-    restart_sequence(&txn, "site_site_id_seq")
+    restart_sequence_with(&txn, "page_page_id_seq", 3000000000)
+        .await
+        .or_raise(make_error)?;
+
+    restart_sequence_with(&txn, "page_revision_revision_id_seq", 3000000000)
+        .await
+        .or_raise(make_error)?;
+
+    restart_sequence_with(&txn, "page_category_category_id_seq", 100000000)
+        .await
+        .or_raise(make_error)?;
+
+    restart_sequence_with(&txn, "forum_category_forum_category_id_seq", 9000000)
+        .await
+        .or_raise(make_error)?;
+
+    restart_sequence_with(&txn, "forum_thread_forum_thread_id_seq", 30000000)
+        .await
+        .or_raise(make_error)?;
+
+    restart_sequence_with(&txn, "forum_post_forum_post_id_seq", 7000000)
         .await
         .or_raise(make_error)?;
 
@@ -606,51 +638,6 @@ pub async fn seed(state: &ServerState) -> Result<()> {
             .await
             .or_raise(make_error)?;
     }
-
-    // After all seeding, modify ID sequences so that they exhibit Wikidot compatibility.
-    //
-    // This property means that no valid Wikidot ID for a class of object
-    // can ever also be a valid Wikijump ID for that same class of object.
-    // We do this by putting the start ID for new Wikijump IDs well above
-    // what the Wikidot value is likely to reach by the time the project
-    // hits production.
-    //
-    // Some classes of object are not assigned compatibility IDs, either
-    // because the ID value does not matter, is unused, or is not exposed.
-    //
-    // See https://scuttle.atlassian.net/browse/WJ-964
-
-    restart_sequence_with(&txn, "user_user_id_seq", 20000000)
-        .await
-        .or_raise(make_error)?;
-
-    restart_sequence_with(&txn, "site_site_id_seq", 6000000)
-        .await
-        .or_raise(make_error)?;
-
-    restart_sequence_with(&txn, "page_page_id_seq", 3000000000)
-        .await
-        .or_raise(make_error)?;
-
-    restart_sequence_with(&txn, "page_revision_revision_id_seq", 3000000000)
-        .await
-        .or_raise(make_error)?;
-
-    restart_sequence_with(&txn, "page_category_category_id_seq", 100000000)
-        .await
-        .or_raise(make_error)?;
-
-    restart_sequence_with(&txn, "forum_category_forum_category_id_seq", 9000000)
-        .await
-        .or_raise(make_error)?;
-
-    restart_sequence_with(&txn, "forum_thread_forum_thread_id_seq", 30000000)
-        .await
-        .or_raise(make_error)?;
-
-    restart_sequence_with(&txn, "forum_post_forum_post_id_seq", 7000000)
-        .await
-        .or_raise(make_error)?;
 
     txn.commit().await.or_raise(make_error)?;
     info!("Finished running seeder.");
