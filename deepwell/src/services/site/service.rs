@@ -106,6 +106,7 @@ impl SiteService {
                 password: String::new(),
                 bypass_filter: false,
                 bypass_email_verification: true,
+                override_user_id: None,
                 ip_address,
             },
         )

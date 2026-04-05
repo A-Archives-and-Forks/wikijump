@@ -39,6 +39,9 @@ pub struct CreateUser {
 
     #[serde(default)]
     pub bypass_email_verification: bool,
+
+    #[serde(default)]
+    pub override_user_id: Option<i64>,
     pub ip_address: IpAddr,
 }
 

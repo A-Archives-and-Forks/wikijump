@@ -58,6 +58,7 @@ impl UserService {
             password,
             bypass_filter,
             bypass_email_verification,
+            override_user_id,
             ip_address,
         }: CreateUser,
     ) -> Result<CreateUserOutput> {
@@ -67,7 +68,27 @@ impl UserService {
         debug!("Normalizing user data (name '{name}', slug '{slug}')");
         regex_replace_in_place(&mut name, &LEADING_TRAILING_CHARS, "");
 
-        info!("Attempting to create user '{name}' ('{slug}')");
+        let user_id = match override_user_id {
+            Some(0) => {
+                error!(
+                    "Caller attempted to create a user with ID 0, which is reserved (never a valid user ID)",
+                );
+                bail!(Error::new(
+                    "cannot create user with ID 0, value is reserved",
+                    ErrorType::BadRequest,
+                ));
+            }
+            Some(user_id) => {
+                info!("Attempting to create user '{name}' ('{slug}', ID {user_id})");
+                ActiveValue::Set(user_id)
+            }
+            None => {
+                info!("Attempting to create user '{name}' ('{slug}')");
+
+                // Use default value, which is set by BIGSERIAL
+                ActiveValue::NotSet
+            }
+        };
 
         check_user_name(ctx.config(), &slug, &name)?;
 
@@ -221,6 +242,7 @@ impl UserService {
 
         // Insert new model
         let user = user::ActiveModel {
+            user_id,
             user_type: Set(user_type),
             name: Set(name),
             slug: Set(slug.clone()),
