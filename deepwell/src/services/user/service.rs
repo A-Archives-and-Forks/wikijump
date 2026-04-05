@@ -69,7 +69,7 @@ impl UserService {
         regex_replace_in_place(&mut name, &LEADING_TRAILING_CHARS, "");
 
         let user_id = match override_user_id {
-            Some(user_id) if user_id == 0 => {
+            Some(0) => {
                 error!(
                     "Caller attempted to create a user with ID 0, which is reserved (never a valid user ID)",
                 );
