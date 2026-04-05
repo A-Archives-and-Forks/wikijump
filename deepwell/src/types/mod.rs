@@ -38,11 +38,7 @@ mod rerender_depth;
 pub use self::array::ArrayLength;
 pub use self::bytes::Bytes;
 pub use self::conversion_error::{EnumConversionError, parse_layout};
-pub use self::enums::{
-    Action, AliasType, ConnectionType, FileRevisionChange, FileRevisionType, License,
-    MessageRecipientType, PageRevisionChange, PageRevisionType, RelationObjectType,
-    RelationType, Resource, TextBlockType, UserType,
-};
+pub use self::enums::*;
 pub use self::fetch_direction::FetchDirection;
 pub use self::file_details::FileDetails;
 pub use self::file_order::FileOrder;

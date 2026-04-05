@@ -51,7 +51,7 @@ CREATE TABLE "user" (
     CHECK ((user_type = 'system' AND locales = '{}') OR (user_type != 'system' AND locales != '{}')),
 
     -- Enum value must not be empty
-    CHECK (LENGTH(user_type) > 0),
+    CHECK (length(user_type) > 0),
 
     -- Strings should either be NULL or non-empty (and within limits)
     CHECK (real_name IS NULL OR (length(real_name) > 0 AND length(real_name) < 300)),
@@ -188,7 +188,7 @@ CREATE TABLE relation (
     CHECK (
         ((overwritten_by IS NULL) AND (deleted_at IS NULL)) OR    -- entries are active
         ((overwritten_by IS NULL) != (deleted_at IS NULL))        -- or they are overwritten XOR deleted
-    )
+    ),
 
     -- Enum values must not be empty
     CHECK (length(relation_type) > 0),
@@ -641,7 +641,7 @@ CREATE TABLE message_recipient (
     -- Rust enum: MessageRecipientType
     recipient_type TEXT NOT NULL,
 
-    PRIMARY KEY (record_id, recipient_id, recipient_type)
+    PRIMARY KEY (record_id, recipient_id, recipient_type),
 
     -- Enum value must not be empty
     CHECK (length(recipient_type) > 0)
