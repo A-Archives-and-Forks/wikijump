@@ -114,6 +114,7 @@ pub async fn bot_user_create(
             password: String::new(), // TODO configure user-bot password
             bypass_filter,
             bypass_email_verification,
+            override_user_id: None,
             ip_address,
         },
     )

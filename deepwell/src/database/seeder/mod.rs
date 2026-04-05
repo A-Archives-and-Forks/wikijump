@@ -129,11 +129,17 @@ pub async fn seed(state: &ServerState) -> Result<()> {
                 locales: user.locales,
                 bypass_filter: true,
                 bypass_email_verification: true,
+                override_user_id: Some(user.id),
                 ip_address: SEED_IP_ADDRESS,
             },
         )
         .await
         .or_raise(make_error)?;
+
+        assert_eq!(
+            user_id, user.id,
+            "User ID from newly seeded user does not match",
+        );
 
         UserService::update(
             &ctx,
