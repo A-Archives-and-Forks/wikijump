@@ -57,6 +57,7 @@ async fn translate_strings() {
 
     // Error cases
 
+    // No locales
     let error = run_endpoint_err!(
         endpoints::locale::translate_strings,
         ctx,
@@ -73,6 +74,7 @@ async fn translate_strings() {
             | ErrorType::LocaleMessageAttributeMissing { .. }
     );
 
+    // Key in strip_message_keys but not messages
     let error = run_endpoint_err!(
         endpoints::locale::translate_strings,
         ctx,
@@ -103,6 +105,7 @@ async fn translate_strings() {
             | ErrorType::LocaleMessageAttributeMissing { .. }
     );
 
+    // No locale
     let error = run_endpoint_err!(
         endpoints::locale::translate_strings,
         ctx,
@@ -121,6 +124,7 @@ async fn translate_strings() {
             | ErrorType::LocaleMessageAttributeMissing { .. }
     );
 
+    // No message key
     let error = run_endpoint_err!(
         endpoints::locale::translate_strings,
         ctx,
