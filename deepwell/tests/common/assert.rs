@@ -47,6 +47,16 @@ where
     walk(exn_error.frame(), condition)
 }
 
+/// Extract the deepwell error from the `Exn<Error>` which matches an error type pattern.
+///
+/// This is a wrapper macro for `extract_error()` which allows you to pass in a pattern
+/// to be evaluated in `matches!`.
+macro_rules! extract_error {
+    ($exn_error:expr, $pattern:pat $(,)?) => {
+        crate::common::extract_error(&$exn_error, |etype| matches!(etype, $pattern))
+    };
+}
+
 /// Allows for equality assertions on `Option<String>` without boilerplate.
 ///
 /// This avoids the type annoyance that comes with these two types,
