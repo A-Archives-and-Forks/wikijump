@@ -24,6 +24,9 @@
 //! server. It should have the largely same modules as `main.rs`.
 
 #[macro_use]
+extern crate exn;
+
+#[macro_use]
 extern crate log;
 
 #[macro_use]
