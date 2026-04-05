@@ -82,7 +82,7 @@ macro_rules! assert_no_error {
             extracted.is_none(),
             "Found error within trace matching '{}': {:?}\n{:?}",
             stringify!($pattern),
-            extracted.unwrap(),
+            extracted.unwrap(), // known to exist at this point
             exn_error,
         );
     }};
