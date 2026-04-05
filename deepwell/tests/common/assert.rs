@@ -62,8 +62,8 @@ macro_rules! extract_error {
 /// Asserts that there exists an error type matching the given pattern within the `Exn<Error>`.
 macro_rules! assert_contains_error {
     ($exn_error:expr, $pattern:pat $(,)?) => {{
-        let exn_error = $exn_error;
-        let extracted = extract_error!(&exn_error, $pattern);
+        let exn_error = &$exn_error;
+        let extracted = extract_error!(exn_error, $pattern);
         assert!(
             extracted.is_some(),
             "Cannot find error within trace matching '{}':\n{:?}",
@@ -76,8 +76,8 @@ macro_rules! assert_contains_error {
 /// Asserts that there are no erroras within the `Exn<Error>` matching the given pattern.
 macro_rules! assert_no_error {
     ($exn_error:expr, $pattern:pat $(,)?) => {{
-        let exn_error = $exn_error;
-        let extracted = extract_error!(&exn_error, $pattern);
+        let exn_error = &$exn_error;
+        let extracted = extract_error!(exn_error, $pattern);
         assert!(
             extracted.is_none(),
             "Found error within trace matching '{}': {:?}\n{:?}",
