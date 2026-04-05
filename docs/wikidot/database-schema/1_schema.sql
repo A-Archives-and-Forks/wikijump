@@ -1,9 +1,7 @@
--- This table adds Wikidot's legacy tables, but with the "wikidot__" prefix so they are namespaced.
---
+-- These definitions match the legacy database schema used by Wikidot.
 -- They are not intended to be used, but instead purely as documentation.
--- They are dropped in one of the next migrations.
 
-CREATE TABLE wikidot__admin (
+CREATE TABLE admin (
     admin_id SERIAL PRIMARY KEY,
     site_id INT,
     user_id INT,
@@ -12,7 +10,7 @@ CREATE TABLE wikidot__admin (
     UNIQUE (site_id, user_id)
 );
 
-CREATE TABLE wikidot__admin_notification (
+CREATE TABLE admin_notification (
     notification_id SERIAL PRIMARY KEY,
     site_id INT,
     body TEXT,
@@ -25,7 +23,7 @@ CREATE TABLE wikidot__admin_notification (
     notify_email BOOLEAN DEFAULT false
 );
 
-CREATE TABLE wikidot__anonymous_abuse_flag (
+CREATE TABLE anonymous_abuse_flag (
     flag_id SERIAL PRIMARY KEY,
     user_id INT,
     address INET,
@@ -35,7 +33,7 @@ CREATE TABLE wikidot__anonymous_abuse_flag (
     global_valid BOOLEAN DEFAULT true
 );
 
-CREATE TABLE wikidot__category (
+CREATE TABLE category (
     category_id SERIAL PRIMARY KEY,
     site_id INT,
     name TEXT,
@@ -59,12 +57,12 @@ CREATE TABLE wikidot__category (
     page_title_template TEXT
 );
 
-CREATE TABLE wikidot__category_template (
+CREATE TABLE category_template (
     category_template_id SERIAL PRIMARY KEY,
     source TEXT
 );
 
-CREATE TABLE wikidot__comment (
+CREATE TABLE comment (
     comment_id SERIAL PRIMARY KEY,
     page_id INT,
     parent_id INT,
@@ -81,7 +79,7 @@ CREATE TABLE wikidot__comment (
     edited_user_string TEXT
 );
 
-CREATE TABLE wikidot__comment_revision (
+CREATE TABLE comment_revision (
     revision_id SERIAL PRIMARY KEY,
     comment_id INT,
     user_id INT,
@@ -91,7 +89,7 @@ CREATE TABLE wikidot__comment_revision (
     date TIMESTAMP
 );
 
-CREATE TABLE wikidot__contact (
+CREATE TABLE contact (
     contact_id SERIAL PRIMARY KEY,
     user_id INT,
     target_user_id INT,
@@ -99,7 +97,7 @@ CREATE TABLE wikidot__contact (
     UNIQUE (user_id, target_user_id)
 );
 
-CREATE TABLE wikidot__domain_redirect (
+CREATE TABLE domain_redirect (
     redirect SERIAL PRIMARY KEY,
     site_id INT,
     url TEXT,
@@ -107,7 +105,7 @@ CREATE TABLE wikidot__domain_redirect (
     UNIQUE (site_id, url)
 );
 
-CREATE TABLE wikidot__email_invitations (
+CREATE TABLE email_invitations (
     invitation_id SERIAL PRIMARY KEY,
     hash TEXT,
     email TEXT,
@@ -123,7 +121,7 @@ CREATE TABLE wikidot__email_invitations (
     date TIMESTAMP
 );
 
-CREATE TABLE wikidot__file (
+CREATE TABLE file (
     file_id SERIAL PRIMARY KEY,
     page_id INT,
     site_id INT,
@@ -139,7 +137,7 @@ CREATE TABLE wikidot__file (
     has_resized BOOLEAN NOT NULL DEFAULT false
 );
 
-CREATE TABLE wikidot__files_event (
+CREATE TABLE files_event (
     file_event_id SERIAL PRIMARY KEY,
     filename TEXT,
     date TIMESTAMP,
@@ -149,7 +147,7 @@ CREATE TABLE wikidot__files_event (
     action_extra TEXT
 );
 
-CREATE TABLE wikidot__forum_category (
+CREATE TABLE forum_category (
     category_id SERIAL PRIMARY KEY,
     group_id INT,
     name TEXT,
@@ -165,7 +163,7 @@ CREATE TABLE wikidot__forum_category (
     per_page_discussion BOOLEAN NOT NULL DEFAULT false
 );
 
-CREATE TABLE wikidot__forum_group (
+CREATE TABLE forum_group (
     group_id SERIAL PRIMARY KEY,
     name TEXT,
     description TEXT,
@@ -174,7 +172,7 @@ CREATE TABLE wikidot__forum_group (
     visible BOOLEAN DEFAULT true
 );
 
-CREATE TABLE wikidot__forum_post (
+CREATE TABLE forum_post (
     post_id SERIAL PRIMARY KEY,
     thread_id INT,
     parent_id INT,
@@ -191,7 +189,7 @@ CREATE TABLE wikidot__forum_post (
     edited_user_string TEXT
 );
 
-CREATE TABLE wikidot__forum_post_revision (
+CREATE TABLE forum_post_revision (
     revision_id SERIAL PRIMARY KEY,
     post_id INT,
     user_id INT,
@@ -201,14 +199,14 @@ CREATE TABLE wikidot__forum_post_revision (
     date TIMESTAMP
 );
 
-CREATE TABLE wikidot__forum_settings (
+CREATE TABLE forum_settings (
     site_id SERIAL PRIMARY KEY,
     permissions TEXT,
     per_page_discussion BOOLEAN NOT NULL DEFAULT false,
     max_nest_level INT NOT NULL DEFAULT 0
 );
 
-CREATE TABLE wikidot__forum_thread (
+CREATE TABLE forum_thread (
     thread_id SERIAL PRIMARY KEY,
     user_id INT,
     user_string TEXT,
@@ -224,7 +222,7 @@ CREATE TABLE wikidot__forum_thread (
     blocked BOOLEAN NOT NULL DEFAULT false
 );
 
-CREATE TABLE wikidot__forum_feed (
+CREATE TABLE forum_feed (
     feed_id SERIAL PRIMARY KEY,
     page_id INT,
     title TEXT,
@@ -235,7 +233,7 @@ CREATE TABLE wikidot__forum_feed (
     site_id INT
 );
 
-CREATE TABLE wikidot__global_ip_block (
+CREATE TABLE global_ip_block (
     block_id SERIAL PRIMARY KEY,
     address INET,
     flag_proxy BOOLEAN NOT NULL DEFAULT false,
@@ -244,7 +242,7 @@ CREATE TABLE wikidot__global_ip_block (
     date_blocked TIMESTAMP
 );
 
-CREATE TABLE wikidot__global_user_block (
+CREATE TABLE global_user_block (
     block_id SERIAL PRIMARY KEY,
     site_id INT,
     user_id INT,
@@ -252,7 +250,7 @@ CREATE TABLE wikidot__global_user_block (
     date_blocked TIMESTAMP
 );
 
-CREATE TABLE wikidot__ip_block (
+CREATE TABLE ip_block (
     block_id SERIAL PRIMARY KEY,
     site_id INT,
     ip INET,
@@ -261,14 +259,14 @@ CREATE TABLE wikidot__ip_block (
     date_blocked TIMESTAMP
 );
 
-CREATE TABLE wikidot__license (
+CREATE TABLE license (
     license_id SERIAL PRIMARY KEY,
     name TEXT,
     description TEXT,
     sort INT NOT NULL DEFAULT 0
 );
 
-CREATE TABLE wikidot__log_event (
+CREATE TABLE log_event (
     event_id SERIAL PRIMARY KEY,
     date TIMESTAMP,
     user_id INT,
@@ -284,7 +282,7 @@ CREATE TABLE wikidot__log_event (
     text TEXT
 );
 
-CREATE TABLE wikidot__member (
+CREATE TABLE member (
     member_id SERIAL PRIMARY KEY,
     site_id INT,
     user_id INT,
@@ -292,7 +290,7 @@ CREATE TABLE wikidot__member (
     allow_newsletter BOOLEAN NOT NULL DEFAULT false
 );
 
-CREATE TABLE wikidot__member_application (
+CREATE TABLE member_application (
     application_id SERIAL PRIMARY KEY,
     site_id INT,
     user_id INT,
@@ -302,7 +300,7 @@ CREATE TABLE wikidot__member_application (
     reply TEXT NOT NULL
 );
 
-CREATE TABLE wikidot__invitation (
+CREATE TABLE invitation (
     invitation_id SERIAL PRIMARY KEY,
     site_id INT,
     user_id INT,
@@ -311,7 +309,7 @@ CREATE TABLE wikidot__invitation (
     body TEXT NOT NULL
 );
 
-CREATE TABLE wikidot__membership_link (
+CREATE TABLE membership_link (
     link_id SERIAL PRIMARY KEY,
     site_id INT,
     by_user_id INT,
@@ -320,7 +318,7 @@ CREATE TABLE wikidot__membership_link (
     type TEXT
 );
 
-CREATE TABLE wikidot__moderator (
+CREATE TABLE moderator (
     moderator_id SERIAL PRIMARY KEY,
     site_id INT,
     user_id INT,
@@ -329,7 +327,7 @@ CREATE TABLE wikidot__moderator (
     UNIQUE (site_id, user_id)
 );
 
-CREATE TABLE wikidot__notification (
+CREATE TABLE notification (
     notification_id SERIAL PRIMARY KEY,
     user_id INT,
     body TEXT,
@@ -342,31 +340,31 @@ CREATE TABLE wikidot__notification (
     notify_email BOOLEAN NOT NULL DEFAULT true
 );
 
-CREATE TABLE wikidot__ozone_group (
+CREATE TABLE ozone_group (
     group_id SERIAL PRIMARY KEY,
     parent_group_id INT,
     name TEXT,
     description TEXT
 );
 
-CREATE TABLE wikidot__ozone_group_permission_modifier (
+CREATE TABLE ozone_group_permission_modifier (
     group_permission_id SERIAL PRIMARY KEY,
     group_id TEXT,
     permission_id TEXT,
     modifier INT
 );
 
-CREATE TABLE wikidot__ozone_lock (
+CREATE TABLE ozone_lock (
     key TEXT PRIMARY KEY
 );
 
-CREATE TABLE wikidot__ozone_permission (
+CREATE TABLE ozone_permission (
     permission_id SERIAL PRIMARY KEY,
     name TEXT,
     description TEXT
 );
 
-CREATE TABLE wikidot__ozone_session (
+CREATE TABLE ozone_session (
     session_id TEXT PRIMARY KEY,
     started TIMESTAMP,
     last_accessed TIMESTAMP,
@@ -379,20 +377,20 @@ CREATE TABLE wikidot__ozone_session (
     ua_hash TEXT
 );
 
-CREATE TABLE wikidot__ozone_user_group_relation (
+CREATE TABLE ozone_user_group_relation (
     user_group_id SERIAL PRIMARY KEY,
     user_id INT,
     group_id INT
 );
 
-CREATE TABLE wikidot__ozone_user_permission_modifier (
+CREATE TABLE ozone_user_permission_modifier (
     user_permission_id SERIAL PRIMARY KEY,
     user_id INT,
     permission_id TEXT,
     modifier INT
 );
 
-CREATE TABLE wikidot__page (
+CREATE TABLE page (
     page_id SERIAL PRIMARY KEY,
     site_id INT,
     category_id INT,
@@ -413,7 +411,7 @@ CREATE TABLE wikidot__page (
     rate INT NOT NULL DEFAULT 0
 );
 
-CREATE TABLE wikidot__page_abuse_flag (
+CREATE TABLE page_abuse_flag (
     flag_id SERIAL PRIMARY KEY,
     user_id INT,
     site_id INT,
@@ -422,13 +420,13 @@ CREATE TABLE wikidot__page_abuse_flag (
     global_valid BOOLEAN NOT NULL DEFAULT true
 );
 
-CREATE TABLE wikidot__page_compiled (
+CREATE TABLE page_compiled (
     page_id SERIAL PRIMARY KEY,
     text TEXT,
     date_compiled TIMESTAMP
 );
 
-CREATE TABLE wikidot__page_edit_lock (
+CREATE TABLE page_edit_lock (
     lock_id SERIAL PRIMARY KEY,
     page_id INT,
     mode TEXT NOT NULL DEFAULT 'page',
@@ -447,7 +445,7 @@ CREATE TABLE wikidot__page_edit_lock (
     UNIQUE (site_id, page_unix_name)
 );
 
-CREATE TABLE wikidot__page_external_link (
+CREATE TABLE page_external_link (
     link_id SERIAL PRIMARY KEY,
     site_id INT,
     page_id INT,
@@ -455,7 +453,7 @@ CREATE TABLE wikidot__page_external_link (
     date TIMESTAMP
 );
 
-CREATE TABLE wikidot__page_inclusion (
+CREATE TABLE page_inclusion (
     inclusion_id SERIAL PRIMARY KEY,
     including_page_id INT,
     included_page_id INT,
@@ -465,7 +463,7 @@ CREATE TABLE wikidot__page_inclusion (
     UNIQUE (including_page_id, included_page_id, included_page_name)
 );
 
-CREATE TABLE wikidot__page_link (
+CREATE TABLE page_link (
     link_id SERIAL PRIMARY KEY,
     from_page_id INT,
     to_page_id INT,
@@ -475,7 +473,7 @@ CREATE TABLE wikidot__page_link (
     UNIQUE (from_page_id, to_page_id, to_page_name)
 );
 
-CREATE TABLE wikidot__page_metadata (
+CREATE TABLE page_metadata (
     metadata_id SERIAL PRIMARY KEY,
     parent_page_id INT,
     title TEXT,
@@ -483,7 +481,7 @@ CREATE TABLE wikidot__page_metadata (
     owner_user_id INT
 );
 
-CREATE TABLE wikidot__page_rate_vote (
+CREATE TABLE page_rate_vote (
     rate_id SERIAL PRIMARY KEY,
     user_id INT,
     page_id INT,
@@ -493,7 +491,7 @@ CREATE TABLE wikidot__page_rate_vote (
     UNIQUE (user_id, page_id)
 );
 
-CREATE TABLE wikidot__page_revision (
+CREATE TABLE page_revision (
     revision_id SERIAL PRIMARY KEY,
     page_id INT,
     source_id INT,
@@ -516,19 +514,19 @@ CREATE TABLE wikidot__page_revision (
     site_id INT
 );
 
-CREATE TABLE wikidot__page_source (
+CREATE TABLE page_source (
     source_id SERIAL PRIMARY KEY,
     text TEXT
 );
 
-CREATE TABLE wikidot__page_tag (
+CREATE TABLE page_tag (
     tag_id SERIAL PRIMARY KEY,
     site_id INT,
     page_id INT,
     tag TEXT
 );
 
-CREATE TABLE wikidot__private_message (
+CREATE TABLE private_message (
     message_id SERIAL PRIMARY KEY,
     from_user_id INT,
     to_user_id INT,
@@ -539,7 +537,7 @@ CREATE TABLE wikidot__private_message (
     flag_new BOOLEAN NOT NULL DEFAULT true
 );
 
-CREATE TABLE wikidot__private_user_block (
+CREATE TABLE private_user_block (
     block_id SERIAL PRIMARY KEY,
     user_id INT,
     blocked_user_id INT,
@@ -547,7 +545,7 @@ CREATE TABLE wikidot__private_user_block (
     UNIQUE (user_id, blocked_user_id)
 );
 
-CREATE TABLE wikidot__profile (
+CREATE TABLE profile (
     user_id INT PRIMARY KEY,
     real_name TEXT,
     gender TEXT,
@@ -562,7 +560,7 @@ CREATE TABLE wikidot__profile (
     change_screen_name_count INT NOT NULL DEFAULT 0
 );
 
-CREATE TABLE wikidot__site (
+CREATE TABLE site (
     site_id SERIAL PRIMARY KEY,
     name TEXT,
     subtitle TEXT,
@@ -577,7 +575,7 @@ CREATE TABLE wikidot__site (
     deleted BOOLEAN NOT NULL DEFAULT false
 );
 
-CREATE TABLE wikidot__site_backup (
+CREATE TABLE site_backup (
     backup_id SERIAL PRIMARY KEY,
     site_id INT,
     status TEXT,
@@ -587,7 +585,7 @@ CREATE TABLE wikidot__site_backup (
     rand TEXT
 );
 
-CREATE TABLE wikidot__site_settings (
+CREATE TABLE site_settings (
     site_id INT PRIMARY KEY,
     allow_membership_by_apply BOOLEAN NOT NULL DEFAULT true,
     allow_membership_by_password BOOLEAN NOT NULL DEFAULT false,
@@ -603,12 +601,12 @@ CREATE TABLE wikidot__site_settings (
     max_upload_file_size INT NOT NULL DEFAULT 10485760
 );
 
-CREATE TABLE wikidot__site_super_settings (
+CREATE TABLE site_super_settings (
     site_id INT PRIMARY KEY,
     can_custom_domain BOOLEAN NOT NULL DEFAULT true
 );
 
-CREATE TABLE wikidot__site_tag (
+CREATE TABLE site_tag (
     tag_id SERIAL PRIMARY KEY,
     site_id INT,
     tag TEXT,
@@ -616,13 +614,13 @@ CREATE TABLE wikidot__site_tag (
     UNIQUE (site_id, tag)
 );
 
-CREATE TABLE wikidot__site_viewer (
+CREATE TABLE site_viewer (
     viewer_id SERIAL PRIMARY KEY,
     site_id INT,
     user_id INT
 );
 
-CREATE TABLE wikidot__theme (
+CREATE TABLE theme (
     theme_id SERIAL PRIMARY KEY,
     name TEXT,
     unix_name TEXT,
@@ -638,19 +636,19 @@ CREATE TABLE wikidot__theme (
     revision_number INT NOT NULL DEFAULT 0
 );
 
-CREATE TABLE wikidot__theme_preview (
+CREATE TABLE theme_preview (
     theme_id INT PRIMARY KEY,
     body TEXT
 );
 
-CREATE TABLE wikidot__ucookie (
+CREATE TABLE ucookie (
     ucookie_id TEXT PRIMARY KEY,
     site_id INT,
     session_id TEXT,
     date_granted TIMESTAMP
 );
 
-CREATE TABLE wikidot__user_abuse_flag (
+CREATE TABLE user_abuse_flag (
     flag_id SERIAL PRIMARY KEY,
     user_id INT,
     target_user_id INT,
@@ -659,7 +657,7 @@ CREATE TABLE wikidot__user_abuse_flag (
     global_valid BOOLEAN NOT NULL DEFAULT true
 );
 
-CREATE TABLE wikidot__user_block (
+CREATE TABLE user_block (
     block_id SERIAL PRIMARY KEY,
     site_id INT,
     user_id INT,
@@ -669,13 +667,13 @@ CREATE TABLE wikidot__user_block (
     UNIQUE (site_id, user_id)
 );
 
-CREATE TABLE wikidot__user_karma (
+CREATE TABLE user_karma (
     user_id INT PRIMARY KEY,
     points INT,
     level INT
 );
 
-CREATE TABLE wikidot__user_settings (
+CREATE TABLE user_settings (
     user_id INT PRIMARY KEY,
     receive_invitations BOOLEAN NOT NULL DEFAULT true,
     receive_pm TEXT NOT NULL DEFAULT 'a',
@@ -688,7 +686,7 @@ CREATE TABLE wikidot__user_settings (
     max_sites_admin INT NOT NULL DEFAULT 3
 );
 
-CREATE TABLE wikidot__watched_forum_thread (
+CREATE TABLE watched_forum_thread (
     watched_id SERIAL PRIMARY KEY,
     user_id INT,
     thread_id INT,
@@ -696,7 +694,7 @@ CREATE TABLE wikidot__watched_forum_thread (
     UNIQUE (user_id, thread_id)
 );
 
-CREATE TABLE wikidot__watched_page (
+CREATE TABLE watched_page (
     watched_id SERIAL PRIMARY KEY,
     user_id INT,
     page_id INT,
