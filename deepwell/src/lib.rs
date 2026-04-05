@@ -20,8 +20,8 @@
 
 //! Library version of the deepwell crate.
 //!
-//! This exists only to enable integration test runners to run the deepwell
-//! server. It should have the largely same modules as `main.rs`.
+//! This allows you to customize how the server is run, and work with
+//! the crate's types and systems.
 
 #[macro_use]
 extern crate exn;
@@ -36,6 +36,9 @@ extern crate futures;
 extern crate serde;
 
 #[macro_use]
+extern crate static_assertions;
+
+#[macro_use]
 extern crate str_macro;
 
 #[macro_use]
@@ -45,11 +48,18 @@ mod macros;
 #[allow(unused_imports)]
 mod models;
 
+#[cfg(feature = "watch")]
+mod watch;
+
+// Server entrypoint
+mod start;
+
 pub mod api;
 pub mod config;
 pub mod constants;
 pub mod database;
 pub mod endpoints;
+pub mod error;
 pub mod hash;
 pub mod info;
 pub mod license;
@@ -58,3 +68,5 @@ pub mod redis;
 pub mod services;
 pub mod types;
 pub mod utils;
+
+pub use self::start::*;

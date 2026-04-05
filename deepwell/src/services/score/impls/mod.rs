@@ -21,7 +21,7 @@
 // TEMP
 #![allow(dead_code)]
 
-pub mod prelude {
+mod prelude {
     pub use super::super::prelude::*;
 
     pub fn make_error(method: &str) -> Error {

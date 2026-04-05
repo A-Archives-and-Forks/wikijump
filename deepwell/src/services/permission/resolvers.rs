@@ -39,6 +39,7 @@ pub trait CategoryResolver: Send + Sync {
     ) -> Result<Option<i64>>;
 }
 
+#[derive(Debug)]
 pub struct PageCategoryResolver;
 
 #[async_trait::async_trait]
