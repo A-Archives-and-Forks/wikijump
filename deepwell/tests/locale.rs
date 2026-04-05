@@ -138,8 +138,28 @@ async fn translate_strings() {
         error,
         ErrorType::BadRequest
             | ErrorType::LocaleInvalid { .. }
-            | ErrorType::LocaleMessageMissing { .. }
+            | ErrorType::LocaleMissing { .. }
             | ErrorType::LocaleMessageValueMissing { .. }
+            | ErrorType::LocaleMessageAttributeMissing { .. }
+    );
+
+    // No message value
+    // Only attributes exist
+    let error = run_endpoint_err!(
+        endpoints::locale::translate_strings,
+        ctx,
+        r#"{"locales": ["en"], "messages": {"error-404": {}, "error-404.page": {}}}"#,
+    );
+    assert_contains_error!(
+        error,
+        ErrorType::LocaleMessageValueMissing { message_key } if message_key == "error-404",
+    );
+    assert_no_error!(
+        error,
+        ErrorType::BadRequest
+            | ErrorType::LocaleInvalid { .. }
+            | ErrorType::LocaleMissing { .. }
+            | ErrorType::LocaleMessageMissing { .. }
             | ErrorType::LocaleMessageAttributeMissing { .. }
     );
 
@@ -165,16 +185,6 @@ async fn translate_strings() {
     assert!(output.contains_key("close"));
 
     // Null outputs
-
-    // No message value
-    let output = run_endpoint!(
-        endpoints::locale::translate_strings,
-        ctx,
-        r#"{"locales": ["en"], "messages": {"error-404": {}, "error-404.page": {}}}"#,
-    );
-    assert_eq!(output.len(), 2);
-    assert!(output["error-404"].is_none());
-    assert!(output["error-404.page"].is_some());
 
     // No message attribute
     let output = run_endpoint!(
