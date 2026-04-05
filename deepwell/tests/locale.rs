@@ -163,6 +163,26 @@ async fn translate_strings() {
             | ErrorType::LocaleMessageAttributeMissing { .. }
     );
 
+    // No message attribute
+    let error = run_endpoint_err!(
+        endpoints::locale::translate_strings,
+        ctx,
+        r#"{"locales": ["en"], "messages": {"license.cc0": {}, "license.xyz": {}}}"#,
+    );
+    assert_contains_error!(
+        error,
+        ErrorType::LocaleMessageAttributeMissing { message_key, attribute }
+            if message_key == "license" && attribute == "xyz",
+    );
+    assert_no_error!(
+        error,
+        ErrorType::BadRequest
+            | ErrorType::LocaleInvalid { .. }
+            | ErrorType::LocaleMissing { .. }
+            | ErrorType::LocaleMessageMissing { .. }
+            | ErrorType::LocaleMessageValueMissing { .. }
+    );
+
     // Success cases
 
     let output = run_endpoint!(
@@ -183,28 +203,6 @@ async fn translate_strings() {
     assert_eq!(output.len(), 2);
     assert!(output.contains_key("alt-title"));
     assert!(output.contains_key("close"));
-
-    // Null outputs
-
-    // No message attribute
-    let output = run_endpoint!(
-        endpoints::locale::translate_strings,
-        ctx,
-        r#"{"locales": ["en"], "messages": {"license.cc0": {}, "license.xyz": {}}}"#,
-    );
-    assert_eq!(output.len(), 2);
-    assert!(output["license.cc0"].is_some());
-    assert!(output["license.xyz"].is_none());
-
-    // No such
-    let output = run_endpoint!(
-        endpoints::locale::translate_strings,
-        ctx,
-        r#"{"locales": ["en"], "messages": {"license.cc0": {}, "license.xyz": {}}}"#,
-    );
-    assert_eq!(output.len(), 2);
-    assert!(output["license.cc0"].is_some());
-    assert!(output["license.xyz"].is_none());
 
     // Testing strip_message_keys
 
