@@ -32,7 +32,7 @@ async fn misc() {
     let ctx = ServiceContext::new(&state, &txn);
 
     // ping
-    run_endpoint!(endpoints::misc::ping, ctx);
+    run_endpoint!(endpoints::health::ping, ctx);
 
     // echo
     let object = run_endpoint!(endpoints::misc::echo, ctx, r#"["foo bar"]"#);
