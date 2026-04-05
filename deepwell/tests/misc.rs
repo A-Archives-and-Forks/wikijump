@@ -81,11 +81,17 @@ async fn misc() {
     assert_eq!(info.package.license, deepwell::info::PKG_LICENSE);
     assert_eq!(info.package.repository, deepwell::info::PKG_REPOSITORY);
     assert_eq!(info.compile_info.built_at, *deepwell::info::BUILT_TIME_UTC);
-    assert_eq!(info.compile_info.rustc_version, deepwell::info::RUSTC_VERSION);
+    assert_eq!(
+        info.compile_info.rustc_version,
+        deepwell::info::RUSTC_VERSION,
+    );
     assert_eq!(info.compile_info.endian, deepwell::info::CFG_ENDIAN);
     assert_eq!(info.compile_info.target, deepwell::info::TARGET);
     assert_eq!(info.compile_info.threads, deepwell::info::NUM_JOBS);
-    assert_eq!(info.compile_info.git_commit, deepwell::info::GIT_COMMIT_HASH);
+    assert_eq!(
+        info.compile_info.git_commit,
+        deepwell::info::GIT_COMMIT_HASH,
+    );
     assert_eq!(info.config_path, state.config.raw_toml_path);
     assert_eq!(info.hostname, *deepwell::info::HOSTNAME);
     assert!(info.current_time > OffsetDateTime::UNIX_EPOCH);

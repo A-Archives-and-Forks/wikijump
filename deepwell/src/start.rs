@@ -23,9 +23,9 @@
 #[cfg(feature = "notify")]
 use crate::watch::setup_autorestart;
 
-use crate::{api, database};
 use crate::config::SetupConfig;
 use crate::error::prelude::*;
+use crate::{api, database};
 use cfg_if::cfg_if;
 use std::fs::File;
 use std::io::Write;
