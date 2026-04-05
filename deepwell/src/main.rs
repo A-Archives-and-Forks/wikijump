@@ -24,5 +24,6 @@ use deepwell::error::Result;
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    // entrypoint is in start.rs
     deepwell::start().await
 }
