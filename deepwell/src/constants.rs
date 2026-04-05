@@ -21,7 +21,8 @@
 #![allow(dead_code)]
 
 // See seeder data for these values
-pub const ADMIN_USER_ID: i64 = 1;
-pub const SYSTEM_USER_ID: i64 = 2;
-pub const ANONYMOUS_USER_ID: i64 = 3;
-pub const SAMPLE_USER_ID: i64 = 4;
+pub const ADMIN_USER_ID: i64 = -1;
+pub const SYSTEM_USER_ID: i64 = -2;
+pub const ANONYMOUS_USER_ID: i64 = -3;
+pub const UNKNOWN_USER_ID: i64 = -4;
+pub const SAMPLE_USER_ID: i64 = -5;
