@@ -644,26 +644,6 @@ pub async fn seed(state: &ServerState) -> Result<()> {
     Ok(())
 }
 
-async fn restart_sequence(
-    txn: &DatabaseTransaction,
-    sequence_name: &'static str,
-) -> Result<()> {
-    debug!("Restarting sequence {sequence_name}");
-
-    // SAFETY: We cannot parameterize the sequence name here, so we have to use format!()
-    //         However, by requiring that sequence_name be &'static str, we ensure that it
-    //         is only applied to hardcoded values and never used for runtime values
-    //         (such as ones entered by an external, untrusted user).
-    run_query(txn, format!("ALTER SEQUENCE {sequence_name} RESTART"))
-        .await
-        .or_raise(|| {
-            Error::new(
-                format!("failed to restart ID sequence '{sequence_name}'"),
-                ErrorType::DatabaseSeeder,
-            )
-        })
-}
-
 async fn restart_sequence_with(
     txn: &DatabaseTransaction,
     sequence_name: &'static str,
