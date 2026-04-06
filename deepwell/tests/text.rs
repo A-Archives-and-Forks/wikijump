@@ -81,7 +81,21 @@ async fn text() {
 
     // Errors
 
-    // TODO
+    // Not a hex hash
+    let error = run_endpoint_err!(
+        endpoints::text::text_get,
+        ctx,
+        r#"["zzzzyyyyxxxxvvvvuuuuttttssssrrrr"]"#,
+    );
+    assert!(
+        format!("{error:?}").contains("InvalidParams"),
+        "JSONRPC InvalidParams error not returned:\n{:?}",
+        error,
+    );
+
+    // Not the right length
+    let error = run_endpoint_err!(endpoints::text::text_get, ctx, r#"["aaff0011"]"#);
+    assert_contains_error!(error, ErrorType::BadRequest);
 
     cleanup!(state, txn, ctx);
 }
