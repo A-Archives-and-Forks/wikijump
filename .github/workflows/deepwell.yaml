@@ -86,6 +86,9 @@ jobs:
       - name: System Dependencies
         run: sudo apt update && sudo apt install libmagic-dev
 
+      - name: Install Tools
+        run: cargo install sqlx-cli --no-default-features --features rustls,postgres
+
       - name: Build (no features)
         run: cd deepwell && cargo build --no-default-features
 
@@ -96,6 +99,9 @@ jobs:
         run: cd deepwell && cargo run --all-features -- config.example.toml ../install/local/deepwell/config.toml ../install/dev/deepwell/config.toml ../install/prod/deepwell/config.toml
         env:
           DEEPWELL_RUNTIME_ACTION: validate-config
+
+      - name: Run Migrations
+        run: cd deepwell && sqlx migrate run
 
       - name: Run Seeder
         run: cd deepwell && cargo run --all-features -- config.example.toml
