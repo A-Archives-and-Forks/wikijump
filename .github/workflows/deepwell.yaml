@@ -32,6 +32,8 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+        ports:
+          - 5432:5432
       valkey:
         image: valkey/valkey:alpine
         options: >-
@@ -39,6 +41,8 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+        ports:
+          - 6379:6379
       minio:
         image: ghcr.io/scpwiki/wikijump:minio
         env:
@@ -51,16 +55,18 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+        ports:
+          - 9000:9000
 
     env:
       RUSTFLAGS: -D warnings
-      DATABASE_URL: postgres://postgres:postgres@postgres/postgres
-      REDIS_URL: redis://valkey
+      DATABASE_URL: postgres://postgres:postgres@localhost/postgres
+      REDIS_URL: redis://localhost
       S3_FILES_BUCKET: deepwell-files
       S3_TEXT_BLOCKS_BUCKET: deepwell-text-blocks
       S3_REGION_NAME: test
       S3_PATH_STYLE: 'true'
-      S3_CUSTOM_ENDPOINT: http://minio:9000
+      S3_CUSTOM_ENDPOINT: http://localhost:9000
       S3_ACCESS_KEY_ID: minio
       S3_SECRET_ACCESS_KEY: minio-github-test
 
