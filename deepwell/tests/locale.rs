@@ -24,13 +24,14 @@ mod common;
 use deepwell::endpoints;
 use deepwell::error::prelude::*;
 use deepwell::services::ServiceContext;
+use serde_json::json;
 
 #[tokio::test]
 async fn locale_info() {
     let (state, txn) = common::setup().await;
     let ctx = ServiceContext::new(&state, &txn);
 
-    let info = run_endpoint!(endpoints::locale::locale_info, ctx, r#"["en-gb"]"#);
+    let info = run_endpoint!(endpoints::locale::locale_info, ctx, json!(["en-gb"]));
     assert_eq!(info.language, "en");
     assert_str_eq!(info.region, Some("GB"));
     assert_eq!(info.script, None);
@@ -39,7 +40,7 @@ async fn locale_info() {
     let info = run_endpoint!(
         endpoints::locale::locale_info,
         ctx,
-        r#"["fr_Latn-FR-MACOS"]"#,
+        json!(["fr_Latn-FR-MACOS"]),
     );
     assert_eq!(info.language, "fr");
     assert_str_eq!(info.region, Some("FR"));
@@ -61,7 +62,13 @@ async fn translate_strings() {
     let error = run_endpoint_err!(
         endpoints::locale::translate_strings,
         ctx,
-        r#"{"locales": [], "messages": {"license": {}, "base-title": {"title": "foo"}}}"#,
+        json!({
+            "locales": [],
+            "messages": {
+                "license": {},
+                "base-title": {"title": "foo"},
+            },
+        }),
     );
     assert_contains_error!(error, ErrorType::NoLocalesSpecified);
     assert_no_error!(
@@ -78,7 +85,13 @@ async fn translate_strings() {
     let error = run_endpoint_err!(
         endpoints::locale::translate_strings,
         ctx,
-        r#"{"locales": ["fr_FR"], "messages": {"license": {}}, "strip_message_keys": ["base-title"]}"#,
+        json!({
+            "locales": ["fr_FR"],
+            "messages": {
+                "license": {},
+            },
+            "strip_message_keys": ["base-title"],
+        }),
     );
     assert_contains_error!(error, ErrorType::BadRequest);
     assert_no_error!(
@@ -93,7 +106,14 @@ async fn translate_strings() {
     let error = run_endpoint_err!(
         endpoints::locale::translate_strings,
         ctx,
-        r#"{"locales": ["fr_FR"], "messages": {"license": {}, "base-title": {"title": "foo"}}, "strip_message_keys": ["xyz-invalid-key"]}"#,
+        json!({
+            "locales": ["fr_FR"],
+            "messages": {
+                "license": {},
+                "base-title": {"title": "foo"},
+            },
+            "strip_message_keys": ["xyz-invalid-key"],
+        }),
     );
     assert_contains_error!(error, ErrorType::BadRequest);
     assert_no_error!(
@@ -109,7 +129,7 @@ async fn translate_strings() {
     let error = run_endpoint_err!(
         endpoints::locale::translate_strings,
         ctx,
-        r#"{"locales": ["xyz_US"], "messages": {"license": {}}}"#,
+        json!({"locales": ["xyz_US"], "messages": {"license": {}}}),
     );
     assert_contains_error!(
         error,
@@ -131,7 +151,7 @@ async fn translate_strings() {
     let error = run_endpoint_err!(
         endpoints::locale::translate_strings,
         ctx,
-        r#"{"locales": ["en"], "messages": {"xyz-invalid-key": {}}}"#,
+        json!({"locales": ["en"], "messages": {"xyz-invalid-key": {}}}),
     );
     assert_contains_error!(
         error,
@@ -151,7 +171,13 @@ async fn translate_strings() {
     let error = run_endpoint_err!(
         endpoints::locale::translate_strings,
         ctx,
-        r#"{"locales": ["en"], "messages": {"error-404": {}, "error-404.page": {}}}"#,
+        json!({
+            "locales": ["en"],
+            "messages": {
+                "error-404": {},
+                "error-404.page": {},
+            },
+        }),
     );
     assert_contains_error!(
         error,
@@ -170,7 +196,13 @@ async fn translate_strings() {
     let error = run_endpoint_err!(
         endpoints::locale::translate_strings,
         ctx,
-        r#"{"locales": ["en"], "messages": {"license.cc0": {}, "license.xyz": {}}}"#,
+        json!({
+            "locales": ["en"],
+            "messages": {
+                "license.cc0": {},
+                "license.xyz": {},
+            },
+        }),
     );
     assert_contains_error!(
         error,
@@ -191,7 +223,14 @@ async fn translate_strings() {
     let output = run_endpoint!(
         endpoints::locale::translate_strings,
         ctx,
-        r#"{"locales": ["en"], "messages": {"license": {}, "license.cc0": {}, "base-title": {"title": "foo"}}}"#,
+        json!({
+            "locales": ["en"],
+            "messages": {
+                "license": {},
+                "license.cc0": {},
+                "base-title": {"title": "foo"},
+            },
+        }),
     );
     assert_eq!(output.len(), 3);
     assert_str_eq!(output["license"], Some("License"));
@@ -201,7 +240,13 @@ async fn translate_strings() {
     let output = run_endpoint!(
         endpoints::locale::translate_strings,
         ctx,
-        r#"{"locales": ["zh", "zh_Hans", "ko"], "messages": {"alt-title": {}, "close": {}}}"#,
+        json!({
+            "locales": ["zh", "zh_Hans", "ko"],
+            "messages": {
+                "alt-title": {},
+                "close": {},
+            },
+        }),
     );
     assert_eq!(output.len(), 2);
     assert!(output.contains_key("alt-title"));
@@ -212,7 +257,13 @@ async fn translate_strings() {
     let output = run_endpoint!(
         endpoints::locale::translate_strings,
         ctx,
-        r#"{"locales": ["en"], "messages": {"base-title": {"title": "foo"}}, "strip_message_keys": ["base-title"]}"#,
+        json!({
+            "locales": ["en"],
+            "messages": {
+                "base-title": {"title": "foo"},
+            },
+            "strip_message_keys": ["base-title"],
+        }),
     );
     assert_eq!(output.len(), 1);
     assert_str_eq!(output["base-title"], Some("foo | Wikijump"));
@@ -220,7 +271,13 @@ async fn translate_strings() {
     let output = run_endpoint!(
         endpoints::locale::translate_strings,
         ctx,
-        r#"{"locales": ["en"], "messages": {"base-title": {"title": "foo"}}, "strip_message_keys": []}"#,
+        json!({
+            "locales": ["en"],
+            "messages": {
+                "base-title": {"title": "foo"},
+            },
+            "strip_message_keys": [],
+        }),
     );
     assert_eq!(output.len(), 1);
     assert_str_eq!(output["base-title"], Some("\u{2068}foo\u{2069} | Wikijump"));
@@ -228,7 +285,14 @@ async fn translate_strings() {
     let output = run_endpoint!(
         endpoints::locale::translate_strings,
         ctx,
-        r#"{"locales": ["en"], "messages": {"license.cc0": {}, "license": {}}, "strip_message_keys": ["license", "license.cc0"]}"#,
+        json!({
+            "locales": ["en"],
+            "messages": {
+                "license.cc0": {},
+                "license": {},
+            },
+            "strip_message_keys": ["license", "license.cc0"],
+        }),
     );
     assert_eq!(output.len(), 2);
     assert_str_eq!(output["license"], Some("License"));

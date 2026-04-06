@@ -24,6 +24,7 @@ use deepwell::api::{ServerState, build_server_state};
 use deepwell::config::{Config, Secrets};
 use jsonrpsee::types::Params;
 use sea_orm::{DatabaseTransaction, TransactionTrait};
+use serde_json::Value as JsonValue;
 
 #[inline]
 pub fn empty_params() -> Params<'static> {
@@ -31,8 +32,15 @@ pub fn empty_params() -> Params<'static> {
 }
 
 #[inline]
-pub fn make_params(value: &str) -> Params<'static> {
-    Params::new(Some(value)).into_owned()
+pub fn make_params(value: JsonValue) -> Params<'static> {
+    // This is kind of inconvenient, converting back and forth
+    // and making multiple owned buffers, but it's okay because
+    // this is just for tests, and it's convenient that it enables
+    // use of json! in request inputs.
+
+    let json = serde_json::to_string(&value).expect("Unable to emit JSON");
+    let params = Params::new(Some(&json));
+    params.into_owned()
 }
 
 pub async fn setup() -> (ServerState, DatabaseTransaction) {

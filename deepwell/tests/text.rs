@@ -25,6 +25,7 @@ use deepwell::endpoints;
 use deepwell::error::prelude::*;
 use deepwell::hash::{k12_hash, text_hash_to_hex};
 use deepwell::services::ServiceContext;
+use serde_json::json;
 
 #[tokio::test]
 async fn text() {
@@ -47,20 +48,14 @@ async fn text() {
 
     // Doesn't exist yet
 
-    let error = run_endpoint_err!(
-        endpoints::text::text_get,
-        ctx,
-        r#"["923f4eee1cc5651277830ce7802dafe0"]"#,
-    );
+    let error = run_endpoint_err!(endpoints::text::text_get, ctx, json!([TEXT_HASH]));
     assert_contains_error!(error, ErrorType::TextNotFound);
 
     // Insert
 
-    let text_hash = run_endpoint!(
-        endpoints::text::text_create,
-        ctx,
-        r#"["Greetings fine whale! 🐳"]"#,
-    );
+    let text_hash =
+        run_endpoint!(endpoints::text::text_create, ctx, json!([TEXT_TO_STORE]));
+
     assert_eq!(
         text_hash_to_hex(text_hash.as_ref()),
         expected_hex_hash,
@@ -69,11 +64,7 @@ async fn text() {
 
     // Fetch
 
-    let text_result = run_endpoint!(
-        endpoints::text::text_get,
-        ctx,
-        r#"["923f4eee1cc5651277830ce7802dafe0"]"#,
-    );
+    let text_result = run_endpoint!(endpoints::text::text_get, ctx, json!([TEXT_HASH]));
     assert_eq!(
         text_result, TEXT_TO_STORE,
         "Actual text contents does not match expected",
@@ -85,7 +76,7 @@ async fn text() {
     let error = run_endpoint_err!(
         endpoints::text::text_get,
         ctx,
-        r#"["zzzzyyyyxxxxvvvvuuuuttttssssrrrr"]"#,
+        json!(["zzzzyyyyxxxxvvvvuuuuttttssssrrrr"]),
     );
     assert!(
         format!("{error:?}").contains("InvalidParams"),
@@ -94,7 +85,7 @@ async fn text() {
     );
 
     // Not the right length
-    let error = run_endpoint_err!(endpoints::text::text_get, ctx, r#"["aaff0011"]"#);
+    let error = run_endpoint_err!(endpoints::text::text_get, ctx, json!(["aaff0011"]));
     assert_contains_error!(error, ErrorType::BadRequest);
 
     cleanup!(state, txn, ctx);

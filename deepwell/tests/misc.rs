@@ -36,13 +36,13 @@ async fn misc() {
     run_endpoint!(endpoints::health::ping, ctx);
 
     // echo
-    let object = run_endpoint!(endpoints::misc::echo, ctx, r#"["foo bar"]"#);
+    let object = run_endpoint!(endpoints::misc::echo, ctx, json!(["foo bar"]));
     assert_eq!(object, json!(["foo bar"]));
 
     let object = run_endpoint!(
         endpoints::misc::echo,
         ctx,
-        r#"{"apple": "red", "banana": "yellow"}"#,
+        json!({"apple": "red", "banana": "yellow"}),
     );
     assert_eq!(object, json!({"apple": "red", "banana": "yellow"}));
 
@@ -56,22 +56,26 @@ async fn misc() {
 
     // normalize_method
     let normalized =
-        run_endpoint!(endpoints::misc::normalize_method, ctx, r#"["SCP-001"]"#);
+        run_endpoint!(endpoints::misc::normalize_method, ctx, json!(["SCP-001"]));
     assert_eq!(normalized, "scp-001");
 
     let normalized = run_endpoint!(
         endpoints::misc::normalize_method,
         ctx,
-        r#"["Wanderer's Library"]"#,
+        json!(["Wanderer's Library"]),
     );
     assert_eq!(normalized, "wanderer-s-library");
 
     let normalized =
-        run_endpoint!(endpoints::misc::normalize_method, ctx, r#"["abc-xyz"]"#);
+        run_endpoint!(endpoints::misc::normalize_method, ctx, json!(["abc-xyz"]));
     assert_eq!(normalized, "abc-xyz");
 
     // Invalid arguments
-    run_endpoint_err!(endpoints::misc::normalize_method, ctx, r#"{"foo": "bar"}"#);
+    run_endpoint_err!(
+        endpoints::misc::normalize_method,
+        ctx,
+        json!({"foo": "bar"}),
+    );
 
     // info
     let info = run_endpoint!(endpoints::info::server_info, ctx);
