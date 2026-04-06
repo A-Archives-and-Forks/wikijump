@@ -146,7 +146,11 @@ pub fn should_evaluate_range(headers: &axum::http::HeaderMap, etag: &str) -> boo
     }
 }
 
-pub fn evaluate_range(headers: &axum::http::HeaderMap, etag: &str, file_size: u64) -> ParsedRange {
+pub fn evaluate_range(
+    headers: &axum::http::HeaderMap,
+    etag: &str,
+    file_size: u64,
+) -> ParsedRange {
     if !should_evaluate_range(headers, etag) {
         return ParsedRange::None;
     }

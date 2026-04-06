@@ -22,7 +22,7 @@ use super::get_site_id;
 use crate::{
     attachment::content_disposition_attachment,
     deepwell::FileData,
-    fetch::{fetch_file_info, fetch_full_body, fetch_range_stream, fetch_range_bytes},
+    fetch::{fetch_file_info, fetch_full_body, fetch_range_bytes, fetch_range_stream},
     range::{ByteRange, ParsedRange, evaluate_range},
     state::ServerState,
 };
@@ -35,9 +35,12 @@ use axum::{
     },
     response::{IntoResponse, Response},
 };
+use rand::distributions::{Alphanumeric, DistString};
+use rand::thread_rng;
 use std::fmt::Write;
 
-const MULTIPART_BOUNDARY: &str = "wikijump_byteranges";
+const MULTIPART_BOUNDARY_PREFIX: &str = "wikijump_byteranges_";
+const MULTIPART_BOUNDARY_RANDOM_LENGTH: usize = 16;
 
 /// Maximum total bytes we'll buffer for a `multipart/byteranges` response.
 /// Beyond this, the multipart request is rejected with 416 (Range Not Satisfiable)
@@ -112,7 +115,15 @@ async fn serve_full(
     let body = if params.is_head {
         Body::empty()
     } else {
-        match fetch_full_body(state, headers, get_site_id(headers), file_info, page_slug, params.filename).await
+        match fetch_full_body(
+            state,
+            headers,
+            get_site_id(headers),
+            file_info,
+            page_slug,
+            params.filename,
+        )
+        .await
         {
             Ok(b) => b,
             Err(resp) => return resp,
@@ -178,10 +189,16 @@ async fn serve_multi_range(
     ranges: &[ByteRange],
     params: &ServeParams<'_>,
 ) -> Response {
-    let content_type = format!("multipart/byteranges; boundary={MULTIPART_BOUNDARY}");
+    let boundary = generate_multipart_boundary();
+    let content_type = format!("multipart/byteranges; boundary={boundary}");
 
     if params.is_head {
-        let len = multipart_content_length(MULTIPART_BOUNDARY, &file_info.mime, ranges, params.file_size);
+        let len = multipart_content_length(
+            &boundary,
+            &file_info.mime,
+            ranges,
+            params.file_size,
+        );
         return build_or_500(
             base_headers(
                 StatusCode::PARTIAL_CONTENT,
@@ -214,7 +231,7 @@ async fn serve_multi_range(
         let mut part_header = String::new();
         let _ = write!(
             part_header,
-            "--{MULTIPART_BOUNDARY}\r\n\
+            "--{boundary}\r\n\
              Content-Type: {}\r\n\
              Content-Range: bytes {}-{}/{}\r\n\
              \r\n",
@@ -225,7 +242,7 @@ async fn serve_multi_range(
         body.extend_from_slice(b"\r\n");
     }
 
-    body.extend_from_slice(format!("--{MULTIPART_BOUNDARY}--\r\n").as_bytes());
+    body.extend_from_slice(format!("--{boundary}--\r\n").as_bytes());
 
     build_or_500(
         base_headers(
@@ -256,7 +273,8 @@ pub async fn handle_file_fetch(
 
     let site_id = get_site_id(&headers);
     let file_info =
-        match fetch_file_info(&state, &headers, site_id, &mut page_slug, &filename).await {
+        match fetch_file_info(&state, &headers, site_id, &mut page_slug, &filename).await
+        {
             Ok(info) => info,
             Err(response) => return response,
         };
@@ -281,7 +299,8 @@ pub async fn handle_file_download(
 
     let site_id = get_site_id(&headers);
     let file_info =
-        match fetch_file_info(&state, &headers, site_id, &mut page_slug, &filename).await {
+        match fetch_file_info(&state, &headers, site_id, &mut page_slug, &filename).await
+        {
             Ok(info) => info,
             Err(response) => return response,
         };
@@ -291,7 +310,6 @@ pub async fn handle_file_download(
     )
     .await
 }
-
 
 // ------------ Response builders ------------
 
@@ -326,8 +344,25 @@ fn build_or_500(result: Result<Response<Body>, axum::http::Error>) -> Response {
     }
 }
 
+fn generate_multipart_boundary() -> String {
+    let mut rng = thread_rng();
+    let mut boundary = String::with_capacity(
+        MULTIPART_BOUNDARY_PREFIX.len() + MULTIPART_BOUNDARY_RANDOM_LENGTH,
+    );
+
+    boundary.push_str(MULTIPART_BOUNDARY_PREFIX);
+    Alphanumeric.append_string(&mut rng, &mut boundary, MULTIPART_BOUNDARY_RANDOM_LENGTH);
+
+    boundary
+}
+
 // Compute the `Content-Length` of a `multipart/byteranges` body (so HEAD can skip s3)
-fn multipart_content_length(boundary: &str, mime: &str, ranges: &[ByteRange], file_size: u64) -> usize {
+fn multipart_content_length(
+    boundary: &str,
+    mime: &str,
+    ranges: &[ByteRange],
+    file_size: u64,
+) -> usize {
     let mut len: usize = 0;
     for range in ranges {
         // --boundary\r\n

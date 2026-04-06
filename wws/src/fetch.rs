@@ -24,10 +24,7 @@ use crate::{
     range::ByteRange,
     state::ServerState,
 };
-use axum::{
-    body::Body,
-    http::header::HeaderMap,
-};
+use axum::{body::Body, http::header::HeaderMap};
 use s3::request::request_trait::ResponseDataStream;
 use wikidot_normalize::normalize;
 
