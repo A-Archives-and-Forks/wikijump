@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { page } from "$app/state"
   import { goto } from "$app/navigation"
   import { errorPopupState, pageLayoutState } from "$lib/stores.svelte"
   import { Layout, PagePane } from "$lib/types"
@@ -47,11 +46,11 @@
 
 {#if pageLayoutState.current === Layout.WIKIDOT}
   <h1 class="page-move-header">
-    {page.data.internationalization?.["wiki-page-move"]}
+    {data.internationalization?.["wiki-page-move"]}
   </h1>
 {:else}
   <h2 class="page-move-header">
-    {page.data.internationalization?.["wiki-page-move"]}
+    {data.internationalization?.["wiki-page-move"]}
   </h2>
 {/if}
 

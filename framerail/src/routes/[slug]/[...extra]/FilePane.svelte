@@ -156,7 +156,7 @@
       dataType: "json",
       onSubmit: async ({ jsonData }) => {
         const submitForm = {
-          ...$uploadForm,
+          ...$moveForm,
           siteId: data.site.site_id,
           pageId: data.page?.page_id,
           fileId: fileEditId,
