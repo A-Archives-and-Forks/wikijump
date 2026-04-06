@@ -29,19 +29,5 @@ mod assert;
 #[macro_use]
 mod runner;
 
-pub use self::assert::extract_error;
-pub use self::runner::setup;
-
-// Endpoint invocation
-
-macro_rules! params {
-    () => {{
-        use jsonrpsee::types::Params;
-        Params::new(None)
-    }};
-
-    ($value:expr) => {{
-        use jsonrpsee::types::Params;
-        Params::new(Some($value))
-    }};
-}
+pub use self::assert::*;
+pub use self::runner::*;

@@ -22,7 +22,18 @@
 
 use deepwell::api::{ServerState, build_server_state};
 use deepwell::config::{Config, Secrets};
+use jsonrpsee::types::Params;
 use sea_orm::{DatabaseTransaction, TransactionTrait};
+
+#[inline]
+pub fn empty_params() -> Params<'static> {
+    Params::new(None)
+}
+
+#[inline]
+pub fn make_params(value: &str) -> Params<'static> {
+    Params::new(Some(value)).into_owned()
+}
 
 pub async fn setup() -> (ServerState, DatabaseTransaction) {
     let secrets = Secrets::load();
@@ -44,11 +55,11 @@ pub async fn setup() -> (ServerState, DatabaseTransaction) {
 #[allow(unused_macros)]
 macro_rules! run_endpoint {
     ($endpoint:expr, $ctx:expr, $params_value:expr $(,)?) => {
-        run_endpoint!($endpoint => $ctx, params!($params_value))
+        run_endpoint!($endpoint => $ctx, common::make_params($params_value))
     };
 
     ($endpoint:expr, $ctx:expr $(,)?) => {
-        run_endpoint!($endpoint => $ctx, params!())
+        run_endpoint!($endpoint => $ctx, common::empty_params())
     };
 
     ($endpoint:expr => $ctx:expr, $params:expr) => {
@@ -65,11 +76,11 @@ macro_rules! run_endpoint {
 #[allow(unused_macros)]
 macro_rules! run_endpoint_err {
     ($endpoint:expr, $ctx:expr, $params_value:expr $(,)?) => {
-        run_endpoint_err!($endpoint => $ctx, params!($params_value))
+        run_endpoint_err!($endpoint => $ctx, common::make_params($params_value))
     };
 
     ($endpoint:expr, $ctx:expr $(,)?) => {
-        run_endpoint_err!($endpoint => $ctx, params!())
+        run_endpoint_err!($endpoint => $ctx, common::empty_params())
     };
 
     ($endpoint:expr => $ctx:expr, $params:expr) => {
