@@ -33,7 +33,7 @@ import {
 import { translate } from "$lib/server/deepwell/translate"
 import { pageView } from "$lib/server/deepwell/views"
 import { loadSiteInfo } from "$lib/server/load/site-info"
-import { DeleteOptions, Layout } from "$lib/types"
+import { type DeepwellError, DeleteOptions, Layout } from "$lib/types"
 import { error, redirect } from "@sveltejs/kit"
 import { fail, superValidate, withFiles } from "sveltekit-superforms"
 import { valibot } from "sveltekit-superforms/adapters"
@@ -361,7 +361,8 @@ export async function pageDeleteAction({
       )
       return { form, res, option: DeleteOptions.Delete }
     }
-  } catch (error) {
+  } catch (e) {
+    const error = e as DeepwellError
     return fail(500, {
       form,
       message: error.message,
@@ -401,7 +402,8 @@ export async function pageEditPermissionAction({
     const { slug } = params
     const res = await pageEditPermission(siteId, pageId, slug, session?.user_id)
     return { res }
-  } catch (error) {
+  } catch (e) {
+    const error = e as DeepwellError
     return fail(500, {
       message: error.message,
       code: error.code,
@@ -457,7 +459,8 @@ export async function pageEditAction({
     )
 
     return { form, res }
-  } catch (error) {
+  } catch (e) {
+    const error = e as DeepwellError
     return fail(500, {
       form,
       message: error.message,
@@ -487,7 +490,8 @@ export async function pageFileListAction({ request }: RequestEvent) {
 
     const res = await pageFileList(siteId, pageId, deleted)
     return { res }
-  } catch (error) {
+  } catch (e) {
+    const error = e as DeepwellError
     return fail(500, {
       message: error.message,
       code: error.code,
@@ -518,7 +522,8 @@ export async function pageFileUploadAction({ request, cookies }: RequestEvent) {
     )
 
     return withFiles({ form, res })
-  } catch (error) {
+  } catch (e) {
+    const error = e as DeepwellError
     return fail(500, {
       form,
       message: error.message,
@@ -560,7 +565,8 @@ export async function pageFileDeleteAction({ request, cookies }: RequestEvent) {
       comments ?? ""
     )
     return { res }
-  } catch (error) {
+  } catch (e) {
+    const error = e as DeepwellError
     return fail(500, {
       message: error.message,
       code: error.code,
@@ -593,7 +599,8 @@ export async function pageFileEditAction({ request, cookies }: RequestEvent) {
     )
 
     return withFiles({ form, res })
-  } catch (error) {
+  } catch (e) {
+    const error = e as DeepwellError
     return fail(500, {
       form,
       message: error.message,
@@ -636,7 +643,8 @@ export async function pageFileMoveAction({ request, cookies }: RequestEvent) {
     )
 
     return { form, res }
-  } catch (error) {
+  } catch (e) {
+    const error = e as DeepwellError
     return fail(500, {
       form,
       message: error.message,
@@ -677,7 +685,8 @@ export async function pageFileRestoreAction({ request, cookies }: RequestEvent) 
     )
 
     return { form, res }
-  } catch (error) {
+  } catch (e) {
+    const error = e as DeepwellError
     return fail(500, {
       form,
       message: error.message,
@@ -710,7 +719,8 @@ export async function pageFileHistoryAction({ request }: RequestEvent) {
 
     const res = await pageFileHistory(siteId, pageId, fileId, revisionNumber, limit)
     return { res }
-  } catch (error) {
+  } catch (e) {
+    const error = e as DeepwellError
     return fail(500, {
       message: error.message,
       code: error.code,
@@ -747,7 +757,8 @@ export async function pageFileRollbackAction({ request, cookies }: RequestEvent)
       false
     )
     return { res }
-  } catch (error) {
+  } catch (e) {
+    const error = e as DeepwellError
     return fail(500, {
       message: error.message,
       code: error.code,
@@ -770,7 +781,8 @@ export async function pageHistoryAction({ request }: RequestEvent) {
 
     const res = await pageHistory(siteId, pageId, revisionNumber, limit)
     return { res }
-  } catch (error) {
+  } catch (e) {
+    const error = e as DeepwellError
     return fail(500, {
       message: error.message,
       code: error.code,
@@ -785,7 +797,7 @@ export async function pageRevisionAction({ request }: RequestEvent) {
     const requestData: {
       siteId: number
       pageId: number
-      revisionNumber: Optional<number>
+      revisionNumber: number
       compiledHtml: Optional<boolean>
       wikitext: Optional<boolean>
     } = await request.json()
@@ -795,12 +807,13 @@ export async function pageRevisionAction({ request }: RequestEvent) {
     const res = await pageRevision(
       siteId,
       pageId,
-      revisionNumber ?? undefined,
+      revisionNumber,
       compiledHtml ?? true,
       wikitext ?? true
     )
     return { res }
-  } catch (error) {
+  } catch (e) {
+    const error = e as DeepwellError
     return fail(500, {
       message: error.message,
       code: error.code,
@@ -825,7 +838,7 @@ export async function pageRollbackAction({
     const requestData: {
       siteId: number
       pageId: number
-      revisionNumber: Optional<number>
+      revisionNumber: number
       comments: Optional<string>
       lastRevisionId: number
     } = await request.json()
@@ -839,11 +852,12 @@ export async function pageRollbackAction({
       ipAddress,
       slug,
       lastRevisionId,
-      revisionNumber ?? undefined,
-      comments ?? undefined
+      revisionNumber,
+      comments ?? ""
     )
     return { res }
-  } catch (error) {
+  } catch (e) {
+    const error = e as DeepwellError
     return fail(500, {
       message: error.message,
       code: error.code,
@@ -868,7 +882,8 @@ export async function layoutAction({ request, cookies, getClientAddress }: Reque
     await pageLayout(siteId, pageId, session?.user_id, ipAddress, layout)
 
     return { form }
-  } catch (error) {
+  } catch (e) {
+    const error = e as DeepwellError
     return fail(500, {
       form,
       message: error.message,
@@ -912,7 +927,8 @@ export async function pageMoveAction({
       comments
     )
     return { form, res }
-  } catch (error) {
+  } catch (e) {
+    const error = e as DeepwellError
     return fail(500, {
       form,
       message: error.message,
@@ -948,7 +964,8 @@ export async function pageParentSetAction({ request, cookies }: RequestEvent) {
       removeParents
     )
     return { form, res }
-  } catch (error) {
+  } catch (e) {
+    const error = e as DeepwellError
     return fail(500, {
       form,
       message: error.message,
@@ -976,7 +993,8 @@ export async function pageParentGetAction({ request }: RequestEvent) {
     const { siteId, pageId, slug } = requestData
     const res = await pageParentGet(siteId, pageId, slug)
     return { res }
-  } catch (error) {
+  } catch (e) {
+    const error = e as DeepwellError
     return fail(500, {
       message: error.message,
       code: error.code,
@@ -995,7 +1013,8 @@ export async function pageVoteGetAction({ request }: RequestEvent) {
     const { siteId, pageId } = requestData
     const res = await pageVoteList(siteId, pageId)
     return { res }
-  } catch (error) {
+  } catch (e) {
+    const error = e as DeepwellError
     return fail(500, {
       message: error.message,
       code: error.code,
@@ -1018,7 +1037,8 @@ export async function pageVoteCastAction({ request, cookies }: RequestEvent) {
     const { siteId, pageId, value } = requestData
     const res = await pageVoteCast(siteId, pageId, session?.user_id, value)
     return { res }
-  } catch (error) {
+  } catch (e) {
+    const error = e as DeepwellError
     return fail(500, {
       message: error.message,
       code: error.code,
@@ -1040,7 +1060,8 @@ export async function pageVoteCancelAction({ request, cookies }: RequestEvent) {
     const { siteId, pageId } = requestData
     const res = await pageVoteRemove(siteId, pageId, session?.user_id)
     return { res }
-  } catch (error) {
+  } catch (e) {
+    const error = e as DeepwellError
     return fail(500, {
       message: error.message,
       code: error.code,
@@ -1061,7 +1082,8 @@ export async function pageScoreAction({ request, params }: RequestEvent) {
     const { siteId, pageId } = requestData
     const res = await pageScore(siteId, pageId, slug)
     return { res }
-  } catch (error) {
+  } catch (e) {
+    const error = e as DeepwellError
     return fail(500, {
       message: error.message,
       code: error.code,
@@ -1080,7 +1102,8 @@ export async function pageDeletedGetAction({ request }: RequestEvent) {
     const { siteId, slug } = requestData
     const res = await pageDeletedGet(siteId, slug)
     return { res }
-  } catch (error) {
+  } catch (e) {
+    const error = e as DeepwellError
     return fail(500, {
       message: error.message,
       code: error.code,
@@ -1108,7 +1131,8 @@ export async function pageRestoreAction({
     const { siteId, pageId, comments } = form.data
     const res = await pageRestore(siteId, pageId, session?.user_id, ipAddress, comments)
     return { form, res }
-  } catch (error) {
+  } catch (e) {
+    const error = e as DeepwellError
     return fail(500, {
       form,
       message: error.message,

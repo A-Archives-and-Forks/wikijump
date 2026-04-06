@@ -262,3 +262,9 @@ export enum DeleteOptions {
   Move = "move",
   Delete = "delete"
 }
+// JSON-RPC 2.0 error object as thrown by json-rpc-2.0 client
+export interface DeepwellError {
+  message: string
+  code: number
+  data?: JsonValue
+}

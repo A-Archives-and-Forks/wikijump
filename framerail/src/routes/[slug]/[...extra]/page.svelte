@@ -34,8 +34,8 @@
     const res = await fetch("?/editPermission", {
       method: "POST",
       body: JSON.stringify({
-        siteId: page.data.site.site_id,
-        pageId: page.data.page.page_id
+        siteId: data.site.site_id,
+        pageId: data.page?.page_id
       })
     }).then((res) => res.text())
 

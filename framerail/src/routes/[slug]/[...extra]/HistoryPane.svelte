@@ -114,6 +114,7 @@
         siteId: data.site.site_id,
         pageId: data.page?.page_id,
         revisionNumber,
+        lastRevisionId: data.page_revision?.revision_id,
         comments
       })
     }).then((res) => res.text())
