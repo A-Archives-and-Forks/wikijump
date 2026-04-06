@@ -20,8 +20,10 @@
 
 use super::get_site_id;
 use crate::{
+    attachment::content_disposition_attachment,
     deepwell::FileData,
-    error::{BasicError, ResponseResult, build_basic_error_response},
+    fetch::{fetch_file_info, fetch_full_body, fetch_range_stream, fetch_range_bytes},
+    range::{ByteRange, ParsedRange, evaluate_range},
     state::ServerState,
 };
 use axum::{
@@ -29,425 +31,17 @@ use axum::{
     extract::{Path, State},
     http::{
         Method, StatusCode,
-        header::{self, HeaderMap, HeaderValue},
+        header::{self, HeaderMap},
     },
     response::{IntoResponse, Response},
 };
-use s3::request::request_trait::ResponseDataStream;
 use std::fmt::Write;
-use wikidot_normalize::normalize;
 
 const MULTIPART_BOUNDARY: &str = "wikijump_byteranges";
-
-/// Reject requests with more than this many ranges to limit DoS surface
-const MAX_RANGES: usize = 10;
 
 /// Maximum total bytes we'll buffer for a `multipart/byteranges` response.
 /// Beyond this, the multipart request is rejected with 416 (Range Not Satisfiable)
 const MAX_MULTIPART_BYTES: u64 = 8 * 1024 * 1024; // 8 MiB
-
-// HTTP Range support (see RFC 9110 §14)
-
-#[derive(Debug, Clone, Copy)]
-struct ByteRange {
-    start: u64,
-    end: u64,
-}
-
-impl ByteRange {
-    fn len(self) -> u64 {
-        self.end - self.start + 1
-    }
-}
-
-#[derive(Debug)]
-enum ParsedRange {
-    // No range requested or header was malformed
-    None,
-
-    // One or more satisfiable byte ranges
-    Satisfiable(Vec<ByteRange>),
-
-    // Valid header but every range is unsatisfiable
-    NotSatisfiable,
-}
-
-// Range request format reference:
-// https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Range_requests#multipart_ranges
-fn parse_range_header(value: &str, file_size: u64) -> ParsedRange {
-    let spec = match value.trim().strip_prefix("bytes=") {
-        Some(s) => s,
-        None => return ParsedRange::None,
-    };
-
-    if file_size == 0 {
-        return ParsedRange::NotSatisfiable;
-    }
-
-    let mut ranges = Vec::new();
-    let mut any_part = false;
-
-    for part in spec.split(',') {
-        let part = part.trim();
-        if part.is_empty() {
-            return ParsedRange::None;
-        }
-        any_part = true;
-
-        if let Some(suffix_str) = part.strip_prefix('-') {
-            // "-n" -> last n bytes
-            let n: u64 = match suffix_str.trim().parse() {
-                Ok(n) if n > 0 => n,
-                _ => return ParsedRange::None,
-            };
-            let start = file_size.saturating_sub(n);
-            ranges.push(ByteRange {
-                start,
-                end: file_size - 1,
-            });
-        } else if let Some((start_str, end_str)) = part.split_once('-') {
-            let start: u64 = match start_str.trim().parse() {
-                Ok(n) => n,
-                Err(_) => return ParsedRange::None,
-            };
-            let end_str = end_str.trim();
-
-            if end_str.is_empty() {
-                // "n-" -> byte n to EOF
-                if start >= file_size {
-                    continue; // unsatisfiable, skip
-                }
-                ranges.push(ByteRange {
-                    start,
-                    end: file_size - 1,
-                });
-            } else {
-                let end: u64 = match end_str.parse() {
-                    Ok(n) => n,
-                    Err(_) => return ParsedRange::None,
-                };
-                if start > end {
-                    return ParsedRange::None;
-                }
-                if start >= file_size {
-                    continue; // unsatisfiable, skip
-                }
-                ranges.push(ByteRange {
-                    start,
-                    end: end.min(file_size - 1),
-                });
-            }
-        } else {
-            return ParsedRange::None;
-        }
-
-        if ranges.len() > MAX_RANGES {
-            error!(
-                "Requested too many ranges, rejecting ({} > {})",
-                ranges.len(),
-                MAX_RANGES
-            );
-            return ParsedRange::None;
-        }
-    }
-
-    if !any_part {
-        return ParsedRange::None;
-    }
-
-    if ranges.is_empty() {
-        ParsedRange::NotSatisfiable
-    } else {
-        ParsedRange::Satisfiable(ranges)
-    }
-}
-
-fn content_disposition_attachment(filename: &str) -> HeaderValue {
-    if filename.is_ascii() {
-        let escaped = filename.replace('\\', "\\\\").replace('"', "\\\"");
-        let value = format!("attachment; filename=\"{escaped}\"");
-        HeaderValue::from_str(&value)
-            .unwrap_or_else(|_| HeaderValue::from_static("attachment"))
-    } else {
-        let ascii_fallback: String = filename
-            .chars()
-            .map(|c| {
-                if c.is_ascii_graphic() && c != '"' && c != '\\' {
-                    c
-                } else {
-                    '_'
-                }
-            })
-            .collect();
-        let encoded = percent_encode_rfc5987(filename);
-        let value = format!(
-            "attachment; filename=\"{ascii_fallback}\"; filename*=UTF-8''{encoded}"
-        );
-        HeaderValue::from_bytes(value.as_bytes())
-            .unwrap_or_else(|_| HeaderValue::from_static("attachment"))
-    }
-}
-
-fn percent_encode_rfc5987(s: &str) -> String {
-    let mut out = String::with_capacity(s.len());
-    for byte in s.as_bytes() {
-        match byte {
-            b'A'..=b'Z'
-            | b'a'..=b'z'
-            | b'0'..=b'9'
-            | b'!'
-            | b'#'
-            | b'$'
-            | b'&'
-            | b'+'
-            | b'-'
-            | b'.'
-            | b'^'
-            | b'_'
-            | b'`'
-            | b'|'
-            | b'~' => {
-                out.push(char::from(*byte));
-            }
-            _ => {
-                let _ = write!(out, "%{byte:02X}");
-            }
-        }
-    }
-    out
-}
-
-// File info lookup (no S3 body fetch)
-
-async fn fetch_file_info(
-    state: &ServerState,
-    headers: &HeaderMap,
-    page_slug: &mut String,
-    filename: &str,
-) -> ResponseResult<FileData> {
-    normalize(page_slug);
-
-    let site_id = get_site_id(headers);
-    let page_id = state
-        .get_page_or_response(headers, site_id, page_slug)
-        .await?;
-
-    state
-        .get_file_or_response(headers, site_id, page_id, page_slug, filename)
-        .await
-}
-
-async fn fetch_full_body(
-    state: &ServerState,
-    headers: &HeaderMap,
-    file_info: &FileData,
-    page_slug: &str,
-    filename: &str,
-) -> ResponseResult<Body> {
-    match state
-        .s3_files_bucket
-        .get_object_stream(&file_info.s3_hash)
-        .await
-    {
-        Ok(ResponseDataStream { bytes, status_code }) => {
-            if status_code != 200 {
-                let site_id = get_site_id(headers);
-                error!(
-                    site_id = site_id,
-                    page_slug = page_slug,
-                    filename = filename,
-                    s3_hash = &file_info.s3_hash,
-                    status_code = status_code,
-                    "S3 get_object_stream returned unexpected status",
-                );
-
-                let response = build_basic_error_response(
-                    state,
-                    headers,
-                    BasicError::FileFetch {
-                        site_id,
-                        page_slug,
-                        filename,
-                    },
-                )
-                .await;
-
-                return Err(response);
-            }
-
-            Ok(Body::from_stream(bytes))
-        }
-        Err(error) => {
-            // NOTE: If the error here is 404 we still return 500.
-            //
-            //       If we have a file record for a file, then the
-            //       corresponding blob *should* exist.
-            //
-            //       If it doesn't, the data invariant is not being met,
-            //       which is an unexpected error.
-            let site_id = get_site_id(headers);
-            error!(
-                site_id = site_id,
-                page_slug = page_slug,
-                filename = filename,
-                s3_hash = &file_info.s3_hash,
-                "Cannot get blob data: {error}",
-            );
-
-            let response = build_basic_error_response(
-                state,
-                headers,
-                BasicError::FileFetch {
-                    site_id,
-                    page_slug,
-                    filename,
-                },
-            )
-            .await;
-
-            Err(response)
-        }
-    }
-}
-
-// Fetch a single byte range as a stream by cloning the bucket and
-// injecting an HTTP Range header, so we never buffer the range in memory
-async fn fetch_range_stream(
-    state: &ServerState,
-    file_info: &FileData,
-    range: ByteRange,
-) -> Result<Body, s3::error::S3Error> {
-    let mut bucket = (*state.s3_files_bucket).clone();
-    bucket.add_header("range", &format!("bytes={}-{}", range.start, range.end));
-    let ResponseDataStream { bytes, status_code } =
-        bucket.get_object_stream(&file_info.s3_hash).await?;
-
-    if status_code != 206 {
-        error!(
-            s3_hash = &file_info.s3_hash,
-            status_code = status_code,
-            "S3 range stream returned unexpected status (expected 206)",
-        );
-        return Err(s3::error::S3Error::HttpFailWithBody(
-            status_code,
-            format!("expected 206, got {status_code}"),
-        ));
-    }
-
-    Ok(Body::from_stream(bytes))
-}
-
-// Fetch a single byte range into memory (used for multipart assembly)
-async fn fetch_range_bytes(
-    state: &ServerState,
-    file_info: &FileData,
-    range: ByteRange,
-) -> Result<Vec<u8>, s3::error::S3Error> {
-    let resp = state
-        .s3_files_bucket
-        .get_object_range(&file_info.s3_hash, range.start, Some(range.end))
-        .await?;
-
-    if resp.status_code() != 206 {
-        error!(
-            s3_hash = &file_info.s3_hash,
-            status_code = resp.status_code(),
-            "S3 range get returned unexpected status (expected 206)",
-        );
-        return Err(s3::error::S3Error::HttpFailWithBody(
-            resp.status_code(),
-            format!("expected 206, got {}", resp.status_code()),
-        ));
-    }
-
-    Ok(resp.to_vec())
-}
-
-// ------------ Range evaluation helpers ------------
-
-// If `If-Range` is present and its ETag doesn't match, `Range` must be
-// ignored and the full representation returned (RFC 9110 §13.1.5)
-fn should_evaluate_range(headers: &HeaderMap, etag: &str) -> bool {
-    match headers.get(header::IF_RANGE) {
-        Some(val) => val.to_str().is_ok_and(|v| v.trim() == etag),
-        None => true,
-    }
-}
-
-fn evaluate_range(headers: &HeaderMap, etag: &str, file_size: u64) -> ParsedRange {
-    if !should_evaluate_range(headers, etag) {
-        return ParsedRange::None;
-    }
-
-    match headers.get(header::RANGE) {
-        Some(val) => match val.to_str() {
-            Ok(v) => parse_range_header(v, file_size),
-            Err(_) => ParsedRange::None,
-        },
-        None => ParsedRange::None,
-    }
-}
-
-// ------------ Response builders ------------
-
-fn base_headers(
-    status: StatusCode,
-    etag: &str,
-    as_attachment: bool,
-    filename: &str,
-) -> axum::http::response::Builder {
-    let mut builder = Response::builder()
-        .status(status)
-        .header(header::ETAG, etag)
-        .header(header::ACCEPT_RANGES, "bytes");
-
-    if as_attachment {
-        builder = builder.header(
-            header::CONTENT_DISPOSITION,
-            content_disposition_attachment(filename),
-        );
-    }
-
-    builder
-}
-
-fn build_or_500(result: Result<Response<Body>, axum::http::Error>) -> Response {
-    match result {
-        Ok(r) => r,
-        Err(error) => {
-            error!("Unable to build response: {error}");
-            StatusCode::INTERNAL_SERVER_ERROR.into_response()
-        }
-    }
-}
-
-// Compute the `Content-Length` of a `multipart/byteranges` body (so HEAD can skip s3)
-fn multipart_content_length(mime: &str, ranges: &[ByteRange], file_size: u64) -> usize {
-    let mut len: usize = 0;
-    for range in ranges {
-        // --boundary\r\n
-        len += 2 + MULTIPART_BOUNDARY.len() + 2;
-        // Content-Type: {mime}\r\n
-        len += "Content-Type: ".len() + mime.len() + 2;
-        // Content-Range: bytes {start}-{end}/{file_size}\r\n
-        let cr = format!(
-            "Content-Range: bytes {}-{}/{file_size}\r\n",
-            range.start, range.end
-        );
-        len += cr.len();
-        // blank line
-        len += 2;
-        // data
-        len += range.len() as usize;
-        // trailing \r\n
-        len += 2;
-    }
-    // --boundary--\r\n
-    len += 2 + MULTIPART_BOUNDARY.len() + 2 + 2;
-    len
-}
-
-// ------------ Core serve logic ------------
 
 struct ServeParams<'a> {
     etag: &'a str,
@@ -518,7 +112,7 @@ async fn serve_full(
     let body = if params.is_head {
         Body::empty()
     } else {
-        match fetch_full_body(state, headers, file_info, page_slug, params.filename).await
+        match fetch_full_body(state, headers, get_site_id(headers), file_info, page_slug, params.filename).await
         {
             Ok(b) => b,
             Err(resp) => return resp,
@@ -587,7 +181,7 @@ async fn serve_multi_range(
     let content_type = format!("multipart/byteranges; boundary={MULTIPART_BOUNDARY}");
 
     if params.is_head {
-        let len = multipart_content_length(&file_info.mime, ranges, params.file_size);
+        let len = multipart_content_length(MULTIPART_BOUNDARY, &file_info.mime, ranges, params.file_size);
         return build_or_500(
             base_headers(
                 StatusCode::PARTIAL_CONTENT,
@@ -660,8 +254,9 @@ pub async fn handle_file_fetch(
         "Returning file data",
     );
 
+    let site_id = get_site_id(&headers);
     let file_info =
-        match fetch_file_info(&state, &headers, &mut page_slug, &filename).await {
+        match fetch_file_info(&state, &headers, site_id, &mut page_slug, &filename).await {
             Ok(info) => info,
             Err(response) => return response,
         };
@@ -684,8 +279,9 @@ pub async fn handle_file_download(
         "Returning file download",
     );
 
+    let site_id = get_site_id(&headers);
     let file_info =
-        match fetch_file_info(&state, &headers, &mut page_slug, &filename).await {
+        match fetch_file_info(&state, &headers, site_id, &mut page_slug, &filename).await {
             Ok(info) => info,
             Err(response) => return response,
         };
@@ -696,158 +292,62 @@ pub async fn handle_file_download(
     .await
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
 
-    // ------------ Range parser tests ------------
+// ------------ Response builders ------------
 
-    fn ranges(value: &str, size: u64) -> Vec<(u64, u64)> {
-        match parse_range_header(value, size) {
-            ParsedRange::Satisfiable(rs) => rs.iter().map(|r| (r.start, r.end)).collect(),
-            _ => panic!("expected Satisfiable"),
+fn base_headers(
+    status: StatusCode,
+    etag: &str,
+    as_attachment: bool,
+    filename: &str,
+) -> axum::http::response::Builder {
+    let mut builder = Response::builder()
+        .status(status)
+        .header(header::ETAG, etag)
+        .header(header::ACCEPT_RANGES, "bytes");
+
+    if as_attachment {
+        builder = builder.header(
+            header::CONTENT_DISPOSITION,
+            content_disposition_attachment(filename),
+        );
+    }
+
+    builder
+}
+
+fn build_or_500(result: Result<Response<Body>, axum::http::Error>) -> Response {
+    match result {
+        Ok(r) => r,
+        Err(error) => {
+            error!("Unable to build response: {error}");
+            StatusCode::INTERNAL_SERVER_ERROR.into_response()
         }
     }
+}
 
-    fn is_none(value: &str, size: u64) -> bool {
-        matches!(parse_range_header(value, size), ParsedRange::None)
-    }
-
-    fn is_not_satisfiable(value: &str, size: u64) -> bool {
-        matches!(parse_range_header(value, size), ParsedRange::NotSatisfiable)
-    }
-
-    #[test]
-    fn single_range() {
-        assert_eq!(ranges("bytes=0-99", 12345), vec![(0, 99)]);
-    }
-
-    #[test]
-    fn open_ended() {
-        assert_eq!(ranges("bytes=500-", 12345), vec![(500, 12344)]);
-    }
-
-    #[test]
-    fn suffix() {
-        assert_eq!(ranges("bytes=-100", 12345), vec![(12245, 12344)]);
-    }
-
-    #[test]
-    fn suffix_larger_than_file() {
-        assert_eq!(ranges("bytes=-99999", 100), vec![(0, 99)]);
-    }
-
-    #[test]
-    fn multiple() {
-        // With and without whitespace after the comma.
-        assert_eq!(
-            ranges("bytes=0-99, 200-299", 12345),
-            vec![(0, 99), (200, 299)],
+// Compute the `Content-Length` of a `multipart/byteranges` body (so HEAD can skip s3)
+fn multipart_content_length(boundary: &str, mime: &str, ranges: &[ByteRange], file_size: u64) -> usize {
+    let mut len: usize = 0;
+    for range in ranges {
+        // --boundary\r\n
+        len += 2 + boundary.len() + 2;
+        // Content-Type: {mime}\r\n
+        len += "Content-Type: ".len() + mime.len() + 2;
+        // Content-Range: bytes {start}-{end}/{file_size}\r\n
+        let cr = format!(
+            "Content-Range: bytes {}-{}/{file_size}\r\n",
+            range.start, range.end
         );
-        assert_eq!(
-            ranges("bytes=0-99,200-299", 12345),
-            vec![(0, 99), (200, 299)],
-        );
-
-        // Mixed with an open-ended range.
-        assert_eq!(
-            ranges("bytes=0-99,500-", 12345),
-            vec![(0, 99), (500, 12344)],
-        );
-
-        // Mixed with a suffix range.
-        assert_eq!(
-            ranges("bytes=0-99,-100", 12345),
-            vec![(0, 99), (12245, 12344)],
-        );
-
-        // Closed, open-ended, and suffix together.
-        assert_eq!(
-            ranges("bytes=0-99, 500-, -100", 12345),
-            vec![(0, 99), (500, 12344), (12245, 12344)],
-        );
-
-        // More than two ranges.
-        assert_eq!(
-            ranges("bytes=0-9,20-29,40-49", 12345),
-            vec![(0, 9), (20, 29), (40, 49)],
-        );
+        len += cr.len();
+        // blank line
+        len += 2;
+        // data
+        len += range.len() as usize;
+        // trailing \r\n
+        len += 2;
     }
-
-    #[test]
-    fn clamp_end() {
-        assert_eq!(ranges("bytes=0-99999", 100), vec![(0, 99)]);
-    }
-
-    #[test]
-    fn not_satisfiable_past_eof() {
-        assert!(is_not_satisfiable("bytes=12345-12400", 12345));
-    }
-
-    #[test]
-    fn not_satisfiable_empty_file() {
-        assert!(is_not_satisfiable("bytes=0-0", 0));
-    }
-
-    #[test]
-    fn malformed_no_prefix() {
-        assert!(is_none("blocks=0-99", 12345));
-    }
-
-    #[test]
-    fn malformed_start_gt_end() {
-        assert!(is_none("bytes=100-50", 12345));
-    }
-
-    #[test]
-    fn malformed_empty_part() {
-        assert!(is_none("bytes=0-99,,200-299", 12345));
-    }
-
-    #[test]
-    fn skip_unsatisfiable_keep_good() {
-        // First range is past EOF, second is valid.
-        assert_eq!(ranges("bytes=99999-100000, 0-99", 12345), vec![(0, 99)]);
-    }
-
-    // ------------ Content-Disposition tests ------------
-
-    #[test]
-    fn disposition_ascii() {
-        let val = content_disposition_attachment("report.pdf");
-        assert_eq!(val.to_str().unwrap(), "attachment; filename=\"report.pdf\"");
-    }
-
-    #[test]
-    fn disposition_escapes_quotes() {
-        let val = content_disposition_attachment("say\"hello\".txt");
-        assert_eq!(
-            val.to_str().unwrap(),
-            "attachment; filename=\"say\\\"hello\\\".txt\"",
-        );
-    }
-
-    #[test]
-    fn disposition_escapes_backslash() {
-        let val = content_disposition_attachment("back\\slash.txt");
-        assert_eq!(
-            val.to_str().unwrap(),
-            "attachment; filename=\"back\\\\slash.txt\"",
-        );
-    }
-
-    #[test]
-    fn disposition_non_ascii() {
-        let val = content_disposition_attachment("données.csv");
-        let s = std::str::from_utf8(val.as_bytes()).unwrap();
-        assert!(s.contains("filename=\"donn_es.csv\""));
-        assert!(s.contains("filename*=UTF-8''donn%C3%A9es.csv"));
-    }
-
-    #[test]
-    fn rfc5987_encode() {
-        assert_eq!(percent_encode_rfc5987("hello world"), "hello%20world");
-        assert_eq!(percent_encode_rfc5987("a/b"), "a%2Fb");
-        assert_eq!(percent_encode_rfc5987("simple"), "simple");
-    }
+    // --boundary--\r\n
+    len += 2 + boundary.len() + 2 + 2;
+    len
 }
