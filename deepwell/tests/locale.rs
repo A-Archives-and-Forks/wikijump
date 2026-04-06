@@ -298,5 +298,6 @@ async fn translate_strings() {
     assert_str_eq!(output["license"], Some("License"));
     assert_str_eq!(output["license.cc0"], Some("Public Domain (CC0)"));
 
+    // Done
     cleanup!(state, txn, ctx);
 }

@@ -88,5 +88,6 @@ async fn text() {
     let error = run_endpoint_err!(endpoints::text::text_get, ctx, json!(["aaff0011"]));
     assert_contains_error!(error, ErrorType::BadRequest);
 
+    // Done
     cleanup!(state, txn, ctx);
 }
