@@ -61,8 +61,8 @@ fn validate_config() -> i32 {
         match Config::load(path) {
             Ok(_) => println!("success"),
             Err(error) => {
-                println!("error");
-                eprintln!("{error}");
+                println!("error:");
+                eprintln!("{error:?}");
                 return_code += 1;
             }
         }
@@ -80,8 +80,8 @@ async fn run_seeder() -> i32 {
     let app_state = match api::build_server_state(config, secrets).await {
         Ok(app_state) => app_state,
         Err(error) => {
-            println!("error");
-            eprintln!("{error}");
+            println!("error:");
+            eprintln!("{error:?}");
             return 1;
         }
     };
@@ -92,8 +92,8 @@ async fn run_seeder() -> i32 {
             0
         }
         Err(error) => {
-            println!("error");
-            eprintln!("{error}");
+            println!("error:");
+            eprintln!("{error:?}");
             1
         }
     }
