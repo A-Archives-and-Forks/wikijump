@@ -20,6 +20,9 @@
 
 //! Common utilities for running DEEPWELL integration tests.
 
+// Not every helper will be used by every test
+#![allow(unused)]
+
 #[macro_use]
 mod assert;
 
