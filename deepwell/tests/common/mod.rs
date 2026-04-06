@@ -31,3 +31,7 @@ mod runner;
 
 pub use self::assert::*;
 pub use self::runner::*;
+
+use std::net::{IpAddr, Ipv4Addr};
+
+pub const IP_ADDRESS: IpAddr = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 10));
