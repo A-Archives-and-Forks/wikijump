@@ -93,12 +93,12 @@ jobs:
         run: cd deepwell && cargo build --all-features
 
       - name: Check Configuration
-        run: cd deepwell && cargo run -- config.example.toml ../install/local/deepwell/config.toml ../install/dev/deepwell/config.toml ../install/prod/deepwell/config.toml
+        run: cd deepwell && cargo run --all-features -- config.example.toml ../install/local/deepwell/config.toml ../install/dev/deepwell/config.toml ../install/prod/deepwell/config.toml
         env:
           DEEPWELL_RUNTIME_ACTION: validate-config
 
       - name: Run Seeder
-        run: cd deepwell && cargo run -- config.example.toml
+        run: cd deepwell && cargo run --all-features -- config.example.toml
         env:
           DEEPWELL_RUNTIME_ACTION: run-seeder
 
