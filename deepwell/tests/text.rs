@@ -45,6 +45,15 @@ async fn text() {
         "Test hash value doesn't match, needs fix",
     );
 
+    // Doesn't exist yet
+
+    let error = run_endpoint_err!(
+        endpoints::text::text_get,
+        ctx,
+        r#"["923f4eee1cc5651277830ce7802dafe0"]"#,
+    );
+    assert_contains_error!(error, ErrorType::TextNotFound);
+
     // Insert
 
     let text_hash = run_endpoint!(
