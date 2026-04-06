@@ -39,6 +39,10 @@ use rand::distributions::{Alphanumeric, DistString};
 use rand::thread_rng;
 use std::fmt::Write;
 
+/// Prefix for MIME boundaries used in `multipart/byteranges` responses.
+///
+/// See RFC 2046 section 5.1.1:
+/// https://www.rfc-editor.org/rfc/rfc2046.html#section-5.1.1
 const MULTIPART_BOUNDARY_PREFIX: &str = "wikijump_byteranges_";
 const MULTIPART_BOUNDARY_RANDOM_LENGTH: usize = 16;
 
