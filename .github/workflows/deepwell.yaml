@@ -18,9 +18,12 @@ on:
       - prod
 
 jobs:
-  binary_build_and_test:
-    name: Test
+  test_and_coverage:
+    name: Build, Test and Coverage
     runs-on: ubuntu-latest
+    container:
+      image: xd009642/tarpaulin:develop-nightly
+      options: --security-opt seccomp=unconfined
 
     services:
       postgres:
@@ -60,13 +63,13 @@ jobs:
 
     env:
       RUSTFLAGS: -D warnings
-      DATABASE_URL: postgres://postgres:postgres@localhost/postgres
-      REDIS_URL: redis://localhost
+      DATABASE_URL: postgres://postgres:postgres@postgres/postgres
+      REDIS_URL: redis://valkey
       S3_FILES_BUCKET: deepwell-files
       S3_TEXT_BLOCKS_BUCKET: deepwell-text-blocks
       S3_REGION_NAME: test
       S3_PATH_STYLE: 'true'
-      S3_CUSTOM_ENDPOINT: http://localhost:9000
+      S3_CUSTOM_ENDPOINT: http://minio:9000
       S3_ACCESS_KEY_ID: minio
       S3_SECRET_ACCESS_KEY: minio-github-test
 
@@ -84,7 +87,7 @@ jobs:
           key: ${{ runner.os }}-deepwell-default-${{ hashFiles('deepwell/**/Cargo.toml') }}
 
       - name: System Dependencies
-        run: sudo apt update && sudo apt install libmagic-dev
+        run: apt update && apt install libmagic-dev
 
       - name: Install Tools
         run: cargo install sqlx-cli --no-default-features --features rustls,postgres
@@ -110,31 +113,6 @@ jobs:
 
       - name: Test
         run: cd deepwell && cargo test --all-features -- --nocapture --test-threads 1
-
-  coverage:
-    name: Coverage
-    runs-on: ubuntu-latest
-    env:
-      RUSTFLAGS: -D warnings
-    container:
-      image: xd009642/tarpaulin:develop-nightly
-      options: --security-opt seccomp=unconfined
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Cargo Cache
-        uses: actions/cache@v5
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            deepwell/target
-          key: ${{ runner.os }}-deepwell-coverage-${{ hashFiles('deepwell/**/Cargo.toml') }}
-
-      - name: System Dependencies
-        run: apt update && apt install libmagic-dev
 
       - name: Generate Coverage
         run: |
