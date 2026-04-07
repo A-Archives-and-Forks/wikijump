@@ -75,8 +75,7 @@ fn validate_config() -> i32 {
 async fn run_seeder() -> i32 {
     println!("Running action: Database seeder");
 
-    let SetupConfig { secrets, config } = SetupConfig::load2();
-
+    let SetupConfig { secrets, config } = SetupConfig::load_only();
     let app_state = match api::build_server_state(config, secrets).await {
         Ok(app_state) => app_state,
         Err(error) => {

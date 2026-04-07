@@ -39,11 +39,11 @@ pub struct SetupConfig {
 impl SetupConfig {
     pub async fn load() -> Self {
         run_runtime_action().await;
-        Self::load2()
+        Self::load_only()
     }
 
     /// Internal version of `load()` that doesn't do runtime actions.
-    pub(crate) fn load2() -> Self {
+    pub(crate) fn load_only() -> Self {
         let secrets = Secrets::load();
         let config = parse_args();
         SetupConfig { secrets, config }
