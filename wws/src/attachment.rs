@@ -18,9 +18,39 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use crate::percent::percent_encode_rfc5987;
 use axum::http::HeaderValue;
+use std::fmt::Write;
 
+pub fn percent_encode_rfc5987(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    for byte in s.as_bytes() {
+        match byte {
+            b'A'..=b'Z'
+            | b'a'..=b'z'
+            | b'0'..=b'9'
+            | b'!'
+            | b'#'
+            | b'$'
+            | b'&'
+            | b'+'
+            | b'-'
+            | b'.'
+            | b'^'
+            | b'_'
+            | b'`'
+            | b'|'
+            | b'~' => {
+                out.push(char::from(*byte));
+            }
+            _ => {
+                let _ = write!(out, "%{byte:02X}");
+            }
+        }
+    }
+    out
+}
+
+/// see https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Disposition and RFC 5987
 pub fn content_disposition_attachment(filename: &str) -> HeaderValue {
     if filename.is_ascii() {
         let escaped = filename.replace('\\', "\\\\").replace('"', "\\\"");
@@ -83,5 +113,12 @@ mod tests {
         let s = std::str::from_utf8(val.as_bytes()).unwrap();
         assert!(s.contains("filename=\"donn_es.csv\""));
         assert!(s.contains("filename*=UTF-8''donn%C3%A9es.csv"));
+    }
+
+    #[test]
+    fn rfc5987_encode() {
+        assert_eq!(percent_encode_rfc5987("hello world"), "hello%20world");
+        assert_eq!(percent_encode_rfc5987("a/b"), "a%2Fb");
+        assert_eq!(percent_encode_rfc5987("simple"), "simple");
     }
 }

@@ -42,7 +42,6 @@ mod handler;
 mod info;
 mod language;
 mod path;
-mod percent;
 mod range;
 mod route;
 mod state;

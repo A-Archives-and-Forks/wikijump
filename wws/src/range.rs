@@ -29,6 +29,12 @@ pub struct ByteRange {
 
 impl ByteRange {
     pub fn len(self) -> u64 {
+        debug_assert!(
+            self.start <= self.end,
+            "invalid byte range: start ({}) > end ({})",
+            self.start,
+            self.end,
+        );
         self.end - self.start + 1
     }
 }

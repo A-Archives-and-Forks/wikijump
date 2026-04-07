@@ -50,6 +50,16 @@ const MULTIPART_BOUNDARY_RANDOM_LENGTH: usize = 16;
 /// Beyond this, the multipart request is rejected with 416 (Range Not Satisfiable)
 const MAX_MULTIPART_BYTES: u64 = 8 * 1024 * 1024; // 8 MiB
 
+fn range_not_satisfiable(file_size: u64) -> Response {
+    build_or_500(
+        Response::builder()
+            .status(StatusCode::RANGE_NOT_SATISFIABLE)
+            .header(header::CONTENT_RANGE, format!("bytes */{file_size}"))
+            .header(header::ACCEPT_RANGES, "bytes")
+            .body(Body::empty()),
+    )
+}
+
 struct ServeParams<'a> {
     etag: &'a str,
     as_attachment: bool,
@@ -82,26 +92,14 @@ async fn serve_file(
         ParsedRange::None => {
             serve_full(state, headers, file_info, page_slug, &params).await
         }
-        ParsedRange::NotSatisfiable => build_or_500(
-            Response::builder()
-                .status(StatusCode::RANGE_NOT_SATISFIABLE)
-                .header(header::CONTENT_RANGE, format!("bytes */{file_size}"))
-                .header(header::ACCEPT_RANGES, "bytes")
-                .body(Body::empty()),
-        ),
+        ParsedRange::NotSatisfiable => range_not_satisfiable(file_size),
         ParsedRange::Satisfiable(ref ranges) if ranges.len() == 1 => {
             serve_single_range(state, file_info, ranges[0], &params).await
         }
         ParsedRange::Satisfiable(ranges) => {
             let total: u64 = ranges.iter().map(|r| r.len()).sum();
             if total > MAX_MULTIPART_BYTES {
-                return build_or_500(
-                    Response::builder()
-                        .status(StatusCode::RANGE_NOT_SATISFIABLE)
-                        .header(header::CONTENT_RANGE, format!("bytes */{file_size}"))
-                        .header(header::ACCEPT_RANGES, "bytes")
-                        .body(Body::empty()),
-                );
+                return range_not_satisfiable(file_size);
             }
 
             serve_multi_range(state, file_info, &ranges, &params).await
