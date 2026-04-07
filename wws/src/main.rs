@@ -32,14 +32,17 @@ extern crate tracing;
 #[macro_use]
 mod macros;
 
+mod attachment;
 mod cache;
 mod config;
 mod deepwell;
 mod error;
+mod fetch;
 mod handler;
 mod info;
 mod language;
 mod path;
+mod range;
 mod route;
 mod state;
 mod trace;

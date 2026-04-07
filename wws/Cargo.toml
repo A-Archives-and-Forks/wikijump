@@ -16,13 +16,14 @@ edition = "2024"
 accept-language = "3"
 anyhow = "1"
 axum = { version = "0.8", features = ["http1", "http2", "macros", "tokio", "tower-log", "tracing"], default-features = false }
-axum-extra = { version = "0.12", features = ["attachment", "typed-header"] }
+axum-extra = { version = "0.12", features = ["typed-header"] }
 clap = "4"
 color-backtrace = "0.7"
 dotenvy = "0.15"
 headers = "0.4"
 jsonrpsee = { version = "0.26", features = ["async-client", "jsonrpsee-http-client"] }
 paste = "1"
+rand = "0.8"
 redis = { version = "0.32", features = ["aio", "connection-manager", "keep-alive", "r2d2", "tokio-comp", "tokio-rustls-comp"], default-features = false }
 ref-map = "0.2"
 rust-s3 = { version = "0.37", features = ["with-tokio", "tokio-rustls-tls"], default-features = false }
