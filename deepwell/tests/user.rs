@@ -22,6 +22,7 @@
 mod common;
 
 use deepwell::endpoints;
+use deepwell::error::prelude::*;
 use deepwell::services::ServiceContext;
 use serde_json::json;
 use time::{Date, Month};
@@ -52,7 +53,6 @@ async fn basic_update() {
             "email": "jane@private.me",
             "locales": ["en_GB"],
             "password": "hunter2",
-            "bypass_email_verification": true,
             "ip_address": common::IP_ADDRESS,
         }),
     );
@@ -75,8 +75,8 @@ async fn basic_update() {
     assert!(output.user.last_renamed_at.is_none());
     assert!(!output.user.password.is_empty());
     assert_eq!(output.user.email, "jane@private.me");
-    assert!(output.user.email_validation_info.is_none()); // validation was skipped
-    assert!(output.user.email_validation_at.is_none());
+    assert!(output.user.email_validation_info.is_some());
+    assert!(output.user.email_validation_at.is_some());
     assert_eq!(output.user.locales.len(), 1);
     assert_eq!(&output.user.locales[0], "en_GB");
     assert!(output.user.real_name.is_none());
@@ -119,7 +119,7 @@ async fn basic_update() {
     assert_str_eq!(user.user_page, Some("https://example.net"));
     let old_password = user.password;
 
-    // Update email
+    // Update email (valid)
 
     let user = run_endpoint!(
         endpoints::user::user_edit,
@@ -130,8 +130,25 @@ async fn basic_update() {
             "ip_address": common::IP_ADDRESS,
         }),
     );
+    assert!(output.user.email_validation_info.is_some());
+    assert!(output.user.email_validation_at.is_some());
     assert_eq!(user.user_id, user_id);
     assert_eq!(user.email, "jane@wikijump.dev");
+    assert!(user.biography.is_none());
+
+    // Update email (spam)
+
+    let error = run_endpoint_err!(
+        endpoints::user::user_edit,
+        ctx,
+        json!({
+            "user": USER_SLUG,
+            "email": "jane@spam.xxx",
+            "biography": "This is a spam account now",
+            "ip_address": common::IP_ADDRESS,
+        }),
+    );
+    assert_contains_error!(error, ErrorType::DisallowedEmail);
 
     // Update password
 
