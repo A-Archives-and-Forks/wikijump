@@ -23,28 +23,9 @@
 use deepwell::api::{ServerState, build_server_state};
 use deepwell::config::{Config, Secrets};
 use deepwell::services::ServiceContext;
-use jsonrpsee::types::Params;
 use sea_orm::{DatabaseTransaction, TransactionTrait};
 use self_cell::self_cell;
-use serde_json::Value as JsonValue;
 use tokio::task;
-
-#[inline]
-pub fn empty_params() -> Params<'static> {
-    Params::new(None)
-}
-
-#[inline]
-pub fn make_params(value: JsonValue) -> Params<'static> {
-    // This is kind of inconvenient, converting back and forth
-    // and making multiple owned buffers, but it's okay because
-    // this is just for tests, and it's convenient that it enables
-    // use of json! in request inputs.
-
-    let json = serde_json::to_string(&value).expect("Unable to emit JSON");
-    let params = Params::new(Some(&json));
-    params.into_owned()
-}
 
 #[derive(Debug)]
 pub struct TestRunnerRequestContext {
@@ -115,69 +96,6 @@ impl TestRunner {
         let request_ctx = TestRunnerRequestContext::new().await;
         Self::new(request_ctx, TestRunnerRequestContext::build_service_context)
     }
-}
-
-pub async fn setup() -> (ServerState, DatabaseTransaction) {
-    let secrets = Secrets::load();
-    let config = Config::integration_testing();
-
-    let state = build_server_state(config, secrets)
-        .await
-        .expect("Unable to set up server state");
-
-    let txn = state
-        .database
-        .begin()
-        .await
-        .expect("Unable to start database transaction");
-
-    (state, txn)
-}
-
-#[allow(unused_macros)]
-macro_rules! run_endpoint {
-    ($endpoint:expr, $ctx:expr, $params_value:expr $(,)?) => {
-        run_endpoint!($endpoint => $ctx, common::make_params($params_value))
-    };
-
-    ($endpoint:expr, $ctx:expr $(,)?) => {
-        run_endpoint!($endpoint => $ctx, common::empty_params())
-    };
-
-    ($endpoint:expr => $ctx:expr, $params:expr) => {
-        // Not using .expect() because we want a custom panic message
-        match $endpoint(&$ctx, $params).await {
-            Ok(result) => result,
-            Err(error) => {
-                panic!("Call to method '{}' failed!\n{:?}", stringify!($endpoint), error);
-            }
-        }
-    };
-}
-
-#[allow(unused_macros)]
-macro_rules! run_endpoint_err {
-    ($endpoint:expr, $ctx:expr, $params_value:expr $(,)?) => {
-        run_endpoint_err!($endpoint => $ctx, common::make_params($params_value))
-    };
-
-    ($endpoint:expr, $ctx:expr $(,)?) => {
-        run_endpoint_err!($endpoint => $ctx, common::empty_params())
-    };
-
-    ($endpoint:expr => $ctx:expr, $params:expr) => {
-        // Not using .expect_err() because we want a custom panic message
-        match $endpoint(&$ctx, $params).await {
-            Err(error) => error,
-            Ok(result) => {
-                panic!(
-                    "Call to method '{}' succeeded when it should have failed\n{:?}",
-                    stringify!($endpoint),
-                    result,
-                );
-            }
-        }
-    };
 }
 
 macro_rules! cleanup {

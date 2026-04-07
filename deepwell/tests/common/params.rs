@@ -1,5 +1,5 @@
 /*
- * tests/common/mod.rs
+ * tests/common/params.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
  * Copyright (C) 2019-2025 Wikijump Team
@@ -18,24 +18,23 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-//! Common utilities for running DEEPWELL integration tests.
+use jsonrpsee::types::Params;
+use serde_json::Value as JsonValue;
 
-#[macro_use]
-mod assert;
+#[inline]
+pub fn empty_params() -> Params<'static> {
+    Params::new(None)
+}
 
-#[macro_use]
-mod endpoint;
+#[inline]
+pub fn make_params(value: JsonValue) -> Params<'static> {
+    // This is kind of inconvenient, converting back and forth
+    // and making multiple owned buffers, but it's okay because
+    // this is just for tests, and it's convenient that it enables
+    // use of json! in request inputs.
 
-#[macro_use]
-mod error;
+    let json = serde_json::to_string(&value).expect("Unable to emit JSON");
+    let params = Params::new(Some(&json));
+    params.into_owned()
+}
 
-mod params;
-mod runner;
-
-pub use self::error::extract_error;
-pub use self::params::*;
-pub use self::runner::TestRunner;
-
-use std::net::{IpAddr, Ipv4Addr};
-
-pub const IP_ADDRESS: IpAddr = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 10));
