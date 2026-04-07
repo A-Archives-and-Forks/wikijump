@@ -22,8 +22,8 @@
 
 mod array;
 mod bytes;
-mod connection_type;
 mod conversion_error;
+mod enums;
 mod fetch_direction;
 mod file_details;
 mod file_order;
@@ -37,8 +37,8 @@ mod rerender_depth;
 
 pub use self::array::ArrayLength;
 pub use self::bytes::Bytes;
-pub use self::connection_type::ConnectionType;
 pub use self::conversion_error::{EnumConversionError, parse_layout};
+pub use self::enums::*;
 pub use self::fetch_direction::FetchDirection;
 pub use self::file_details::FileDetails;
 pub use self::file_order::FileOrder;
@@ -46,6 +46,6 @@ pub use self::maybe::Maybe;
 pub use self::page_details::PageDetails;
 pub use self::page_id::PageId;
 pub use self::page_order::PageOrder;
-pub use self::permissions::{Action, Permission, Resource};
+pub use self::permissions::Permission;
 pub use self::reference::Reference;
 pub use self::rerender_depth::RerenderDepth;

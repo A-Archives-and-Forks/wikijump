@@ -19,8 +19,7 @@
  */
 
 use super::prelude::*;
-use crate::models::sea_orm_active_enums::PageRevisionType;
-use crate::types::{FetchDirection, PageDetails, PageId};
+use crate::types::{FetchDirection, PageDetails, PageId, PageRevisionType};
 use ftml::layout::Layout;
 use ftml::parsing::ParseError;
 use std::num::NonZeroI32;

@@ -32,10 +32,10 @@
 use super::prelude::*;
 use crate::models::page::{self, Entity as Page};
 use crate::models::page_category::Model as PageCategoryModel;
-use crate::models::sea_orm_active_enums::UserType;
 use crate::models::site::{self, Entity as Site};
 use crate::models::user::{self, Entity as User};
 use crate::services::{BlobService, CategoryService};
+use crate::types::UserType;
 use crate::utils::get_category_name;
 
 #[derive(Debug)]

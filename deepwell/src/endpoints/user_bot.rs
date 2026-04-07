@@ -19,14 +19,13 @@
  */
 
 use super::prelude::*;
-use crate::models::sea_orm_active_enums::UserType;
 use crate::services::authorization_token::{AuthorizationTokenService, AuthorizedObject};
 use crate::services::relation::{
     CreateSingleUserBotOwner, RelationService, RemoveUserBotOwner, UserBotMetadata,
     UserBotOwner,
 };
 use crate::services::user::{CreateUser, CreateUserOutput, GetUser, UpdateUserBody};
-use crate::types::{Maybe, Reference};
+use crate::types::{Maybe, Reference, UserType};
 use std::net::IpAddr;
 
 // Structs

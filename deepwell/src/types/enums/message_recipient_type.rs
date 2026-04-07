@@ -1,5 +1,5 @@
 /*
- * services/link/macros.rs
+ * types/enums/message_recipient_type.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
  * Copyright (C) 2019-2026 Wikijump Team
@@ -18,10 +18,31 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-macro_rules! parse_connection_type {
-    ($connection:expr, $make_error:expr $(,)?) => {{
-        let result: StdResult<ConnectionType, _> =
-            $connection.connection_type.as_str().parse();
-        result.or_raise($make_error)?
-    }};
+use sea_orm::DeriveValueType;
+use serde::{Deserialize, Serialize};
+use strum_macros::{Display, EnumIter, EnumString};
+
+#[derive(
+    EnumIter,
+    Serialize,
+    Deserialize,
+    Debug,
+    Copy,
+    Clone,
+    Hash,
+    PartialEq,
+    Eq,
+    DeriveValueType,
+    EnumString,
+    Display,
+)]
+#[sea_orm(value_type = "String")]
+#[serde(rename_all = "kebab-case")]
+#[strum(serialize_all = "kebab_case", ascii_case_insensitive)]
+pub enum MessageRecipientType {
+    Regular,
+    Cc,
+    Bcc,
 }
+
+impl_try_from_u64!(MessageRecipientType);

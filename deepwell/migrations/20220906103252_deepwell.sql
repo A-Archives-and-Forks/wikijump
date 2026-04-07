@@ -8,16 +8,10 @@
 -- User
 --
 
-CREATE TYPE user_type AS ENUM (
-    'regular',
-    'system',
-    'site',
-    'bot'
-);
-
 CREATE TABLE "user" (
     user_id BIGSERIAL PRIMARY KEY,
-    user_type user_type NOT NULL DEFAULT 'regular',
+    -- Rust enum: UserType
+    user_type TEXT NOT NULL DEFAULT 'regular',
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
     updated_at TIMESTAMP WITH TIME ZONE,
     deleted_at TIMESTAMP WITH TIME ZONE,
@@ -56,6 +50,9 @@ CREATE TABLE "user" (
     -- Locale must be unset for system users, but set for everyone else.
     CHECK ((user_type = 'system' AND locales = '{}') OR (user_type != 'system' AND locales != '{}')),
 
+    -- Enum value must not be empty
+    CHECK (length(user_type) > 0),
+
     -- Strings should either be NULL or non-empty (and within limits)
     CHECK (real_name IS NULL OR (length(real_name) > 0 AND length(real_name) < 300)),
     CHECK (gender IS NULL OR (length(gender) > 0 AND length(gender) < 100)),
@@ -65,35 +62,6 @@ CREATE TABLE "user" (
 
     CHECK (name_changes_left >= 0),                                 -- Value cannot be negative
     CHECK (avatar_s3_hash IS NULL OR length(avatar_s3_hash) = 64)   -- SHA-512 hash size (if set)
-);
-
---
--- Licenses
---
-
-CREATE TYPE license AS ENUM (
-    'cc-by-sa-4.0',     -- Creative Commons Attribution-ShareAlike 4.0
-    'cc-by-4.0',        -- Creative Commons Attribution 4.0
-    'cc-by-nd-4.0',     -- Creative Commons Attribution-NoDerivs 4.0
-    'cc-by-nc-4.0',     -- Creative Commons Attribution-NonCommercial 4.0
-    'cc-by-nc-sa-4.0',  -- Creative Commons Attribution-NonCommercial-ShareAlike 4.0
-    'cc-by-nc-nd-4.0',  -- Creative Commons Attribution-NonCommerical-NoDerivs 4.0
-    'cc-by-sa-3.0',     -- Creative Commons Attribution-ShareAlike 3.0
-    'cc-by-3.0',        -- Creative Commons Attribution 3.0
-    'cc-by-nd-3.0',     -- Creative Commons Attribution-NoDerivs 3.0
-    'cc-by-nc-3.0',     -- Creative Commons Attribution-NonCommercial 3.0
-    'cc-by-nc-sa-3.0',  -- Creative Commons Attribution-NonCommercial-ShareAlike 3.0
-    'cc-by-nc-nd-3.0',  -- Creative Commons Attribution-NonCommercial-NoDerivs 3.0
-    'cc-by-sa-2.5',     -- Creative Commons Attribution-ShareAlike 2.5
-    'cc-by-2.5',        -- Creative Commons Attribution 2.5
-    'cc-by-nd-2.5',     -- Creative Commons Attribution-NoDerivs 2.5
-    'cc-by-nc-2.5',     -- Creative Commons Attribution-NonCommercial 2.5
-    'cc-by-nc-sa-2.5',  -- Creative Commons Attribution-NonCommercial-ShareAlike 2.5
-    'cc-by-nc-nd-2.5',  -- Creative Commons Attribution-NonCommercial-NoDerivs 2.5
-    'gnu-fdl-1.3',      -- GNU Free Documentation License 1.3
-    'gnu-fdl-1.2',      -- GNU Free Documentation License 1.2
-    'gnu-fdl-1.1',      -- GNU Free Documentation License 1.1
-    'cc0'               -- Public Domain (CC0)
 );
 
 --
@@ -139,13 +107,18 @@ CREATE TABLE site (
     -- then it must be one of these site domains, it cannot belong to another site.
     preferred_domain TEXT,
     layout TEXT,                -- Default page layout for the site
-    license license NOT NULL,   -- Default content license for the site
+    
+    -- Rust enum: License
+    license TEXT NOT NULL,      -- Default content license for the site
 
     -- Special condition
     -- The preferred site for the special 'www' site (the main page) must always be the
     -- canonical domain. That is, if the main domain is "wikijump.com", then the
     -- preferred site is "wikijump.com" (since the "www" is elided as a special case).
     CHECK (slug != 'www' OR preferred_domain IS NULL),
+
+    -- Enum value must not be empty
+    CHECK (length(license) > 0),
 
     -- Enforce site slug uniqueness
     UNIQUE (slug, deleted_at)
@@ -168,20 +141,19 @@ ALTER TABLE site
 -- Aliases
 --
 
-CREATE TYPE alias_type AS ENUM (
-    'site',
-    'user'
-);
-
 CREATE TABLE alias (
     alias_id BIGSERIAL PRIMARY KEY,
-    alias_type alias_type NOT NULL,
+    -- Rust enum: AliasType
+    alias_type TEXT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
     created_by BIGINT NOT NULL REFERENCES "user"(user_id),
     target_id BIGINT NOT NULL,
     slug TEXT NOT NULL,
 
-    UNIQUE (alias_type, slug)
+    UNIQUE (alias_type, slug),
+    
+    -- Enum value must not be empty
+    CHECK (length(alias_type) > 0)
 );
 
 --
@@ -190,19 +162,18 @@ CREATE TABLE alias (
 
 -- See docs/relation.md for more information
 
-CREATE TYPE relation_object_type AS ENUM (
-    'site',
-    'user',
-    'page',
-    'file'
-);
-
 CREATE TABLE relation (
     relation_id BIGSERIAL PRIMARY KEY,
-    relation_type TEXT NOT NULL,  -- check enum value at runtime
-    dest_type relation_object_type NOT NULL,
+
+    -- Rust enum: RelationType
+    relation_type TEXT NOT NULL,
+
+    -- Rust enum: RelationObjectType
+    dest_type TEXT NOT NULL,
     dest_id BIGINT NOT NULL,
-    from_type relation_object_type NOT NULL,
+
+    -- Rust enum: RelationObjectType
+    from_type TEXT NOT NULL,
     from_id BIGINT NOT NULL,
     metadata JSONB NOT NULL DEFAULT '{}',
     created_by BIGINT NOT NULL REFERENCES "user"(user_id),
@@ -217,7 +188,12 @@ CREATE TABLE relation (
     CHECK (
         ((overwritten_by IS NULL) AND (deleted_at IS NULL)) OR    -- entries are active
         ((overwritten_by IS NULL) != (deleted_at IS NULL))        -- or they are overwritten XOR deleted
-    )
+    ),
+
+    -- Enum values must not be empty
+    CHECK (length(relation_type) > 0),
+    CHECK (length(dest_type) > 0),
+    CHECK (length(from_type) > 0)
 );
 
 CREATE UNIQUE INDEX relation_unique_general_active
@@ -294,28 +270,6 @@ CREATE TABLE page (
 -- Page revisions and contents
 --
 
--- Enum types for page_revision
-CREATE TYPE page_revision_type AS ENUM (
-    -- standard
-    'regular',
-    'rollback',
-    'undo',
-
-    -- special
-    'create',
-    'delete',
-    'undelete',
-    'move'
-);
-
-CREATE TYPE page_revision_change AS ENUM (
-    'wikitext',
-    'title',
-    'alt_title',
-    'slug',
-    'tags'
-);
-
 -- No unique constraint for 'contents' because that would create
 -- create a separate index, which will impact performance.
 --
@@ -332,7 +286,7 @@ CREATE TABLE text (
 -- Main revision table
 CREATE TABLE page_revision (
     revision_id BIGSERIAL PRIMARY KEY,
-    revision_type page_revision_type NOT NULL DEFAULT 'regular',
+    revision_type TEXT NOT NULL DEFAULT 'regular',
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
     updated_at TIMESTAMP WITH TIME ZONE,
     revision_number INT NOT NULL,
@@ -383,6 +337,9 @@ CREATE TABLE page_revision (
     -- Ensure array is not empty for regular revisions
     CHECK (revision_type NOT IN ('regular', 'rollback', 'undo') OR changes != '{}'),
 
+    -- Enum value must not be empty
+    CHECK (length(revision_type) > 0),
+
     -- Ensure page creations are always the first revision
     CHECK (revision_number != 0 OR revision_type = 'create'),
 
@@ -427,15 +384,6 @@ CREATE TABLE page_lock (
 -- Page backlinks tracking
 --
 
--- Enum types for page backlinks
-CREATE TYPE page_connection_type AS ENUM (
-    'include-messy',
-    'include-elements',
-    'component',
-    'link',
-    'redirect'
-);
-
 CREATE TABLE page_link (
     page_id BIGINT REFERENCES page(page_id),
     url TEXT,
@@ -449,10 +397,15 @@ CREATE TABLE page_link (
 CREATE TABLE page_connection (
     from_page_id BIGINT REFERENCES page(page_id),
     to_page_id BIGINT REFERENCES page(page_id),
-    connection_type TEXT, -- Cannot use page_connection_type right now because Sea-ORM issues
+
+    -- Rust enum: ConnectionType
+    connection_type TEXT,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
     updated_at TIMESTAMP WITH TIME ZONE,
     count INT NOT NULL CHECK (count > 0),
+
+    -- Enum value must not be empty
+    CHECK (length(connection_type) > 0),
 
     PRIMARY KEY (from_page_id, to_page_id, connection_type)
 );
@@ -461,10 +414,15 @@ CREATE TABLE page_connection_missing (
     from_page_id BIGINT REFERENCES page(page_id),
     to_site_id BIGINT REFERENCES site(site_id),
     to_page_slug TEXT,
+
+    -- Rust enum: ConnectionType
     connection_type TEXT, -- Ditto
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
     updated_at TIMESTAMP WITH TIME ZONE,
     count INT NOT NULL CHECK (count > 0),
+
+    -- Enum value must not be empty
+    CHECK (length(connection_type) > 0),
 
     PRIMARY KEY (from_page_id, to_site_id, to_page_slug, connection_type)
 );
@@ -519,25 +477,6 @@ CREATE TABLE blob_blacklist (
 -- Files
 --
 
--- Enum types for file_revision
-CREATE TYPE file_revision_type AS ENUM (
-    -- standard
-    'regular',
-    'rollback',
-
-    -- special
-    'create',
-    'delete',
-    'undelete',
-    'move'
-);
-
-CREATE TYPE file_revision_change AS ENUM (
-    'name',
-    'blob',
-    'mime'
-);
-
 CREATE TABLE file (
     file_id BIGSERIAL PRIMARY KEY,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
@@ -553,7 +492,9 @@ CREATE TABLE file (
 
 CREATE TABLE file_revision (
     revision_id BIGSERIAL PRIMARY KEY,
-    revision_type file_revision_type NOT NULL,
+
+    -- Rust enum: FileRevisionType
+    revision_type TEXT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
     revision_number INTEGER NOT NULL,
     file_id BIGINT NOT NULL REFERENCES file(file_id),
@@ -596,6 +537,9 @@ CREATE TABLE file_revision (
         }'
     ),
 
+    -- Enum value must not be empty
+    CHECK (length(revision_type) > 0),
+
     -- Ensure array is not empty for regular revisions
     CHECK (revision_type NOT IN ('regular', 'rollback') OR changes != '{}'),
 
@@ -610,17 +554,16 @@ CREATE TABLE file_revision (
 -- Hosted Text Blocks
 --
 
-CREATE TYPE text_block_type AS ENUM (
-    'code',
-    'html'
-);
-
 CREATE TABLE text_block (
-    block_type text_block_type NOT NULL,
+    -- Rust enum: TextBlockType
+    block_type TEXT NOT NULL,
     page_id BIGINT NOT NULL REFERENCES page(page_id),
     block_index SMALLINT NOT NULL CHECK (block_index > 0),
     block_name TEXT CHECK (length(block_name) > 0),
     text_type TEXT,
+
+    -- Enum value must not be empty
+    CHECK (length(block_type) > 0),
 
     PRIMARY KEY (block_type, page_id, block_index),
     UNIQUE (page_id, block_name)
@@ -643,12 +586,6 @@ CREATE TABLE authorization_token (
 --
 -- Direct Messages
 --
-
-CREATE TYPE message_recipient_type AS ENUM (
-    'regular',
-    'cc',
-    'bcc'
-);
 
 -- A "record" is the underlying message data, with its contents, attachments,
 -- and associated metadata such as sender and recipient(s).
@@ -700,9 +637,14 @@ CREATE TABLE message (
 CREATE TABLE message_recipient (
     record_id TEXT NOT NULL REFERENCES message_record(external_id),
     recipient_id BIGINT NOT NULL REFERENCES "user"(user_id),
-    recipient_type message_recipient_type NOT NULL,
 
-    PRIMARY KEY (record_id, recipient_id, recipient_type)
+    -- Rust enum: MessageRecipientType
+    recipient_type TEXT NOT NULL,
+
+    PRIMARY KEY (record_id, recipient_id, recipient_type),
+
+    -- Enum value must not be empty
+    CHECK (length(recipient_type) > 0)
 );
 
 CREATE TABLE message_draft (

@@ -19,10 +19,9 @@
  */
 
 use super::prelude::*;
-use crate::models::sea_orm_active_enums::PageRevisionType;
 use crate::services::page_revision::CreatePageRevisionOutput;
 use crate::services::score::ScoreValue;
-use crate::types::{PageDetails, PageId};
+use crate::types::{PageDetails, PageId, PageRevisionType};
 use ftml::layout::Layout;
 use ftml::parsing::ParseError;
 use std::net::IpAddr;

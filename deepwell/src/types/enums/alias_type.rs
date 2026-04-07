@@ -1,5 +1,5 @@
 /*
- * services/file_revision/mod.rs
+ * types/enums/alias_type.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
  * Copyright (C) 2019-2026 Wikijump Team
@@ -18,16 +18,28 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#[allow(unused_imports)]
-mod prelude {
-    pub use super::super::prelude::*;
-    pub use super::structs::*;
-    pub use crate::hash::BlobHash;
-    pub use crate::types::FileRevisionType;
+use sea_orm::DeriveValueType;
+use serde::{Deserialize, Serialize};
+use strum_macros::{Display, EnumIter, EnumString};
+
+#[derive(
+    EnumIter,
+    Serialize,
+    Deserialize,
+    Debug,
+    Copy,
+    Clone,
+    Hash,
+    PartialEq,
+    Eq,
+    DeriveValueType,
+    EnumString,
+    Display,
+)]
+#[sea_orm(value_type = "String")]
+#[serde(rename_all = "kebab-case")]
+#[strum(serialize_all = "kebab_case", ascii_case_insensitive)]
+pub enum AliasType {
+    Site,
+    User,
 }
-
-mod service;
-mod structs;
-
-pub use self::service::FileRevisionService;
-pub use self::structs::*;

@@ -22,7 +22,6 @@ use super::prelude::*;
 use crate::models::page_revision::{
     self, Entity as PageRevision, Model as PageRevisionModel,
 };
-use crate::models::sea_orm_active_enums::PageRevisionType;
 use crate::models::text::{self, Entity as Text, Model as TextModel};
 use crate::services::render::RenderPageOutput;
 use crate::services::score::ScoreValue;
@@ -30,7 +29,7 @@ use crate::services::{
     LinkService, OutdateService, PageService, ParentService, RenderService, ScoreService,
     SettingsService, SiteService, TextService,
 };
-use crate::types::{FetchDirection, PageId, RerenderDepth};
+use crate::types::{FetchDirection, PageId, PageRevisionType, RerenderDepth};
 use crate::utils::{split_category, split_category_name, trim_default};
 use ftml::data::PageInfo;
 use ftml::layout::Layout;

@@ -28,8 +28,8 @@
 //! As such, it is an invariant that all users linked here are of the type `site`.
 
 use super::prelude::*;
-use crate::models::sea_orm_active_enums::UserType;
 use crate::services::UserService;
+use crate::types::{RelationObjectType, RelationType, UserType};
 
 impl_relation!(SiteUser, Site, site_id, User, user_id, (), NO_CREATE_IMPL);
 
@@ -200,7 +200,7 @@ async fn get_relation(
     let model = Relation::find()
         .filter(
             Condition::all()
-                .add(relation::Column::RelationType.eq(RelationType::SiteUser.value()))
+                .add(relation::Column::RelationType.eq(RelationType::SiteUser))
                 .add(condition)
                 .add(relation::Column::OverwrittenAt.is_null())
                 .add(relation::Column::DeletedAt.is_null()),

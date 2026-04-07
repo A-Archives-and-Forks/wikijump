@@ -1,5 +1,5 @@
 /*
- * types/connection_type.rs
+ * types/enums/connection_type.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
  * Copyright (C) 2019-2026 Wikijump Team
@@ -18,12 +18,27 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use crate::error::prelude::*;
-use std::str::FromStr;
-use strum_macros::EnumIter;
+use sea_orm::DeriveValueType;
+use serde::{Deserialize, Serialize};
+use strum_macros::{Display, EnumIter, EnumString};
 
-#[derive(EnumIter, Serialize, Deserialize, Debug, Copy, Clone, Hash, PartialEq, Eq)]
+#[derive(
+    EnumIter,
+    Serialize,
+    Deserialize,
+    Debug,
+    Copy,
+    Clone,
+    Hash,
+    PartialEq,
+    Eq,
+    DeriveValueType,
+    EnumString,
+    Display,
+)]
+#[sea_orm(value_type = "String")]
 #[serde(rename_all = "kebab-case")]
+#[strum(serialize_all = "kebab_case", ascii_case_insensitive)]
 pub enum ConnectionType {
     IncludeMessy,
     IncludeElements,
@@ -32,32 +47,7 @@ pub enum ConnectionType {
     Redirect,
 }
 
-impl ConnectionType {
-    pub fn name(self) -> &'static str {
-        match self {
-            ConnectionType::IncludeMessy => "include-messy",
-            ConnectionType::IncludeElements => "include-elements",
-            ConnectionType::Component => "component",
-            ConnectionType::Link => "link",
-            ConnectionType::Redirect => "redirect",
-        }
-    }
-}
-
-impl FromStr for ConnectionType {
-    type Err = EnumConversionError;
-
-    fn from_str(value: &str) -> StdResult<ConnectionType, EnumConversionError> {
-        match value {
-            "include-messy" => Ok(ConnectionType::IncludeMessy),
-            "include-elements" => Ok(ConnectionType::IncludeElements),
-            "component" => Ok(ConnectionType::Component),
-            "link" => Ok(ConnectionType::Link),
-            "redirect" => Ok(ConnectionType::Redirect),
-            _ => Err(EnumConversionError::new("ConnectionType", value)),
-        }
-    }
-}
+impl_try_from_u64!(ConnectionType);
 
 /// Ensure `ConnectionType::name()` produces the same output as serde.
 #[test]
@@ -70,8 +60,8 @@ fn name_serde() {
             serde_json::from_str(&output).expect("Unable to deserialize JSON");
 
         assert_eq!(
-            &serde_name,
-            variant.name(),
+            serde_name,
+            variant.to_string(),
             "Serde name does not match variant name",
         );
 

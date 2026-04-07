@@ -19,8 +19,8 @@
  */
 
 use crate::models::relation;
-use crate::models::sea_orm_active_enums::RelationObjectType;
-use sea_orm::{ColumnTrait, Condition};
+use crate::types::{RelationObjectType, RelationType};
+use sea_orm::{ColumnTrait, Condition, DeriveValueType, EnumIter};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum RelationObject {
@@ -84,7 +84,7 @@ pub fn relation_condition(
     let (from_type, from_id) = from.into();
 
     Condition::all()
-        .add(relation::Column::RelationType.eq(relation_type.value()))
+        .add(relation::Column::RelationType.eq(relation_type))
         .add(relation::Column::DestType.eq(dest_type))
         .add(relation::Column::DestId.eq(dest_id))
         .add(relation::Column::FromType.eq(from_type))
@@ -124,47 +124,7 @@ pub enum RelationDirection {
     From,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum RelationType {
-    SiteUser,
-    SiteBan,
-    #[allow(dead_code)] // TEMP
-    SiteApplication,
-    SiteMember,
-    PageStar,
-    PageWatch,
-    PageAttribution,
-    UserFollow,
-    #[allow(dead_code)] // TEMP
-    UserContact,
-    #[allow(dead_code)] // TEMP
-    UserContactRequest,
-    UserBlock,
-    UserBotOwner,
-}
-
 impl RelationType {
-    /// Get the constant string value used to represent this relation in the database.
-    ///
-    /// It need not be unique among all relations, but it must be unique for each triplet
-    /// of `(dest_type, from_type, relation_value)`.
-    pub fn value(self) -> &'static str {
-        match self {
-            RelationType::SiteUser => "site-user", // for the 'site' user_type
-            RelationType::SiteBan => "ban",
-            RelationType::SiteApplication => "application",
-            RelationType::SiteMember => "member",
-            RelationType::PageStar => "star",
-            RelationType::PageWatch => "watch",
-            RelationType::PageAttribution => "page-attribution",
-            RelationType::UserFollow => "follow",
-            RelationType::UserContact => "contact",
-            RelationType::UserContactRequest => "contact-request",
-            RelationType::UserBlock => "block",
-            RelationType::UserBotOwner => "bot-owner",
-        }
-    }
-
     pub fn types(self) -> RelationObjectTypes {
         macro_rules! t {
             ($dest:ident, $from:ident $(,)?) => {

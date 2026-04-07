@@ -19,8 +19,8 @@
  */
 
 use super::prelude::*;
-use crate::models::sea_orm_active_enums::TextBlockType;
 use crate::services::text_block::TextBlockIndex;
+use crate::types::TextBlockType;
 
 #[derive(Deserialize, Debug, Clone)]
 struct GetIndexInput {

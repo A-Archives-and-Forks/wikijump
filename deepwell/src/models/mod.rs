@@ -34,7 +34,6 @@ pub mod page_vote;
 pub mod relation;
 pub mod role;
 pub mod role_permission;
-pub mod sea_orm_active_enums;
 pub mod session;
 pub mod site;
 pub mod site_domain;

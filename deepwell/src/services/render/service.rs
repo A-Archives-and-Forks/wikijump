@@ -20,13 +20,12 @@
 
 use super::prelude::*;
 use crate::hash::TextHash;
-use crate::models::sea_orm_active_enums::TextBlockType;
 use crate::services::TextService;
 use crate::services::settings::{NavigationPageWikitext, SettingsService};
 use crate::services::text_block::{
     MIME_HTML, TextBlock, TextBlockService, mime_for_language,
 };
-use crate::types::PageId;
+use crate::types::{PageId, TextBlockType};
 use ftml::{prelude::*, tree::CodeBlock};
 use tokio::time::timeout;
 

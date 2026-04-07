@@ -19,7 +19,7 @@
  */
 
 use crate::error::prelude::*;
-use crate::models::sea_orm_active_enums::{License, UserType};
+use crate::types::{License, UserType};
 use ftml::layout::Layout;
 use serde::Deserialize;
 use std::collections::HashMap;

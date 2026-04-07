@@ -21,7 +21,6 @@
 use super::prelude::*;
 use crate::constants::SYSTEM_USER_ID;
 use crate::error::prelude::*;
-use crate::models::sea_orm_active_enums::{AliasType, UserType};
 use crate::models::site::{self, Entity as Site, Model as SiteModel};
 use crate::services::alias::CreateAlias;
 use crate::services::audit::{AuditEvent, AuditService, SiteFields};
@@ -29,6 +28,7 @@ use crate::services::domain::{DEFAULT_SITE_SLUG, DomainService};
 use crate::services::relation::CreateSiteUser;
 use crate::services::user::{CreateUser, UpdateUserBody};
 use crate::services::{AliasService, RelationService, UserService};
+use crate::types::{AliasType, UserType};
 use crate::utils::validate_locale;
 use ftml::layout::Layout;
 use ref_map::*;

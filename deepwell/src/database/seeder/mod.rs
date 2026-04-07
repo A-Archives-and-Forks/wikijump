@@ -24,7 +24,6 @@ use self::data::SeedData;
 use crate::api::ServerState;
 use crate::constants::{ADMIN_USER_ID, SYSTEM_USER_ID};
 use crate::error::prelude::*;
-use crate::models::sea_orm_active_enums::AliasType;
 use crate::services::ServiceContext;
 use crate::services::alias::{AliasService, CreateAlias};
 use crate::services::domain::{CreateCustomDomain, DomainService};
@@ -43,7 +42,7 @@ use crate::services::relation::{
 use crate::services::role::{CreateRoleInput, GrantUserRoleInput, RoleService};
 use crate::services::site::{CreateSite, CreateSiteOutput, SiteService, UpdateSiteBody};
 use crate::services::user::{CreateUser, CreateUserOutput, UpdateUserBody, UserService};
-use crate::types::{Action, Maybe, Reference, Resource};
+use crate::types::{Action, AliasType, Maybe, Reference, Resource};
 use crate::utils::now;
 use arrayvec::ArrayVec;
 use sea_orm::{

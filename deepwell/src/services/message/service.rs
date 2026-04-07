@@ -27,9 +27,9 @@ use crate::models::message_recipient::{self, Entity as MessageRecipient};
 use crate::models::message_record::{
     self, Entity as MessageRecord, Model as MessageRecordModel,
 };
-use crate::models::sea_orm_active_enums::{MessageRecipientType, UserType};
 use crate::services::render::{RenderOutput, RenderService};
 use crate::services::{RelationService, TextService, UserService};
+use crate::types::{MessageRecipientType, UserType};
 use crate::utils::validate_locale;
 use cuid2::cuid;
 use ftml::data::{PageInfo, ScoreValue};
