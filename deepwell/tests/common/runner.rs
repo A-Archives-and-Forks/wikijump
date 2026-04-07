@@ -22,9 +22,12 @@
 
 use deepwell::api::{ServerState, build_server_state};
 use deepwell::config::{Config, Secrets};
+use deepwell::services::ServiceContext;
 use jsonrpsee::types::Params;
 use sea_orm::{DatabaseTransaction, TransactionTrait};
+use self_cell::self_cell;
 use serde_json::Value as JsonValue;
+use tokio::task;
 
 #[inline]
 pub fn empty_params() -> Params<'static> {
@@ -41,6 +44,77 @@ pub fn make_params(value: JsonValue) -> Params<'static> {
     let json = serde_json::to_string(&value).expect("Unable to emit JSON");
     let params = Params::new(Some(&json));
     params.into_owned()
+}
+
+#[derive(Debug)]
+pub struct TestRunnerRequestContext {
+    state: ServerState,
+    transaction: Option<DatabaseTransaction>,
+}
+
+impl TestRunnerRequestContext {
+    pub async fn new() -> Self {
+        let secrets = Secrets::load();
+        let config = Config::integration_testing();
+
+        let state = build_server_state(config, secrets)
+            .await
+            .expect("Unable to set up server state");
+
+        let txn = state
+            .database
+            .begin()
+            .await
+            .expect("Unable to start database transaction");
+
+        TestRunnerRequestContext {
+            state,
+            transaction: Some(txn),
+        }
+    }
+
+    fn transaction(&self) -> &DatabaseTransaction {
+        // Only should be unset in Drop
+        self.transaction.as_ref().expect("Should never be None")
+    }
+
+    #[inline]
+    fn build_service_context<'txn>(&'txn self) -> ServiceContext<'txn> {
+        ServiceContext::new(&self.state, self.transaction())
+    }
+}
+
+impl Drop for TestRunnerRequestContext {
+    fn drop(&mut self) {
+        let txn = self
+            .transaction
+            .take()
+            .expect("Transaction was None at time of drop");
+
+        task::spawn(async move {
+            txn.rollback()
+                .await
+                .expect("Unable to roll back transaction")
+        });
+    }
+}
+
+self_cell!(
+    pub struct TestRunner {
+        owner: TestRunnerRequestContext,
+
+        #[covariant]
+        dependent: ServiceContext,
+    }
+
+    impl {Debug}
+);
+
+impl TestRunner {
+    pub async fn setup() -> Self {
+        let request_ctx = TestRunnerRequestContext::new().await;
+        Self::new(request_ctx, TestRunnerRequestContext::build_service_context)
+    }
 }
 
 pub async fn setup() -> (ServerState, DatabaseTransaction) {
