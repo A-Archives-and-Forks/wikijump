@@ -124,13 +124,8 @@ macro_rules! assert_no_error {
 #[allow(unused_macros)]
 macro_rules! assert_str_eq {
     ($left:expr, $right:expr $(,)?) => {{
-        let left: Option<&str> = match $left {
-            Some(ref s) => Some(s.as_str()),
-            None => None,
-        };
-
+        let left: Option<&str> = $left.as_deref();
         let right: Option<&str> = $right;
-
         assert_eq!(left, right);
     }};
 }
