@@ -74,6 +74,7 @@ arrayvec = "0.7.6"
 [dev-dependencies]
 maplit = "1"
 pretty_assertions = "1"
+self_cell = "1"
 
 [build-dependencies]
 built = { version = "0.8", features = ["chrono", "git2"] }
