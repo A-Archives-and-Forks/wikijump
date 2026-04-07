@@ -207,6 +207,9 @@ pub struct Config {
     /// Minimum length of chars in a username.
     pub minimum_name_chars: usize,
 
+    /// Whether to use a mocked version of MailCheck for testing purposes.
+    pub mock_mailcheck: bool,
+
     /// Length of randomly-generated portion of S3 presigned URLs.
     pub presigned_path_length: usize,
 
@@ -318,6 +321,7 @@ impl Config {
             refill_name_change: None,
             minimum_name_bytes: 4,
             minimum_name_chars: 2,
+            mock_mailcheck: true,
             presigned_path_length: 4,
             presigned_expiry_secs: 60,
             maximum_blob_size: 512 * 1024,
