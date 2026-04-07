@@ -19,6 +19,7 @@
  */
 
 use super::prelude::*;
+use crate::api::ServerState;
 
 #[derive(Debug)]
 pub struct EmailService;
@@ -36,6 +37,7 @@ impl EmailService {
             ));
         }
 
+        let config = ctx.config();
         let state = ctx.state();
         let make_error = || {
             Error::new(
@@ -45,18 +47,18 @@ impl EmailService {
         };
 
         // Sends a GET request to the MailCheck API and deserializes the response.
-        let request_url = format!("https://api.mailcheck.ai/email/{email}");
-        let mailcheck = state
-            .mailcheck_api_client
-            .get(request_url)
-            .send()
-            .await
-            .or_raise(make_error)?
-            .json::<MailCheckResponse>()
-            .await
-            .or_raise(make_error)?;
+        let response = if config.mock_mailcheck {
+            warn!(
+                "Using mocked MailCheck! This is fine for tests, but don't do this in prod!"
+            );
+            Self::mock_mailcheck(email)
+        } else {
+            Self::request_mailcheck(state, email)
+                .await
+                .or_raise(make_error)?
+        };
 
-        let mailcheck = match mailcheck {
+        let mailcheck = match response {
             MailCheckResponse::Success(data) => data,
             MailCheckResponse::Failure(MailCheckFailureResponse { status, error }) => {
                 match status {
@@ -183,6 +185,91 @@ impl EmailService {
             role_account: mailcheck.role_account,
             spam: mailcheck.spam,
             did_you_mean: mailcheck.did_you_mean,
+        })
+    }
+
+    /// Actual HTTP request to MailCheck.
+    async fn request_mailcheck(
+        state: ServerState,
+        email: &str,
+    ) -> Result<MailCheckResponse> {
+        let request_url = format!("https://api.mailcheck.ai/email/{email}");
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to send HTTP request to MailCheck API for email '{email}'"
+                ),
+                ErrorType::EmailVerification,
+            )
+        };
+
+        let response = state
+            .mailcheck_api_client
+            .get(request_url)
+            .send()
+            .await
+            .or_raise(make_error)?
+            .json::<MailCheckResponse>()
+            .await
+            .or_raise(make_error)?;
+
+        Ok(response)
+    }
+
+    /// Mocked request to MailCheck for tests.
+    fn mock_mailcheck(email: &str) -> MailCheckResponse {
+        #[derive(Debug, Copy, Clone, PartialEq, Eq)]
+        enum EmailType {
+            Normal,
+            DidYouMean(&'static str),
+            Disposable,
+            Relay,
+            Private,
+            Spam,
+            Invalid,
+        }
+
+        let (user, domain, email_type) = match email.split_once('@') {
+            None => (email, "", EmailType::Invalid),
+            Some((user, domain)) => {
+                let email_type = match domain {
+                    "gmial.com" => EmailType::DidYouMean("gmail.com"),
+                    "yaho.com" => EmailType::DidYouMean("yahoo.com"),
+                    "disposable.com" => EmailType::Disposable,
+                    "forwarding.com" => EmailType::Relay,
+                    "private.me" => EmailType::Private,
+                    "spam.xxx" => EmailType::Spam,
+                    "invalid.com" => EmailType::Invalid,
+                    _ => EmailType::Normal,
+                };
+                (user, domain, email_type)
+            }
+        };
+
+        let normalized_user = match user.split_once('+') {
+            Some((user, _)) => user,
+            None => user,
+        };
+
+        MailCheckResponse::Success(MailCheckSuccessResponse {
+            status: 200,
+            email: str!(email),
+            normalized_email: format!("{normalized_user}@{domain}"),
+            domain: str!(domain),
+            domain_age_in_days: Some(1000),
+            mx: email_type != EmailType::Invalid,
+            mx_records: vec![],
+            mx_providers: vec![],
+            disposable: email_type == EmailType::Disposable,
+            public_domain: email_type != EmailType::Private,
+            relay_domain: email_type == EmailType::Relay,
+            role_account: matches!(user, "admin" | "support" | "info"),
+            spam: email_type == EmailType::Spam,
+            did_you_mean: if let EmailType::DidYouMean(fixed_domain) = email_type {
+                Some(format!("{user}@{fixed_domain}"))
+            } else {
+                None
+            },
         })
     }
 }
