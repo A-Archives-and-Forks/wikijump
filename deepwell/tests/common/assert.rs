@@ -74,7 +74,7 @@ macro_rules! assert_contains_error {
     }};
 }
 
-/// Asserts that there are no erroras within the `Exn<Error>` matching the given pattern.
+/// Asserts that there are no errors within the `Exn<Error>` matching the given pattern.
 macro_rules! assert_no_error {
     ($exn_error:expr, $pattern:pat $(if $guard:expr)? $(,)?) => {{
         let exn_error = &$exn_error;
