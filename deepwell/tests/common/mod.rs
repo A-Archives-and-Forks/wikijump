@@ -38,4 +38,5 @@ pub use self::runner::TestRunner;
 
 use std::net::{IpAddr, Ipv4Addr};
 
+#[allow(dead_code)]
 pub const IP_ADDRESS: IpAddr = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 10));

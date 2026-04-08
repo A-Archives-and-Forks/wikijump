@@ -21,17 +21,17 @@
 #![allow(unused_macros)]
 
 macro_rules! run_endpoint {
-    ($endpoint:expr, $ctx:expr, $params_value:expr $(,)?) => {
-        run_endpoint!($endpoint => $ctx, common::make_params($params_value))
+    ($runner:expr, $endpoint:ident, $params_value:expr $(,)?) => {
+        run_endpoint!($runner => $endpoint, common::make_params($params_value))
     };
 
-    ($endpoint:expr, $ctx:expr $(,)?) => {
-        run_endpoint!($endpoint => $ctx, common::empty_params())
+    ($runner:expr, $endpoint:ident $(,)?) => {
+        run_endpoint!($runner => $endpoint, common::empty_params())
     };
 
-    ($endpoint:expr => $ctx:expr, $params:expr) => {
+    ($runner:expr => $endpoint:ident, $params:expr) => {
         // Not using .expect() because we want a custom panic message
-        match $endpoint(&$ctx, $params).await {
+        match deepwell::endpoints::all::$endpoint($runner.context(), $params).await {
             Ok(result) => result,
             Err(error) => {
                 panic!("Call to method '{}' failed!\n{:?}", stringify!($endpoint), error);
@@ -41,17 +41,17 @@ macro_rules! run_endpoint {
 }
 
 macro_rules! run_endpoint_err {
-    ($endpoint:expr, $ctx:expr, $params_value:expr $(,)?) => {
-        run_endpoint_err!($endpoint => $ctx, common::make_params($params_value))
+    ($runner:expr, $endpoint:ident, $params_value:expr $(,)?) => {
+        run_endpoint_err!($runner => $endpoint, common::make_params($params_value))
     };
 
-    ($endpoint:expr, $ctx:expr $(,)?) => {
-        run_endpoint_err!($endpoint => $ctx, common::empty_params())
+    ($runner:expr, $endpoint:ident $(,)?) => {
+        run_endpoint_err!($runner => $endpoint, common::empty_params())
     };
 
-    ($endpoint:expr => $ctx:expr, $params:expr) => {
+    ($runner:expr => $endpoint:ident, $params:expr) => {
         // Not using .expect_err() because we want a custom panic message
-        match $endpoint(&$ctx, $params).await {
+        match deepwell::endpoints::all::$endpoint($runner.context(), $params).await {
             Err(error) => error,
             Ok(result) => {
                 panic!(

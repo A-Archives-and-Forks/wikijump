@@ -96,20 +96,22 @@ impl TestRunner {
         let request_ctx = TestRunnerRequestContext::new().await;
         Self::new(request_ctx, TestRunnerRequestContext::build_service_context)
     }
-}
 
-macro_rules! cleanup {
-    ($state:expr, $txn:expr, $ctx:expr $(,)?) => {{
-        use std::mem;
+    #[inline]
+    #[allow(unused)]
+    pub fn state(&self) -> &ServerState {
+        &self.borrow_owner().state
+    }
 
-        // Explicitly drop all these bindings to prevent reuse later
-        mem::drop($ctx);
+    #[inline]
+    #[allow(unused)]
+    pub fn config(&self) -> &Config {
+        &self.state().config
+    }
 
-        // We always rollback since we want the database state to be the same for each test
-        $txn.rollback()
-            .await
-            .expect("Unable to roll back transaction");
-
-        mem::drop($state);
-    }};
+    #[inline]
+    #[allow(unused)]
+    pub fn context<'a>(&'a self) -> &'a ServiceContext<'a> {
+        self.borrow_dependent()
+    }
 }

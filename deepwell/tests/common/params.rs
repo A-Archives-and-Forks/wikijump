@@ -18,6 +18,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#![allow(dead_code)]
+
 use jsonrpsee::types::Params;
 use serde_json::Value as JsonValue;
 
@@ -37,4 +39,3 @@ pub fn make_params(value: JsonValue) -> Params<'static> {
     let params = Params::new(Some(&json));
     params.into_owned()
 }
-

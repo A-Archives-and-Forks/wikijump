@@ -21,47 +21,38 @@
 #[macro_use]
 mod common;
 
-use deepwell::endpoints;
+use self::common::TestRunner;
 use deepwell::error::prelude::*;
-use deepwell::services::ServiceContext;
 use serde_json::json;
 
 #[tokio::test]
 async fn locale_info() {
-    let (state, txn) = common::setup().await;
-    let ctx = ServiceContext::new(&state, &txn);
+    let runner = TestRunner::setup().await;
 
-    let info = run_endpoint!(endpoints::locale::locale_info, ctx, json!(["en-gb"]));
+    let info = run_endpoint!(runner, locale_info, json!(["en-gb"]));
     assert_eq!(info.language, "en");
     assert_str_eq!(info.region, Some("GB"));
     assert_eq!(info.script, None);
     assert!(info.variants.is_empty());
 
-    let info = run_endpoint!(
-        endpoints::locale::locale_info,
-        ctx,
-        json!(["fr_Latn-FR-MACOS"]),
-    );
+    let info = run_endpoint!(runner, locale_info, json!(["fr_Latn-FR-MACOS"]));
     assert_eq!(info.language, "fr");
     assert_str_eq!(info.region, Some("FR"));
     assert_str_eq!(info.script, Some("Latn"));
     assert_eq!(info.variants.len(), 1);
     assert_eq!(info.variants[0], "macos");
-
-    cleanup!(state, txn, ctx);
 }
 
 #[tokio::test]
 async fn translate_strings() {
-    let (state, txn) = common::setup().await;
-    let ctx = ServiceContext::new(&state, &txn);
+    let runner = TestRunner::setup().await;
 
     // Error cases
 
     // No locales
     let error = run_endpoint_err!(
-        endpoints::locale::translate_strings,
-        ctx,
+        runner,
+        translate_strings,
         json!({
             "locales": [],
             "messages": {
@@ -83,8 +74,8 @@ async fn translate_strings() {
 
     // Key in strip_message_keys but not messages
     let error = run_endpoint_err!(
-        endpoints::locale::translate_strings,
-        ctx,
+        runner,
+        translate_strings,
         json!({
             "locales": ["fr_FR"],
             "messages": {
@@ -104,8 +95,8 @@ async fn translate_strings() {
     );
 
     let error = run_endpoint_err!(
-        endpoints::locale::translate_strings,
-        ctx,
+        runner,
+        translate_strings,
         json!({
             "locales": ["fr_FR"],
             "messages": {
@@ -127,8 +118,8 @@ async fn translate_strings() {
 
     // No locale
     let error = run_endpoint_err!(
-        endpoints::locale::translate_strings,
-        ctx,
+        runner,
+        translate_strings,
         json!({"locales": ["xyz_US"], "messages": {"license": {}}}),
     );
     assert_contains_error!(
@@ -149,8 +140,8 @@ async fn translate_strings() {
 
     // No message key
     let error = run_endpoint_err!(
-        endpoints::locale::translate_strings,
-        ctx,
+        runner,
+        translate_strings,
         json!({"locales": ["en"], "messages": {"xyz-invalid-key": {}}}),
     );
     assert_contains_error!(
@@ -169,8 +160,8 @@ async fn translate_strings() {
     // No message value
     // Only attributes exist
     let error = run_endpoint_err!(
-        endpoints::locale::translate_strings,
-        ctx,
+        runner,
+        translate_strings,
         json!({
             "locales": ["en"],
             "messages": {
@@ -194,8 +185,8 @@ async fn translate_strings() {
 
     // No message attribute
     let error = run_endpoint_err!(
-        endpoints::locale::translate_strings,
-        ctx,
+        runner,
+        translate_strings,
         json!({
             "locales": ["en"],
             "messages": {
@@ -221,8 +212,8 @@ async fn translate_strings() {
     // Success cases
 
     let output = run_endpoint!(
-        endpoints::locale::translate_strings,
-        ctx,
+        runner,
+        translate_strings,
         json!({
             "locales": ["en"],
             "messages": {
@@ -238,8 +229,8 @@ async fn translate_strings() {
     assert_str_eq!(output["base-title"], Some("\u{2068}foo\u{2069} | Wikijump"));
 
     let output = run_endpoint!(
-        endpoints::locale::translate_strings,
-        ctx,
+        runner,
+        translate_strings,
         json!({
             "locales": ["zh", "zh_Hans", "ko"],
             "messages": {
@@ -255,8 +246,8 @@ async fn translate_strings() {
     // Testing strip_message_keys
 
     let output = run_endpoint!(
-        endpoints::locale::translate_strings,
-        ctx,
+        runner,
+        translate_strings,
         json!({
             "locales": ["en"],
             "messages": {
@@ -269,8 +260,8 @@ async fn translate_strings() {
     assert_str_eq!(output["base-title"], Some("foo | Wikijump"));
 
     let output = run_endpoint!(
-        endpoints::locale::translate_strings,
-        ctx,
+        runner,
+        translate_strings,
         json!({
             "locales": ["en"],
             "messages": {
@@ -283,8 +274,8 @@ async fn translate_strings() {
     assert_str_eq!(output["base-title"], Some("\u{2068}foo\u{2069} | Wikijump"));
 
     let output = run_endpoint!(
-        endpoints::locale::translate_strings,
-        ctx,
+        runner,
+        translate_strings,
         json!({
             "locales": ["en"],
             "messages": {
@@ -297,7 +288,4 @@ async fn translate_strings() {
     assert_eq!(output.len(), 2);
     assert_str_eq!(output["license"], Some("License"));
     assert_str_eq!(output["license.cc0"], Some("Public Domain (CC0)"));
-
-    // Done
-    cleanup!(state, txn, ctx);
 }

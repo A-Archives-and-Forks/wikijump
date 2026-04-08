@@ -21,26 +21,23 @@
 #[macro_use]
 mod common;
 
+use self::common::TestRunner;
 use deepwell::constants::ADMIN_USER_ID;
-use deepwell::endpoints;
 use deepwell::error::prelude::*;
-use deepwell::services::ServiceContext;
 use deepwell::types::PageRevisionType;
 use serde_json::json;
 
 #[tokio::test]
 async fn basic_edit() {
-    let (state, txn) = common::setup().await;
-    let ctx = ServiceContext::new(&state, &txn);
+    let runner = TestRunner::setup().await;
 
     const SITE_SLUG: &str = "test";
     const PAGE_SLUG: &str = "my-page";
 
     // Get site
 
-    let output =
-        run_endpoint!(endpoints::site::site_get, ctx, json!({"site": SITE_SLUG}))
-            .expect("Seeded site not found");
+    let output = run_endpoint!(runner, site_get, json!({"site": SITE_SLUG}))
+        .expect("Seeded site not found");
 
     let site_id = output.site.site_id;
     assert_eq!(output.site.slug, SITE_SLUG, "Site slug doesn't match");
@@ -48,8 +45,8 @@ async fn basic_edit() {
     // Create page
 
     let output = run_endpoint!(
-        endpoints::page::page_create,
-        ctx,
+        runner,
+        page_create,
         json!({
             "site_id": site_id,
             "wikitext": "これは私のページの内容。 📄",
@@ -70,8 +67,8 @@ async fn basic_edit() {
     // Get page (by slug)
 
     let page = run_endpoint!(
-        endpoints::page::page_get,
-        ctx,
+        runner,
+        page_get,
         json!({
             "site_id": site_id,
             "page": PAGE_SLUG,
@@ -90,8 +87,8 @@ async fn basic_edit() {
     // Edit page contents (by slug)
 
     let output = run_endpoint!(
-        endpoints::page::page_edit,
-        ctx,
+        runner,
+        page_edit,
         json!({
             "site_id": site_id,
             "page": PAGE_SLUG,
@@ -115,8 +112,8 @@ async fn basic_edit() {
     // Edit page contents (by ID)
 
     let output = run_endpoint!(
-        endpoints::page::page_edit,
-        ctx,
+        runner,
+        page_edit,
         json!({
             "site_id": site_id,
             "page": page_id,
@@ -135,8 +132,8 @@ async fn basic_edit() {
     // Edit with no changes
 
     let output = run_endpoint!(
-        endpoints::page::page_edit,
-        ctx,
+        runner,
+        page_edit,
         json!({
             "site_id": site_id,
             "page": page_id,
@@ -156,8 +153,8 @@ async fn basic_edit() {
     // Get page (by ID)
 
     let page = run_endpoint!(
-        endpoints::page::page_get,
-        ctx,
+        runner,
+        page_get,
         json!({
             "site_id": site_id,
             "page": page_id,
@@ -172,15 +169,11 @@ async fn basic_edit() {
     assert_eq!(page.revision_type, PageRevisionType::Regular);
     assert_eq!(page.revision_user_id, ADMIN_USER_ID);
     assert_eq!(page.page_category_slug, "_default");
-
-    // Done
-    cleanup!(state, txn, ctx);
 }
 
 #[tokio::test]
 async fn basic_move() {
-    let (state, txn) = common::setup().await;
-    let ctx = ServiceContext::new(&state, &txn);
+    let runner = TestRunner::setup().await;
 
     const SITE_SLUG: &str = "test";
     const PAGE_SLUG_1: &str = "alpha";
@@ -188,9 +181,8 @@ async fn basic_move() {
 
     // Get site
 
-    let output =
-        run_endpoint!(endpoints::site::site_get, ctx, json!({"site": SITE_SLUG}))
-            .expect("Seeded site not found");
+    let output = run_endpoint!(runner, site_get, json!({"site": SITE_SLUG}))
+        .expect("Seeded site not found");
 
     let site_id = output.site.site_id;
     assert_eq!(output.site.slug, SITE_SLUG, "Site slug doesn't match");
@@ -198,8 +190,8 @@ async fn basic_move() {
     // Create page
 
     let output = run_endpoint!(
-        endpoints::page::page_create,
-        ctx,
+        runner,
+        page_create,
         json!({
             "site_id": site_id,
             "wikitext": "PAGE APPLE",
@@ -220,8 +212,8 @@ async fn basic_move() {
     // Page edit (success)
 
     let output = run_endpoint!(
-        endpoints::page::page_edit,
-        ctx,
+        runner,
+        page_edit,
         json!({
             "site_id": site_id,
             "page": page_id,
@@ -240,8 +232,8 @@ async fn basic_move() {
     // Move page
 
     let output = run_endpoint!(
-        endpoints::page::page_move,
-        ctx,
+        runner,
+        page_move,
         json!({
             "site_id": site_id,
             "page": PAGE_SLUG_1,
@@ -259,8 +251,8 @@ async fn basic_move() {
     // Get page (by ID)
 
     let page = run_endpoint!(
-        endpoints::page::page_get,
-        ctx,
+        runner,
+        page_get,
         json!({
             "site_id": site_id,
             "page": page_id,
@@ -279,8 +271,8 @@ async fn basic_move() {
     // Page edit (failure)
 
     let error = run_endpoint_err!(
-        endpoints::page::page_edit,
-        ctx,
+        runner,
+        page_edit,
         json!({
             "site_id": site_id,
             "page": PAGE_SLUG_1,
@@ -297,8 +289,8 @@ async fn basic_move() {
     // Page edit (success)
 
     let output = run_endpoint!(
-        endpoints::page::page_edit,
-        ctx,
+        runner,
+        page_edit,
         json!({
             "site_id": site_id,
             "page": PAGE_SLUG_2,
@@ -313,9 +305,6 @@ async fn basic_move() {
     .expect("No revision created");
     assert_eq!(output.revision_number, 3);
     assert!(output.revision_id > revision_id);
-
-    // Done
-    cleanup!(state, txn, ctx);
 }
 
 // TODO add more cases here

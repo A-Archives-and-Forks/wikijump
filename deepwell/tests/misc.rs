@@ -21,64 +21,49 @@
 #[macro_use]
 mod common;
 
-use deepwell::endpoints;
+use self::common::TestRunner;
 use deepwell::error::prelude::*;
-use deepwell::services::ServiceContext;
 use serde_json::json;
 use time::OffsetDateTime;
 
 #[tokio::test]
 async fn misc() {
-    let (state, txn) = common::setup().await;
-    let ctx = ServiceContext::new(&state, &txn);
+    let runner = TestRunner::setup().await;
 
     // ping
-    run_endpoint!(endpoints::health::ping, ctx);
+    run_endpoint!(runner, ping);
 
     // echo
-    let object = run_endpoint!(endpoints::misc::echo, ctx, json!(["foo bar"]));
+    let object = run_endpoint!(runner, echo, json!(["foo bar"]));
     assert_eq!(object, json!(["foo bar"]));
 
-    let object = run_endpoint!(
-        endpoints::misc::echo,
-        ctx,
-        json!({"apple": "red", "banana": "yellow"}),
-    );
+    let object = run_endpoint!(runner, echo, json!({"apple": "red", "banana": "yellow"}));
     assert_eq!(object, json!({"apple": "red", "banana": "yellow"}));
 
     // yield_error
-    let error = run_endpoint_err!(endpoints::misc::yield_error, ctx);
+    let error = run_endpoint_err!(runner, yield_error);
     assert_contains_error!(error, ErrorType::BadRequest);
 
     // config_dump
-    let config = run_endpoint!(endpoints::misc::config_dump, ctx);
-    assert_eq!(config, state.config.raw_toml);
+    let config = run_endpoint!(runner, config_dump);
+    assert_eq!(config, runner.config().raw_toml);
 
     // normalize_method
-    let normalized =
-        run_endpoint!(endpoints::misc::normalize_method, ctx, json!(["SCP-001"]));
+    let normalized = run_endpoint!(runner, normalize_method, json!(["SCP-001"]));
     assert_eq!(normalized, "scp-001");
 
-    let normalized = run_endpoint!(
-        endpoints::misc::normalize_method,
-        ctx,
-        json!(["Wanderer's Library"]),
-    );
+    let normalized =
+        run_endpoint!(runner, normalize_method, json!(["Wanderer's Library"]));
     assert_eq!(normalized, "wanderer-s-library");
 
-    let normalized =
-        run_endpoint!(endpoints::misc::normalize_method, ctx, json!(["abc-xyz"]));
+    let normalized = run_endpoint!(runner, normalize_method, json!(["abc-xyz"]));
     assert_eq!(normalized, "abc-xyz");
 
     // Invalid arguments
-    run_endpoint_err!(
-        endpoints::misc::normalize_method,
-        ctx,
-        json!({"foo": "bar"}),
-    );
+    run_endpoint_err!(runner, normalize_method, json!({"foo": "bar"}));
 
     // info
-    let info = run_endpoint!(endpoints::info::server_info, ctx);
+    let info = run_endpoint!(runner, server_info);
     assert_eq!(info.package.name, deepwell::info::PKG_NAME);
     assert_eq!(info.package.version, *deepwell::info::VERSION_INFO);
     assert_eq!(info.package.description, deepwell::info::PKG_DESCRIPTION);
@@ -96,9 +81,7 @@ async fn misc() {
         info.compile_info.git_commit,
         deepwell::info::GIT_COMMIT_HASH,
     );
-    assert_eq!(info.config_path, state.config.raw_toml_path);
+    assert_eq!(info.config_path, runner.config().raw_toml_path);
     assert_eq!(info.hostname, *deepwell::info::HOSTNAME);
     assert!(info.current_time > OffsetDateTime::UNIX_EPOCH);
-
-    cleanup!(state, txn, ctx);
 }

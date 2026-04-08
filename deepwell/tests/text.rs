@@ -21,16 +21,14 @@
 #[macro_use]
 mod common;
 
-use deepwell::endpoints;
+use self::common::TestRunner;
 use deepwell::error::prelude::*;
 use deepwell::hash::{k12_hash, text_hash_to_hex};
-use deepwell::services::ServiceContext;
 use serde_json::json;
 
 #[tokio::test]
 async fn text() {
-    let (state, txn) = common::setup().await;
-    let ctx = ServiceContext::new(&state, &txn);
+    let runner = TestRunner::setup().await;
 
     // The string to use
 
@@ -48,13 +46,12 @@ async fn text() {
 
     // Doesn't exist yet
 
-    let error = run_endpoint_err!(endpoints::text::text_get, ctx, json!([TEXT_HASH]));
+    let error = run_endpoint_err!(runner, text_get, json!([TEXT_HASH]));
     assert_contains_error!(error, ErrorType::TextNotFound);
 
     // Insert
 
-    let text_hash =
-        run_endpoint!(endpoints::text::text_create, ctx, json!([TEXT_TO_STORE]));
+    let text_hash = run_endpoint!(runner, text_create, json!([TEXT_TO_STORE]));
 
     assert_eq!(
         text_hash_to_hex(text_hash.as_ref()),
@@ -64,7 +61,7 @@ async fn text() {
 
     // Fetch
 
-    let text_result = run_endpoint!(endpoints::text::text_get, ctx, json!([TEXT_HASH]));
+    let text_result = run_endpoint!(runner, text_get, json!([TEXT_HASH]));
     assert_eq!(
         text_result, TEXT_TO_STORE,
         "Actual text contents does not match expected",
@@ -74,8 +71,8 @@ async fn text() {
 
     // Not a hex hash
     let error = run_endpoint_err!(
-        endpoints::text::text_get,
-        ctx,
+        runner,
+        text_get,
         json!(["zzzzyyyyxxxxvvvvuuuuttttssssrrrr"]),
     );
     assert!(
@@ -85,9 +82,6 @@ async fn text() {
     );
 
     // Not the right length
-    let error = run_endpoint_err!(endpoints::text::text_get, ctx, json!(["aaff0011"]));
+    let error = run_endpoint_err!(runner, text_get, json!(["aaff0011"]));
     assert_contains_error!(error, ErrorType::BadRequest);
-
-    // Done
-    cleanup!(state, txn, ctx);
 }

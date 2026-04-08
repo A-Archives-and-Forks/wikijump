@@ -21,32 +21,29 @@
 #[macro_use]
 mod common;
 
-use deepwell::endpoints;
+use self::common::TestRunner;
 use deepwell::error::prelude::*;
-use deepwell::services::ServiceContext;
 use serde_json::json;
 use time::{Date, Month};
 
 #[tokio::test]
 async fn basic_update() {
-    let (state, txn) = common::setup().await;
-    let ctx = ServiceContext::new(&state, &txn);
+    let runner = TestRunner::setup().await;
 
     const USER_NAME: &str = "Jane Doe";
     const USER_SLUG: &str = "jane-doe";
 
     // Doesn't exist yet
 
-    let user =
-        run_endpoint!(endpoints::user::user_get, ctx, json!({ "user": USER_SLUG }));
+    let user = run_endpoint!(runner, user_get, json!({ "user": USER_SLUG }));
 
     assert!(user.is_none(), "User exists before creation");
 
     // Create user
 
     let user = run_endpoint!(
-        endpoints::user::user_create,
-        ctx,
+        runner,
+        user_create,
         json!({
             "user_type": "regular",
             "name": USER_NAME,
@@ -61,9 +58,8 @@ async fn basic_update() {
 
     // Get via slug
 
-    let output =
-        run_endpoint!(endpoints::user::user_get, ctx, json!({ "user": USER_SLUG }))
-            .expect("User does not exist after creation");
+    let output = run_endpoint!(runner, user_get, json!({ "user": USER_SLUG }))
+        .expect("User does not exist after creation");
 
     assert_eq!(output.user.user_id, user_id);
     assert_eq!(output.user.name, USER_NAME);
@@ -90,8 +86,8 @@ async fn basic_update() {
     // Update bio fields
 
     let user = run_endpoint!(
-        endpoints::user::user_edit,
-        ctx,
+        runner,
+        user_edit,
         json!({
             "user": user_id,
             "real_name": "Jane H. Doe",
@@ -105,9 +101,8 @@ async fn basic_update() {
 
     // Get and check
 
-    let output =
-        run_endpoint!(endpoints::user::user_get, ctx, json!({ "user": user_id }))
-            .expect("User does not exist");
+    let output = run_endpoint!(runner, user_get, json!({ "user": user_id }))
+        .expect("User does not exist");
 
     let birthday = Date::from_calendar_date(1986, Month::February, 1).unwrap();
     assert_eq!(user, output.user); // ensures that the model returned by user_edit is latest
@@ -122,8 +117,8 @@ async fn basic_update() {
     // Update email (valid)
 
     let user = run_endpoint!(
-        endpoints::user::user_edit,
-        ctx,
+        runner,
+        user_edit,
         json!({
             "user": USER_SLUG,
             "email": "jane@wikijump.dev",
@@ -139,8 +134,8 @@ async fn basic_update() {
     // Update email (spam)
 
     let error = run_endpoint_err!(
-        endpoints::user::user_edit,
-        ctx,
+        runner,
+        user_edit,
         json!({
             "user": USER_SLUG,
             "email": "jane@spam.xxx",
@@ -153,8 +148,8 @@ async fn basic_update() {
     // Update password
 
     let user = run_endpoint!(
-        endpoints::user::user_edit,
-        ctx,
+        runner,
+        user_edit,
         json!({
             "user": USER_SLUG,
             "password": "letmein",
@@ -162,9 +157,6 @@ async fn basic_update() {
         }),
     );
     assert_ne!(user.password, old_password);
-
-    // Done
-    cleanup!(state, txn, ctx);
 }
 
 // TODO test renames / rename tokens
