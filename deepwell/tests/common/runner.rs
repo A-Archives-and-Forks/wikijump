@@ -67,6 +67,7 @@ impl TestRunnerRequestContext {
 
 impl Drop for TestRunnerRequestContext {
     fn drop(&mut self) {
+        // Revert all database changes
         let txn = self
             .transaction
             .take()
@@ -77,6 +78,12 @@ impl Drop for TestRunnerRequestContext {
                 .await
                 .expect("Unable to roll back transaction")
         });
+
+        // Revert all redis changes
+        // TODO
+
+        // Revert all S3 changes
+        // TODO
     }
 }
 
