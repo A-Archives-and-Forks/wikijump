@@ -40,6 +40,11 @@ impl Bytes<'_> {
     pub fn len(&self) -> usize {
         self.inner.as_ref().len()
     }
+
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.inner.as_ref().is_empty()
+    }
 }
 
 // Borrowing

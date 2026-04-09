@@ -287,10 +287,9 @@ impl BlobService {
     /// Helper function to do the actual "move" step of blob finalization.
     /// This is where, after uploading to the presign URL, the S3 object is
     /// then moved to its permanent location with a hashed name.
-    ///
-    /// NOTE: Because S3 changes cannot be rolled back on error, we are
-    ///       creating a separate transaction here so that `blob_pending`
-    ///       changes are persistent even if the outer request fails.
+    // NOTE: Because S3 changes cannot be rolled back on error, we are
+    //       creating a separate transaction here so that `blob_pending`
+    //       changes are persistent even if the outer request fails.
     async fn move_uploaded(
         ctx: &ServiceContext<'_>,
         pending_blob_id: &str,

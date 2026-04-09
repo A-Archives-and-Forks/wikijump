@@ -1,0 +1,101 @@
+/*
+ * start.rs
+ *
+ * DEEPWELL - Wikijump API provider and database manager
+ * Copyright (C) 2019-2026 Wikijump Team
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+//! Entrypoint to the server-based execution mode of deepwell.
+
+#[cfg(feature = "notify")]
+use crate::watch::setup_autorestart;
+
+use crate::config::SetupConfig;
+use crate::error::prelude::*;
+use crate::{api, database};
+use cfg_if::cfg_if;
+use std::fs::File;
+use std::io::Write;
+use std::process;
+
+pub async fn start() -> Result<()> {
+    // Load the configuration so we can set up
+    let SetupConfig { secrets, config } = SetupConfig::load().await;
+    let address = config.address;
+    let run_seeder = config.run_seeder;
+
+    // Contextual error
+    let make_error = || {
+        Error::new(
+            format!("failed to start deepwell server on {address} (seeder {run_seeder})"),
+            ErrorType::ApplicationStart,
+        )
+    };
+
+    // Configure the logger
+    if config.logger {
+        femme::with_level(config.logger_level);
+        info!("Loaded server configuration:");
+        config.log();
+
+        color_backtrace::install();
+    }
+
+    // Write PID file
+    if let Some(ref path) = config.pid_file {
+        info!(
+            "Writing process ID ({}) to {}",
+            process::id(),
+            path.display(),
+        );
+
+        let mut file = File::create(path).or_raise(make_error)?;
+        writeln!(&mut file, "{}", process::id()).or_raise(make_error)?;
+    }
+
+    // Set up restart-on-config change (if feature enabled)
+    #[cfg(feature = "watch")]
+    let _watcher;
+
+    if config.watch_files {
+        cfg_if! {
+            if #[cfg(feature = "watch")] {
+                _watcher = setup_autorestart(&config).or_raise(make_error)?;
+            } else {
+                error!("The --watch-files option requires the 'watch' feature");
+                process::exit(1);
+            }
+        }
+    }
+
+    // Set up server state
+    let app_state = api::build_server_state(config, secrets)
+        .await
+        .or_raise(make_error)?;
+
+    // Run seeder, if enabled
+    if run_seeder {
+        database::seed(&app_state).await.or_raise(make_error)?;
+    }
+
+    // Build and run server
+    info!("Building server...");
+    let server = api::build_server(app_state).await.or_raise(make_error)?;
+
+    info!("Listening to connections on {address}...");
+    server.stopped().await; // block until end
+    Ok(())
+}

@@ -8,7 +8,7 @@ keywords = ["wikijump", "api", "backend", "wiki"]
 categories = ["asynchronous", "database", "web-programming::http-server"]
 exclude = [".gitignore", ".editorconfig"]
 
-version = "2026.4.4"
+version = "2026.4.7"
 authors = ["Emmie Smith <emmie.maeda@gmail.com>"]
 edition = "2024"
 
@@ -74,6 +74,7 @@ arrayvec = "0.7.6"
 [dev-dependencies]
 maplit = "1"
 pretty_assertions = "1"
+self_cell = "1"
 
 [build-dependencies]
 built = { version = "0.8", features = ["chrono", "git2"] }

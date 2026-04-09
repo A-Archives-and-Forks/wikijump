@@ -90,7 +90,7 @@ pub fn trim_spaces_in_place(string: &mut String) {
 /// these characters. We don't remove these characters from all locale strings
 /// since they are a desired localization property of Fluent.
 ///
-/// See https://fluent-compiler.readthedocs.io/en/latest/usage.html#:~:text=You%20will%20notice%20the%20extra%20characters%20\u2068%20and%20\u2069%20in%20the%20output.
+/// See the [Fluent Docs](https://fluent-compiler.readthedocs.io/en/latest/usage.html#:~:text=You%20will%20notice%20the%20extra%20characters%20\u2068%20and%20\u2069%20in%20the%20output.)
 #[inline]
 pub fn strip_fluent_control_chars(string: &mut String) {
     static CONTROL_CHAR_REGEX: LazyLock<Regex> =

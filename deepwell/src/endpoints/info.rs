@@ -28,33 +28,33 @@ use time::OffsetDateTime;
 
 #[derive(Serialize, Debug, Clone)]
 pub struct Info {
-    package: PackageInfo,
-    compile_info: CompileInfo,
+    pub package: PackageInfo,
+    pub compile_info: CompileInfo,
 
     #[serde(with = "time::serde::rfc3339")]
-    current_time: OffsetDateTime,
-    hostname: &'static str,
-    config_path: PathBuf,
+    pub current_time: OffsetDateTime,
+    pub hostname: &'static str,
+    pub config_path: PathBuf,
 }
 
 #[derive(Serialize, Debug, Clone)]
 pub struct PackageInfo {
-    name: &'static str,
-    description: &'static str,
-    license: &'static str,
-    repository: &'static str,
-    version: &'static str,
+    pub name: &'static str,
+    pub description: &'static str,
+    pub license: &'static str,
+    pub repository: &'static str,
+    pub version: &'static str,
 }
 
 #[derive(Serialize, Debug, Clone)]
 pub struct CompileInfo {
     #[serde(with = "time::serde::rfc3339")]
-    built_at: OffsetDateTime,
-    rustc_version: &'static str,
-    endian: &'static str,
-    target: &'static str,
-    threads: u32,
-    git_commit: Option<&'static str>,
+    pub built_at: OffsetDateTime,
+    pub rustc_version: &'static str,
+    pub endian: &'static str,
+    pub target: &'static str,
+    pub threads: u32,
+    pub git_commit: Option<&'static str>,
 }
 
 pub async fn server_info(

@@ -1,5 +1,5 @@
 /*
- * main.rs
+ * tests/common/params.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
  * Copyright (C) 2019-2026 Wikijump Team
@@ -18,12 +18,24 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-//! A server to expose Wikijump operations via an internal JSON RPC API.
+#![allow(dead_code)]
 
-use deepwell::error::Result;
+use jsonrpsee::types::Params;
+use serde_json::Value as JsonValue;
 
-#[tokio::main]
-async fn main() -> Result<()> {
-    // entrypoint is in start.rs
-    deepwell::start().await
+#[inline]
+pub fn empty_params() -> Params<'static> {
+    Params::new(None)
+}
+
+#[inline]
+pub fn make_params(value: JsonValue) -> Params<'static> {
+    // This is kind of inconvenient, converting back and forth
+    // and making multiple owned buffers, but it's okay because
+    // this is just for tests, and it's convenient that it enables
+    // use of json! in request inputs.
+
+    let json = serde_json::to_string(&value).expect("Unable to emit JSON");
+    let params = Params::new(Some(&json));
+    params.into_owned()
 }

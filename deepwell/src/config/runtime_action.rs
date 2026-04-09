@@ -24,11 +24,12 @@
 //! not run as a daemon, but instead perform a special action or check,
 //! as if motivated by a script.
 
-use super::Config;
+use super::{Config, SetupConfig};
+use crate::{api, database};
 use std::path::PathBuf;
 use std::{env, process};
 
-pub fn run_runtime_action() {
+pub async fn run_runtime_action() {
     // Get action name, if specified.
     // Otherwise return and perform normal execution.
     let Ok(action_name) = env::var("DEEPWELL_RUNTIME_ACTION") else {
@@ -38,6 +39,7 @@ pub fn run_runtime_action() {
     // Run appropriate runtime action.
     let return_code = match action_name.as_str() {
         "config" | "validate-config" => validate_config(),
+        "seeder" | "run-seeder" => run_seeder().await,
         _ => {
             eprintln!("Unknown runtime action: {action_name}");
             process::exit(1);
@@ -59,8 +61,8 @@ fn validate_config() -> i32 {
         match Config::load(path) {
             Ok(_) => println!("success"),
             Err(error) => {
-                println!("error");
-                eprintln!("{error}");
+                println!("error:");
+                eprintln!("{error:?}");
                 return_code += 1;
             }
         }
@@ -68,4 +70,30 @@ fn validate_config() -> i32 {
 
     println!("All config files have been checked, {return_code} failed");
     return_code
+}
+
+async fn run_seeder() -> i32 {
+    println!("Running action: Database seeder");
+
+    let SetupConfig { secrets, config } = SetupConfig::load_only();
+    let app_state = match api::build_server_state(config, secrets).await {
+        Ok(app_state) => app_state,
+        Err(error) => {
+            println!("error:");
+            eprintln!("{error:?}");
+            return 1;
+        }
+    };
+
+    match database::seed(&app_state).await {
+        Ok(()) => {
+            println!("success");
+            0
+        }
+        Err(error) => {
+            println!("error:");
+            eprintln!("{error:?}");
+            1
+        }
+    }
 }

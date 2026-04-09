@@ -69,6 +69,7 @@ maximum-name-changes = 3
 minimum-name-bytes = 4
 minimum-name-chars = 2
 refill-name-change-days = 90
+mock-mailcheck = false
 
 [file]
 presigned-path-length = 32

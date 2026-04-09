@@ -1,5 +1,5 @@
 /*
- * main.rs
+ * tests/common/mod.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
  * Copyright (C) 2019-2026 Wikijump Team
@@ -18,12 +18,25 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-//! A server to expose Wikijump operations via an internal JSON RPC API.
+//! Common utilities for running DEEPWELL integration tests.
 
-use deepwell::error::Result;
+#[macro_use]
+mod assert;
 
-#[tokio::main]
-async fn main() -> Result<()> {
-    // entrypoint is in start.rs
-    deepwell::start().await
-}
+#[macro_use]
+mod endpoint;
+
+#[macro_use]
+mod error;
+
+mod params;
+mod runner;
+
+pub use self::error::extract_error;
+pub use self::params::*;
+pub use self::runner::TestRunner;
+
+use std::net::{IpAddr, Ipv4Addr};
+
+#[allow(dead_code)]
+pub const IP_ADDRESS: IpAddr = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 10));

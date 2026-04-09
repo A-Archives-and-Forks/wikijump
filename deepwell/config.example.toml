@@ -375,6 +375,13 @@ minimum-name-chars = 2
 # Set to 0 to disable.
 refill-name-change-days = 90
 
+# Whether to use a mocked version of MailCheck, for testing.
+# This should *not* be used in production!
+#
+# This returns responses based on the domain of the email,
+# for instance "john@spam.xxx" is detected as a spam email.
+mock-mailcheck = false
+
 
 [file]
 

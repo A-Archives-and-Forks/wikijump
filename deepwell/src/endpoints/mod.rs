@@ -46,6 +46,15 @@ mod prelude {
     pub use std::convert::TryFrom;
 }
 
+pub mod all {
+    pub use super::{
+        auth::*, basic_error::*, blob::*, category::*, domain::*, email::*, file::*,
+        file_revision::*, health::*, info::*, link::*, locale::*, message::*, misc::*,
+        page::*, page_attribution::*, page_revision::*, parent::*, routing::*, site::*,
+        site_member::*, text::*, text_block::*, user::*, user_bot::*, view::*, vote::*,
+    };
+}
+
 pub mod auth;
 pub mod basic_error;
 pub mod blob;
