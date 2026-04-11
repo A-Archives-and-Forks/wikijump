@@ -37,20 +37,7 @@ pub enum SystemRole {
     Anonymous,
     Everyone,
     PageAuthor,
-}
-
-impl SystemRole {
-    pub fn name(self) -> &'static str {
-        match self {
-            SystemRole::Root => "root",
-            SystemRole::Member => "member",
-            SystemRole::Guest => "guest",
-            SystemRole::Registered => "registered",
-            SystemRole::Anonymous => "anonymous",
-            SystemRole::Everyone => "everyone",
-            SystemRole::PageAuthor => "page-author",
-        }
-    }
+    Banned,
 }
 
 mod service;
