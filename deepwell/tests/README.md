@@ -24,3 +24,11 @@ These tests are also configured to run in a GitHub Workflow, and will be kicked 
 If you're testing stateless methods (e.g. string translation, Caddyfile generation), then see `tests/locale.rs`.
 
 If you're testing stateful methods (e.g. user creation, content filters), then see `tests/page.rs`.
+
+### Internals
+
+Integration tests work by constructing a local `TestRunner` instance, which contains the `ServerState`, and starts a database transaction to contain all of the test's database changes. This instance can expose its `ServerContext` via the `.context()` method. This corresponds with the wrapping each JSONRPC method receives.
+
+This database transaction is automatically rolled back when the test ends, regardless of whether or not the test itself passed. It uses the built-in configuration specified by `Config::integration_testing()`.
+
+You can initialize this environment by running `TestRunner::setup().await` at the start of your integration test. This is found in the `common` module, which also has a series of useful helper functions and macros. It also contains `common::IP_ADDRESS` as a dummy value to pass in for JSONRPC requests which require the caller's IP address.
