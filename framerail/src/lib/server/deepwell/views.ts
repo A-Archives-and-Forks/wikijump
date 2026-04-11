@@ -84,11 +84,7 @@ interface AdminViewAdminPermissions {
 interface UserSession {
   session: SessionModel
   user: UserModel
-  user_permissions: UserPermissions
 }
-// Not implemented yet
-// See also deepwell src/services/view/structs.rs
-type UserPermissions = null
 
 export async function adminView(
   siteId: number,

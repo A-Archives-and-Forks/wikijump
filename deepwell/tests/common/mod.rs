@@ -32,6 +32,7 @@ mod error;
 mod params;
 mod runner;
 
+#[allow(unused_imports)]
 pub use self::error::extract_error;
 pub use self::params::*;
 pub use self::runner::TestRunner;

@@ -40,6 +40,7 @@ use strum_macros::{Display, EnumString};
 pub enum Resource {
     Page,
     Role,
+    Site,
 }
 
 #[derive(

@@ -30,7 +30,9 @@ use crate::services::audit::{AuditEvent, AuditService};
 use crate::services::permission::{
     CheckPermissionContext, PermissionService, resolve_category_reference,
 };
-use crate::services::relation::{GetPageAttributions, GetSiteMember, SiteMemberAccepted};
+use crate::services::relation::{
+    GetPageAttributions, GetSiteBan, GetSiteMember, SiteMemberAccepted,
+};
 use crate::services::role::SystemRole;
 use crate::services::{PageService, RelationService, ServiceContext};
 use crate::types::{Action, Permission, Reference, Resource};
@@ -524,22 +526,39 @@ impl RoleService {
         } else {
             false
         };
+        let is_banned = if is_logged_in {
+            RelationService::site_ban_exists(
+                ctx,
+                GetSiteBan {
+                    site_id: input.site_id,
+                    user_id: input.user_id.unwrap(),
+                },
+            )
+            .await
+            .or_raise(make_error)?
+        } else {
+            false
+        };
 
         // Collect virtual roles to apply based on flags
         let mut applied_virtual_roles = Vec::with_capacity(4); // At most 4 virtual roles at a time
         if is_logged_in {
             applied_virtual_roles.push(SystemRole::Registered);
-        }
-        if is_member {
-            applied_virtual_roles.push(SystemRole::Member);
-        }
-        if is_page_author {
-            applied_virtual_roles.push(SystemRole::PageAuthor);
-        }
-        if !is_logged_in {
+            if is_banned {
+                // If user is banned, skip any other site roles
+                applied_virtual_roles.push(SystemRole::Banned);
+            } else {
+                if is_member {
+                    applied_virtual_roles.push(SystemRole::Member);
+                } else {
+                    applied_virtual_roles.push(SystemRole::Guest);
+                }
+                if is_page_author {
+                    applied_virtual_roles.push(SystemRole::PageAuthor);
+                }
+            }
+        } else {
             applied_virtual_roles.push(SystemRole::Anonymous);
-            applied_virtual_roles.push(SystemRole::Guest);
-        } else if !is_member {
             applied_virtual_roles.push(SystemRole::Guest);
         }
         applied_virtual_roles.push(SystemRole::Everyone);

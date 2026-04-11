@@ -30,17 +30,6 @@ use crate::services::relation::PageAttribution;
 // NOTE: Any changes to the output structures here, including the variant names,
 //       MUST be reflected in framerail!
 
-// TODO replace with actual user permissions type
-#[derive(Serialize, Deserialize, Debug, Copy, Clone)]
-pub struct UserPermissions;
-
-impl UserPermissions {
-    pub fn is_banned(self) -> bool {
-        // TODO value from struct
-        false
-    }
-}
-
 #[derive(Deserialize, Debug, Clone)]
 pub struct GetPageView {
     pub site_id: i64,
@@ -163,7 +152,6 @@ pub struct Viewer {
 pub struct UserSession {
     pub session: SessionModel,
     pub user: UserModel,
-    pub user_permissions: UserPermissions,
 }
 
 #[derive(Serialize, Deserialize, Debug, Copy, Clone, PartialEq, Eq)]
