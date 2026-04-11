@@ -216,7 +216,8 @@ pub struct DeletePageOutput {
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct RestorePage {
-    pub id: PageId,
+    pub site_id: i64,
+    pub page_id: i64,
     pub revision_comments: String,
     pub user_id: i64,
     pub slug: Option<String>,
