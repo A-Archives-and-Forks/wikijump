@@ -30,7 +30,8 @@
             "page:delete",
             "page:rename",
             "role:view",
-            "role:assign"
+            "role:assign",
+            "site:edit"
         ]
     },
     {

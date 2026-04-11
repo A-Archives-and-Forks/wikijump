@@ -35,7 +35,12 @@ use crate::models::page_revision::Model as PageRevisionModel;
 use crate::models::site::Model as SiteModel;
 use crate::services::blueprint::{BlueprintPageType, GetBlueprintPageOutput};
 use crate::services::page_revision::RerenderType;
-use crate::services::relation::{GetPageAttributions, PageAttribution, RelationService};
+use crate::services::permission::{
+    CheckPermissionContext, PermissionInput, PermissionService,
+};
+use crate::services::relation::{
+    GetPageAttributions, GetSiteBan, PageAttribution, RelationService,
+};
 use crate::services::render::RenderOutput;
 use crate::services::settings::{NavigationPageHtml, SettingsService};
 use crate::services::view::ViewType;
@@ -43,7 +48,7 @@ use crate::services::{
     BlueprintPageService, CategoryService, DomainService, PageRevisionService,
     PageService, SessionService, SiteService, TextService, UserService,
 };
-use crate::types::{PageId, RerenderDepth};
+use crate::types::{Action, PageId, RerenderDepth, Resource};
 use crate::utils::{parse_locales, split_category};
 use ftml::prelude::*;
 use ftml::render::html::HtmlOutput;
@@ -109,6 +114,9 @@ impl ViewService {
 
         // Get page, revision, and text fields
         let (category_slug, page_only_slug) = split_category(page_full_slug);
+        let category_id = Self::get_category_id(ctx, site_id, category_slug)
+            .await
+            .or_raise(make_error)?;
         let page_info = PageInfo {
             page: cow!(page_only_slug),
             category: cow_opt!(category_slug),
@@ -173,32 +181,39 @@ impl ViewService {
                         .or_raise(make_error)?;
 
                 // Check user access to page
-                let user_permissions = match user_session {
-                    Some(ref session) => session.user_permissions,
-                    None => {
-                        debug!("No user for session, getting guest permission scheme");
-
-                        // TODO get permissions from service
-                        UserPermissions
-                    }
-                };
+                let [user_can_access_page, user_can_edit_page] =
+                    PermissionService::batch_check_user_can(
+                        ctx,
+                        &CheckPermissionContext {
+                            user_id: user_session.as_ref().map(|s| s.user.user_id),
+                            site_id,
+                            page_reference: None,
+                        },
+                        [
+                            PermissionInput {
+                                resource_type: Resource::Page,
+                                resource_category: category_id.map(Reference::Id),
+                                action: Action::View,
+                            },
+                            PermissionInput {
+                                resource_type: Resource::Page,
+                                resource_category: category_id.map(Reference::Id),
+                                action: Action::Edit,
+                            },
+                        ],
+                    )
+                    .await
+                    .or_raise(make_error)?;
 
                 // Determine whether to return the actual page contents,
                 // or the "private page" data (_public).
                 //
                 // This returns false if the user is banned *and* the site
                 // disallows banned viewing.
-                if Self::can_access_page(ctx, user_permissions)
-                    .await
-                    .or_raise(make_error)?
-                {
+                if user_can_access_page {
                     debug!("User has page access, return text data");
 
-                    if options.rerender
-                        && Self::can_edit_page(ctx, user_permissions)
-                            .await
-                            .or_raise(make_error)?
-                    {
+                    if options.rerender && user_can_edit_page {
                         let depth = RerenderDepth::default();
                         info!(
                             "Re-rendering revision: site ID {} page ID {} revision ID {} (depth {})",
@@ -263,7 +278,20 @@ impl ViewService {
                 } else {
                     warn!("User doesn't have page access, returning permission page");
 
-                    let (page_status, page_type) = if user_permissions.is_banned() {
+                    let user_is_banned = match user_session {
+                        Some(ref session) => RelationService::site_ban_exists(
+                            ctx,
+                            GetSiteBan {
+                                site_id,
+                                user_id: session.user.user_id,
+                            },
+                        )
+                        .await
+                        .or_raise(make_error)?,
+                        None => false,
+                    };
+
+                    let (page_status, page_type) = if user_is_banned {
                         (PageStatus::Banned, BlueprintPageType::Banned)
                     } else {
                         (PageStatus::Private, BlueprintPageType::Private)
@@ -340,10 +368,6 @@ impl ViewService {
                         },
                     ..
                 } = render_output;
-
-                let category_id = Self::get_category_id(ctx, site_id, category_slug)
-                    .await
-                    .or_raise(make_error)?;
 
                 let NavigationPageHtml {
                     compiled_top_bar_html,
@@ -544,8 +568,8 @@ impl ViewService {
         } = render_output;
 
         // Check user access to site settings
-        let user_permissions = match viewer.user_session {
-            Some(ref session) => session.user_permissions,
+        let user_id = match viewer.user_session {
+            Some(ref session) => Some(session.user.user_id),
             None => {
                 debug!("No user for session, disallow admin access");
                 return Ok(GetAdminViewOutput::AdminPermissions {
@@ -555,11 +579,24 @@ impl ViewService {
             }
         };
 
+        let user_can_access_admin = PermissionService::check_user_can(
+            ctx,
+            &CheckPermissionContext {
+                user_id,
+                site_id,
+                page_reference: None,
+            },
+            PermissionInput {
+                resource_type: Resource::Site,
+                resource_category: None,
+                action: Action::Edit,
+            },
+        )
+        .await
+        .or_raise(make_error)?;
+
         // Determine whether to return the actual admin panel content
-        let output = if Self::can_access_admin(ctx, user_permissions)
-            .await
-            .or_raise(make_error)?
-        {
+        let output = if user_can_access_admin {
             debug!("User has admin access, return data");
             GetAdminViewOutput::SiteFound { viewer }
         } else {
@@ -638,11 +675,7 @@ impl ViewService {
                     debug_assert!(user_locales.is_empty());
                 }
 
-                Some(UserSession {
-                    session,
-                    user,
-                    user_permissions: UserPermissions, // TODO add user permissions, get scheme for user and site
-                })
+                Some(UserSession { session, user })
             }
         };
 
@@ -672,36 +705,6 @@ impl ViewService {
             license_url,
             user_session,
         })
-    }
-
-    async fn can_access_page(
-        _ctx: &ServiceContext<'_>,
-        permissions: UserPermissions,
-    ) -> Result<bool> {
-        info!("Checking page access: {permissions:?}");
-        debug!("TODO: stub");
-        // TODO perform permission checks
-        Ok(true)
-    }
-
-    async fn can_edit_page(
-        _ctx: &ServiceContext<'_>,
-        permissions: UserPermissions,
-    ) -> Result<bool> {
-        info!("Checking page access: {permissions:?}");
-        debug!("TODO: stub");
-        // TODO perform permission checks
-        Ok(true)
-    }
-
-    async fn can_access_admin(
-        _ctx: &ServiceContext<'_>,
-        permissions: UserPermissions,
-    ) -> Result<bool> {
-        info!("Checking admin access: {permissions:?}");
-        debug!("TODO: stub");
-        // TODO perform permission checks
-        Ok(true)
     }
 
     fn should_redirect_page(slug: &str) -> Option<String> {
