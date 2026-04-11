@@ -75,13 +75,17 @@ This does not seem to work with Docker, so you should instead manually stop the 
 
 ### Testing
 
-Tests have not yet been implemented, but when they are, run:
+The service has both unit tests and integration tests. Both can be run using:
 
 ```sh
 $ cargo test
 ```
 
 Add `-- --nocapture` to the end if you want to see test output.
+
+The unit tests are functions within `src/` annotated with `#[test]` or `#[tokio::test]` and check that particular utilities work as expected (e.g. pure functions, parsing, helpers).
+
+The integration tests are found in `tests/`. For more information on them, see the [integration testing documentation](tests/README.md).
 
 ### Linting
 
