@@ -75,7 +75,7 @@ This does not seem to work with Docker, so you should instead manually stop the 
 
 ### Testing
 
-Tests have not yet been implemented, but when they are, run:
+The service has both unit tests and integration tests. Both can be run using:
 
 ```sh
 $ cargo test
