@@ -11,6 +11,14 @@ To give a simple example, we can test that basic page operations work through a 
 6. `page_delete`
 7. `page_get` (assert page doesn't exist)
 
+### Requirements
+
+Integration testing runs real deepwell processing code when it receives requests, and so needs a local database, Redis/Valkey instance, and S3-compatible object store. All changes to the database are reverted, but reverting changes to the remaining two are not yet implemented. The code assumes that database migrations and seeding have already been run.
+
+If you are running Wikijump locally, then all three are provided for you, and you should be able to run `cargo test` in the crate root with no other modifications. (Or more specifically, it only needs `wikijump-database-1`, `wikijump-cache-1`, `wikijump-files-1`)
+
+These tests are also configured to run in a GitHub Workflow, and will be kicked off when you make a PR that changes something in deepwell.
+
 ### Quickstart Examples
 
 If you're testing stateless methods (e.g. string translation, Caddyfile generation), then see `tests/locale.rs`.
