@@ -288,6 +288,9 @@ impl ViewService {
                         )
                         .await
                         .or_raise(make_error)?,
+
+                        // TODO: This will need to change when IP bans are implemented.
+                        // For now, if user is not logged in, consider them not banned.
                         None => false,
                     };
 

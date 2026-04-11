@@ -22,6 +22,7 @@
 mod common;
 
 use std::sync::atomic::{AtomicU64, Ordering};
+use str_macro::str;
 
 use self::common::TestRunner;
 use deepwell::constants::SYSTEM_USER_ID;
@@ -39,6 +40,7 @@ use serde_json::json;
 
 static FIXTURE_COUNTER: AtomicU64 = AtomicU64::new(0);
 const TEST_CATEGORY_NAME: &str = "test-category";
+const OTHER_CATEGORY_NAME: &str = "other-category";
 
 fn next_n() -> u64 {
     FIXTURE_COUNTER.fetch_add(1, Ordering::Relaxed)
@@ -47,6 +49,7 @@ struct PermissionFixture {
     site_id: i64,
     // A page category to use for testing category-scoped permissions
     category_id: i64,
+    other_category_id: i64,
     user_a: i64,
     user_b: i64,
     user_c: i64,
@@ -76,10 +79,18 @@ impl PermissionFixture {
         let site_id = site.site_id;
 
         // Page category for scoped permission tests
-        let category = CategoryService::get_or_create(ctx, site_id, TEST_CATEGORY_NAME)
-            .await
-            .expect("Failed to create page category");
-        let category_id = category.category_id;
+        let category_id =
+            CategoryService::get_or_create(ctx, site_id, TEST_CATEGORY_NAME)
+                .await
+                .expect("Failed to create page category")
+                .category_id;
+
+        // Another category to test that scoped permissions don't apply to other categories
+        let other_category_id =
+            CategoryService::get_or_create(ctx, site_id, OTHER_CATEGORY_NAME)
+                .await
+                .expect("Failed to create other page category")
+                .category_id;
 
         // RoleA: page:view + page:edit, both unscoped
         let role_a = create_role(ctx, site_id, "RoleA").await;
@@ -113,6 +124,7 @@ impl PermissionFixture {
         PermissionFixture {
             site_id,
             category_id,
+            other_category_id,
             user_a,
             user_b,
             user_c,
@@ -184,7 +196,7 @@ async fn create_user(ctx: &ServiceContext<'_>, fixture_n: u64, label: &str) -> i
             user_type: UserType::Regular,
             name: format!("Perm Test {fixture_n} {label}"),
             email: format!("perm-{fixture_n}-{label}@email.com"),
-            locales: vec!["en".to_string()],
+            locales: vec![str!("en")],
             password: String::from("password"),
             bypass_filter: true,
             bypass_email_verification: true,
@@ -197,6 +209,7 @@ async fn create_user(ctx: &ServiceContext<'_>, fixture_n: u64, label: &str) -> i
     .user_id
 }
 
+#[must_use]
 async fn check(
     runner: &TestRunner,
     user_id: Option<i64>,
@@ -222,6 +235,7 @@ async fn check(
     .expect("Permission check returned an error")
 }
 
+#[must_use]
 async fn batch_check<const N: usize>(
     runner: &TestRunner,
     user_id: Option<i64>,
@@ -299,7 +313,7 @@ async fn check_user_can() {
         "user_b: should fail page:edit without category"
     );
     // edit in other category should fail
-    let other_cat = Some(f.category_id + 9999);
+    let other_cat = Some(f.other_category_id);
     assert!(
         !check(
             &runner,
@@ -463,6 +477,21 @@ async fn check_permission_endpoint() {
         "user_b should have edit permission for page in test-category"
     );
 
+    // Same test but with slug instead of page_id, should still work
+    assert!(
+        run_endpoint!(
+            runner,
+            page_edit_permission,
+            json!({
+                "user_id": f.user_b,
+                "site_id": f.site_id,
+                "page": page.slug,
+            }),
+        )
+        .can_edit,
+        "user_b should have edit permission for page in test-category"
+    );
+
     // Check permissions for user_a via the endpoint, should deny due to category-scoped permission
     assert!(
         !run_endpoint!(
@@ -472,6 +501,21 @@ async fn check_permission_endpoint() {
                 "user_id": f.user_a,
                 "site_id": f.site_id,
                 "page": page.page_id,
+            }),
+        )
+        .can_edit,
+        "user_a should NOT have edit permission for page in test-category"
+    );
+
+    // Same test but with slug instead of page_id, should still work
+    assert!(
+        !run_endpoint!(
+            runner,
+            page_edit_permission,
+            json!({
+                "user_id": f.user_a,
+                "site_id": f.site_id,
+                "page": page.slug,
             }),
         )
         .can_edit,
