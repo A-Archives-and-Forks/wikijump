@@ -17,7 +17,7 @@ Integration testing runs real deepwell processing code when it receives requests
 
 If you are running Wikijump locally, then all three are provided for you, and you should be able to run `cargo test` in the crate root with no other modifications. (Or more specifically, it only needs `wikijump-database-1`, `wikijump-cache-1`, `wikijump-files-1`)
 
-These tests are also configured to run in a GitHub Workflow, and will be kicked off when you make a PR that changes something in deepwell.
+These tests are also configured to run in a [GitHub Workflow](../../.github/workflows/deepwell.yaml), and will be kicked off when you make a PR that changes something in deepwell.
 
 ### Quickstart Examples
 
