@@ -1,6 +1,6 @@
 ## DEEPWELL Integration Testing
 
-Here, we use [Rust's integration testing](https://doc.rust-lang.org/rust-by-example/testing/integration_testing.html) to check the behavior of `deepwell` as a whole. This means that these tests lack access to its internal functions and **should call its JSONRPC API to affect change and verify outputs**. However, in rare cases where an assertion cannot be performed through other means, then use of the "service" structs for immutable operations is acceptable.
+Here, we use [Rust's integration testing](https://doc.rust-lang.org/rust-by-example/testing/integration_testing.html) to check the behavior of `deepwell` as a whole. This means that these tests lack access to its internal functions and **should call its JSONRPC API to affect change and verify outputs**. However, using "service" structs for immutable operations as part of test state assertions is acceptable.
 
 To give a simple example, we can test that basic page operations work through a test that calls the following:
 1. `page_get` (assert page doesn't exist)
