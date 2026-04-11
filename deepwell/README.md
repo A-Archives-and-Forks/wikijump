@@ -83,6 +83,10 @@ $ cargo test
 
 Add `-- --nocapture` to the end if you want to see test output.
 
+The unit tests are functions within `src/` annotated with `#[test]` or `#[tokio::test]` and check that particular utilities work as expected (e.g. pure functions, parsing, helpers).
+
+The integration tests are found in `tests/`. For more information on them, see the [tests/README.md](integration testing documentation).
+
 ### Linting
 
 ```sh
