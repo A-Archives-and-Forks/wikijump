@@ -21,9 +21,9 @@ These tests are also configured to run in a GitHub Workflow, and will be kicked 
 
 ### Quickstart Examples
 
-If you're testing stateless methods (e.g. string translation, Caddyfile generation), then see `tests/locale.rs`.
+If you're testing stateless methods (e.g. string translation, Caddyfile generation), then see [`tests/locale.rs`](./locale.rs).
 
-If you're testing stateful methods (e.g. user creation, content filters), then see `tests/page.rs`.
+If you're testing stateful methods (e.g. user creation, content filters), then see [`tests/page.rs`](./page.rs).
 
 ### Internals
 
