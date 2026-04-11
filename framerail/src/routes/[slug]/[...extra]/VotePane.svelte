@@ -8,7 +8,7 @@
   import type { Optional, PageVoteModel } from "$lib/types"
   import type { PageScore } from "$lib/server/deepwell/page"
 
-  let { data, params }: PageProps = $props()
+  let { data }: PageProps = $props()
 
   let showVoteList = $state<boolean>(false)
   let voteMap = new SvelteMap<number, PageVoteModel>()
@@ -20,7 +20,7 @@
       body: JSON.stringify({
         siteId: data.site.site_id,
         pageId: data.page?.page_id,
-        slug: params.slug
+        slug: data.page?.slug
       })
     }).then((res) => res.text())
 

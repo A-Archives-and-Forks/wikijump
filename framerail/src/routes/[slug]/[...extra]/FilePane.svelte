@@ -7,11 +7,11 @@
   import { fileProxy, superForm } from "sveltekit-superforms"
   import { untrack } from "svelte"
 
-  import type { PageData, RouteParams } from "./$types"
+  import type { PageProps } from "./$types"
   import type { PageFile, PageFileDelete } from "$lib/server/deepwell/pageFile"
   import type { FileRevisionModel, Optional } from "$lib/types"
 
-  let { data, params }: { data: PageData; params: RouteParams } = $props()
+  let { data }: PageProps = $props()
 
   type FileAction = "upload" | "edit" | "move" | "restore" | "history"
   let activeFileAction = $state<FileAction | null>(null)
@@ -353,7 +353,7 @@
         <div class="file-row" data-id={id}>
           <div class="file-attribute name">
             <a
-              href={`//${data.site_file_domain}/-/file/${params.slug}/${file.name}`}
+              href={`//${data.site_file_domain}/-/file/${data.page?.slug}/${file.name}`}
               rel="external"
             >
               {file.name}
