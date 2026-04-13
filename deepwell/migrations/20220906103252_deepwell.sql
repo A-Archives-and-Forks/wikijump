@@ -44,6 +44,7 @@ CREATE TABLE "user" (
     birthday DATE,
     location TEXT,
     biography TEXT,
+    website TEXT,
     user_page TEXT,
 
     -- Name uniqueness constraints
@@ -67,6 +68,7 @@ CREATE TABLE "user" (
     CHECK (gender IS NULL OR (length(gender) > 0 AND length(gender) < 100)),
     CHECK (location IS NULL OR (length(location) > 0 AND length(location) < 100)),
     CHECK (biography IS NULL OR (length(biography) > 0 AND length(biography) < 4000)),
+    CHECK (website IS NULL OR (length(website) > 0 AND length(website) < 100)),
     CHECK (user_page IS NULL OR (length(user_page) > 0 AND length(user_page) < 100)),
 
     CHECK (name_changes_left >= 0),                                 -- Value cannot be negative
