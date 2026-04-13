@@ -70,6 +70,7 @@ export interface UserModel {
   birthday: Nullable<string>
   location: Nullable<string>
   biography: Nullable<string>
+  website: Nullable<string>
   user_page: Nullable<string>
 }
 

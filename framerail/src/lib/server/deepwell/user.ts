@@ -41,6 +41,7 @@ interface UserEditParams {
   birthday?: Optional<Nullable<string>>
   location?: Optional<Nullable<string>>
   biography?: Optional<Nullable<string>>
+  website?: Optional<Nullable<string>>
   userPage?: Optional<Nullable<string>>
   bypassFilter?: boolean
 }
@@ -76,6 +77,10 @@ export async function userEdit(
   if (params.biography !== undefined && typeof params.biography === "string") {
     if (params.biography) data.biography = params.biography
     else data.biography = null
+  }
+  if (params.website !== undefined && typeof params.website === "string") {
+    if (params.website) data.website = params.website
+    else data.website = null
   }
   if (params.userPage !== undefined && typeof params.userPage === "string") {
     if (params.userPage) data.user_page = params.userPage

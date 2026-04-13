@@ -50,6 +50,8 @@ pub struct Model {
     #[sea_orm(column_type = "Text", nullable)]
     pub biography: Option<String>,
     #[sea_orm(column_type = "Text", nullable)]
+    pub website: Option<String>,
+    #[sea_orm(column_type = "Text", nullable)]
     pub user_page: Option<String>,
 }
 

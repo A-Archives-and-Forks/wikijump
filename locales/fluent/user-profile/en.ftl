@@ -9,6 +9,7 @@ user-profile-info =
   .since = Member since:
   .biography = Biography:
   .gender = Gender:
+  .website = Website:
   .user-page = User page:
   .locales = Locales:
 

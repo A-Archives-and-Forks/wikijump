@@ -90,6 +90,15 @@
     </div>
   {/if}
 
+  {#if userData?.website}
+    <div class="user-attribute website">
+      <span class="user-attribute-label"
+        >{data.internationalization?.["user-profile-info.website"]}</span
+      >
+      <span class="user-attribute-value">{userData.website}</span>
+    </div>
+  {/if}
+
   {#if userData?.userPage}
     <div class="user-attribute user-page">
       <span class="user-attribute-label"

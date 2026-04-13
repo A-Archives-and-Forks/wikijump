@@ -105,6 +105,7 @@ export async function loadUser(
       "user-profile-info.birthday": {},
       "user-profile-info.location": {},
       "user-profile-info.biography": {},
+      "user-profile-info.website": {},
       "user-profile-info.user-page": {},
       "user-profile-info.locales": {}
     }
@@ -135,6 +136,7 @@ export function sanitizeUserData(
     "name",
     "slug",
     "avatar_s3_hash",
+    "website",
     "user_page"
   ]
   if (isViewingAnotherUser) {
@@ -191,6 +193,7 @@ export async function userEditAction({
       birthday,
       location,
       biography,
+      website,
       userPage,
       locales
     } = form.data
@@ -209,6 +212,7 @@ export async function userEditAction({
       birthday,
       location,
       biography,
+      website,
       userPage,
       bypassFilter: false
     })
@@ -232,6 +236,7 @@ export const userEditSchema = object({
   gender: optional(string()),
   birthday: optional(string()),
   location: optional(string()),
+  website: optional(string()),
   userPage: optional(string()),
   biography: optional(string()),
   locales: optional(string())
