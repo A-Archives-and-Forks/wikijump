@@ -8,6 +8,9 @@
 -- User
 --
 
+-- Represents an active user on the platform.
+-- See wikidot_user for interaction notes.
+
 CREATE TABLE "user" (
     user_id BIGSERIAL PRIMARY KEY,
     -- Rust enum: UserType
@@ -61,6 +64,41 @@ CREATE TABLE "user" (
 
     CHECK (name_changes_left >= 0),                                 -- Value cannot be negative
     CHECK (avatar_s3_hash IS NULL OR length(avatar_s3_hash) = 64)   -- SHA-512 hash size (if set)
+);
+
+-- Represents legacy users imported from Wikidot.
+--
+-- This separate table enables us to satisfy the looser constraints
+-- Wikidot has on its data without compromising them for regular users.
+--
+-- The relationship between the user table and this one is:
+-- * A row in user only indicates a Wikijump-only user account.
+-- * A row in wikidot_user only indicates a Wikidot-only user account.
+-- * A row in both (with the same user ID) indicates a Wikidot user who has imported their account into Wikijump.
+-- * The wikidot_user table represents the static state of the Wikidot user at the time of "fetched_at". If a user has been imported to Wikijump, then any field updates are not reflected here.
+-- * If a user is queried, and it does not exist in user or has an alias, then wikidot_user is queried.
+
+CREATE TABLE wikidot_user (
+    user_id INTEGER PRIMARY KEY,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    fetched_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    is_deleted BOOLEAN NOT NULL,
+    name TEXT UNIQUE CHECK (length(name) > 0),
+    slug TEXT UNIQUE CHECK (length(slug) > 0),
+    -- Biographical fields (optional)
+    real_name TEXT,
+    gender TEXT,
+    birthday DATE,
+    location TEXT,
+    biography TEXT,
+    website TEXT,
+    karma SMALLINT NOT NULL CHECK (0 <= karma AND karma <= 5),
+    is_pro BOOLEAN NOT NULL,
+
+    -- Basic sanity check on fetched_at
+    CHECK (created_at < fetched_at),
+    -- Only deleted users can be missing a username or slug
+    CHECK (is_deleted OR (name IS NOT NULL AND slug IS NOT NULL))
 );
 
 --

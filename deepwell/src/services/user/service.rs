@@ -317,6 +317,11 @@ impl UserService {
         //       they would be slower than doing queries on
         //       simple indexes directly, which is why we are
         //       doing it this way.
+        //
+        //       When the wikidot_user table was later added,
+        //       we maintained the same query instead of trying
+        //       to join across three tables.
+        //       (They're not even the same type anyways)
 
         if let Reference::Slug(ref slug) = reference
             && let Some(alias) = AliasService::get_optional(ctx, AliasType::User, slug)
