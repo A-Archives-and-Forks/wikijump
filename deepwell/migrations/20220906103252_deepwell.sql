@@ -15,7 +15,6 @@ CREATE TABLE "user" (
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
     updated_at TIMESTAMP WITH TIME ZONE,
     deleted_at TIMESTAMP WITH TIME ZONE,
-    from_wikidot BOOLEAN NOT NULL DEFAULT false,
     name TEXT NOT NULL,
     slug TEXT NOT NULL,
     name_changes_left SMALLINT NOT NULL,  -- Default set in runtime configuration.

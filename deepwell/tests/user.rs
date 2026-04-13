@@ -66,7 +66,6 @@ async fn basic_update() {
     assert_eq!(output.user.slug, USER_SLUG);
     assert!(output.user.updated_at.is_none());
     assert!(output.user.deleted_at.is_none());
-    assert!(!output.user.from_wikidot);
     assert_eq!(output.user.name_changes_left, 2); // set in Config::integration_testing()
     assert!(output.user.last_renamed_at.is_none());
     assert!(!output.user.password.is_empty());

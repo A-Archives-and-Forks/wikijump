@@ -16,7 +16,6 @@ pub struct Model {
     pub updated_at: Option<TimeDateTimeWithTimeZone>,
     #[serde(with = "time::serde::rfc3339::option")]
     pub deleted_at: Option<TimeDateTimeWithTimeZone>,
-    pub from_wikidot: bool,
     #[sea_orm(column_type = "Text")]
     pub name: String,
     #[sea_orm(column_type = "Text")]
