@@ -88,28 +88,7 @@ impl ImportService {
             }
         };
 
-        // Insert user row into table
-        let user = user::ActiveModel {
-            user_id: Set(user_id),
-            user_type: Set(UserType::Regular),
-            created_at: Set(created_at),
-            from_wikidot: Set(true),
-            name: Set(name.clone()),
-            slug: Set(slug.clone()),
-            email: Set(email),
-            locales: Set(vec![locale]),
-            avatar_s3_hash: Set(avatar_s3_hash),
-            real_name: Set(real_name),
-            gender: Set(gender),
-            birthday: Set(birthday),
-            location: Set(location),
-            biography: Set(biography),
-            user_page: Set(user_page),
-            ..Default::default()
-        };
-
-        User::insert(user).exec(txn).await.or_raise(make_error)?;
-        Ok(())
+        todo!()
     }
 
     pub async fn add_site(
