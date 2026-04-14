@@ -305,7 +305,6 @@ impl UserService {
         mut reference: Reference<'_>,
     ) -> Result<Option<UserModel>> {
         let txn = ctx.transaction();
-
         let make_error = || Error::new("failed to get user", ErrorType::User);
 
         // If slug, determine if this is a user alias.
