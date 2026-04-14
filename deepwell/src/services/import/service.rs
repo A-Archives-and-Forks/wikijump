@@ -33,9 +33,8 @@ use super::prelude::*;
 use crate::models::page::{self, Entity as Page};
 use crate::models::page_category::Model as PageCategoryModel;
 use crate::models::site::{self, Entity as Site};
-use crate::models::user::{self, Entity as User};
+use crate::models::wikidot_user::{self, Entity as WikidotUser};
 use crate::services::{BlobService, CategoryService};
-use crate::types::UserType;
 use crate::utils::get_category_name;
 
 #[derive(Debug)]
@@ -47,48 +46,61 @@ impl ImportService {
         ImportUser {
             user_id,
             created_at,
-            name,
-            slug,
-            email,
-            locale,
-            avatar,
+            fetched_at,
+            wikidot_user_type,
             real_name,
             gender,
             birthday,
             location,
             biography,
-            user_page,
+            website,
+            karma,
+            is_pro,
         }: ImportUser,
     ) -> Result<()> {
-        info!("Importing user (name '{name}', slug '{slug}')");
+        info!(
+            "Importing Wikidot user (user ID {}, created {}, karma {})",
+            user_id,
+            created_at,
+            karma.value(),
+        );
 
         let make_error = || {
             Error::new(
-                format!(
-                    "failed to import user (name '{}', slug '{}', ID {})",
-                    name, slug, user_id,
-                ),
+                format!("failed to import wikidot user (user ID {user_id})"),
                 ErrorType::DatabaseImport,
             )
         };
 
-        let txn = ctx.transaction();
-
-        // Upload avatar to S3
-        let avatar_s3_hash = match avatar {
-            None => None,
-            Some(bytes) => {
-                // FIXME import - uploading avatars
-                /*
-                let output = BlobService::create(ctx, &bytes).await?;
-                Some(output.hash.to_vec())
-                */
-                let _ = bytes;
-                todo!()
-            }
+        let (is_deleted, name, slug) = match wikidot_user_type {
+            ImportedUserType::Extant { name, slug } => (false, Some(name), Some(slug)),
+            ImportedUserType::Deleted => (true, None, None),
         };
 
-        todo!()
+        let txn = ctx.transaction();
+        let model = wikidot_user::ActiveModel {
+            user_id: Set(user_id),
+            created_at: Set(created_at),
+            fetched_at: Set(fetched_at),
+            is_deleted: Set(is_deleted),
+            name: Set(name),
+            slug: Set(slug),
+            real_name: Set(real_name),
+            gender: Set(gender),
+            birthday: Set(birthday),
+            location: Set(location),
+            biography: Set(biography),
+            website: Set(website),
+            karma: Set(i16::from(karma.value())),
+            is_pro: Set(is_pro),
+        };
+
+        WikidotUser::insert(model)
+            .exec(txn)
+            .await
+            .or_raise(make_error)?;
+
+        Ok(())
     }
 
     pub async fn add_site(
