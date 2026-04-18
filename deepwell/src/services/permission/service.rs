@@ -24,117 +24,208 @@ use crate::models::prelude::{Role, RolePermission};
 use crate::models::role_permission::Model as RolePermissionModel;
 use crate::models::{role, role_permission, user_role};
 use crate::services::ServiceContext;
+use crate::services::audit::{AuditEvent, AuditService};
+use crate::services::permission::resolvers::resolve_category_slug;
 use crate::services::permission::{
     CheckPermissionContext, PermissionCache, PermissionInput, resolve_category_reference,
 };
-use crate::services::role::{GetUserRolesInput, RoleService};
-use crate::types::{Action, Reference, Resource};
+use crate::services::role::{GetUserRolesInput, RoleService, UpdateRolePermissionsInput};
+use crate::types::{Action, Permission, Reference, Resource};
+use futures::future::try_join_all;
+use std::borrow::Cow;
+use std::collections::HashSet;
+use std::net::IpAddr;
 
 #[derive(Debug)]
 pub struct PermissionService;
 
 #[allow(dead_code)] // TEMP
 impl PermissionService {
-    pub async fn add_permission_to_role(
+    /// Updates the permissions for a role, replacing the existing set with the provided set.
+    pub async fn update_permissions_for_role(
         ctx: &ServiceContext<'_>,
-        site_id: i64,
-        role_id: i64,
-        PermissionInput {
-            resource_type,
-            resource_category,
-            action,
-        }: PermissionInput<'_>,
+        UpdateRolePermissionsInput {
+            site_id,
+            role_reference: reference,
+            new_permissions,
+            cascade_removals,
+            updating_user_id,
+            ip_address,
+        }: UpdateRolePermissionsInput<'_>,
     ) -> Result<()> {
         let txn = ctx.transaction();
 
-        // Resolve category reference to ID
-        let resource_category_id = match resource_category {
-            Some(reference) => {
-                resolve_category_reference(ctx, site_id, resource_type, reference).await?
-            }
-            None => None,
-        };
+        let role = RoleService::get(ctx, site_id, reference)
+            .await
+            .or_raise(|| Error::new("failed to get role", ErrorType::RoleNotFound))?;
 
         let make_error = || {
             Error::new(
-                format!(
-                    "failed to add permission {}:{}:{} to role ID {}",
-                    resource_type,
-                    resource_category_id.unwrap_or(0),
-                    action,
-                    role_id
-                ),
-                ErrorType::AddRolePermission,
+                format!("failed to update permissions for role ID {}", role.role_id),
+                ErrorType::Role,
             )
         };
 
-        role_permission::ActiveModel {
-            role_id: Set(role_id),
-            site_id: Set(site_id),
-            resource_type: Set(resource_type),
-            resource_category_id: Set(resource_category_id),
-            action: Set(action),
-            ..Default::default()
+        // Resolve all category references concurrently before any DB writes.
+        let resolved_permissions: HashSet<Permission> =
+            try_join_all(new_permissions.into_iter().map(|input| async move {
+                let resource_category_id = match input.resource_category {
+                    Some(cat_ref) => {
+                        resolve_category_reference(
+                            ctx,
+                            site_id,
+                            input.resource_type,
+                            cat_ref,
+                        )
+                        .await?
+                    }
+                    None => None,
+                };
+                Ok::<_, ExnError>(Permission {
+                    resource: input.resource_type,
+                    resource_category: resource_category_id.map(Reference::Id),
+                    action: input.action,
+                })
+            }))
+            .await
+            .or_raise(make_error)?
+            .into_iter()
+            .collect();
+
+        // Validate that the new permission set is a subset of the parent's permissions (if a parent exists).
+        if let Some(parent_id) = role.parent_role_id {
+            let parent_perms = Self::permissions_as_set(ctx, parent_id)
+                .await
+                .or_raise(make_error)?;
+            if !resolved_permissions.is_subset(&parent_perms) {
+                bail!(Error::new(
+                    format!(
+                        "role ID {} has permissions not present in parent role ID {}",
+                        role.role_id, parent_id,
+                    ),
+                    ErrorType::RoleHierarchyViolation {
+                        role_id: role.role_id,
+                        parent_role_id: parent_id,
+                    },
+                ));
+            }
         }
-        .insert(txn)
+
+        // Validate that the new permission set is a superset of each child's permissions.
+        let children = Role::find()
+            .filter(
+                role::Column::ParentRoleId
+                    .eq(role.role_id)
+                    .and(role::Column::SiteId.eq(site_id))
+                    .and(role::Column::DeletedAt.is_null()),
+            )
+            .all(txn)
+            .await
+            .or_raise(make_error)?;
+
+        for child in &children {
+            let child_perms = Self::permissions_as_set(ctx, child.role_id)
+                .await
+                .or_raise(make_error)?;
+            if !child_perms.is_subset(&resolved_permissions) {
+                if !cascade_removals {
+                    bail!(Error::new(
+                        format!(
+                            "role ID {} has permissions not present in parent role ID {}",
+                            child.role_id, role.role_id,
+                        ),
+                        ErrorType::RoleHierarchyViolation {
+                            role_id: child.role_id,
+                            parent_role_id: role.role_id,
+                        },
+                    ));
+                } else {
+                    info!(
+                        "Cascading permission removals to child role ID {} to maintain hierarchy consistency",
+                        child.role_id
+                    );
+                    Self::cascade_permission_removals(
+                        ctx,
+                        site_id,
+                        child.role_id,
+                        &child_perms
+                            .difference(&resolved_permissions)
+                            .cloned()
+                            .collect(),
+                    )
+                    .await
+                    .or_raise(make_error)?;
+                }
+            }
+        }
+
+        // If validation passes, replace the permission set.
+        let deleted_permissions = RolePermission::delete_many()
+            .filter(role_permission::Column::RoleId.eq(role.role_id))
+            .exec_with_returning(txn)
+            .await
+            .or_raise(make_error)?;
+
+        if !resolved_permissions.is_empty() {
+            let models: Vec<role_permission::ActiveModel> = resolved_permissions
+                .iter()
+                .map(|perm| {
+                    let resource_category_id =
+                        perm.resource_category.as_ref().and_then(|r| {
+                            if let Reference::Id(id) = r {
+                                Some(*id)
+                            } else {
+                                None
+                            }
+                        });
+                    role_permission::ActiveModel {
+                        role_id: Set(role.role_id),
+                        site_id: Set(site_id),
+                        resource_type: Set(perm.resource),
+                        resource_category_id: Set(resource_category_id),
+                        action: Set(perm.action),
+                        ..Default::default()
+                    }
+                })
+                .collect();
+
+            RolePermission::insert_many(models)
+                .exec(txn)
+                .await
+                .or_raise(make_error)?;
+        }
+
+        AuditService::log(
+            ctx,
+            ip_address,
+            AuditEvent::UpdatePermissions {
+                role_id: role.role_id,
+                updating_user_id,
+                old_permissions: deleted_permissions
+                    .into_iter()
+                    .map(|p| Permission {
+                        resource: p.resource_type,
+                        resource_category: p.resource_category_id.map(Reference::Id),
+                        action: p.action,
+                    })
+                    .collect(),
+                new_permissions: resolved_permissions.into_iter().collect(),
+            },
+        )
         .await
         .or_raise(make_error)?;
 
         Ok(())
     }
 
-    pub async fn remove_permission_from_role(
-        ctx: &ServiceContext<'_>,
-        site_id: i64,
-        role_id: i64,
-        PermissionInput {
-            resource_type,
-            resource_category,
-            action,
-        }: PermissionInput<'_>,
-    ) -> Result<()> {
-        let txn = ctx.transaction();
-
-        // Resolve category reference to ID
-        let resource_category_id = match resource_category {
-            Some(reference) => {
-                resolve_category_reference(ctx, site_id, resource_type, reference).await?
-            }
-            None => None,
-        };
-
-        let make_error = || {
-            Error::new(
-                format!(
-                    "failed to remove permission '{}:{}:{}' from role ID {}",
-                    resource_type,
-                    resource_category_id.unwrap_or(0),
-                    action,
-                    role_id
-                ),
-                ErrorType::RemoveRolePermission,
-            )
-        };
-
-        role_permission::ActiveModel {
-            role_id: Set(role_id),
-            site_id: Set(site_id),
-            resource_type: Set(resource_type),
-            resource_category_id: Set(resource_category_id),
-            action: Set(action),
-            ..Default::default()
-        }
-        .delete(txn)
-        .await
-        .or_raise(make_error)?;
-
-        Ok(())
-    }
-
+    /// Fetches permissions for a role
+    ///
+    /// Optionally returns human-readable category names.
     pub async fn get_permissions_for_role(
         ctx: &ServiceContext<'_>,
         role_id: i64,
-    ) -> Result<Vec<RolePermissionModel>> {
+        human_readable_categories: bool,
+    ) -> Result<Vec<Permission>> {
         let txn = ctx.transaction();
 
         let make_error = || {
@@ -144,14 +235,50 @@ impl PermissionService {
             )
         };
 
-        let role_permissions = RolePermission::find()
+        let role_permissions_iter = RolePermission::find()
             .filter(role_permission::Column::RoleId.eq(role_id))
             .order_by_asc(role_permission::Column::ResourceType)
             .order_by_asc(role_permission::Column::ResourceCategoryId)
             .order_by_asc(role_permission::Column::Action)
             .all(txn)
             .await
-            .or_raise(make_error)?;
+            .or_raise(make_error)?
+            .into_iter();
+
+        let role_permissions = if human_readable_categories {
+            try_join_all(role_permissions_iter.map(|input| async move {
+                let resource_category_slug = match input.resource_category_id {
+                    Some(cat_id) => {
+                        resolve_category_slug(
+                            ctx,
+                            input.site_id,
+                            input.resource_type,
+                            cat_id.into(),
+                        )
+                        .await?
+                    }
+                    None => None,
+                };
+                Ok::<_, ExnError>(Permission {
+                    resource: input.resource_type,
+                    resource_category: resource_category_slug
+                        .map(|slug| Reference::Slug(Cow::Owned(slug))),
+                    action: input.action,
+                })
+            }))
+            .await
+            .or_raise(make_error)?
+            .into_iter()
+            .collect()
+        } else {
+            role_permissions_iter
+                .map(|p| Permission {
+                    resource: p.resource_type,
+                    resource_category: p.resource_category_id.map(Reference::Id),
+                    action: p.action,
+                })
+                .collect()
+        };
 
         Ok(role_permissions)
     }
@@ -359,5 +486,90 @@ impl PermissionService {
         }
 
         Ok(results)
+    }
+
+    /// Fetches permissions for `role_id` as a set for easy comparison in hierarchy validation.
+    pub async fn permissions_as_set(
+        ctx: &ServiceContext<'_>,
+        role_id: i64,
+    ) -> Result<HashSet<Permission>> {
+        Ok(Self::get_permissions_for_role(ctx, role_id, false)
+            .await?
+            .into_iter()
+            .collect())
+    }
+
+    async fn cascade_permission_removals(
+        ctx: &ServiceContext<'_>,
+        site_id: i64,
+        child_role_id: i64,
+        removed_permissions: &HashSet<Permission>,
+    ) -> Result<()> {
+        let txn = ctx.transaction();
+
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to cascade permission removals for role ID {}",
+                    child_role_id
+                ),
+                ErrorType::Permission,
+            )
+        };
+
+        let child_perms = Self::permissions_as_set(ctx, child_role_id)
+            .await
+            .or_raise(make_error)?;
+        let to_remove: HashSet<Permission> = child_perms
+            .intersection(removed_permissions)
+            .cloned()
+            .collect();
+
+        // Remove permissions from child role
+        for perm in &to_remove {
+            let resource_category_id = perm.resource_category.as_ref().and_then(|r| {
+                if let Reference::Id(id) = r {
+                    Some(*id)
+                } else {
+                    None
+                }
+            });
+            RolePermission::delete_many()
+                .filter(role_permission::Column::RoleId.eq(child_role_id))
+                .filter(role_permission::Column::ResourceType.eq(perm.resource))
+                .filter(match resource_category_id {
+                    Some(id) => role_permission::Column::ResourceCategoryId.eq(id),
+                    None => role_permission::Column::ResourceCategoryId.is_null(),
+                })
+                .filter(role_permission::Column::Action.eq(perm.action))
+                .exec(txn)
+                .await
+                .or_raise(make_error)?;
+        }
+
+        // Recursively cascade to grandchildren
+        let grandchildren = Role::find()
+            .filter(
+                role::Column::ParentRoleId
+                    .eq(child_role_id)
+                    .and(role::Column::SiteId.eq(site_id))
+                    .and(role::Column::DeletedAt.is_null()),
+            )
+            .all(txn)
+            .await
+            .or_raise(make_error)?;
+
+        for grandchild in grandchildren {
+            Box::pin(Self::cascade_permission_removals(
+                ctx,
+                site_id,
+                grandchild.role_id,
+                &to_remove,
+            ))
+            .await
+            .or_raise(make_error)?;
+        }
+
+        Ok(())
     }
 }

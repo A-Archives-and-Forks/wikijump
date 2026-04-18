@@ -37,6 +37,13 @@ pub trait CategoryResolver: Send + Sync {
         site_id: i64,
         reference: Reference<'_>,
     ) -> Result<Option<i64>>;
+
+    /// Resolve a category reference to a slug, for human-readable output.
+    async fn resolve_slug(
+        ctx: &ServiceContext<'_>,
+        site_id: i64,
+        reference: Reference<'_>,
+    ) -> Result<Option<String>>;
 }
 
 #[derive(Debug)]
@@ -61,6 +68,24 @@ impl CategoryResolver for PageCategoryResolver {
             }
         }
     }
+
+    async fn resolve_slug(
+        ctx: &ServiceContext<'_>,
+        site_id: i64,
+        reference: Reference<'_>,
+    ) -> Result<Option<String>> {
+        use crate::services::CategoryService;
+
+        match reference {
+            Reference::Id(id) => {
+                let category =
+                    CategoryService::get_optional(ctx, site_id, Reference::Id(id))
+                        .await?;
+                Ok(category.map(|c| c.slug))
+            }
+            Reference::Slug(slug) => Ok(Some(slug.to_string())),
+        }
+    }
 }
 
 /// Helper function to resolve a category reference to an ID based on resource type.
@@ -72,6 +97,21 @@ pub async fn resolve_category_reference(
 ) -> Result<Option<i64>> {
     match resource_type {
         Resource::Page => PageCategoryResolver::resolve(ctx, site_id, reference).await,
+        // TODO: Add other resource types and their resolvers here
+        _ => Ok(None),
+    }
+}
+
+pub async fn resolve_category_slug(
+    ctx: &ServiceContext<'_>,
+    site_id: i64,
+    resource_type: Resource,
+    reference: Reference<'_>,
+) -> Result<Option<String>> {
+    match resource_type {
+        Resource::Page => {
+            PageCategoryResolver::resolve_slug(ctx, site_id, reference).await
+        }
         // TODO: Add other resource types and their resolvers here
         _ => Ok(None),
     }

@@ -32,7 +32,9 @@ use deepwell::services::category::CategoryService;
 use deepwell::services::permission::{
     CheckPermissionContext, PermissionCache, PermissionInput, PermissionService,
 };
-use deepwell::services::role::{CreateRoleInput, GrantUserRoleInput, RoleService};
+use deepwell::services::role::{
+    CreateRoleInput, GrantUserRoleInput, RoleService, UpdateRolePermissionsInput,
+};
 use deepwell::services::site::{CreateSite, SiteService};
 use deepwell::services::user::{CreateUser, UserService};
 use deepwell::types::{Action, Reference, Resource, UserType};
@@ -94,18 +96,36 @@ impl PermissionFixture {
 
         // RoleA: page:view + page:edit, both unscoped
         let role_a = create_role(ctx, site_id, "RoleA").await;
-        add_perm_to_role(ctx, site_id, role_a, Resource::Page, None, Action::View).await;
-        add_perm_to_role(ctx, site_id, role_a, Resource::Page, None, Action::Edit).await;
+        add_perms_to_role(
+            ctx,
+            site_id,
+            role_a,
+            vec![
+                PermissionInput {
+                    resource_type: Resource::Page,
+                    resource_category: None,
+                    action: Action::View,
+                },
+                PermissionInput {
+                    resource_type: Resource::Page,
+                    resource_category: None,
+                    action: Action::Edit,
+                },
+            ],
+        )
+        .await;
 
         // RoleB: page:edit scoped to test-category only
         let role_b = create_role(ctx, site_id, "RoleB").await;
-        add_perm_to_role(
+        add_perms_to_role(
             ctx,
             site_id,
             role_b,
-            Resource::Page,
-            Some(category_id),
-            Action::Edit,
+            vec![PermissionInput {
+                resource_type: Resource::Page,
+                resource_category: Some(Reference::Id(category_id)),
+                action: Action::Edit,
+            }],
         )
         .await;
 
@@ -142,48 +162,48 @@ async fn create_role(ctx: &ServiceContext<'_>, site_id: i64, name: &str) -> i64 
             name: name.to_owned(),
             description: None,
             is_virtual: false,
-            level: 1,
+            parent_role_id: None,
+            creating_user_id: SYSTEM_USER_ID,
+            ip_address: common::IP_ADDRESS,
         },
-        common::IP_ADDRESS,
     )
     .await
     .expect("Failed to create role")
     .role_id
 }
 
-async fn add_perm_to_role(
+async fn add_perms_to_role(
     ctx: &ServiceContext<'_>,
     site_id: i64,
     role_id: i64,
-    resource: Resource,
-    category_id: Option<i64>,
-    action: Action,
+    permissions: Vec<PermissionInput<'static>>,
 ) {
-    PermissionService::add_permission_to_role(
+    PermissionService::update_permissions_for_role(
         ctx,
-        site_id,
-        role_id,
-        PermissionInput {
-            resource_type: resource,
-            resource_category: category_id.map(Reference::Id),
-            action,
+        UpdateRolePermissionsInput {
+            site_id,
+            role_reference: Reference::Id(role_id),
+            new_permissions: permissions,
+            cascade_removals: false,
+            updating_user_id: SYSTEM_USER_ID,
+            ip_address: common::IP_ADDRESS,
         },
     )
     .await
-    .expect("Failed to add permission to role");
+    .expect("Failed to add permissions to role");
 }
 
 async fn grant_role(ctx: &ServiceContext<'_>, site_id: i64, user_id: i64, role_id: i64) {
     RoleService::grant_role_to_user(
         ctx,
-        site_id,
         GrantUserRoleInput {
+            site_id,
             user_id,
             role_id,
             assigning_user_id: SYSTEM_USER_ID,
             expires_at: None,
+            ip_address: common::IP_ADDRESS,
         },
-        common::IP_ADDRESS,
     )
     .await
     .expect("Failed to grant role to user");
@@ -520,5 +540,124 @@ async fn check_permission_endpoint() {
         )
         .can_edit,
         "user_a should NOT have edit permission for page in test-category"
+    );
+}
+
+#[tokio::test]
+async fn role_update_permissions_and_get() {
+    let runner = TestRunner::setup().await;
+    let f = PermissionFixture::setup(&runner).await;
+
+    const CATEGORY_NAME: &str = "TestCategory";
+    const OTHER_CATEGORY_NAME: &str = "OtherCategory";
+
+    // Create some categories with names
+    let category_id =
+        CategoryService::get_or_create(runner.context(), f.site_id, CATEGORY_NAME)
+            .await
+            .expect("Failed to create page category")
+            .category_id;
+
+    let other_category_id =
+        CategoryService::get_or_create(runner.context(), f.site_id, OTHER_CATEGORY_NAME)
+            .await
+            .expect("Failed to create other page category")
+            .category_id;
+
+    let role = RoleService::create(
+        runner.context(),
+        CreateRoleInput {
+            site_id: f.site_id,
+            name: "Test Role".to_string(),
+            description: None,
+            is_virtual: false,
+            parent_role_id: None,
+            creating_user_id: SYSTEM_USER_ID,
+            ip_address: common::IP_ADDRESS,
+        },
+    )
+    .await
+    .expect("Failed to create role");
+
+    // Assign permissions with different resource categories
+    // Using category names in the input to test that they get resolved correctly
+    PermissionService::update_permissions_for_role(
+        runner.context(),
+        UpdateRolePermissionsInput {
+            site_id: f.site_id,
+            role_reference: Reference::Id(role.role_id),
+            new_permissions: vec![
+                PermissionInput {
+                    resource_type: Resource::Page,
+                    resource_category: Some(Reference::Slug(CATEGORY_NAME.into())),
+                    action: Action::View,
+                },
+                PermissionInput {
+                    resource_type: Resource::Page,
+                    resource_category: Some(Reference::Slug(OTHER_CATEGORY_NAME.into())),
+                    action: Action::Edit,
+                },
+            ],
+            cascade_removals: false,
+            updating_user_id: SYSTEM_USER_ID,
+            ip_address: common::IP_ADDRESS,
+        },
+    )
+    .await
+    .expect("Failed to update role permissions");
+
+    // Get permissions with raw category IDs
+    let perms = PermissionService::get_permissions_for_role(
+        runner.context(),
+        role.role_id,
+        false,
+    )
+    .await
+    .expect("Failed to get role permissions");
+
+    assert_eq!(perms.len(), 2);
+    let view_perm = perms
+        .iter()
+        .find(|p| p.action == Action::View)
+        .expect("Expected to find view permission");
+    let edit_perm = perms
+        .iter()
+        .find(|p| p.action == Action::Edit)
+        .expect("Expected to find edit permission");
+
+    // Assert that the resource categories were resolved to IDs
+    assert_eq!(
+        view_perm.resource_category,
+        Some(Reference::Id(category_id))
+    );
+    assert_eq!(
+        edit_perm.resource_category,
+        Some(Reference::Id(other_category_id))
+    );
+
+    // Get permissions with human-readable categories
+    let perms =
+        PermissionService::get_permissions_for_role(runner.context(), role.role_id, true)
+            .await
+            .expect("Failed to get role permissions with human-readable categories");
+
+    assert_eq!(perms.len(), 2);
+    let view_perm = perms
+        .iter()
+        .find(|p| p.action == Action::View)
+        .expect("Expected to find view permission");
+    let edit_perm = perms
+        .iter()
+        .find(|p| p.action == Action::Edit)
+        .expect("Expected to find edit permission");
+
+    // Assert that the resource categories were resolved to human-readable slugs
+    assert_eq!(
+        view_perm.resource_category,
+        Some(Reference::Slug(CATEGORY_NAME.into()))
+    );
+    assert_eq!(
+        edit_perm.resource_category,
+        Some(Reference::Slug(OTHER_CATEGORY_NAME.into()))
     );
 }

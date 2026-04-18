@@ -17,7 +17,9 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
+use crate::services::permission::PermissionInput;
 use crate::types::{Maybe, Permission, Reference};
+use std::net::IpAddr;
 use time::OffsetDateTime;
 
 #[derive(Deserialize, Debug, Clone)]
@@ -26,29 +28,78 @@ pub struct CreateRoleInput {
     pub name: String,
     pub description: Option<String>,
     pub is_virtual: bool,
-    pub level: i32,
+    pub parent_role_id: Option<i64>,
+    pub creating_user_id: i64,
+    pub ip_address: IpAddr,
 }
 
-#[derive(Serialize, Debug, Clone)]
-pub struct CreateRoleOutput {
-    pub role_id: i64,
+#[derive(Deserialize, Debug, Clone)]
+pub struct GetRoleInput<'a> {
+    pub site_id: i64,
+    pub role_reference: Reference<'a>,
 }
 
 #[derive(Deserialize, Debug, Clone)]
 #[allow(dead_code)]
 pub struct UpdateRoleInput {
+    pub site_id: i64,
+    pub role_id: i64,
     pub name: Maybe<String>,
     pub description: Maybe<String>,
-    pub level: Maybe<i32>,
-    pub permissions: Maybe<Vec<Permission>>,
+    pub updating_user_id: i64,
+    pub ip_address: IpAddr,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct UpdateRolePermissionsInput<'a> {
+    pub site_id: i64,
+    pub role_reference: Reference<'a>,
+    pub new_permissions: Vec<PermissionInput<'a>>,
+    pub cascade_removals: bool,
+    pub updating_user_id: i64,
+    pub ip_address: IpAddr,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct DeleteRoleInput {
+    pub site_id: i64,
+    pub role_id: i64,
+    pub deleting_user_id: i64,
+    pub reparent_children: bool,
+    pub ip_address: IpAddr,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct ListSiteRolesInput {
+    pub site_id: i64,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct ReparentRoleInput {
+    pub site_id: i64,
+    pub role_id: i64,
+    pub new_parent_id: Option<i64>,
+    pub reparenting_user_id: i64,
+    pub ip_address: IpAddr,
 }
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct GrantUserRoleInput {
     pub user_id: i64,
     pub role_id: i64,
+    pub site_id: i64,
     pub assigning_user_id: i64,
     pub expires_at: Option<OffsetDateTime>,
+    pub ip_address: IpAddr,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct RevokeUserRoleInput {
+    pub user_id: i64,
+    pub role_id: i64,
+    pub site_id: i64,
+    pub revoking_user_id: i64,
+    pub ip_address: IpAddr,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -56,4 +107,11 @@ pub struct GetUserRolesInput<'a> {
     pub site_id: i64,
     pub user_id: Option<i64>,
     pub page_reference: Option<Reference<'a>>,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct GetRolePermissionsInput<'a> {
+    pub site_id: i64,
+    pub role_reference: Reference<'a>,
+    pub human_readable_categories: bool,
 }

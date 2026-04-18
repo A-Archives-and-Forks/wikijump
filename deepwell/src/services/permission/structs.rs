@@ -20,7 +20,7 @@
 
 use crate::types::{Action, Reference, Resource};
 
-#[derive(Debug, Clone)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct PermissionInput<'a> {
     pub resource_type: Resource,
     pub resource_category: Option<Reference<'a>>,

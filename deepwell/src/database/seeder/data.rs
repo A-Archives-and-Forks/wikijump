@@ -258,7 +258,7 @@ pub struct Role {
     pub name: String,
     pub description: String,
     pub is_virtual: bool,
-    pub level: i32,
+    pub parent_role: Option<String>,
     pub permissions: Vec<String>,
 }
 
