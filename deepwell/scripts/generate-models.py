@@ -4,7 +4,6 @@ from glob import iglob
 import os
 from io import StringIO
 import re
-import shutil
 import subprocess
 import sys
 
@@ -35,7 +34,8 @@ def chdir_to_crate_root():
 def remove_existing_models():
     if os.path.isdir(MODELS_DIRECTORY):
         print(f"Deleting existing {MODELS_DIRECTORY}")
-        shutil.rmtree(MODELS_DIRECTORY)
+        for path in iglob(os.path.join(MODELS_DIRECTORY, "*.rs")):
+            os.remove(path)
 
 
 def run_sea_orm_cli():
