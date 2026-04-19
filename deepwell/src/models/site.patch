@@ -1,0 +1,7 @@
+73a74,75
+>     #[sea_orm(has_many = "super::role_permission::Entity")]
+>     SiteDomain,
+81c83
+<     SiteDomain,
+---
+>     SiteDomainPreferredDomain,
