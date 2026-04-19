@@ -1,6 +1,7 @@
 import defaults from "$lib/defaults"
 
 import { authGetSession } from "$lib/server/auth/getSession"
+import { getFileByHash } from "$lib/server/deepwell/file"
 import { translate } from "$lib/server/deepwell/translate"
 import { userEdit, userView } from "$lib/server/deepwell/user"
 import { loadSiteInfo } from "$lib/server/load/site-info"
