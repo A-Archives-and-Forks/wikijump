@@ -263,6 +263,7 @@ async fn build_module(app_state: ServerState) -> Result<RpcModule<ServerState>> 
     register!("caddyfile", generate_caddyfile);
 
     // Web server
+    register!("preload_view", preload_view);
     register!("page_view", page_view);
     register!("user_view", user_view);
     register!("admin_view", admin_view);
