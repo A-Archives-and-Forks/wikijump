@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-from functools import cached_property
 from glob import iglob
 import os
 from io import StringIO
@@ -170,11 +169,11 @@ class ModelFileRewriter:
                 self.lines[idx] = line
 
         # Add the import line with our enum types
+        import_index = self.find_start_of_import_block()
         import_line = self.format_use_block(types_to_import)
-        self.lines.insert(self.start_of_import_block, import_line)
+        self.lines.insert(import_index, import_line)
 
-    @cached_property
-    def start_of_import_block(self):
+    def find_start_of_import_block(self):
         for idx, line in self.line_iter:
             if line.startswith("use"):
                 return idx
