@@ -239,7 +239,7 @@ class ModelFileRewriter:
         # This programmatically checks for a patch file, and if it exists, applies it
         # for this model file.
 
-        filename = f"{self.table_name}.patch"
+        filename = f"{self.filename}.patch"
         patch_path = os.path.join(MODELS_DIRECTORY, filename)
         if os.path.isfile(patch_path):
             print(f"Applying {filename} to {self.filename}")
