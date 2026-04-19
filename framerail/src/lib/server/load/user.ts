@@ -1,8 +1,6 @@
 import defaults from "$lib/defaults"
 
-import { parseAcceptLangHeader } from "$lib/locales"
 import { authGetSession } from "$lib/server/auth/getSession"
-import { getFileByHash } from "$lib/server/deepwell/file"
 import { translate } from "$lib/server/deepwell/translate"
 import { userEdit, userView } from "$lib/server/deepwell/user"
 import { loadSiteInfo } from "$lib/server/load/site-info"
@@ -11,14 +9,21 @@ import { fail, superValidate, withFiles } from "sveltekit-superforms"
 import { valibot } from "sveltekit-superforms/adapters"
 import { file, object, optional, string } from "valibot"
 
-import type { Viewer } from "$lib/server/deepwell/views"
+import type { PreloadDataAsync, Viewer } from "$lib/server/deepwell/views"
 import type { TranslateKeys, UserModel } from "$lib/types"
 import type { Cookies, RequestEvent } from "@sveltejs/kit"
 
-export async function loadUser(request: Request, cookies: Cookies, username?: string) {
+export async function loadUser(
+  request: Request,
+  cookies: Cookies,
+  preloadData: PreloadDataAsync,
+  username?: string
+) {
   const { siteId } = loadSiteInfo(request.headers)
   const sessionToken = cookies.get("wikijump_token")
-  let locales = parseAcceptLangHeader(request)
+
+  const parentData = await preloadData()
+  const locales = parentData.locales
 
   const response = await userView(
     siteId,
@@ -26,21 +31,6 @@ export async function loadUser(request: Request, cookies: Cookies, username?: st
     sessionToken,
     username
   )
-
-  if (response.data?.user_session?.user?.locales) {
-    locales = [
-      ...response.data.user_session.user.locales,
-      ...locales.filter(
-        (locale) => !response.data.user_session?.user.locales.includes(locale)
-      )
-    ]
-  }
-
-  if (response.data?.site?.locale && !locales.includes(response.data.site.locale)) {
-    locales.push(response.data.site.locale)
-  }
-
-  if (!locales.includes(defaults.fallbackLocale)) locales.push(defaults.fallbackLocale)
 
   let translateKeys: TranslateKeys = {
     ...defaults.translateKeys,
@@ -137,7 +127,7 @@ export async function loadUser(request: Request, cookies: Cookies, username?: st
   return { ...viewData, view: response.type, internationalization, userEditForm }
 }
 
-function sanitizeUserData(
+export function sanitizeUserData(
   user: UserModel,
   isViewingAnotherUser: boolean
 ): Partial<UserModel> {
