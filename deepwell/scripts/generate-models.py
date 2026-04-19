@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import os
+import re
 import subprocess
 import shutil
 import sys
@@ -45,7 +46,19 @@ def run_sea_orm_cli():
     )
 
 
+def add_datetime_format():
+    print("Adding time::serde::rfc3339 formatting to datetime fields")
+    # TODO
+
+
+def apply_patches():
+    # TODO
+    # See https://github.com/SeaQL/sea-orm/issues/2358
+
+
 if __name__ == "__main__":
     chdir_to_crate_root()
     remove_existing_models()
     run_sea_orm_cli()
+    add_datetime_format()
+    apply_patches()
