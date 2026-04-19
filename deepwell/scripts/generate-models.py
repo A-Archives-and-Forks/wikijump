@@ -182,7 +182,7 @@ class ModelFileRewriter:
 
     def format_use_block(self, types):
         if len(types) == 1:
-            the_type = next(types)  # the one and only
+            the_type = next(iter(types))  # the one and only
             return f"use crate::types::{the_type};"
         else:
             return f"use crate::types::{{{', '.join(sorted(types))}}};"
