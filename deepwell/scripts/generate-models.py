@@ -55,53 +55,80 @@ def run_sea_orm_cli():
     )
 
 
-def model_files():
-    for path in iglob(os.path.join(MODELS_DIRECTORY, "*.rs")):
-        filename = os.path.basename(path)
-        yield path, filename
 
+class ModelFileRewriter:
+    __slots__ = ("path", "filename", "lines", "original_line_count")
 
-def add_datetime_format(path, filename):
-    with open(path) as file:
-        lines = file.readlines()
-        original_len = file.tell()
+    def __init__(self, path):
+        self.path = path
+        self.filename = os.path.basename(path)
 
-    def find_regex_match(line):
-        PATTERNS = [
-            (TIMESTAMP_FIELD_REGEX, TIMESTAMP_ATTRIBUTE),
-            (OPTION_TIMESTAMP_FIELD_REGEX, OPTION_TIMESTAMP_ATTRIBUTE),
-        ]
+        with open(self.path) as file:
+            self.lines = file.readlines()
+            self.original_line_count = len(self.lines)
 
-        for regex, attribute in PATTERNS:
-            match = regex.match(line)
-            if match is not None:
-                indent = match[1]
-                return indent, attribute
+    @property
+    def current_line_count(self):
+        return len(self.lines)
 
-        return None
+    @property
+    def line_iter(self):
+        return enumerate(self.lines)
 
-    buffer = StringIO()
-    for line in lines:
-        match find_regex_match(line):
-            case indent, attribute:
-                # Write #[serde] line, then field
-                buffer.write(f'{indent}#[serde(with = "{attribute}")]\n')
-                buffer.write(line)
+    def rewrite(self):
+        # We're making these separate methods for readability
+        #
+        # Sure it would be faster to do it all in one pass,
+        # but given that this script is run on-demand as part
+        # of development, it is not part of any hot path.
+        self.insert_timestamp_fields()
+        self.replace_enum_types()
 
-            case None:
-                # Write line as-is
-                buffer.write(line)
+    def save(self):
+        if self.current_line_count != self.original_line_count:
+            print(f"Rewriting {self.filename}")
+            with open(self.path, "w") as file:
+                file.writelines(self.lines)
 
-    modified_len = buffer.tell()
-    if original_len != modified_len:
-        print(f"Inserting serde attributes for datetime fields in {filename}")
-        with open(path, "w") as file:
-            file.write(buffer.getvalue())
+    ## SPECIFIC REWRITE RULES ##
+
+    def insert_timestamp_fields(self):
+        def find_regex_match(line):
+            PATTERNS = [
+                (TIMESTAMP_FIELD_REGEX, TIMESTAMP_ATTRIBUTE),
+                (OPTION_TIMESTAMP_FIELD_REGEX, OPTION_TIMESTAMP_ATTRIBUTE),
+            ]
+
+            for regex, attribute in PATTERNS:
+                match = regex.match(line)
+                if match is not None:
+                    indent = match[1]
+                    return indent, attribute
+
+            return None
+
+        lines_to_insert = []  # (index, line)
+        for idx, line in self.line_iter:
+            match find_regex_match(line):
+                case indent, attribute:
+                    # Insert #[serde] on the line before
+                    lines_to_insert.append((idx, f'{indent}#[serde(with = "{attribute}")]\n'))
+
+        # Insert the lines in reverse order to not mess up indices
+        for idx, line in reversed(lines_to_insert):
+            self.lines.insert(idx, line)
+
+    def replace_enum_types(self):
+        # TODO
+        pass
 
 
 if __name__ == "__main__":
     chdir_to_crate_root()
     remove_existing_models()
     run_sea_orm_cli()
-    for path, filename in model_files():
-        add_datetime_format(path, filename)
+
+    for path in iglob(os.path.join(MODELS_DIRECTORY, "*.rs")):
+        model = ModelFileRewriter(path)
+        model.rewrite()
+        model.save()
