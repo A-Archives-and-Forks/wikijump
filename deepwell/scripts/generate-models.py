@@ -183,9 +183,9 @@ class ModelFileRewriter:
     def format_use_block(self, types):
         if len(types) == 1:
             the_type = next(iter(types))  # the one and only
-            return f"use crate::types::{the_type};"
+            return f"use crate::types::{the_type};\n"
         else:
-            return f"use crate::types::{{{', '.join(sorted(types))}}};"
+            return f"use crate::types::{{{', '.join(sorted(types))}}};\n"
 
 
 if __name__ == "__main__":
