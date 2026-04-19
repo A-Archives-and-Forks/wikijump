@@ -319,8 +319,7 @@ impl UserService {
         //
         //       When the wikidot_user table was later added,
         //       we maintained the same query instead of trying
-        //       to join across three tables.
-        //       (They're not even the same type anyways)
+        //       to join across multiple tables.
 
         if let Reference::Slug(ref slug) = reference
             && let Some(alias) = AliasService::get_optional(ctx, AliasType::User, slug)
