@@ -129,6 +129,10 @@ if __name__ == "__main__":
     run_sea_orm_cli()
 
     for path in iglob(os.path.join(MODELS_DIRECTORY, "*.rs")):
+        if os.path.basename(path) == "mod.rs":
+            # Not an entity file corresponding to a table
+            continue
+
         model = ModelFileRewriter(path)
         model.rewrite()
         model.save()
