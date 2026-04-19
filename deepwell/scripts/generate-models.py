@@ -23,22 +23,6 @@ OPTION_TIMESTAMP_FIELD_REGEX = re.compile(
 FIELD_REGEX = re.compile(r"( *)pub ([^:]+): ([^,]+),\n")
 SEA_ORM_TEXT_ATTRIBUTE_REGEX = re.compile(r"( *)#\[sea_orm\((.+)\)\]")
 SEA_ORM_TEXT_ATTRIBUTE_ITEM = 'column_type = "Text"'
-# {column_name: RustEnumType}
-ENUM_TYPES = {
-    "action": "Action",
-    "alias_type": "AliasType",
-    "block_type": "TextBlockType",
-    "connection_type": "ConnectionType",
-    "dest_type": "RelationObjectType",
-    "from_type": "RelationObjectType",
-    "license": "License",
-    "recipient_type": "MessageRecipientType",
-    "relation_type": "RelationType",
-    "resource_type": "Resource",
-    "revision_type": "FileRevisionType",
-    "revision_type": "PageRevisionType",
-    "user_type": "UserType",
-}
 
 
 def chdir_to_crate_root():
@@ -150,11 +134,37 @@ class ModelFileRewriter:
                 continue
 
             indent, column_name, column_type = match.groups()
-            try:
-                rust_type = ENUM_TYPES[column_name]
-            except KeyError:
+            match self.filename, column_name:
+                case _, "action":
+                    rust_type = "Action"
+                case _, "alias_type":
+                    rust_type = "AliasType"
+                case _, "block_type":
+                    rust_type = "TextBlockType"
+                case _, "connection_type":
+                    rust_type = "ConnectionType"
+                case "relation.rs", "dest_type":
+                    rust_type = "RelationObjectType"
+                case "relation.rs", "from_type":
+                    rust_type = "RelationObjectType"
+                case _, "license":
+                    rust_type = "License"
+                case _, "recipient_type":
+                    rust_type = "MessageRecipientType"
+                case _, "relation_type":
+                    rust_type = "RelationType"
+                case _, "resource_type":
+                    rust_type = "Resource"
+                case "file_revision.rs", "revision_type":
+                    rust_type = "FileRevisionType"
+                case "page_revision.rs", "revision_type":
+                    rust_type = "PageRevisionType"
+                case _, "user_type":
+                    rust_type = "UserType"
+
                 # Not an enum type we need to map
-                continue
+                case _:
+                    continue
 
             if column_type != "String":
                 message = f"Found column '{column_name}' of type '{column_type}', but this should be mapped to enum '{rust_type}'"
