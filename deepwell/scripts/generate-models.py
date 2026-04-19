@@ -62,8 +62,6 @@ def model_files():
 
 
 def add_datetime_format(path, filename):
-    print(f"Checking {filename} for datetime fields")
-
     with open(path) as file:
         lines = file.readlines()
         original_len = file.tell()
@@ -96,7 +94,7 @@ def add_datetime_format(path, filename):
 
     modified_len = buffer.tell()
     if original_len != modified_len:
-        print(f"Writing serde attributes to datetime fields in {filename}")
+        print(f"Inserting serde attributes for datetime fields in {filename}")
         with open(path, "w") as file:
             file.write(buffer.getvalue())
 
