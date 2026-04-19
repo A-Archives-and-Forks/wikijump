@@ -25,10 +25,7 @@
       pageLayoutState.current = Layout.WIKIJUMP
     } else {
       pageLayoutState.current =
-        page.data?.page?.layout ??
-        page.data?.site?.layout ??
-        page.error?.site?.layout ??
-        Layout.WIKIJUMP
+        page.data?.page?.layout ?? page.data?.site?.layout ?? Layout.WIKIJUMP
     }
   }
   $effect(() => {
@@ -41,7 +38,7 @@
 {/if}
 
 <svelte:head>
-  <title>{pageData?.site?.name}</title>
+  <title>{page.data.site?.name}</title>
 </svelte:head>
 
 {#if pageLayoutState.current === Layout.WIKIDOT}
@@ -54,12 +51,10 @@
   <Wikidot>
     {#snippet header()}
       <h1>
-        <a class="active" href={resolve("/", {})}
-          ><span>{page.data?.site?.name ?? page.error?.site?.name}</span></a
-        >
+        <a class="active" href={resolve("/", {})}><span>{page.data.site?.name}</span></a>
       </h1>
       <h2>
-        <span>{page.data?.site?.tagline ?? page.error?.site?.tagline}</span>
+        <span>{page.data.site?.tagline}</span>
       </h2>
     {/snippet}
 
