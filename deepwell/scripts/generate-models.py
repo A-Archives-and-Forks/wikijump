@@ -12,12 +12,23 @@ import sys
 DATABASE_URL = "postgres://wikijump:wikijump@localhost/wikijump"
 MODELS_DIRECTORY = "src/models"
 
+# For serializing timestamp fields
 TIMESTAMP_ATTRIBUTE = "time::serde::rfc3339"
 OPTION_TIMESTAMP_ATTRIBUTE = "time::serde::rfc3339::option"
 TIMESTAMP_FIELD_REGEX = re.compile(r"( *)pub ([^:]+): TimeDateTimeWithTimeZone,\n")
 OPTION_TIMESTAMP_FIELD_REGEX = re.compile(
     r"( *)pub ([^:]+): Option<TimeDateTimeWithTimeZone>,\n",
 )
+
+# For using our enums for column types
+FIELD_REGEX = re.compile(r"( *)pub ([^:]+): ([^,]+),\n")
+SEA_ORM_TEXT_ATTRIBUTE = '#[sea_orm(column_type = "Text")]'
+# {column_name: RustEnumType}
+ENUM_TYPES = {
+    "alias_type": "AliasType",
+    "connection_type": "ConnectionType",
+    "license": "License",
+}
 
 
 def chdir_to_crate_root():
@@ -120,6 +131,40 @@ class ModelFileRewriter:
             self.lines.insert(idx, line)
 
     def replace_enum_types(self):
+        types_to_import = set()
+        lines_to_change = []  # (index, line), where None means delete
+        for idx, line in self.line_iter:
+            match = FIELD_REGEX.match(line)
+            if match is None:
+                # Not a column
+                continue
+
+            indent, column_name, column_type = match.groups()
+            try:
+                rust_type = ENUM_TYPES[column_name]
+            except KeyError:
+                # Not an enum type we need to map
+                continue
+
+            if column_type != "String":
+                message = f"Found column '{column_name}' of type '{column_type}', but this should be mapped to enum '{rust_type}'"
+                raise ValueError(message)
+
+            # Ensure previous line is the #[sea_orm] thing we have to remove
+            if SEA_ORM_TEXT_ATTRIBUTE not in self.lines[idx - 1]:
+                message = f"sea-orm-cli did not generate {SEA_ORM_TEXT_ATTRIBUTE} on line before type to map to enum"
+                raise ValueError(message)
+
+            lines_to_change.append((idx - 1, None))  # mark line for deletion
+            types_to_import.add(rust_type)
+
+            # Rewritten field definition to use rust enum type
+            new_line = f"{indent}pub {column_name}: {rust_type},\n"
+            lines_to_change.append((idx, new_line))
+
+        # TODO apply lines_to_change
+
+        # TODO add import block
 
     @cached_property
     def start_of_import_block(self):
