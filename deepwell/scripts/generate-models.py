@@ -33,8 +33,8 @@ def chdir_to_crate_root():
 
 def remove_existing_models():
     if os.path.isdir(MODELS_DIRECTORY):
-        print(f"Deleting existing {MODELS_DIRECTORY}")
         for path in iglob(os.path.join(MODELS_DIRECTORY, "*.rs")):
+            print(f"Deleting {path}")
             os.remove(path)
 
 
