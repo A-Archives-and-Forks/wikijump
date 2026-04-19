@@ -71,7 +71,7 @@ pub enum Relation {
     Role,
     #[sea_orm(has_many = "super::role_permission::Entity")]
     RolePermission,
-    #[sea_orm(has_many = "super::role_permission::Entity")]
+    #[sea_orm(has_many = "super::site_domain::Entity")]
     SiteDomain,
     #[sea_orm(
         belongs_to = "super::site_domain::Entity",
