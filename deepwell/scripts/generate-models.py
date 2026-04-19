@@ -234,11 +234,15 @@ class ModelFileRewriter:
 
     def apply_patches(self):
         # This is due to https://github.com/SeaQL/sea-orm/issues/2358
-        # sea-orm-cli is not generating relations properly - we just have a manual patch
-        #
+        # sea-orm-cli is not generating relations properly, so we have a manual patch to fix it
+
+        # Because this modifies the file on-disk, we have to ensure it's fully written out first
+        if self.modified:
+            message = f"Cannot patch {self.filename}, there are unwritten changes pending!"
+            raise ValueError(message)
+
         # This programmatically checks for a patch file, and if it exists, applies it
         # for this model file.
-
         filename = f"{self.filename}.patch"
         patch_path = os.path.join(MODELS_DIRECTORY, filename)
         if os.path.isfile(patch_path):
