@@ -25,9 +25,19 @@ SEA_ORM_TEXT_ATTRIBUTE_REGEX = re.compile(r"( *)#\[sea_orm\((.+)\)\]")
 SEA_ORM_TEXT_ATTRIBUTE_ITEM = 'column_type = "Text"'
 # {column_name: RustEnumType}
 ENUM_TYPES = {
+    "action": "Action",
     "alias_type": "AliasType",
+    "block_type": "TextBlockType",
     "connection_type": "ConnectionType",
+    "dest_type": "RelationObjectType",
+    "from_type": "RelationObjectType",
     "license": "License",
+    "recipient_type": "MessageRecipientType",
+    "relation_type": "RelationType",
+    "resource_type": "Resource",
+    "revision_type": "FileRevisionType",
+    "revision_type": "PageRevisionType",
+    "user_type": "UserType",
 }
 
 
