@@ -99,21 +99,9 @@ def add_datetime_format(path, filename):
             file.write(buffer.getvalue())
 
 
-def apply_patches(model_path, filename):
-    patch_path = f"{model_path}.patch"
-    if not os.path.isfile(patch_path):
-        # No patch to process
-        return
-
-    print(f"Applying patch {patch_path}")
-    # TODO
-    # See https://github.com/SeaQL/sea-orm/issues/2358
-
-
 if __name__ == "__main__":
     chdir_to_crate_root()
     remove_existing_models()
     run_sea_orm_cli()
     for path, filename in model_files():
         add_datetime_format(path, filename)
-        apply_patches(path, filename)
