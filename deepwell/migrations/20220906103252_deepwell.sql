@@ -144,7 +144,7 @@ CREATE TABLE site (
     -- then it must be one of these site domains, it cannot belong to another site.
     preferred_domain TEXT,
     layout TEXT,                -- Default page layout for the site
-    
+
     -- Rust enum: License
     license TEXT NOT NULL,      -- Default content license for the site
 
@@ -188,7 +188,7 @@ CREATE TABLE alias (
     slug TEXT NOT NULL,
 
     UNIQUE (alias_type, slug),
-    
+
     -- Enum value must not be empty
     CHECK (length(alias_type) > 0)
 );
