@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from functools import cached_property
 from glob import iglob
 import os
 from io import StringIO
@@ -119,8 +120,14 @@ class ModelFileRewriter:
             self.lines.insert(idx, line)
 
     def replace_enum_types(self):
-        # TODO
-        pass
+
+    @cached_property
+    def start_of_import_block(self):
+        for idx, line in self.line_iter:
+            if line.startswith("use"):
+                return idx
+
+        raise ValueError("No import block found in entity file")
 
 
 if __name__ == "__main__":
