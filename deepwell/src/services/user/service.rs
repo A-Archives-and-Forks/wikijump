@@ -19,6 +19,7 @@
  */
 
 use super::prelude::*;
+use crate::models::known_user::{self, Model as KnownUserModel};
 use crate::models::user::{self, Entity as User, Model as UserModel};
 use crate::services::alias::CreateAlias;
 use crate::services::audit::{AuditEvent, AuditService};
@@ -68,6 +69,13 @@ impl UserService {
         debug!("Normalizing user data (name '{name}', slug '{slug}')");
         regex_replace_in_place(&mut name, &LEADING_TRAILING_CHARS, "");
 
+        let make_error = || {
+            Error::new(
+                format!("failed to create user '{}' with email '{}'", slug, email),
+                ErrorType::User,
+            )
+        };
+
         let user_id = match override_user_id {
             Some(0) => {
                 error!(
@@ -80,24 +88,25 @@ impl UserService {
             }
             Some(user_id) => {
                 info!("Attempting to create user '{name}' ('{slug}', ID {user_id})");
-                ActiveValue::Set(user_id)
+                user_id
             }
             None => {
-                info!("Attempting to create user '{name}' ('{slug}')");
+                info!("Attempting to create user '{name}' ('{slug}') with sequence ID");
 
-                // Use default value, which is set by BIGSERIAL
-                ActiveValue::NotSet
+                // Get user ID from known_user sequence
+                let KnownUserModel { user_id } = known_user::ActiveModel {
+                    user_id: ActiveValue::NotSet,
+                }
+                .insert(txn)
+                .await
+                .or_raise(make_error)?;
+
+                debug!("Got next user ID in sequence: {user_id}");
+                user_id
             }
         };
 
         check_user_name(ctx.config(), &slug, &name)?;
-
-        let make_error = || {
-            Error::new(
-                format!("failed to create user '{}' with email '{}'", slug, email),
-                ErrorType::User,
-            )
-        };
 
         // Perform filter validation
         if should_check_filter(bypass_filter, user_type, None) {
@@ -242,7 +251,7 @@ impl UserService {
 
         // Insert new model
         let user = user::ActiveModel {
-            user_id,
+            user_id: Set(user_id),
             user_type: Set(user_type),
             name: Set(name),
             slug: Set(slug.clone()),
