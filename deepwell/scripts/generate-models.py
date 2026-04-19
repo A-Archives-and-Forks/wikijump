@@ -162,7 +162,12 @@ class ModelFileRewriter:
             new_line = f"{indent}pub {column_name}: {rust_type},\n"
             lines_to_change.append((idx, new_line))
 
-        # TODO apply lines_to_change
+        # Apply the line changes in reverse order to not mess up indices
+        for idx, line in reversed(lines_to_change):
+            if line is None:
+                del self.lines[idx]
+            else:
+                self.lines[idx] = line
 
         # TODO add import block
 
