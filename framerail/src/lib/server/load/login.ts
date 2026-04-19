@@ -1,6 +1,5 @@
 import defaults from "$lib/defaults"
 
-import { parseAcceptLangHeader } from "$lib/locales"
 import { authGetSession } from "$lib/server/auth/getSession"
 import { authLogin } from "$lib/server/auth/login"
 import { translate } from "$lib/server/deepwell/translate"
@@ -10,21 +9,24 @@ import { superValidate } from "sveltekit-superforms"
 import { valibot } from "sveltekit-superforms/adapters"
 import { minLength, object, pipe, string } from "valibot"
 
+import type { PreloadDataAsync } from "$lib/server/deepwell/views"
 import type { TranslateKeys } from "$lib/types"
 import type { Cookies, RequestEvent } from "@sveltejs/kit"
 
-export async function loadLoginPage(request: Request, cookies: Cookies) {
+export async function loadLoginPage(
+  request: Request,
+  cookies: Cookies,
+  preloadData: PreloadDataAsync
+) {
   // Set up parameters
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { siteId } = loadSiteInfo(request.headers)
   const sessionToken = cookies.get("wikijump_token")
-  const locales = parseAcceptLangHeader(request)
 
-  const viewData = {
-    isLoggedIn: Boolean(sessionToken)
-  }
+  const parentData = await preloadData()
+  const locales = parentData.locales
 
-  if (!locales.includes(defaults.fallbackLocale)) locales.push(defaults.fallbackLocale)
+  const isLoggedIn = Boolean(parentData.user_session)
 
   const translateKeys: TranslateKeys = {
     ...defaults.translateKeys,
@@ -48,7 +50,7 @@ export async function loadLoginPage(request: Request, cookies: Cookies) {
   const loginForm = await superValidate(valibot(loginSchema))
 
   // Return to page for rendering
-  return { ...viewData, internationalization, loginForm }
+  return { isLoggedIn, internationalization, loginForm }
 }
 
 export async function loginAction({ request, getClientAddress, cookies }: RequestEvent) {
