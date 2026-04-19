@@ -62,11 +62,12 @@ def run_sea_orm_cli():
 
 
 class ModelFileRewriter:
-    __slots__ = ("path", "filename", "lines", "original_line_count")
+    __slots__ = ("path", "filename", "table_name", "lines", "original_line_count")
 
     def __init__(self, path):
         self.path = path
         self.filename = os.path.basename(path)
+        self.table_name, _ = os.path.splitext(self.filename)
 
         with open(self.path) as file:
             self.lines = file.readlines()
@@ -231,6 +232,25 @@ class ModelFileRewriter:
         else:
             return f"use crate::types::{{{', '.join(sorted(types))}}};\n"
 
+    def apply_patches(self):
+        # This is due to https://github.com/SeaQL/sea-orm/issues/2358
+        # sea-orm-cli is not generating relations properly - we just have a manual patch
+        #
+        # This programmatically checks for a patch file, and if it exists, applies it
+        # for this model file.
+
+        filename = f"{self.table_name}.patch"
+        patch_path = os.path.join(MODELS_DIRECTORY, filename)
+        if os.path.isfile(patch_path):
+            print(f"Applying {filename} to {self.filename}")
+            subprocess.check_call(
+                [
+                    "patch",
+                    self.path,
+                    patch_path,
+                ]
+            )
+
 
 if __name__ == "__main__":
     chdir_to_crate_root()
@@ -245,3 +265,4 @@ if __name__ == "__main__":
         model = ModelFileRewriter(path)
         model.rewrite()
         model.save()
+        model.apply_patches()
