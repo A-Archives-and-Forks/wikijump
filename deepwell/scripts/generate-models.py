@@ -169,7 +169,9 @@ class ModelFileRewriter:
             else:
                 self.lines[idx] = line
 
-        # TODO add import block
+        # Add the import line with our enum types
+        import_line = self.format_use_block(types_to_import)
+        self.lines.insert(self.start_of_import_block, import_line)
 
     @cached_property
     def start_of_import_block(self):
