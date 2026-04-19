@@ -21,7 +21,8 @@ OPTION_TIMESTAMP_FIELD_REGEX = re.compile(
 
 # For using our enums for column types
 FIELD_REGEX = re.compile(r"( *)pub ([^:]+): ([^,]+),\n")
-SEA_ORM_TEXT_ATTRIBUTE = '#[sea_orm(column_type = "Text")]'
+SEA_ORM_TEXT_ATTRIBUTE_REGEX = re.compile(r"( *)#\[sea_orm\((.+)\)\]")
+SEA_ORM_TEXT_ATTRIBUTE_ITEM = 'column_type = "Text"'
 # {column_name: RustEnumType}
 ENUM_TYPES = {
     "alias_type": "AliasType",
@@ -64,7 +65,6 @@ def run_sea_orm_cli():
             MODELS_DIRECTORY,
         ]
     )
-
 
 
 class ModelFileRewriter:
@@ -123,7 +123,8 @@ class ModelFileRewriter:
             match find_regex_match(line):
                 case indent, attribute:
                     # Insert #[serde] on the line before
-                    lines_to_insert.append((idx, f'{indent}#[serde(with = "{attribute}")]\n'))
+                    serde_line = f'{indent}#[serde(with = "{attribute}")]\n'
+                    lines_to_insert.append((idx, serde_line))
 
         # Insert the lines in reverse order to not mess up indices
         for idx, line in reversed(lines_to_insert):
@@ -149,15 +150,16 @@ class ModelFileRewriter:
                 message = f"Found column '{column_name}' of type '{column_type}', but this should be mapped to enum '{rust_type}'"
                 raise ValueError(message)
 
-            # Ensure previous line is the #[sea_orm] thing we have to remove
-            if SEA_ORM_TEXT_ATTRIBUTE not in self.lines[idx - 1]:
-                message = f"sea-orm-cli did not generate {SEA_ORM_TEXT_ATTRIBUTE} on line before type to map to enum"
-                raise ValueError(message)
-
-            lines_to_change.append((idx - 1, None))  # mark line for deletion
             types_to_import.add(rust_type)
 
-            # Rewritten field definition to use rust enum type
+            # Rewrite or remove #[sea_orm] thing on prior line
+            sea_orm_attrib_line = self.strip_column_type_from_sea_orm(
+                self.lines[idx - 1],
+                column_name,
+            )
+            lines_to_change.append((idx - 1, sea_orm_attrib_line))
+
+            # Rewrite field definition to use rust enum type
             new_line = f"{indent}pub {column_name}: {rust_type},\n"
             lines_to_change.append((idx, new_line))
 
@@ -176,6 +178,24 @@ class ModelFileRewriter:
         import_index = self.find_start_of_import_block()
         import_line = self.format_use_block(types_to_import)
         self.lines.insert(import_index, import_line)
+
+    def strip_column_type_from_sea_orm(self, line, column_name):
+        match = SEA_ORM_TEXT_ATTRIBUTE_REGEX.match(line)
+        if match is None:
+            message = f"No #[sea_orm] attribute on previous line from enum type {column_name} in {self.filename}"
+            raise ValueError(message)
+
+        indent = match[1]
+        attributes = match[2].split(", ")
+        attributes.remove(SEA_ORM_TEXT_ATTRIBUTE_ITEM)
+
+        if attributes:
+            # There are still items left, like #[sea_orm(primary_key, auto_increment = false)]
+            # So return a modified line
+            return f"{indent}#[sea_orm({', '.join(attributes)})]\n"
+        else:
+            # There are no items left, so remove the line entirely
+            return None
 
     def find_start_of_import_block(self):
         for idx, line in self.line_iter:
