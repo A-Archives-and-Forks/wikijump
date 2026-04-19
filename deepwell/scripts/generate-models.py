@@ -161,6 +161,10 @@ class ModelFileRewriter:
             new_line = f"{indent}pub {column_name}: {rust_type},\n"
             lines_to_change.append((idx, new_line))
 
+        # If no types detected, nothing to do
+        if not types_to_import:
+            return
+
         # Apply the line changes in reverse order to not mess up indices
         for idx, line in reversed(lines_to_change):
             if line is None:
