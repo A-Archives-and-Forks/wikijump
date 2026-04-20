@@ -62,7 +62,7 @@ def run_sea_orm_cli():
 
 
 class ModelFileRewriter:
-    __slots__ = ("path", "filename", "table_name", "lines", "original_line_count")
+    __slots__ = ("path", "filename", "table_name", "lines", "modified")
 
     def __init__(self, path):
         self.path = path
@@ -71,11 +71,7 @@ class ModelFileRewriter:
 
         with open(self.path) as file:
             self.lines = file.readlines()
-            self.original_line_count = len(self.lines)
-
-    @property
-    def current_line_count(self):
-        return len(self.lines)
+            self.modified = False
 
     @property
     def line_iter(self):
@@ -91,10 +87,11 @@ class ModelFileRewriter:
         self.replace_enum_types()
 
     def save(self):
-        if self.current_line_count != self.original_line_count:
+        if self.modified:
             print(f"Rewriting {self.filename}")
             with open(self.path, "w") as file:
                 file.writelines(self.lines)
+                self.modified = False
 
     ## SPECIFIC REWRITE RULES ##
 
@@ -124,6 +121,8 @@ class ModelFileRewriter:
         # Insert the lines in reverse order to not mess up indices
         for idx, line in reversed(lines_to_insert):
             self.lines.insert(idx, line)
+        if lines_to_insert:
+            self.modified = True
 
     def replace_enum_types(self):
         types_to_import = set()
@@ -189,6 +188,7 @@ class ModelFileRewriter:
             return
 
         # Apply the line changes in reverse order to not mess up indices
+        self.modified = True
         for idx, line in reversed(lines_to_change):
             if line is None:
                 del self.lines[idx]
@@ -234,11 +234,15 @@ class ModelFileRewriter:
 
     def apply_patches(self):
         # This is due to https://github.com/SeaQL/sea-orm/issues/2358
-        # sea-orm-cli is not generating relations properly - we just have a manual patch
-        #
+        # sea-orm-cli is not generating relations properly, so we have a manual patch to fix it
+
+        # Because this modifies the file on-disk, we have to ensure it's fully written out first
+        if self.modified:
+            message = f"Cannot patch {self.filename}, there are unwritten changes pending!"
+            raise ValueError(message)
+
         # This programmatically checks for a patch file, and if it exists, applies it
         # for this model file.
-
         filename = f"{self.filename}.patch"
         patch_path = os.path.join(MODELS_DIRECTORY, filename)
         if os.path.isfile(patch_path):
