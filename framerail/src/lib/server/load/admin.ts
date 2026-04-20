@@ -38,8 +38,8 @@ export async function loadAdminPage(
   let translateKeys: TranslateKeys = {
     ...defaults.translateKeys,
     "footer-license-unless": {
-      license: response.data.license_name,
-      "license_url": response.data.license_url
+      license: parentData.license_name,
+      "license_url": parentData.license_url
     }
   }
 
@@ -85,8 +85,8 @@ export async function loadAdminPage(
   const adminForm = await superValidate(request, valibot(adminSchema))
 
   const viewData = {
-    ...response.data,
     view: response.type,
+    html: response.data?.html,
     internationalization,
     adminForm
   }

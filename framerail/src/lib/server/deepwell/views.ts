@@ -41,7 +41,7 @@ export interface PageRoute {
   slug: Optional<string>
   extra: Optional<string>
 }
-interface PageViewDataBase extends Viewer {
+interface PageViewDataBase {
   options: PageOptions
   redirect_page: Nullable<string>
   wikitext: string
@@ -88,11 +88,11 @@ export async function pageView(
 /* ----- Admin View ----- */
 interface AdminViewSiteFound {
   type: "site_found"
-  data: Viewer
+  data: undefined
 }
 interface AdminViewAdminPermissions {
   type: "admin_permissions"
-  data: Viewer & {
+  data: {
     html: string
   }
 }

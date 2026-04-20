@@ -10,7 +10,7 @@ import { fail, superValidate, withFiles } from "sveltekit-superforms"
 import { valibot } from "sveltekit-superforms/adapters"
 import { file, object, optional, string } from "valibot"
 
-import type { PreloadDataAsync, Viewer } from "$lib/server/deepwell/views"
+import type { PreloadDataAsync } from "$lib/server/deepwell/views"
 import type { TranslateKeys, UserModel } from "$lib/types"
 import type { Cookies, RequestEvent } from "@sveltejs/kit"
 
@@ -26,18 +26,13 @@ export async function loadUser(
   const parentData = await preloadData()
   const locales = parentData.locales
 
-  const response = await userView(
-    siteId,
-    [...locales, defaults.fallbackLocale],
-    sessionToken,
-    username
-  )
+  const response = await userView(siteId, locales, sessionToken, username)
 
   let translateKeys: TranslateKeys = {
     ...defaults.translateKeys,
     "footer-license-unless": {
-      license: response.data.license_name,
-      "license_url": response.data.license_url
+      license: parentData.license_name,
+      "license_url": parentData.license_url
     }
   }
 
@@ -65,11 +60,9 @@ export async function loadUser(
     redirect(308, `/-/user/${response.data.user.slug}`)
   }
 
-  const viewData: Partial<
-    Viewer & {
-      user: Partial<UserModel & { avatar: string }>
-    }
-  > = response.data
+  const viewData: {
+    user?: Partial<UserModel & { avatar: string }>
+  } = response.data ?? {}
 
   if (errorStatus !== null && response.type === "user_missing") {
     translateKeys = {
@@ -79,7 +72,7 @@ export async function loadUser(
     }
   } else if (errorStatus === null && response.type === "user_found") {
     const isViewingAnotherUser =
-      response.data.user_session?.user?.user_id !== response.data.user.user_id
+      parentData.user_session?.user?.user_id !== response.data.user.user_id
 
     viewData.user = sanitizeUserData(response.data.user, isViewingAnotherUser)
 

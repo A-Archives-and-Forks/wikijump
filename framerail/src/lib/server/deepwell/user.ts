@@ -2,18 +2,17 @@ import { client } from "$lib/server/deepwell"
 import { startBlobUpload, uploadToPresignUrl } from "./file"
 
 import type { Nullable, Optional, UserModel, UserType } from "$lib/types"
-import type { Viewer } from "./views"
 
 /* ----- User View ----- */
 interface UserViewFound {
   type: "user_found"
-  data: Viewer & {
+  data: {
     user: UserModel
   }
 }
 interface UserViewMissing {
   type: "user_missing"
-  data: Viewer
+  data: undefined
 }
 export async function userView(
   siteId: number,
@@ -45,6 +44,7 @@ interface UserEditParams {
   userPage?: Optional<Nullable<string>>
   bypassFilter?: boolean
 }
+
 export async function userEdit(
   userId: number,
   userIpAddr: string,

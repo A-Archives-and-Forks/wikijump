@@ -110,8 +110,8 @@ export async function loadPage(
     "wiki-page-layout.wikijump": {},
 
     "footer-license-unless": {
-      license: responseData.license_name,
-      "license_url": responseData.license_url
+      license: parentData.license_name,
+      "license_url": parentData.license_url
     }
   }
 
