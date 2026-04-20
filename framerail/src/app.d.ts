@@ -1,7 +1,8 @@
-// See https://kit.svelte.dev/docs/types#app
+// See https://svelte.dev/docs/kit/types#app.d.ts
 // for information about these interfaces
 // and what to do when importing types
 
+import type { Layout } from "$lib/types"
 import type { Locales } from "./types"
 
 declare global {
@@ -10,12 +11,70 @@ declare global {
     interface PageData {
       /** Data about the site. */
       site: {
-        site_id: string
+        site_id: number
+        created_at: string
+        updated_at: string | null
+        deleted_at: string | null
+        from_wikidot: boolean
+        name: string
+        slug: string
+        tagline: string | null
+        locale: string
+        default_page: string | null
+        preferred_domain: string | null
+        layout: Layout
+        license: string
         [anySite: any]: unknown
       }
+      site_file_domain: string
+      license_name: string
+      license_url: string
+      /** Data about current logged in user. */
+      user_session: {
+        session: {
+          session_token: string
+          user_id: number
+          created_at: string
+          expires_at: string
+          ip_address: string
+          user_agent: string
+          restricted: boolean
+          [anySession: any]: unknown
+        }
+        user: {
+          user_id: number
+          user_type: string
+          created_at: string
+          updated_at: string | null
+          deleted_at: string | null
+          from_wikidot: boolean
+          name: string
+          slug: string
+          name_changes_left: number
+          last_name_change_added_at: string | null
+          last_renamed_at: string | null
+          email: string
+          email_verified_at: string | null
+          email_validation_info: any | null
+          email_validation_at: any | null
+          locales: string[]
+          avatar_s3_hash: number[]
+          real_name: string | null
+          gender: string | null
+          birthday: string | null
+          location: string | null
+          biography: string | null
+          user_page: string | null
+        }
+      } | null
+      /**
+       * Locale fallback list, includes user locale, site locale and
+       * browser locale.
+       */
+      locales: string[]
       /** Data about the page itself. */
-      page: {
-        page_id: string
+      page?: {
+        page_id: number
         page_created_at: string
         page_updated_at: string | null
         page_deleted_at: string | null
@@ -40,11 +99,11 @@ declare global {
         slug: string
         tags: string[]
         rating: any
-        layout: any
+        layout: Layout
         [anyPage: any]: unknown
       }
       /** Page options as booleans. */
-      options: {
+      options?: {
         edit: boolean
         title: string | null
         parent: string | null
@@ -62,13 +121,16 @@ declare global {
         [anyOptions: any]: unknown
       }
       /** Rendered Wikitext */
-      wikitext: string
-      /** Internalization as defined in translation keys for the page. */
+      wikitext?: string
+      /**
+       * Error internationalization as defined in the translation keys for
+       * the page. Look at /lib/types.ts for the keys type definitions.
+       */
       internationalization?: Locales
       /** Compiled HTML */
-      compiled_html: string
+      compiled_body_html?: string
       /** Page revision */
-      page_revision: {
+      page_revision?: {
         revision_id: number
         revision_type: any
         created_at: string
@@ -96,11 +158,15 @@ declare global {
     interface Error extends PageData {
       /** Error message */
       message: string
+      /** Error type for page/user/admin view */
+      view: string
       /**
        * Error internationalization as defined in the translation keys for
        * the page. Look at /lib/types.ts for the keys type definitions.
        */
       internationalization?: Locales
+      /** Compiled HTML */
+      compiled_body_html?: string
       [anyError: any]: unknown
     }
     // interface Platform {}

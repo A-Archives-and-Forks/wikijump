@@ -8,11 +8,8 @@
 
   import type { PageProps } from "./$types"
 
-  let {
-    pagePaneState = $bindable(),
-    data,
-    params
-  }: PageProps & { pagePaneState: PagePane } = $props()
+  let { pagePaneState = $bindable(), data }: PageProps & { pagePaneState: PagePane } =
+    $props()
 
   const { form, enhance } = superForm(
     untrack(() => data.forms.pageDeleteForm),
@@ -53,7 +50,7 @@
 
   $form.option = DeleteOptions.Move
   if ($form.option === DeleteOptions.Move) {
-    $form.newSlug = `deleted:${untrack(() => params.slug)}`
+    $form.newSlug = `deleted:${untrack(() => data.page?.slug)}`
   }
 </script>
 

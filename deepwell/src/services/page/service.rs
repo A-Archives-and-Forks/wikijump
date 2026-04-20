@@ -550,7 +550,8 @@ impl PageService {
     pub async fn restore(
         ctx: &ServiceContext<'_>,
         RestorePage {
-            id,
+            site_id,
+            page_id,
             user_id,
             slug,
             revision_comments: comments,
@@ -559,15 +560,15 @@ impl PageService {
     ) -> Result<RestorePageOutput> {
         let txn = ctx.transaction();
 
-        let PageId {
-            site_id,
-            category_id: _,
-            page_id,
-        } = id;
-
         let page = Self::get_direct(ctx, page_id, true)
             .await
             .or_raise(|| Error::new("failed to restore page", ErrorType::Page))?;
+
+        let id = PageId {
+            site_id,
+            category_id: page.page_category_id,
+            page_id,
+        };
 
         let slug = slug.unwrap_or(page.slug);
 

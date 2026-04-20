@@ -44,6 +44,22 @@ pub struct PageRoute {
     pub extra: String,
 }
 
+#[derive(Deserialize, Debug, Clone)]
+pub struct GetPreloadView {
+    pub site_id: i64,
+    pub session_token: Option<String>,
+    pub locales: Vec<String>,
+}
+
+/// Yield common preload data for any views
+///
+/// See also framerail src/lib/server/load/preload.ts
+#[derive(Serialize, Debug, Clone)]
+pub struct GetPreloadViewOutput {
+    #[serde(flatten)]
+    pub viewer: Viewer,
+}
+
 /// Yield information for a page view, depending on the status of the page.
 /// For instance, if a page is missing, there is no revision data but we do
 /// still need to display the "this page doesn't exist" content.
@@ -56,8 +72,6 @@ pub struct PageRoute {
 #[serde(rename_all = "snake_case", tag = "type", content = "data")]
 pub enum GetPageViewOutput {
     Found {
-        #[serde(flatten)]
-        viewer: Viewer,
         options: PageOptions,
         page: PageModel,
         page_revision: PageRevisionModel,
@@ -70,8 +84,6 @@ pub enum GetPageViewOutput {
     },
 
     Missing {
-        #[serde(flatten)]
-        viewer: Viewer,
         options: PageOptions,
         redirect_page: Option<String>,
         wikitext: String,
@@ -81,8 +93,6 @@ pub enum GetPageViewOutput {
     },
 
     Permissions {
-        #[serde(flatten)]
-        viewer: Viewer,
         options: PageOptions,
         redirect_page: Option<String>,
         compiled_body_html: String,
@@ -104,16 +114,9 @@ pub struct GetUserView<'a> {
 #[derive(Serialize, Debug, Clone)]
 #[serde(rename_all = "snake_case", tag = "type", content = "data")]
 pub enum GetUserViewOutput {
-    UserFound {
-        #[serde(flatten)]
-        viewer: Viewer,
-        user: UserModel,
-    },
+    UserFound { user: UserModel },
 
-    UserMissing {
-        #[serde(flatten)]
-        viewer: Viewer,
-    },
+    UserMissing,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -127,16 +130,9 @@ pub struct GetAdminView {
 #[derive(Serialize, Debug, Clone)]
 #[serde(rename_all = "snake_case", tag = "type", content = "data")]
 pub enum GetAdminViewOutput {
-    SiteFound {
-        #[serde(flatten)]
-        viewer: Viewer,
-    },
+    SiteFound,
 
-    AdminPermissions {
-        #[serde(flatten)]
-        viewer: Viewer,
-        html: String,
-    },
+    AdminPermissions { html: String },
 }
 
 #[derive(Serialize, Debug, Clone)]
@@ -157,6 +153,7 @@ pub struct UserSession {
 #[derive(Serialize, Deserialize, Debug, Copy, Clone, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum ViewType {
+    Preload,
     Page,
     User,
     Admin,

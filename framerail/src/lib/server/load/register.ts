@@ -1,6 +1,5 @@
 import defaults from "$lib/defaults"
 
-import { parseAcceptLangHeader } from "$lib/locales"
 import { translate } from "$lib/server/deepwell/translate"
 import { userCreate } from "$lib/server/deepwell/user"
 import { loadSiteInfo } from "$lib/server/load/site-info"
@@ -19,21 +18,24 @@ import {
   string
 } from "valibot"
 
+import type { PreloadDataAsync } from "$lib/server/deepwell/views"
 import { UserType, type TranslateKeys } from "$lib/types"
 import type { Cookies, RequestEvent } from "@sveltejs/kit"
 
-export async function loadRegisterPage(request: Request, cookies: Cookies) {
+export async function loadRegisterPage(
+  request: Request,
+  cookies: Cookies,
+  preloadData: PreloadDataAsync
+) {
   // Set up parameters
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { siteId } = loadSiteInfo(request.headers)
   const sessionToken = cookies.get("wikijump_token")
-  const locales = parseAcceptLangHeader(request)
 
-  const viewData = {
-    isLoggedIn: Boolean(sessionToken)
-  }
+  const parentData = await preloadData()
+  const locales = parentData.locales
 
-  if (!locales.includes(defaults.fallbackLocale)) locales.push(defaults.fallbackLocale)
+  const isLoggedIn = Boolean(parentData.user_session)
 
   const translateKeys: TranslateKeys = {
     ...defaults.translateKeys,
@@ -65,7 +67,7 @@ export async function loadRegisterPage(request: Request, cookies: Cookies) {
   const registerForm = await superValidate(valibot(registerSchema))
 
   // Return to page for rendering
-  return { ...viewData, internationalization, registerForm }
+  return { isLoggedIn, internationalization, registerForm }
 }
 
 export async function registerAction({ request, getClientAddress }: RequestEvent) {

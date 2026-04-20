@@ -3,19 +3,20 @@ import "$lib/vite-env.d.ts"
 import defaults from "$lib/defaults"
 import process from "process"
 
-import { parseAcceptLangHeader } from "$lib/locales"
 import { info } from "$lib/server/deepwell"
 import { translate } from "$lib/server/deepwell/translate"
-import { loadSiteInfo } from "$lib/server/load/site-info"
 
+import type { PreloadDataAsync } from "$lib/server/deepwell/views"
 import type { TranslateKeys } from "$lib/types"
+import type { Cookies } from "@sveltejs/kit"
 
-export async function loadInfo(request: Request) {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { siteId } = loadSiteInfo(request.headers)
-  const locales = parseAcceptLangHeader(request)
-
-  if (!locales.includes(defaults.fallbackLocale)) locales.push(defaults.fallbackLocale)
+export async function loadInfo(
+  request: Request,
+  cookies: Cookies,
+  preloadData: PreloadDataAsync
+) {
+  const parentData = await preloadData()
+  const locales = parentData.locales
 
   const response = await info()
 

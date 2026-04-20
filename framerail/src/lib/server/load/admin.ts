@@ -1,10 +1,9 @@
 import defaults from "$lib/defaults"
 
-import { parseAcceptLangHeader } from "$lib/locales"
 import { authGetSession } from "$lib/server/auth/getSession"
 import { siteUpdate } from "$lib/server/deepwell/admin"
 import { translate } from "$lib/server/deepwell/translate"
-import { adminView } from "$lib/server/deepwell/views"
+import { adminView, type PreloadDataAsync } from "$lib/server/deepwell/views"
 import { loadSiteInfo } from "$lib/server/load/site-info"
 import { Layout } from "$lib/types"
 import { error } from "@sveltejs/kit"
@@ -23,31 +22,18 @@ import {
 import type { TranslateKeys } from "$lib/types"
 import type { Cookies, RequestEvent } from "@sveltejs/kit"
 
-export async function loadAdminPage(request: Request, cookies: Cookies) {
+export async function loadAdminPage(
+  request: Request,
+  cookies: Cookies,
+  preloadData: PreloadDataAsync
+) {
   const { siteId } = loadSiteInfo(request.headers)
   const sessionToken = cookies.get("wikijump_token")
-  let locales = parseAcceptLangHeader(request)
 
-  const response = await adminView(
-    siteId,
-    [...locales, defaults.fallbackLocale],
-    sessionToken
-  )
+  const parentData = await preloadData()
+  const locales = parentData.locales
 
-  if (response.data?.user_session?.user?.locales) {
-    locales = [
-      ...response.data.user_session.user.locales,
-      ...locales.filter(
-        (locale) => !response.data.user_session?.user.locales.includes(locale)
-      )
-    ]
-  }
-
-  if (response.data?.site?.locale && !locales.includes(response.data.site.locale)) {
-    locales.push(response.data.site.locale)
-  }
-
-  if (!locales.includes(defaults.fallbackLocale)) locales.push(defaults.fallbackLocale)
+  const response = await adminView(siteId, locales, sessionToken)
 
   let translateKeys: TranslateKeys = {
     ...defaults.translateKeys,

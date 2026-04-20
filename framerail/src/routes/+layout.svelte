@@ -10,7 +10,6 @@
   import { resolve } from "$app/paths"
 
   let { children } = $props()
-  let pageData = $derived(page.data ?? page.error)
 
   function closeErrorPopup() {
     errorPopupState.current = {
@@ -26,7 +25,7 @@
       pageLayoutState.current = Layout.WIKIJUMP
     } else {
       pageLayoutState.current =
-        page.data?.page?.layout ?? pageData?.site?.layout ?? Layout.WIKIJUMP
+        page.data?.page?.layout ?? page.data?.site?.layout ?? Layout.WIKIJUMP
     }
   }
   $effect(() => {
@@ -39,7 +38,7 @@
 {/if}
 
 <svelte:head>
-  <title>{pageData?.site?.name}</title>
+  <title>{page.data.site?.name}</title>
 </svelte:head>
 
 {#if pageLayoutState.current === Layout.WIKIDOT}
@@ -52,19 +51,21 @@
   <Wikidot>
     {#snippet header()}
       <h1>
-        <a class="active" href={resolve("/", {})}><span>{pageData?.site?.name}</span></a>
+        <a class="active" href={resolve("/", {})}><span>{page.data.site?.name}</span></a>
       </h1>
       <h2>
-        <span>{pageData?.site?.tagline}</span>
+        <span>{page.data.site?.tagline}</span>
       </h2>
     {/snippet}
 
     {#snippet topBar()}
-      {@html pageData?.compiled_top_bar_html ?? ""}
+      {@html page.data?.compiled_top_bar_html ?? page.error?.compiled_top_bar_html ?? ""}
     {/snippet}
 
     {#snippet sideBar()}
-      {@html pageData?.compiled_side_bar_html ?? ""}
+      {@html page.data?.compiled_side_bar_html ??
+        page.error?.compiled_side_bar_html ??
+        ""}
     {/snippet}
 
     {#snippet content()}
@@ -73,22 +74,34 @@
 
     {#snippet footer()}
       <div class="options">
-        <a href={resolve("/", {})}>{pageData?.internationalization?.docs}</a>
-        |
         <a href={resolve("/", {})}
-          >{pageData?.internationalization?.["terms-conditions"]}</a
+          >{page.data?.internationalization?.docs ??
+            page.error?.internationalization?.docs}</a
         >
         |
-        <a href={resolve("/", {})}>{pageData?.internationalization?.privacy}</a>
+        <a href={resolve("/", {})}
+          >{page.data?.internationalization?.["terms-conditions"] ??
+            page.error?.internationalization?.["terms-conditions"]}</a
+        >
         |
-        <a href={resolve("/", {})}>{pageData?.internationalization?.security}</a>
+        <a href={resolve("/", {})}
+          >{page.data?.internationalization?.privacy ??
+            page.error?.internationalization?.privacy}</a
+        >
+        |
+        <a href={resolve("/", {})}
+          >{page.data?.internationalization?.security ??
+            page.error?.internationalization?.security}</a
+        >
       </div>
       <div class="footer-powered-by">
-        {pageData?.internationalization?.["footer-powered-by"]}
+        {page.data?.internationalization?.["footer-powered-by"] ??
+          page.error?.internationalization?.["footer-powered-by"]}
       </div>
     {/snippet}
     {#snippet license()}
-      {@html pageData?.internationalization?.["footer-license-unless"]}
+      {@html page.data?.internationalization?.["footer-license-unless"] ??
+        page.error?.internationalization?.["footer-license-unless"]}
     {/snippet}
   </Wikidot>
 {:else}
@@ -100,7 +113,7 @@
     {/snippet}
 
     {#snippet topBar()}
-      {@html pageData?.compiled_top_bar_html ?? ""}
+      {@html page.data?.compiled_top_bar_html ?? page.error?.compiled_top_bar_html ?? ""}
     {/snippet}
 
     {#snippet content()}
@@ -112,21 +125,32 @@
         <ul class="footer-items">
           <li class="footer-item">
             <a href={resolve("/", {})}
-              >{pageData?.internationalization?.["terms-conditions"]}</a
+              >{page.data?.internationalization?.["terms-conditions"] ??
+                page.error?.internationalization?.["terms-conditions"]}</a
             >
           </li>
           <li class="footer-item">
-            <a href={resolve("/", {})}>{pageData?.internationalization?.privacy}</a>
+            <a href={resolve("/", {})}
+              >{page.data?.internationalization?.privacy ??
+                page.error?.internationalization?.privacy}</a
+            >
           </li>
           <li class="footer-item">
-            <a href={resolve("/", {})}>{pageData?.internationalization?.docs}</a>
+            <a href={resolve("/", {})}
+              >{page.data?.internationalization?.docs ??
+                page.error?.internationalization?.docs}</a
+            >
           </li>
           <li class="footer-item">
-            <a href={resolve("/", {})}>{pageData?.internationalization?.security}</a>
+            <a href={resolve("/", {})}
+              >{page.data?.internationalization?.security ??
+                page.error?.internationalization?.security}</a
+            >
           </li>
         </ul>
         <div class="footer-powered-by">
-          {pageData?.internationalization?.["footer-powered-by"]}
+          {page.data?.internationalization?.["footer-powered-by"] ??
+            page.error?.internationalization?.["footer-powered-by"]}
         </div>
       </div>
     {/snippet}
