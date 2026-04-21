@@ -68,12 +68,8 @@ impl Scorer for MeanScorer {
             .or_raise(|| make_error("mean"))?
             .expect("No results in aggregate query");
 
-        let score = if count == 0 {
-            0.0
-        } else {
-            (sum / count) as f64
-        };
-
-        Ok(ScoreValue::Float(score))
+        let sum = sum as f64;
+        let count = count as f64;
+        Ok(ScoreValue::Float(sum / count))
     }
 }
