@@ -23,7 +23,6 @@ use super::prelude::*;
 #[derive(Debug)]
 pub struct MeanScorer;
 
-#[async_trait]
 impl Scorer for MeanScorer {
     #[inline]
     fn score_type(&self) -> ScoreType {

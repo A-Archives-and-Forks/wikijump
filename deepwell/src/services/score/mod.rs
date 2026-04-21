@@ -24,9 +24,9 @@ mod prelude {
     pub use super::Scorer;
     pub use super::structs::*;
     pub use crate::models::page_vote::{self, Entity as PageVote};
-    pub use async_trait::async_trait;
     pub use ftml::data::ScoreValue;
     pub use sea_orm::{DatabaseTransaction, FromQueryResult};
+    pub use std::future::Future;
 }
 
 mod impls;
