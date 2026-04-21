@@ -50,6 +50,20 @@ description = "Secret key for S3 access."
 value = ""  # TODO: fill in value here!
 is_secret = true
 
+# Mailjet API
+
+[[variable]]
+name = "MAILJET_API_KEY"
+description = "API key for Mailjet."
+value = ""  # TODO: fill in value here!
+is_secret = true
+
+[[variable]]
+name = "MAILJET_SECRET_KEY"
+description = "Secret key for Mailjet."
+value = ""  # TODO: fill in value here!
+is_secret = true
+
 # ACME DNS Challenge Token
 #
 # This assumes you're using DigitalOcean, but any DNS provider
