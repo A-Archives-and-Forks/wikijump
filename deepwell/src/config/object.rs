@@ -210,6 +210,15 @@ pub struct Config {
     /// Whether to use a mocked version of MailCheck for testing purposes.
     pub mock_mailcheck: bool,
 
+    /// The email address to use when sending typical automation emails.
+    pub automation_email: String,
+
+    /// The email address to use when sending notification emails.
+    pub notification_email: String,
+
+    /// The email address to use when sending newsletter emails.
+    pub newsletter_email: String,
+
     /// Length of randomly-generated portion of S3 presigned URLs.
     pub presigned_path_length: usize,
 
@@ -322,6 +331,9 @@ impl Config {
             minimum_name_bytes: 4,
             minimum_name_chars: 2,
             mock_mailcheck: true,
+            automation_email: str!("noreply@wikijump.com"),
+            notification_email: str!("notifications@wikijump.com"),
+            newsletter_email: str!("newsletter@wikijump.com"),
             presigned_path_length: 4,
             presigned_expiry_secs: 60,
             maximum_blob_size: 512 * 1024,

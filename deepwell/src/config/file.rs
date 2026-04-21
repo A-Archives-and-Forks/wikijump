@@ -53,6 +53,7 @@ pub struct ConfigFile {
     ftml: Ftml,
     blueprint: Blueprint,
     user: User,
+    email: Email,
     file: FileSection,
     message: Message,
 }
@@ -183,7 +184,15 @@ struct User {
     refill_name_change_days: u64,
     minimum_name_bytes: usize,
     minimum_name_chars: usize,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "kebab-case")]
+struct Email {
     mock_mailcheck: bool,
+    automation_address: String,
+    notification_address: String,
+    newsletter_address: String,
 }
 
 // NOTE: Name conflict with std::fs::File
@@ -327,7 +336,13 @@ impl ConfigFile {
                     refill_name_change_days,
                     minimum_name_bytes,
                     minimum_name_chars,
+                },
+            email:
+                Email {
                     mock_mailcheck,
+                    automation_address: automation_email,
+                    notification_address: notification_email,
+                    newsletter_address: newsletter_email,
                 },
             file:
                 FileSection {
@@ -465,6 +480,9 @@ impl ConfigFile {
             minimum_name_bytes,
             minimum_name_chars,
             mock_mailcheck,
+            automation_email,
+            notification_email,
+            newsletter_email,
             presigned_path_length,
             presigned_expiry_secs: presigned_expiration_minutes * 60,
             maximum_blob_size: maximum_blob_size_kb * 1024,
