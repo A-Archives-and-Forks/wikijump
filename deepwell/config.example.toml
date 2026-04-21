@@ -285,7 +285,7 @@ last-update-ms = 0
 
 # Alternate, more compact representation of the above:
 # rerender-skip = [
-#     { job-depth = 5, last-update-ms = 100 },
+#     { job-depth = 3, last-update-ms = 100 },
 #     { job-depth = 10, last-update-ms = 1500 },
 #     { job-depth = 50, last-update-ms = 0 },
 # ]
