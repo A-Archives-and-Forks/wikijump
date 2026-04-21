@@ -23,7 +23,6 @@ use super::prelude::*;
 #[derive(Debug)]
 pub struct SumScorer;
 
-#[async_trait]
 impl Scorer for SumScorer {
     #[inline]
     fn score_type(&self) -> ScoreType {

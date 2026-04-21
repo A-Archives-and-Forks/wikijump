@@ -24,7 +24,6 @@ use crate::services::ScoreService;
 #[derive(Debug)]
 pub struct PercentScorer;
 
-#[async_trait]
 impl Scorer for PercentScorer {
     #[inline]
     fn score_type(&self) -> ScoreType {

@@ -21,6 +21,7 @@
 use crate::error::Result;
 use crate::services::ServiceContext;
 use crate::types::{Reference, Resource};
+use std::future::Future;
 
 /// Trait for resolving category references (ID or slug) to category IDs.
 ///
@@ -29,20 +30,18 @@ use crate::types::{Reference, Resource};
 ///
 /// For `Reference::Id`, implementations can return the ID directly without a DB lookup.
 /// For `Reference::Slug`, implementations should query the database to resolve the slug.
-#[async_trait::async_trait]
 pub trait CategoryResolver: Send + Sync {
     /// Resolve a category reference to its numeric ID.
-    async fn resolve(
+    fn resolve(
         ctx: &ServiceContext<'_>,
         site_id: i64,
         reference: Reference<'_>,
-    ) -> Result<Option<i64>>;
+    ) -> impl Future<Output = Result<Option<i64>>> + Send;
 }
 
 #[derive(Debug)]
 pub struct PageCategoryResolver;
 
-#[async_trait::async_trait]
 impl CategoryResolver for PageCategoryResolver {
     async fn resolve(
         ctx: &ServiceContext<'_>,
