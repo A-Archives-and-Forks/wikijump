@@ -30,29 +30,29 @@ pub struct Model {
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
     #[sea_orm(
-        belongs_to = "super::user::Entity",
+        belongs_to = "super::known_user::Entity",
         from = "Column::CreatedBy",
-        to = "super::user::Column::UserId",
+        to = "super::known_user::Column::UserId",
         on_update = "NoAction",
         on_delete = "NoAction"
     )]
-    User3,
+    KnownUser3,
     #[sea_orm(
-        belongs_to = "super::user::Entity",
+        belongs_to = "super::known_user::Entity",
         from = "Column::DeletedBy",
-        to = "super::user::Column::UserId",
+        to = "super::known_user::Column::UserId",
         on_update = "NoAction",
         on_delete = "NoAction"
     )]
-    User2,
+    KnownUser2,
     #[sea_orm(
-        belongs_to = "super::user::Entity",
+        belongs_to = "super::known_user::Entity",
         from = "Column::OverwrittenBy",
-        to = "super::user::Column::UserId",
+        to = "super::known_user::Column::UserId",
         on_update = "NoAction",
         on_delete = "NoAction"
     )]
-    User1,
+    KnownUser1,
 }
 
 impl ActiveModelBehavior for ActiveModel {}

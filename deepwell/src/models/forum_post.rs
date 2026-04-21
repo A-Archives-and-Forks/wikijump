@@ -94,6 +94,22 @@ pub enum Relation {
     )]
     ForumThread1,
     #[sea_orm(
+        belongs_to = "super::known_user::Entity",
+        from = "Column::DeletedBy",
+        to = "super::known_user::Column::UserId",
+        on_update = "NoAction",
+        on_delete = "NoAction"
+    )]
+    KnownUser2,
+    #[sea_orm(
+        belongs_to = "super::known_user::Entity",
+        from = "Column::UserId",
+        to = "super::known_user::Column::UserId",
+        on_update = "NoAction",
+        on_delete = "NoAction"
+    )]
+    KnownUser1,
+    #[sea_orm(
         belongs_to = "super::site::Entity",
         from = "Column::SiteId",
         to = "super::site::Column::SiteId",
@@ -101,22 +117,6 @@ pub enum Relation {
         on_delete = "NoAction"
     )]
     Site,
-    #[sea_orm(
-        belongs_to = "super::user::Entity",
-        from = "Column::DeletedBy",
-        to = "super::user::Column::UserId",
-        on_update = "NoAction",
-        on_delete = "NoAction"
-    )]
-    User2,
-    #[sea_orm(
-        belongs_to = "super::user::Entity",
-        from = "Column::UserId",
-        to = "super::user::Column::UserId",
-        on_update = "NoAction",
-        on_delete = "NoAction"
-    )]
-    User1,
 }
 
 impl Related<super::forum_post_lock::Entity> for Entity {

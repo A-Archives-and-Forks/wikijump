@@ -4,20 +4,32 @@ use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, Serialize, Deserialize)]
-#[sea_orm(table_name = "session")]
+#[sea_orm(table_name = "wikidot_user")]
 pub struct Model {
-    #[sea_orm(primary_key, auto_increment = false, column_type = "Text")]
-    pub session_token: String,
-    pub user_id: i64,
+    #[sea_orm(primary_key, auto_increment = false)]
+    pub user_id: i32,
     #[serde(with = "time::serde::rfc3339")]
     pub created_at: TimeDateTimeWithTimeZone,
     #[serde(with = "time::serde::rfc3339")]
-    pub expires_at: TimeDateTimeWithTimeZone,
-    #[sea_orm(column_type = "Text")]
-    pub ip_address: String,
-    #[sea_orm(column_type = "Text")]
-    pub user_agent: String,
-    pub restricted: bool,
+    pub fetched_at: TimeDateTimeWithTimeZone,
+    pub is_deleted: bool,
+    #[sea_orm(column_type = "Text", nullable, unique)]
+    pub name: Option<String>,
+    #[sea_orm(column_type = "Text", nullable, unique)]
+    pub slug: Option<String>,
+    #[sea_orm(column_type = "Text", nullable)]
+    pub real_name: Option<String>,
+    #[sea_orm(column_type = "Text", nullable)]
+    pub gender: Option<String>,
+    pub birthday: Option<TimeDate>,
+    #[sea_orm(column_type = "Text", nullable)]
+    pub location: Option<String>,
+    #[sea_orm(column_type = "Text", nullable)]
+    pub biography: Option<String>,
+    #[sea_orm(column_type = "Text", nullable)]
+    pub website: Option<String>,
+    pub karma: i16,
+    pub is_pro: bool,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
