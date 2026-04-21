@@ -39,69 +39,12 @@ fn build_config(main_domain: &str, files_domain: &str) -> Config {
     assert!(!main_domain.starts_with('.'));
     assert!(!files_domain.starts_with('.'));
 
-    Config {
-        main_domain_no_dot: str!(main_domain),
-        main_domain: format!(".{main_domain}"),
-        files_domain_no_dot: str!(files_domain),
-        files_domain: format!(".{files_domain}"),
-
-        // Unused fields
-        raw_toml: String::new(),
-        raw_toml_path: PathBuf::new(),
-        logger: false,
-        logger_level: LevelFilter::Off,
-        address: "[::]:2747".parse().unwrap(),
-        pid_file: None,
-        watch_files: false,
-        run_seeder: false,
-        seeder_path: PathBuf::new(),
-        localization_path: PathBuf::new(),
-        authentication_fail_delay: StdDuration::from_secs(0),
-        session_token_prefix: String::new(),
-        session_token_length: 0,
-        normal_session_duration: TimeDuration::seconds(0),
-        restricted_session_duration: TimeDuration::seconds(0),
-        recovery_code_count: 0,
-        recovery_code_length: 0,
-        totp_time_step: 0,
-        totp_time_skew: 0,
-        job_workers: NonZeroU16::new(1).unwrap(),
-        job_max_attempts: 0,
-        job_work_delay: StdDuration::from_secs(0),
-        job_min_poll_delay: StdDuration::from_secs(0),
-        job_max_poll_delay: StdDuration::from_secs(0),
-        job_prune_session: StdDuration::from_secs(0),
-        job_prune_uploads: StdDuration::from_secs(0),
-        job_prune_text: StdDuration::from_secs(0),
-        job_name_change_refill: StdDuration::from_secs(0),
-        job_lift_expired_punishments: StdDuration::from_secs(0),
-        preprocess_timeout: StdDuration::from_secs(0),
-        render_timeout: StdDuration::from_secs(0),
-        rerender_skip: Vec::new(),
-        message_layout: Layout::Wikijump,
-        default_page_layout: Layout::Wikijump,
-        blueprint_page_prefix: String::new(),
-        blueprint_page_template: String::new(),
-        blueprint_page_missing: String::new(),
-        blueprint_page_private: String::new(),
-        blueprint_page_banned: String::new(),
-        default_name_changes: 0,
-        maximum_name_changes: 0,
-        refill_name_change: None,
-        minimum_name_bytes: 0,
-        minimum_name_chars: 0,
-        mock_mailcheck: true,
-        automation_email: String::new(),
-        notification_email: String::new(),
-        newsletter_email: String::new(),
-        presigned_path_length: 0,
-        presigned_expiry_secs: 0,
-        maximum_blob_size: 0,
-        maximum_avatar_size: 0,
-        maximum_message_subject_bytes: 0,
-        maximum_message_body_bytes: 0,
-        maximum_message_recipients: 0,
-    }
+    let mut config = Config::integration_testing();
+    config.main_domain_no_dot = str!(main_domain);
+    config.main_domain = format!(".{main_domain}");
+    config.files_domain_no_dot = str!(files_domain);
+    config.files_domain = format!(".{files_domain}");
+    config
 }
 
 fn build_site_data() -> (SiteData, SiteData) {
