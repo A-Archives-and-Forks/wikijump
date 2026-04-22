@@ -36,14 +36,14 @@ pub trait CategoryResolver: Send + Sync {
         ctx: &ServiceContext<'_>,
         site_id: i64,
         reference: Reference<'_>,
-    ) -> Result<Option<i64>>;
+    ) -> impl Future<Output = Result<Option<i64>>> + Send;
 
     /// Resolve a category reference to a slug, for human-readable output.
-    async fn resolve_slug<'slug>(
+    fn resolve_slug<'slug>(
         ctx: &ServiceContext<'_>,
         site_id: i64,
         reference: Reference<'slug>,
-    ) -> Result<Option<Cow<'slug, str>>>;
+    ) -> impl Future<Output = Result<Option<Cow<'slug, str>>>> + Send;
 }
 
 #[derive(Debug)]
