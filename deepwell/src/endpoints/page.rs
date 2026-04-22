@@ -311,7 +311,7 @@ pub async fn page_restore(
 
     info!(
         "Un-deleting page ID {} in site ID {}",
-        input.id.site_id, input.id.page_id,
+        input.site_id, input.page_id,
     );
 
     PageService::restore(ctx, input)

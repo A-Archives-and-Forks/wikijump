@@ -21,7 +21,7 @@
   import { deserialize } from "$app/forms"
 
   let props: PageProps = $props()
-  let { data, params } = $derived(props)
+  let { data } = $derived(props)
 
   let showSource = $state<boolean>(false)
   let showPageOptions = $state<boolean>(false)
@@ -67,7 +67,7 @@
           .filter(([, enabled]) => enabled)
           .map(([key]) => `/${key}`)
 
-        goto(resolve(`/${params.slug}${options.join("")}/edit`, {}), {
+        goto(resolve(`/${data.page!.slug}${options.join("")}/edit`, {}), {
           noScroll: true
         })
       }

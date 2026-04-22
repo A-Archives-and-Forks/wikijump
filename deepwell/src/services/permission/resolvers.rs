@@ -30,10 +30,9 @@ use std::borrow::Cow;
 ///
 /// For `Reference::Id`, implementations can return the ID directly without a DB lookup.
 /// For `Reference::Slug`, implementations should query the database to resolve the slug.
-#[async_trait::async_trait]
 pub trait CategoryResolver: Send + Sync {
     /// Resolve a category reference to its numeric ID.
-    async fn resolve(
+    fn resolve(
         ctx: &ServiceContext<'_>,
         site_id: i64,
         reference: Reference<'_>,
@@ -50,7 +49,6 @@ pub trait CategoryResolver: Send + Sync {
 #[derive(Debug)]
 pub struct PageCategoryResolver;
 
-#[async_trait::async_trait]
 impl CategoryResolver for PageCategoryResolver {
     async fn resolve(
         ctx: &ServiceContext<'_>,

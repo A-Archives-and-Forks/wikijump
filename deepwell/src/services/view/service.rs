@@ -62,6 +62,40 @@ use wikidot_normalize::normalize;
 pub struct ViewService;
 
 impl ViewService {
+    pub async fn preload(
+        ctx: &ServiceContext<'_>,
+        GetPreloadView {
+            site_id,
+            locales: locales_str,
+            session_token,
+        }: GetPreloadView,
+    ) -> Result<GetPreloadViewOutput> {
+        info!("Getting preload data for site ID {site_id}, locales '{locales_str:?}'");
+
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to get preload data for site ID {}, locales '{:?}'",
+                    site_id, locales_str,
+                ),
+                ErrorType::GetView(ViewType::Preload),
+            )
+        };
+
+        let mut locales = parse_locales(&locales_str)?;
+        let viewer = Self::get_viewer(
+            ctx,
+            &mut locales,
+            site_id,
+            session_token.ref_map(|s| s.as_str()),
+            ViewType::Preload,
+        )
+        .await
+        .or_raise(make_error)?;
+
+        Ok(GetPreloadViewOutput { viewer })
+    }
+
     pub async fn page(
         ctx: &ServiceContext<'_>,
         GetPageView {
@@ -85,23 +119,17 @@ impl ViewService {
             )
         };
 
-        let mut locales = parse_locales(&locales_str)?;
+        let locales = parse_locales(&locales_str)?;
         let config = ctx.config();
-        let Viewer {
-            site,
-            site_file_domain,
-            license_name,
-            license_url,
-            user_session,
-        } = Self::get_viewer(
-            ctx,
-            &mut locales,
-            site_id,
-            session_token.ref_map(|s| s.as_str()),
-            ViewType::Page,
-        )
-        .await
-        .or_raise(make_error)?;
+
+        // Get site information
+        let site = SiteService::get(ctx, Reference::Id(site_id))
+            .await
+            .or_raise(make_error)?;
+
+        let user_session = Self::get_session(ctx, session_token.ref_map(|s| s.as_str()))
+            .await
+            .or_raise(make_error)?;
 
         // If None, means the main page for the site. Pull from site data.
         let (page_full_slug, page_extra): (&str, &str) = match &route {
@@ -391,20 +419,12 @@ impl ViewService {
 
         // TODO Check if user-agent and IP match?
 
-        let viewer = Viewer {
-            site,
-            site_file_domain,
-            license_name,
-            license_url,
-            user_session,
-        };
         let output = match page_status {
             PageStatus::Found {
                 page,
                 page_revision,
                 attributions,
             } => GetPageViewOutput::Found {
-                viewer,
                 options,
                 page,
                 page_revision,
@@ -416,7 +436,6 @@ impl ViewService {
                 compiled_side_bar_html,
             },
             PageStatus::Missing => GetPageViewOutput::Missing {
-                viewer,
                 options,
                 redirect_page,
                 wikitext,
@@ -425,7 +444,6 @@ impl ViewService {
                 compiled_side_bar_html,
             },
             PageStatus::Private => GetPageViewOutput::Permissions {
-                viewer,
                 options,
                 redirect_page,
                 compiled_body_html,
@@ -434,7 +452,6 @@ impl ViewService {
                 banned: false,
             },
             PageStatus::Banned => GetPageViewOutput::Permissions {
-                viewer,
                 options,
                 redirect_page,
                 compiled_body_html,
@@ -470,16 +487,9 @@ impl ViewService {
             )
         };
 
-        let mut locales = parse_locales(&locales_str)?;
-        let viewer = Self::get_viewer(
-            ctx,
-            &mut locales,
-            site_id,
-            session_token.ref_map(|s| s.as_str()),
-            ViewType::User,
-        )
-        .await
-        .or_raise(make_error)?;
+        let user_session = Self::get_session(ctx, session_token.ref_map(|s| s.as_str()))
+            .await
+            .or_raise(make_error)?;
 
         // TODO Check if user-agent and IP match?
 
@@ -490,15 +500,12 @@ impl ViewService {
                 .or_raise(make_error)?,
 
             // For users visiting their own user info page
-            None => viewer
-                .user_session
-                .as_ref()
-                .map(|session| session.user.clone()),
+            None => user_session.map(|session| session.user),
         };
 
         let output = match user {
-            Some(user) => GetUserViewOutput::UserFound { viewer, user },
-            None => GetUserViewOutput::UserMissing { viewer },
+            Some(user) => GetUserViewOutput::UserFound { user },
+            None => GetUserViewOutput::UserMissing,
         };
 
         Ok(output)
@@ -524,27 +531,27 @@ impl ViewService {
             )
         };
 
-        let mut locales = parse_locales(&locales_str)?;
+        let locales = parse_locales(&locales_str)?;
         let config = ctx.config();
-        let viewer = Self::get_viewer(
-            ctx,
-            &mut locales,
-            site_id,
-            session_token.ref_map(|s| s.as_str()),
-            ViewType::Admin,
-        )
-        .await
-        .or_raise(make_error)?;
+
+        // Get site information
+        let site = SiteService::get(ctx, Reference::Id(site_id))
+            .await
+            .or_raise(make_error)?;
+
+        let user_session = Self::get_session(ctx, session_token.ref_map(|s| s.as_str()))
+            .await
+            .or_raise(make_error)?;
 
         let page_info = PageInfo {
             page: cow!(""),
             category: cow_opt!(Some("admin")),
             title: cow!(""),
             alt_title: None,
-            site: cow!(viewer.site.slug),
+            site: cow!(site.slug),
             score: ScoreValue::Integer(0),
             tags: vec![],
-            language: cow!(viewer.site.locale),
+            language: cow!(site.locale),
         };
 
         let GetBlueprintPageOutput {
@@ -552,7 +559,7 @@ impl ViewService {
             render_output,
         } = BlueprintPageService::get(
             ctx,
-            &viewer.site,
+            &site,
             BlueprintPageType::Unauthorized,
             &locales,
             config.default_page_layout,
@@ -571,12 +578,11 @@ impl ViewService {
         } = render_output;
 
         // Check user access to site settings
-        let user_id = match viewer.user_session {
+        let user_id = match user_session {
             Some(ref session) => Some(session.user.user_id),
             None => {
                 debug!("No user for session, disallow admin access");
                 return Ok(GetAdminViewOutput::AdminPermissions {
-                    viewer,
                     html: compiled_html,
                 });
             }
@@ -601,12 +607,11 @@ impl ViewService {
         // Determine whether to return the actual admin panel content
         let output = if user_can_access_admin {
             debug!("User has admin access, return data");
-            GetAdminViewOutput::SiteFound { viewer }
+            GetAdminViewOutput::SiteFound
         } else {
             warn!("User doesn't have admin access, returning permission page");
 
             GetAdminViewOutput::AdminPermissions {
-                viewer,
                 html: compiled_html,
             }
         };
@@ -708,6 +713,30 @@ impl ViewService {
             license_url,
             user_session,
         })
+    }
+
+    async fn get_session(
+        ctx: &ServiceContext<'_>,
+        session_token: Option<&str>,
+    ) -> Result<Option<UserSession>> {
+        let make_error = || Error::new("failed to get user session", ErrorType::Session);
+
+        // Get user data from session token (if present)
+        let user_session = match session_token {
+            Some("") | None => None,
+            Some(token) => {
+                let session =
+                    SessionService::get(ctx, token).await.or_raise(make_error)?;
+
+                let user = UserService::get(ctx, Reference::Id(session.user_id))
+                    .await
+                    .or_raise(make_error)?;
+
+                Some(UserSession { session, user })
+            }
+        };
+
+        Ok(user_session)
     }
 
     fn should_redirect_page(slug: &str) -> Option<String> {

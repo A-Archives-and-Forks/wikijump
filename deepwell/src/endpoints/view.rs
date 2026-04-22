@@ -20,9 +20,24 @@
 
 use super::prelude::*;
 use crate::services::view::{
-    GetAdminView, GetAdminViewOutput, GetPageView, GetPageViewOutput, GetUserView,
-    GetUserViewOutput, ViewType,
+    GetAdminView, GetAdminViewOutput, GetPageView, GetPageViewOutput, GetPreloadView,
+    GetPreloadViewOutput, GetUserView, GetUserViewOutput, ViewType,
 };
+
+/// Returns relevant context for rendering a view from a processed web request.
+pub async fn preload_view(
+    ctx: &ServiceContext<'_>,
+    params: Params<'static>,
+) -> Result<GetPreloadViewOutput> {
+    let input: GetPreloadView = parse!(params => ErrorType::GetView(ViewType::Preload));
+
+    ViewService::preload(ctx, input).await.or_raise(|| {
+        Error::new(
+            "failed to get preload view",
+            ErrorType::GetView(ViewType::Preload),
+        )
+    })
+}
 
 /// Returns relevant context for rendering a page from a processed web request.
 pub async fn page_view(

@@ -972,7 +972,6 @@ dependencies = [
  "arraystring",
  "arrayvec",
  "askama",
- "async-trait",
  "built",
  "bytes",
  "cfg-if",

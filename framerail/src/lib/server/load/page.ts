@@ -1,6 +1,5 @@
 import defaults from "$lib/defaults"
 
-import { parseAcceptLangHeader } from "$lib/locales"
 import { authGetSession } from "$lib/server/auth/getSession"
 import {
   pageDelete,
@@ -50,47 +49,27 @@ import {
   enum as vEnum
 } from "valibot"
 
-import type { PageView } from "$lib/server/deepwell/views"
+import type { PageView, PreloadDataAsync } from "$lib/server/deepwell/views"
 import type { Optional, TranslateKeys } from "$lib/types"
 import type { Cookies, RequestEvent } from "@sveltejs/kit"
-
-// TODO form single deepwell request that does all the relevant prep stuff here
 
 export async function loadPage(
   slug: Optional<string>,
   extra: Optional<string>,
   request: Request,
-  cookies: Cookies
+  cookies: Cookies,
+  preloadData: PreloadDataAsync
 ) {
   // Set up parameters
   const { siteId } = loadSiteInfo(request.headers)
   const route = slug || extra ? { slug, extra } : null
   const sessionToken = cookies.get("wikijump_token")
-  let locales = parseAcceptLangHeader(request)
+
+  const parentData = await preloadData()
+  const locales = parentData.locales
 
   // Request data from backend
-  // Includes fallback locale in case there is no Accept-Language header
-  const response = await pageView(
-    siteId,
-    [...locales, defaults.fallbackLocale],
-    route,
-    sessionToken
-  )
-
-  if (response.data.user_session?.user.locales) {
-    locales = [
-      ...response.data.user_session.user.locales,
-      ...locales.filter(
-        (locale) => !response.data.user_session?.user.locales.includes(locale)
-      )
-    ]
-  }
-
-  if (response.data?.site?.locale && !locales.includes(response.data.site.locale)) {
-    locales.push(response.data.site.locale)
-  }
-
-  if (!locales.includes(defaults.fallbackLocale)) locales.push(defaults.fallbackLocale)
+  const response = await pageView(siteId, locales, route, sessionToken)
 
   // Process response, performing redirects etc
   const { data: responseData, type: responseType } = response
@@ -131,8 +110,8 @@ export async function loadPage(
     "wiki-page-layout.wikijump": {},
 
     "footer-license-unless": {
-      license: responseData.license_name,
-      "license_url": responseData.license_url
+      license: parentData.license_name,
+      "license_url": parentData.license_url
     }
   }
 

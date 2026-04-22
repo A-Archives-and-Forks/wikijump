@@ -10,11 +10,8 @@
 
   let pageParents = $state<string>("")
 
-  let {
-    pagePaneState = $bindable(),
-    data,
-    params
-  }: PageProps & { pagePaneState: PagePane } = $props()
+  let { pagePaneState = $bindable(), data }: PageProps & { pagePaneState: PagePane } =
+    $props()
 
   const { form, enhance } = superForm(
     untrack(() => data.forms.pageParentForm),
@@ -59,7 +56,7 @@
       body: JSON.stringify({
         siteId: data.site.site_id,
         pageId: data.page?.page_id,
-        slug: params.slug
+        slug: data.page?.slug
       })
     }).then((res) => res.text())
 

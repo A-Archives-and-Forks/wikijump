@@ -24,7 +24,6 @@ use rand::{Rng, thread_rng};
 #[derive(Debug)]
 pub struct TestScorer;
 
-#[async_trait]
 impl Scorer for TestScorer {
     #[inline]
     fn score_type(&self) -> ScoreType {

@@ -6,21 +6,24 @@ import { translate } from "$lib/server/deepwell/translate"
 import { loadSiteInfo } from "$lib/server/load/site-info"
 import { fail } from "@sveltejs/kit"
 
+import type { PreloadDataAsync } from "$lib/server/deepwell/views"
 import type { TranslateKeys } from "$lib/types"
 import type { Cookies, RequestEvent } from "@sveltejs/kit"
 
-export async function loadLogoutPage(request: Request, cookies: Cookies) {
+export async function loadLogoutPage(
+  request: Request,
+  cookies: Cookies,
+  preloadData: PreloadDataAsync
+) {
   // Set up parameters
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { siteId } = loadSiteInfo(request.headers)
   const sessionToken = cookies.get("wikijump_token")
-  const locales = parseAcceptLangHeader(request)
 
-  const viewData = {
-    isLoggedIn: Boolean(sessionToken)
-  }
+  const parentData = await preloadData()
+  const locales = parentData.locales
 
-  if (!locales.includes(defaults.fallbackLocale)) locales.push(defaults.fallbackLocale)
+  const isLoggedIn = Boolean(parentData.user_session)
 
   const translateKeys: TranslateKeys = {
     ...defaults.translateKeys,
@@ -36,7 +39,7 @@ export async function loadLogoutPage(request: Request, cookies: Cookies) {
   const internationalization = await translate(locales, translateKeys)
 
   // Return to page for rendering
-  return { ...viewData, internationalization }
+  return { isLoggedIn, internationalization }
 }
 
 export async function logoutAction({ cookies, request }: RequestEvent) {

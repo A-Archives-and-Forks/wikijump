@@ -20,12 +20,28 @@ export interface Viewer {
   user_session: Nullable<UserSession>
 }
 
+/* ----- Preload ----- */
+
+export async function preloadView(
+  siteId: number,
+  locales: string[],
+  sessionToken: Optional<string>
+): Promise<Viewer> {
+  return client.request("preload_view", {
+    site_id: siteId,
+    locales,
+    session_token: sessionToken
+  })
+}
+
+export type PreloadDataAsync = () => Promise<Viewer & { locales: string[] }>
+
 /* ----- Page View ----- */
 export interface PageRoute {
-  slug: string
-  extra: string
+  slug: Optional<string>
+  extra: Optional<string>
 }
-interface PageViewDataBase extends Viewer {
+interface PageViewDataBase {
   options: PageOptions
   redirect_page: Nullable<string>
   wikitext: string
@@ -58,7 +74,7 @@ export type PageView = PageViewFound | PageViewMissing | PageViewPermissions
 export async function pageView(
   siteId: number,
   locales: string[],
-  route: Optional<PageRoute>,
+  route: Nullable<PageRoute>,
   sessionToken: Optional<string>
 ): Promise<PageView> {
   return client.request("page_view", {
@@ -72,11 +88,11 @@ export async function pageView(
 /* ----- Admin View ----- */
 interface AdminViewSiteFound {
   type: "site_found"
-  data: Viewer
+  data: undefined
 }
 interface AdminViewAdminPermissions {
   type: "admin_permissions"
-  data: Viewer & {
+  data: {
     html: string
   }
 }
