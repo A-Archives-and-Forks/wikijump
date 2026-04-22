@@ -54,7 +54,6 @@ use std::fs;
 use std::io::Read;
 use std::net::{IpAddr, Ipv6Addr};
 use std::path::{Path, PathBuf};
-use std::str::FromStr;
 
 /// The IP address to record for any seeded data.
 pub const SEED_IP_ADDRESS: IpAddr = IpAddr::V6(Ipv6Addr::LOCALHOST);
@@ -576,16 +575,14 @@ pub async fn seed(state: &ServerState) -> Result<()> {
                 let parts = perm_spec.split(':').collect::<ArrayVec<_, 3>>();
                 let input = match parts.as_slice() {
                     [resource, action] => PermissionInput {
-                        resource_type: Resource::from_str(resource)
-                            .or_raise(make_error)?,
+                        resource_type: parse_or_raise!(resource, Resource, make_error),
                         resource_category: None,
-                        action: Action::from_str(action).or_raise(make_error)?,
+                        action: parse_or_raise!(action, Action, make_error),
                     },
                     [resource, category_slug, action] => PermissionInput {
-                        resource_type: Resource::from_str(resource)
-                            .or_raise(make_error)?,
+                        resource_type: parse_or_raise!(resource, Resource, make_error),
                         resource_category: Some(Reference::from(*category_slug)),
-                        action: Action::from_str(action).or_raise(make_error)?,
+                        action: parse_or_raise!(action, Action, make_error),
                     },
                     _ => {
                         warn!(

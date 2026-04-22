@@ -113,5 +113,6 @@ pub struct GetUserRolesInput<'a> {
 pub struct GetRolePermissionsInput<'a> {
     pub site_id: i64,
     pub role_reference: Reference<'a>,
+    #[serde(default)] // Defaults to false to avoid expensive computation
     pub human_readable_categories: bool,
 }

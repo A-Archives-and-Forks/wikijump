@@ -474,7 +474,7 @@ impl<'a> AuditEvent<'a> {
                     serde_json::to_string(new_permissions).or_raise(make_error)?;
 
                 RawAuditEvent {
-                    event_type: "permissions.update",
+                    event_type: "role.update_permissions",
                     ip_address,
                     user_id: Some(updating_user_id),
                     site_id: None,

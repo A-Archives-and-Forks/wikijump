@@ -71,7 +71,7 @@ impl RoleService {
             )
         };
 
-        // Validate parent role if specified
+        // Validate parent role (if specified) exists
         if let Some(parent_id) = parent_role_id {
             let _parent_role = Self::get(ctx, site_id, parent_id.into())
                 .await
@@ -111,7 +111,7 @@ impl RoleService {
     pub async fn update(
         ctx: &ServiceContext<'_>,
         UpdateRoleInput {
-            site_id: _,
+            site_id,
             role_id,
             name,
             description,
@@ -121,12 +121,6 @@ impl RoleService {
     ) -> Result<RoleModel> {
         let txn = ctx.transaction();
 
-        let mut model = role::ActiveModel {
-            role_id: Set(role_id),
-            updated_at: Set(Some(now())),
-            ..Default::default()
-        };
-
         let make_error = || {
             Error::new(
                 format!(
@@ -135,6 +129,17 @@ impl RoleService {
                 ),
                 ErrorType::Role,
             )
+        };
+
+        // Validate that the role belongs to the site
+        Self::get(ctx, site_id, role_id.into())
+            .await
+            .or_raise(make_error)?;
+
+        let mut model = role::ActiveModel {
+            role_id: Set(role_id),
+            updated_at: Set(Some(now())),
+            ..Default::default()
         };
 
         // Update fields
@@ -502,19 +507,9 @@ impl RoleService {
             }
 
             // Validate that the new parent role exists
-            let parent_role =
-                Self::get(ctx, site_id, parent_id.into())
-                    .await
-                    .or_raise(|| {
-                        Error::new("parent role not found", ErrorType::RoleNotFound)
-                    })?;
-
-            if parent_role.deleted_at.is_some() {
-                bail!(Error::new(
-                    format!("parent role ID {} is deleted", parent_id),
-                    ErrorType::RoleNotFound,
-                ));
-            }
+            Self::get(ctx, site_id, parent_id.into())
+                .await
+                .or_raise(make_error)?;
 
             let is_proper_subset =
                 Self::validate_child_role_subset_of_parent(ctx, role_id, parent_id)
@@ -645,6 +640,7 @@ impl RoleService {
             .or_raise(make_error)?;
 
         // Hashmap for quick lookup.
+        // role_id -> parent_role_id
         let parent_map: HashMap<i64, i64> = roles
             .iter()
             .filter_map(|r| r.parent_role_id.map(|pid| (r.role_id, pid)))

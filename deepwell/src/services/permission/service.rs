@@ -171,12 +171,9 @@ impl PermissionService {
                 .iter()
                 .map(|perm| {
                     let resource_category_id =
-                        perm.resource_category.as_ref().and_then(|r| {
-                            if let Reference::Id(id) = r {
-                                Some(*id)
-                            } else {
-                                None
-                            }
+                        perm.resource_category.as_ref().and_then(|r| match r {
+                            Reference::Id(id) => Some(*id),
+                            _ => None,
                         });
                     role_permission::ActiveModel {
                         role_id: Set(role.role_id),
@@ -261,8 +258,7 @@ impl PermissionService {
                 };
                 Ok::<_, ExnError>(Permission {
                     resource: input.resource_type,
-                    resource_category: resource_category_slug
-                        .map(|slug| Reference::Slug(Cow::Owned(slug))),
+                    resource_category: resource_category_slug.map(Reference::Slug),
                     action: input.action,
                 })
             }))
@@ -527,13 +523,11 @@ impl PermissionService {
 
         // Remove permissions from child role
         for perm in &to_remove {
-            let resource_category_id = perm.resource_category.as_ref().and_then(|r| {
-                if let Reference::Id(id) = r {
-                    Some(*id)
-                } else {
-                    None
-                }
-            });
+            let resource_category_id =
+                perm.resource_category.as_ref().and_then(|r| match r {
+                    Reference::Id(id) => Some(*id),
+                    _ => None,
+                });
             RolePermission::delete_many()
                 .filter(role_permission::Column::RoleId.eq(child_role_id))
                 .filter(role_permission::Column::ResourceType.eq(perm.resource))
