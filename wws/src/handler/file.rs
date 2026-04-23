@@ -35,8 +35,7 @@ use axum::{
     },
     response::{IntoResponse, Response},
 };
-use rand::distributions::{Alphanumeric, DistString};
-use rand::thread_rng;
+use rand::distr::{Alphanumeric, SampleString};
 use std::fmt::Write;
 
 /// Prefix for MIME boundaries used in `multipart/byteranges` responses.
@@ -347,7 +346,7 @@ fn build_or_500(result: Result<Response<Body>, axum::http::Error>) -> Response {
 }
 
 fn generate_multipart_boundary() -> String {
-    let mut rng = thread_rng();
+    let mut rng = rand::rng();
     let mut boundary = String::with_capacity(
         MULTIPART_BOUNDARY_PREFIX.len() + MULTIPART_BOUNDARY_RANDOM_LENGTH,
     );
