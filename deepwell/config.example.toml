@@ -285,7 +285,7 @@ last-update-ms = 0
 
 # Alternate, more compact representation of the above:
 # rerender-skip = [
-#     { job-depth = 5, last-update-ms = 100 },
+#     { job-depth = 3, last-update-ms = 100 },
 #     { job-depth = 10, last-update-ms = 1500 },
 #     { job-depth = 50, last-update-ms = 0 },
 # ]
@@ -375,6 +375,8 @@ minimum-name-chars = 2
 # Set to 0 to disable.
 refill-name-change-days = 90
 
+[email]
+
 # Whether to use a mocked version of MailCheck, for testing.
 # This should *not* be used in production!
 #
@@ -382,6 +384,21 @@ refill-name-change-days = 90
 # for instance "john@spam.xxx" is detected as a spam email.
 mock-mailcheck = false
 
+# Email addresses to use for sending.
+# See the domain section for the values used for each tier.
+
+# Automation
+# e.g. verifying email, password resets, etc.
+automation-address = "noreply@wikijump.com"
+
+# Notifications
+# For automated notifications, e.g. configured emails on forum thread comment.
+notification-address = "notifications@wikijump.com"
+
+# Newsletter
+# For bulk emails sent to many users, e.g. site mailing list.
+# Expected to be seldom used.
+newsletter-address = "newsletter@wikijump.com"
 
 [file]
 
@@ -403,6 +420,7 @@ maximum-blob-size-kb = 1_048_576
 
 # The maximum blob size allowed for user avatars, in KiB.
 maximum-avatar-size-kb = 250
+
 
 [message]
 

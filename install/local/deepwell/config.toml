@@ -69,7 +69,12 @@ maximum-name-changes = 3
 minimum-name-bytes = 4
 minimum-name-chars = 2
 refill-name-change-days = 90
+
+[email]
 mock-mailcheck = true
+automation-address = "noreply@wikijump.localhost"
+notification-address = "notifications@wikijump.localhost"
+newsletter-address = "newsletter@wikijump.localhost"
 
 [file]
 presigned-path-length = 32
