@@ -4,7 +4,6 @@
         "description": "Root user with full site permissions",
         "is-virtual": false,
         "is-system": true,
-        "level": 100,
         "permissions": [
             "page:view",
             "page:edit",
@@ -21,7 +20,7 @@
         "description": "Site administrator with full control",
         "is-virtual": false,
         "is-system": false,
-        "level": 99,
+        "parent_role": "root",
         "permissions": [
             "page:view",
             "page:edit",
@@ -39,7 +38,7 @@
         "description": "Site moderator with full control over pages",
         "is-virtual": false,
         "is-system": false,
-        "level": 90,
+        "parent_role": "admin",
         "permissions": [
             "page:view",
             "page:edit",
@@ -53,7 +52,7 @@
         "description": "Regular site member",
         "is-virtual": false,
         "is-system": true,
-        "level": 10,
+        "parent_role": "root",
         "permissions": [
             "page:view",
             "page:edit",
@@ -65,7 +64,7 @@
         "description": "Virtual role for all non-members, including registered and anonymous users.",
         "is-virtual": true,
         "is-system": true,
-        "level": 1,
+        "parent_role": "member",
         "permissions": [
             "page:view"
         ]
@@ -75,7 +74,7 @@
         "description": "Virtual role for registered and logged-in users.",
         "is-virtual": true,
         "is-system": true,
-        "level": 1,
+        "parent_role": "guest",
         "permissions": [
             "page:view"
         ]
@@ -85,7 +84,7 @@
         "description": "Virtual role for unregistered or logged out users.",
         "is-virtual": true,
         "is-system": true,
-        "level": 1,
+        "parent_role": "guest",
         "permissions": [
             "page:view"
         ]
@@ -95,7 +94,7 @@
         "description": "Virtual role for all users, regardless of membership or registration status.",
         "is-virtual": true,
         "is-system": true,
-        "level": 1,
+        "parent_role": "guest",
         "permissions": [
             "page:view"
         ]
@@ -105,7 +104,7 @@
         "description": "Virtual role granted to the user when they visit a page that they authored, based on the page attribution metadata.",
         "is-virtual": true,
         "is-system": true,
-        "level": 1,
+        "parent_role": "root",
         "permissions": [
             "page:view",
             "page:edit",
@@ -115,4 +114,3 @@
         ]
     }
 ]
-

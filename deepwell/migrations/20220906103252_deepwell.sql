@@ -919,10 +919,8 @@ CREATE TABLE role (
     -- Virtual roles cannot be manually assigned.
     is_virtual BOOLEAN NOT NULL DEFAULT false,
 
-    -- Rudimentary role hierarchy.
-    -- Roles with higher level are granted more permissions than roles with lower levels.
-    -- Users with role management permissions can only grant roles with lower levels and affect users of lower levels.
-    level INTEGER NOT NULL CHECK (level >= 0),
+    -- The parent role for this role, following a tree-based hierarchy.
+    parent_role_id BIGINT REFERENCES role(role_id),
 
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
     updated_at TIMESTAMP WITH TIME ZONE,

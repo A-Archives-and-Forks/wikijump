@@ -15,7 +15,7 @@ pub struct Model {
     pub description: String,
     pub from_wikidot: bool,
     pub is_virtual: bool,
-    pub level: i32,
+    pub parent_role_id: Option<i64>,
     #[serde(with = "time::serde::rfc3339")]
     pub created_at: TimeDateTimeWithTimeZone,
     #[serde(with = "time::serde::rfc3339::option")]
@@ -26,6 +26,14 @@ pub struct Model {
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
+    #[sea_orm(
+        belongs_to = "Entity",
+        from = "Column::ParentRoleId",
+        to = "Column::RoleId",
+        on_update = "NoAction",
+        on_delete = "NoAction"
+    )]
+    ParentRole,
     #[sea_orm(has_many = "super::role_permission::Entity")]
     RolePermission,
     #[sea_orm(

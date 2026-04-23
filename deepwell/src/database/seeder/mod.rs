@@ -32,14 +32,14 @@ use crate::services::file::{
 };
 use crate::services::filter::{CreateFilter, FilterService};
 use crate::services::page::{CreatePage, PageService};
-use crate::services::permission::{
-    PermissionCache, PermissionInput, PermissionService, resolve_category_reference,
-};
+use crate::services::permission::{PermissionCache, PermissionInput, PermissionService};
 use crate::services::relation::{
     PageAttributionEntry, PageAttributionKind, PageAttributionMetadata, RelationService,
     SetPageAttributions,
 };
-use crate::services::role::{CreateRoleInput, GrantUserRoleInput, RoleService};
+use crate::services::role::{
+    CreateRoleInput, GrantUserRoleInput, RoleService, UpdateRolePermissionsInput,
+};
 use crate::services::site::{CreateSite, CreateSiteOutput, SiteService, UpdateSiteBody};
 use crate::services::user::{CreateUser, CreateUserOutput, UpdateUserBody, UserService};
 use crate::types::{Action, AliasType, Maybe, Reference, Resource};
@@ -54,7 +54,6 @@ use std::fs;
 use std::io::Read;
 use std::net::{IpAddr, Ipv6Addr};
 use std::path::{Path, PathBuf};
-use std::str::FromStr;
 
 /// The IP address to record for any seeded data.
 pub const SEED_IP_ADDRESS: IpAddr = IpAddr::V6(Ipv6Addr::LOCALHOST);
@@ -541,6 +540,20 @@ pub async fn seed(state: &ServerState) -> Result<()> {
         info!("Creating roles for site '{}'", site_id);
 
         for role_template in &roles {
+            let parent_role_id = match &role_template.parent_role {
+                Some(parent_slug) => Some(
+                    RoleService::get(
+                        &ctx,
+                        site_id,
+                        Reference::Slug(Cow::Borrowed(parent_slug)),
+                    )
+                    .await
+                    .or_raise(make_error)?
+                    .role_id,
+                ),
+                None => None,
+            };
+
             let role = RoleService::create(
                 &ctx,
                 CreateRoleInput {
@@ -548,43 +561,29 @@ pub async fn seed(state: &ServerState) -> Result<()> {
                     name: role_template.name.clone(),
                     description: Some(role_template.description.clone()),
                     is_virtual: role_template.is_virtual,
-                    level: role_template.level,
+                    parent_role_id,
+                    creating_user_id: SYSTEM_USER_ID,
+                    ip_address: SEED_IP_ADDRESS,
                 },
-                SEED_IP_ADDRESS,
             )
             .await
             .or_raise(make_error)?;
 
             // Assign permissions to role
+            let mut permissions = Vec::with_capacity(role_template.permissions.len());
             for perm_spec in &role_template.permissions {
                 let parts = perm_spec.split(':').collect::<ArrayVec<_, 3>>();
-                let (resource, resource_category, action) = match parts.as_slice() {
-                    [resource, action] => (resource, None, action),
-                    [resource, category_slug, action] => {
-                        let resource_enum =
-                            Resource::from_str(resource).or_raise(make_error)?;
-
-                        // Look up the category by slug from the database
-                        let category_id = resolve_category_reference(
-                            &ctx,
-                            site_id,
-                            resource_enum,
-                            Reference::from(*category_slug),
-                        )
-                        .await
-                        .or_raise(make_error)?;
-
-                        match category_id {
-                            Some(id) => (resource, Some(Reference::Id(id)), action),
-                            None => {
-                                warn!(
-                                    "Skipping permission '{}' for role '{}' in site ID {}: category '{}' does not exist",
-                                    perm_spec, role_template.name, site_id, category_slug
-                                );
-                                continue;
-                            }
-                        }
-                    }
+                let input = match parts.as_slice() {
+                    [resource, action] => PermissionInput {
+                        resource_type: parse_or_raise!(resource, Resource, make_error),
+                        resource_category: None,
+                        action: parse_or_raise!(action, Action, make_error),
+                    },
+                    [resource, category_slug, action] => PermissionInput {
+                        resource_type: parse_or_raise!(resource, Resource, make_error),
+                        resource_category: Some(Reference::from(*category_slug)),
+                        action: parse_or_raise!(action, Action, make_error),
+                    },
                     _ => {
                         warn!(
                             "Skipping invalid permission format '{}' for role '{}' in site ID {}",
@@ -593,21 +592,22 @@ pub async fn seed(state: &ServerState) -> Result<()> {
                         continue;
                     }
                 };
-
-                PermissionService::add_permission_to_role(
-                    &ctx,
-                    site_id,
-                    role.role_id,
-                    PermissionInput {
-                        resource_type: Resource::from_str(resource)
-                            .or_raise(make_error)?,
-                        resource_category,
-                        action: Action::from_str(action).or_raise(make_error)?,
-                    },
-                )
-                .await
-                .or_raise(make_error)?;
+                permissions.push(input);
             }
+
+            PermissionService::update_permissions_for_role(
+                &ctx,
+                UpdateRolePermissionsInput {
+                    site_id,
+                    role_reference: Reference::Id(role.role_id),
+                    new_permissions: permissions,
+                    cascade_removals: false,
+                    updating_user_id: SYSTEM_USER_ID,
+                    ip_address: SEED_IP_ADDRESS,
+                },
+            )
+            .await
+            .or_raise(make_error)?;
 
             // Make test user admin
             // TODO: remove in prod
@@ -618,14 +618,14 @@ pub async fn seed(state: &ServerState) -> Result<()> {
 
                 RoleService::grant_role_to_user(
                     &ctx,
-                    site_id,
                     GrantUserRoleInput {
+                        site_id,
                         user_id: user.user_id,
                         role_id: role.role_id,
                         assigning_user_id: SYSTEM_USER_ID,
                         expires_at: None,
+                        ip_address: SEED_IP_ADDRESS,
                     },
-                    SEED_IP_ADDRESS,
                 )
                 .await
                 .or_raise(make_error)?;

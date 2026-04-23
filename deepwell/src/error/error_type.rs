@@ -164,6 +164,15 @@ pub enum ErrorType {
     #[allow(dead_code)]
     RoleNotFound,
     PermissionDenied,
+    CyclicRoleViolation {
+        role_id: i64,
+        parent_role_id: i64,
+    },
+    RoleHierarchyViolation {
+        role_id: i64,
+        parent_role_id: i64,
+    },
+    DeleteRoleWithChildren,
 
     // 4000
     BadRequest,
@@ -443,6 +452,9 @@ impl ErrorType {
             ErrorType::PermissionNotFound => 3104,
             ErrorType::RoleNotFound => 3105,
             ErrorType::PermissionDenied => 3106,
+            ErrorType::CyclicRoleViolation { .. } => 3107,
+            ErrorType::RoleHierarchyViolation { .. } => 3108,
+            ErrorType::DeleteRoleWithChildren => 3109,
 
             //
             // 4000, 5000, 6000 -- Client / Request Errors
@@ -700,6 +712,15 @@ impl ErrorType {
             ErrorType::PermissionDenied => {
                 "User does not have permission to perform this action"
             }
+            ErrorType::CyclicRoleViolation { .. } => {
+                "Role hierarchy cannot contain cycles"
+            }
+            ErrorType::RoleHierarchyViolation { .. } => {
+                "Role permission set violates hierarchy constraints"
+            }
+            ErrorType::DeleteRoleWithChildren => {
+                "Cannot delete a role which has child roles, you must reparent or delete the child roles first"
+            }
 
             // 4000
             ErrorType::BadRequest => "The request is in some way malformed or incorrect",
@@ -898,6 +919,17 @@ impl ErrorType {
                 "actual": actual,
             }),
             ErrorType::BlobBlacklisted(bytes) => json!(*blob_hash_to_hex(bytes)),
+            ErrorType::CyclicRoleViolation {
+                role_id,
+                parent_role_id,
+            }
+            | ErrorType::RoleHierarchyViolation {
+                role_id,
+                parent_role_id,
+            } => json!({
+                "role_id": role_id,
+                "parent_role_id": parent_role_id,
+            }),
             _ => json!(null),
         }
     }

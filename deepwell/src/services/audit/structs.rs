@@ -107,19 +107,23 @@ pub enum AuditEvent<'a> {
     RoleCreate {
         site_id: i64,
         role_id: i64,
+        creating_user_id: i64,
     },
-    #[allow(dead_code)]
     RoleUpdate {
         role_id: i64,
+        name: Option<&'a str>,
+        description: Option<&'a str>,
         updating_user_id: i64,
-        level: i32,
-        old_permissions: Vec<Permission>,
-        new_permissions: Vec<Permission>,
     },
     #[allow(dead_code)]
     RoleDelete {
         role_id: i64,
         deleting_user_id: i64,
+    },
+    RoleReparent {
+        role_id: i64,
+        new_parent_id: Option<i64>,
+        reparenting_user_id: i64,
     },
     GrantUserRole {
         user_id: i64,
@@ -127,11 +131,16 @@ pub enum AuditEvent<'a> {
         assigning_user_id: i64,
         expires_at: Option<TimeDateTimeWithTimeZone>,
     },
-    #[allow(dead_code)]
     RevokeUserRole {
         user_id: i64,
         role_id: i64,
         revoking_user_id: i64,
+    },
+    UpdatePermissions {
+        role_id: i64,
+        updating_user_id: i64,
+        old_permissions: Vec<Permission>,
+        new_permissions: Vec<Permission>,
     },
 }
 
@@ -356,10 +365,14 @@ impl<'a> AuditEvent<'a> {
                 extra_string_2: None,
                 extra_number: None,
             },
-            AuditEvent::RoleCreate { site_id, role_id } => RawAuditEvent {
+            AuditEvent::RoleCreate {
+                site_id,
+                role_id,
+                creating_user_id,
+            } => RawAuditEvent {
                 event_type: "role.create",
                 ip_address,
-                user_id: None,
+                user_id: Some(creating_user_id),
                 site_id: Some(site_id),
                 page_id: None,
                 extra_id_1: Some(role_id),
@@ -370,29 +383,21 @@ impl<'a> AuditEvent<'a> {
             },
             AuditEvent::RoleUpdate {
                 role_id,
+                name,
+                description,
                 updating_user_id,
-                level,
-                ref old_permissions,
-                ref new_permissions,
-            } => {
-                let old_perms_json =
-                    serde_json::to_string(old_permissions).or_raise(make_error)?;
-                let new_perms_json =
-                    serde_json::to_string(new_permissions).or_raise(make_error)?;
-
-                RawAuditEvent {
-                    event_type: "role.update",
-                    ip_address,
-                    user_id: Some(updating_user_id),
-                    site_id: None,
-                    page_id: None,
-                    extra_id_1: Some(role_id),
-                    extra_id_2: None,
-                    extra_string_1: Some(Cow::Owned(old_perms_json)),
-                    extra_string_2: Some(Cow::Owned(new_perms_json)),
-                    extra_number: Some(level),
-                }
-            }
+            } => RawAuditEvent {
+                event_type: "role.update",
+                ip_address,
+                user_id: Some(updating_user_id),
+                site_id: None,
+                page_id: None,
+                extra_id_1: Some(role_id),
+                extra_id_2: None,
+                extra_string_1: name.map(Cow::Borrowed),
+                extra_string_2: description.map(Cow::Borrowed),
+                extra_number: None,
+            },
             AuditEvent::RoleDelete {
                 role_id,
                 deleting_user_id,
@@ -404,6 +409,22 @@ impl<'a> AuditEvent<'a> {
                 page_id: None,
                 extra_id_1: Some(role_id),
                 extra_id_2: None,
+                extra_string_1: None,
+                extra_string_2: None,
+                extra_number: None,
+            },
+            AuditEvent::RoleReparent {
+                role_id,
+                new_parent_id,
+                reparenting_user_id,
+            } => RawAuditEvent {
+                event_type: "role.reparent",
+                ip_address,
+                user_id: Some(reparenting_user_id),
+                site_id: None,
+                page_id: None,
+                extra_id_1: Some(role_id),
+                extra_id_2: new_parent_id,
                 extra_string_1: None,
                 extra_string_2: None,
                 extra_number: None,
@@ -441,6 +462,30 @@ impl<'a> AuditEvent<'a> {
                 extra_string_2: None,
                 extra_number: None,
             },
+            AuditEvent::UpdatePermissions {
+                role_id,
+                updating_user_id,
+                ref old_permissions,
+                ref new_permissions,
+            } => {
+                let old_perms_json =
+                    serde_json::to_string(old_permissions).or_raise(make_error)?;
+                let new_perms_json =
+                    serde_json::to_string(new_permissions).or_raise(make_error)?;
+
+                RawAuditEvent {
+                    event_type: "role.update_permissions",
+                    ip_address,
+                    user_id: Some(updating_user_id),
+                    site_id: None,
+                    page_id: None,
+                    extra_id_1: Some(role_id),
+                    extra_id_2: None,
+                    extra_string_1: Some(Cow::Owned(old_perms_json)),
+                    extra_string_2: Some(Cow::Owned(new_perms_json)),
+                    extra_number: None,
+                }
+            }
         };
 
         Ok(raw_event)

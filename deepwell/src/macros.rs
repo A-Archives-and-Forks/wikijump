@@ -69,6 +69,13 @@ macro_rules! fluent_str {
     };
 }
 
+/// Parses a string via `FromStr`
+macro_rules! parse_or_raise {
+    ($s:expr, $ty:ty, $raise:expr) => {
+        <$ty as ::std::str::FromStr>::from_str($s).or_raise($raise)?
+    };
+}
+
 /// Performs `.or_raise()?` on a number of `Result`s.
 /// Intended for use in conjunction with `join!()`.
 macro_rules! raise_multiple {

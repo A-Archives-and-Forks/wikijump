@@ -23,7 +23,9 @@ use crate::endpoints::user;
 use crate::error::{Error, ErrorType};
 use crate::models::prelude::Page;
 use crate::models::role::{self, Entity as Role, Model as RoleModel};
-use crate::models::role_permission::{self, Entity as RolePermission};
+use crate::models::role_permission::{
+    self, Entity as RolePermission, Model as RolePermissionModel,
+};
 use crate::models::user_role::{Entity as UserRole, Model as UserRoleModel};
 use crate::models::{page, user_role};
 use crate::services::audit::{AuditEvent, AuditService};
@@ -38,6 +40,8 @@ use crate::services::{PageService, RelationService, ServiceContext};
 use crate::types::{Action, Permission, Reference, Resource};
 use crate::utils::{now, trim_default};
 use sea_orm::prelude::Expr;
+use std::collections::{HashMap, HashSet};
+use std::hash::Hash;
 use std::net::IpAddr;
 use std::str::FromStr;
 
@@ -53,10 +57,11 @@ impl RoleService {
             name,
             description,
             is_virtual,
-            level,
+            parent_role_id,
+            creating_user_id,
+            ip_address,
         }: CreateRoleInput,
-        ip_address: IpAddr,
-    ) -> Result<CreateRoleOutput> {
+    ) -> Result<RoleModel> {
         let txn = ctx.transaction();
 
         let make_error = || {
@@ -66,6 +71,13 @@ impl RoleService {
             )
         };
 
+        // Validate parent role (if specified) exists
+        if let Some(parent_id) = parent_role_id {
+            let _parent_role = Self::get(ctx, site_id, parent_id.into())
+                .await
+                .or_raise(make_error)?;
+        }
+
         // Insert role
         let now = now();
 
@@ -74,53 +86,60 @@ impl RoleService {
             name: Set(name.clone()),
             description: Set(description.clone().unwrap_or_default()),
             is_virtual: Set(is_virtual),
-            level: Set(level),
             created_at: Set(now),
+            parent_role_id: Set(parent_role_id),
             ..Default::default()
         };
 
-        let RoleModel { role_id, .. } = model.insert(txn).await.or_raise(make_error)?;
+        let created_role = model.insert(txn).await.or_raise(make_error)?;
 
-        AuditService::log(ctx, ip_address, AuditEvent::RoleCreate { site_id, role_id })
-            .await
-            .or_raise(make_error)?;
+        AuditService::log(
+            ctx,
+            ip_address,
+            AuditEvent::RoleCreate {
+                site_id: created_role.site_id,
+                role_id: created_role.role_id,
+                creating_user_id,
+            },
+        )
+        .await
+        .or_raise(make_error)?;
 
-        Ok(CreateRoleOutput { role_id })
+        Ok(created_role)
     }
 
     pub async fn update(
         ctx: &ServiceContext<'_>,
-        site_id: i64,
-        reference: Reference<'_>,
         UpdateRoleInput {
+            site_id,
+            role_id,
             name,
             description,
-            level,
-            permissions,
+            updating_user_id,
+            ip_address,
         }: UpdateRoleInput,
-        updating_user_id: i64,
-        ip_address: IpAddr,
     ) -> Result<RoleModel> {
         let txn = ctx.transaction();
-
-        let role = Self::get(ctx, site_id, reference)
-            .await
-            .or_raise(|| Error::new("failed to update role data", ErrorType::Role))?;
-
-        let mut model = role::ActiveModel {
-            role_id: Set(role.role_id),
-            updated_at: Set(Some(now())),
-            ..Default::default()
-        };
 
         let make_error = || {
             Error::new(
                 format!(
                     "failed to update role ID {}, changed by user ID {}",
-                    role.role_id, updating_user_id,
+                    role_id, updating_user_id,
                 ),
                 ErrorType::Role,
             )
+        };
+
+        // Validate that the role belongs to the site
+        Self::get(ctx, site_id, role_id.into())
+            .await
+            .or_raise(make_error)?;
+
+        let mut model = role::ActiveModel {
+            role_id: Set(role_id),
+            updated_at: Set(Some(now())),
+            ..Default::default()
         };
 
         // Update fields
@@ -132,81 +151,16 @@ impl RoleService {
             model.description = Set(description_val.clone());
         }
 
-        if let Maybe::Set(level_val) = level {
-            model.level = Set(level_val);
-        }
-
-        // Update permissions
-        let current_permissions: Vec<Permission> =
-            PermissionService::get_permissions_for_role(ctx, role.role_id)
-                .await
-                .or_raise(make_error)?
-                .into_iter()
-                .map(|perm| Permission {
-                    resource: perm.resource_type,
-                    resource_category: perm.resource_category_id.map(Reference::Id),
-                    action: perm.action,
-                })
-                .collect();
-
-        // TODO: Make this more efficient
-
-        // Remove all existing permissions for this role
-        RolePermission::delete_many()
-            .filter(role_permission::Column::RoleId.eq(role.role_id))
-            .exec(txn)
-            .await
-            .or_raise(make_error)?;
-
-        // Add new permissions for this role
-        let new_permissions = match &permissions {
-            Maybe::Set(permissions) => {
-                let mut models = Vec::new();
-
-                for permission in permissions {
-                    let resource_category_id = match &permission.resource_category {
-                        Some(cat) => resolve_category_reference(
-                            ctx,
-                            role.site_id,
-                            permission.resource,
-                            cat.clone(),
-                        )
-                        .await
-                        .or_raise(make_error)?,
-                        None => None,
-                    };
-
-                    models.push(role_permission::ActiveModel {
-                        role_id: Set(role.role_id),
-                        site_id: Set(role.site_id),
-                        resource_type: Set(permission.resource),
-                        resource_category_id: Set(resource_category_id),
-                        action: Set(permission.action),
-                        ..Default::default()
-                    });
-                }
-
-                RolePermission::insert_many(models)
-                    .exec(txn)
-                    .await
-                    .or_raise(make_error)?;
-
-                permissions.clone()
-            }
-            _ => Vec::new(),
-        };
-
         let updated_role = model.update(txn).await.or_raise(make_error)?;
 
         AuditService::log(
             ctx,
             ip_address,
             AuditEvent::RoleUpdate {
-                role_id: role.role_id,
+                role_id,
+                name: name.to_option().map(String::as_str),
+                description: description.to_option().map(String::as_str),
                 updating_user_id,
-                level: updated_role.level,
-                old_permissions: current_permissions,
-                new_permissions,
             },
         )
         .await
@@ -217,16 +171,79 @@ impl RoleService {
 
     pub async fn delete(
         ctx: &ServiceContext<'_>,
-        site_id: i64,
-        reference: Reference<'_>,
-        deleting_user_id: i64,
-        ip_address: IpAddr,
-    ) -> Result<()> {
+        DeleteRoleInput {
+            site_id,
+            role_id,
+            deleting_user_id,
+            reparent_children,
+            ip_address,
+        }: DeleteRoleInput,
+    ) -> Result<RoleModel> {
         let txn = ctx.transaction();
 
-        let role = Self::get(ctx, site_id, reference)
+        let role = Self::get(ctx, site_id, role_id.into())
             .await
             .or_raise(|| Error::new("failed to delete role", ErrorType::Role))?;
+
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to delete role ID {} by user ID {}",
+                    role.role_id, deleting_user_id,
+                ),
+                ErrorType::Role,
+            )
+        };
+
+        // Check for child roles
+        let child_roles = Role::find()
+            .filter(
+                role::Column::ParentRoleId
+                    .eq(role.role_id)
+                    .and(role::Column::DeletedAt.is_null()),
+            )
+            .all(txn)
+            .await
+            .or_raise(make_error)?;
+
+        if !child_roles.is_empty() {
+            if reparent_children {
+                if let Some(parent_id) = role.parent_role_id {
+                    // Reparent child roles to the deleted role's parent
+                    Role::update_many()
+                        .col_expr(
+                            role::Column::ParentRoleId,
+                            Expr::value(Some(parent_id)),
+                        )
+                        .filter(
+                            role::Column::ParentRoleId
+                                .eq(role.role_id)
+                                .and(role::Column::DeletedAt.is_null()),
+                        )
+                        .exec(txn)
+                        .await
+                        .or_raise(make_error)?;
+                } else {
+                    // Cannot reparent to null, bail with error
+                    // TODO: Figure out what to do with top-level role, if we are not having a "root" role.
+                    bail!(Error::new(
+                        format!(
+                            "cannot delete top-level role ID {} because it has child roles and reparenting is not possible",
+                            role.role_id,
+                        ),
+                        ErrorType::DeleteRoleWithChildren,
+                    ));
+                }
+            } else {
+                bail!(Error::new(
+                    format!(
+                        "cannot delete role ID {} because it has child roles",
+                        role.role_id,
+                    ),
+                    ErrorType::DeleteRoleWithChildren,
+                ));
+            }
+        }
 
         // Remove this role from all users who actively have it
         UserRole::update_many()
@@ -242,17 +259,7 @@ impl RoleService {
                 Error::new("failed to remove role from users", ErrorType::Role)
             })?;
 
-        let make_error = || {
-            Error::new(
-                format!(
-                    "failed to delete role ID {} by user ID {}",
-                    role.role_id, deleting_user_id,
-                ),
-                ErrorType::Role,
-            )
-        };
-
-        role::ActiveModel {
+        let deleted_role = role::ActiveModel {
             role_id: Set(role.role_id),
             deleted_at: Set(Some(now())),
             ..Default::default()
@@ -272,7 +279,7 @@ impl RoleService {
         .await
         .or_raise(make_error)?;
 
-        Ok(())
+        Ok(deleted_role)
     }
 
     pub async fn get_optional(
@@ -320,14 +327,14 @@ impl RoleService {
 
     pub async fn grant_role_to_user(
         ctx: &ServiceContext<'_>,
-        site_id: i64,
         GrantUserRoleInput {
             user_id,
             role_id,
+            site_id,
             assigning_user_id,
             expires_at,
+            ip_address,
         }: GrantUserRoleInput,
-        ip_address: IpAddr,
     ) -> Result<UserRoleModel> {
         let txn = ctx.transaction();
 
@@ -371,10 +378,13 @@ impl RoleService {
 
     pub async fn revoke_role_from_user(
         ctx: &ServiceContext<'_>,
-        user_id: i64,
-        role_id: i64,
-        revoking_user_id: i64,
-        ip_address: IpAddr,
+        RevokeUserRoleInput {
+            user_id,
+            role_id,
+            site_id: _,
+            revoking_user_id,
+            ip_address,
+        }: RevokeUserRoleInput,
     ) -> Result<UserRoleModel> {
         let txn = ctx.transaction();
 
@@ -388,20 +398,10 @@ impl RoleService {
             )
         };
 
-        let _user_role = user_role::Entity::find()
-            .filter(
-                user_role::Column::UserId
-                    .eq(user_id)
-                    .and(user_role::Column::RoleId.eq(role_id)),
-            )
-            .one(txn)
-            .await
-            .or_raise(make_error)?;
-
         let deleted_user_role = user_role::ActiveModel {
             user_id: Set(user_id),
             role_id: Set(role_id),
-            deleted_at: Set(Option::from(now())),
+            deleted_at: Set(Some(now())),
             ..Default::default()
         }
         .update(txn)
@@ -446,7 +446,8 @@ impl RoleService {
                     user_role::Column::UserId
                         .eq(id)
                         .and(role::Column::SiteId.eq(input.site_id))
-                        .and(role::Column::DeletedAt.is_null()),
+                        .and(role::Column::DeletedAt.is_null())
+                        .and(user_role::Column::DeletedAt.is_null()),
                 )
                 .all(txn)
                 .await
@@ -466,6 +467,227 @@ impl RoleService {
             input.site_id,
             roles.iter().map(|r| &r.name).collect::<Vec<_>>()
         );
+
+        Ok(roles)
+    }
+
+    pub async fn reparent_role(
+        ctx: &ServiceContext<'_>,
+        ReparentRoleInput {
+            site_id,
+            role_id,
+            new_parent_id,
+            reparenting_user_id,
+            ip_address,
+        }: ReparentRoleInput,
+    ) -> Result<()> {
+        let txn = ctx.transaction();
+
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to reparent role ID {} under parent ID {:?} in site ID {}",
+                    role_id, new_parent_id, site_id,
+                ),
+                ErrorType::Role,
+            )
+        };
+
+        // Perform validations
+        if let Some(parent_id) = new_parent_id {
+            // Validate that parent role is not self
+            if parent_id == role_id {
+                bail!(Error::new(
+                    format!("role ID {} cannot be its own parent", role_id),
+                    ErrorType::CyclicRoleViolation {
+                        role_id,
+                        parent_role_id: parent_id
+                    },
+                ));
+            }
+
+            // Validate that the new parent role exists
+            Self::get(ctx, site_id, parent_id.into())
+                .await
+                .or_raise(make_error)?;
+
+            let is_proper_subset =
+                Self::validate_child_role_subset_of_parent(ctx, role_id, parent_id)
+                    .await
+                    .or_raise(make_error)?;
+
+            // Hacky solution to avoid running the expensive cycle check.
+            // If the new parent has more permissions than the child, it cannot be a descendant of the child, so we can skip the cycle check.
+            // This assumes that the role tree is valid and constraints are respected.
+            if !is_proper_subset {
+                Self::validate_reparent_no_cycle(ctx, site_id, role_id, parent_id)
+                    .await
+                    .or_raise(make_error)?;
+            }
+        }
+
+        role::ActiveModel {
+            role_id: Set(role_id),
+            parent_role_id: Set(new_parent_id),
+            updated_at: Set(Some(now())),
+            ..Default::default()
+        }
+        .update(txn)
+        .await
+        .or_raise(make_error)?;
+
+        AuditService::log(
+            ctx,
+            ip_address,
+            AuditEvent::RoleReparent {
+                role_id,
+                new_parent_id,
+                reparenting_user_id,
+            },
+        )
+        .await
+        .or_raise(make_error)?;
+
+        Ok(())
+    }
+
+    /// Validates that the permissions of the child role are a subset of the permissions of the parent role.
+    /// Throws an error if constraint is violated.
+    ///
+    /// Returns true if the child role has strictly fewer permissions than the parent role (a proper subset),
+    /// and false if the child role has the same permissions as the parent role.
+    async fn validate_child_role_subset_of_parent(
+        ctx: &ServiceContext<'_>,
+        child_role_id: i64,
+        parent_role_id: i64,
+    ) -> Result<bool> {
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to validate permissions for child role ID {} and parent role ID {}",
+                    child_role_id, parent_role_id,
+                ),
+                ErrorType::Role,
+            )
+        };
+
+        let child_permissions = PermissionService::permissions_as_set(ctx, child_role_id)
+            .await
+            .or_raise(make_error)?;
+
+        let parent_permissions =
+            PermissionService::permissions_as_set(ctx, parent_role_id)
+                .await
+                .or_raise(make_error)?;
+
+        if !child_permissions.is_subset(&parent_permissions) {
+            bail!(Error::new(
+                format!(
+                    "cannot reparent role ID {} under role ID {} because the child role has permissions that the parent role does not have",
+                    child_role_id, parent_role_id,
+                ),
+                ErrorType::RoleHierarchyViolation {
+                    role_id: child_role_id,
+                    parent_role_id,
+                },
+            ));
+        }
+
+        Ok(child_permissions.len() < parent_permissions.len())
+    }
+
+    /// Checks that (re)parenting `role_id` under `parent_id` would not introduce a cycle.
+    ///
+    /// Validate that the parent role is not already a descendant of the child role.
+    async fn validate_reparent_no_cycle(
+        ctx: &ServiceContext<'_>,
+        site_id: i64,
+        role_id: i64,
+        parent_id: i64,
+    ) -> Result<()> {
+        if parent_id == role_id {
+            bail!(Error::new(
+                format!("role ID {} cannot be its own parent", role_id),
+                ErrorType::CyclicRoleViolation {
+                    role_id,
+                    parent_role_id: parent_id,
+                },
+            ));
+        }
+
+        let txn = ctx.transaction();
+
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to check reparent cycle for role ID {} in site ID {}",
+                    role_id, site_id,
+                ),
+                ErrorType::Role,
+            )
+        };
+
+        // Load all active roles for the site to build the parent map in memory.
+        // TODO: Figure out a more efficient way to do this
+        let roles: Vec<RoleModel> = Role::find()
+            .filter(
+                role::Column::SiteId
+                    .eq(site_id)
+                    .and(role::Column::DeletedAt.is_null()),
+            )
+            .all(txn)
+            .await
+            .or_raise(make_error)?;
+
+        // Hashmap for quick lookup.
+        // role_id -> parent_role_id
+        let parent_map: HashMap<i64, i64> = roles
+            .iter()
+            .filter_map(|r| r.parent_role_id.map(|pid| (r.role_id, pid)))
+            .collect();
+
+        // Walk the ancestor chain of parent_id upward.
+        // If we reach role_id, the reparent would create a cycle.
+        let mut current = parent_id;
+        loop {
+            match parent_map.get(&current) {
+                Some(&pid) if pid == role_id => {
+                    bail!(Error::new(
+                        format!(
+                            "reparenting role ID {} under role ID {} would create a cycle",
+                            role_id, parent_id,
+                        ),
+                        ErrorType::CyclicRoleViolation {
+                            role_id,
+                            parent_role_id: parent_id,
+                        },
+                    ));
+                }
+                Some(&pid) => current = pid,
+                None => break,
+            }
+        }
+
+        Ok(())
+    }
+
+    pub async fn get_all_roles_for_site(
+        ctx: &ServiceContext<'_>,
+        site_id: i64,
+    ) -> Result<Vec<RoleModel>> {
+        let txn = ctx.transaction();
+
+        let make_error = || Error::new("failed to get roles for site", ErrorType::Role);
+
+        let roles = Role::find()
+            .filter(
+                role::Column::SiteId
+                    .eq(site_id)
+                    .and(role::Column::DeletedAt.is_null()),
+            )
+            .all(txn)
+            .await
+            .or_raise(make_error)?;
 
         Ok(roles)
     }
