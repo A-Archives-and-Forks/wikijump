@@ -20,10 +20,7 @@
 
 use super::prelude::*;
 use crate::utils::assert_is_csprng;
-use argon2::{
-    Argon2, PasswordHash, PasswordHasher, PasswordVerifier, password_hash::SaltString,
-};
-use rand::thread_rng;
+use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
 use tokio::time;
 
 #[derive(Debug)]
@@ -35,15 +32,9 @@ impl PasswordService {
     /// Generates a salt securely and performs Argon-2 hashing
     /// and yields a string in PHC format.
     pub fn new_hash(password: &str) -> Result<String> {
-        // Create and verify CSPRNG
-        let mut rng = thread_rng();
-        assert_is_csprng(&rng);
-
-        // Create Argon-2 context, salt, and then hash the password
         let argon2 = Argon2::default();
-        let salt = SaltString::generate(&mut rng);
         let hash = argon2
-            .hash_password(password.as_bytes(), &salt)
+            .hash_password(password.as_bytes())
             .map_err(convert_argon_error)?
             .to_string();
 
@@ -109,13 +100,9 @@ impl PasswordService {
     }
 
     fn verify_internal(password: &str, hash: &str) -> Result<()> {
-        // Parse PHC string
-        let hash = PasswordHash::new(hash).map_err(convert_argon_error)?;
-
-        // Create Argon-2 context, then verify the password
         let argon2 = Argon2::default();
         argon2
-            .verify_password(password.as_bytes(), &hash)
+            .verify_password(password.as_bytes(), hash)
             .map_err(convert_argon_error)?;
 
         Ok(())

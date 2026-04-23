@@ -22,13 +22,13 @@ use super::prelude::*;
 use crate::services::PasswordService;
 use crate::utils::assert_is_csprng;
 use data_encoding::BASE32_NOPAD;
-use rand::distributions::{Alphanumeric, DistString};
-use rand::{Rng, thread_rng};
+use rand::Rng;
+use rand::distr::{Alphanumeric, SampleString};
 use std::iter;
 use std::net::IpAddr;
 
 pub fn generate_totp_secret() -> String {
-    let mut rng = thread_rng();
+    let mut rng = rand::rng();
     assert_is_csprng(&rng);
 
     // TOTP secret is any sufficiently-long random base32 string
@@ -57,7 +57,7 @@ impl RecoveryCodes {
             )
         };
 
-        let mut rng = thread_rng();
+        let mut rng = rand::rng();
         assert_is_csprng(&rng);
 
         // Recovery codes are any randomly-generated codes which the application
