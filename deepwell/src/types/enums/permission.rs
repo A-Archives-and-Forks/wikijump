@@ -68,3 +68,41 @@ pub enum Action {
     Rename,
     Assign,
 }
+
+/// A valid (Resource, Action) pair representing a type of permission.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct PermissionType {
+    pub resource: Resource,
+    pub action: Action,
+}
+
+/// Macro for generating a list of all valid Permission types, for iteration/validation purposes.
+macro_rules! define_permission_types {
+    ( $( $resource:ident => [ $($action:ident),+ $(,)? ] ),+ $(,)? ) => {
+        impl PermissionType {
+            pub const ALL: &[PermissionType] = &[
+                $($(
+                    PermissionType { resource: Resource::$resource, action: Action::$action },
+                )+)+
+            ];
+
+            pub const fn new(resource: Resource, action: Action) -> Option<PermissionType> {
+                match (resource, action) {
+                    $($(
+                        (Resource::$resource, Action::$action) => {
+                            Some(PermissionType { resource, action })
+                        }
+                    )+)+
+                    _ => None,
+                }
+            }
+        }
+    };
+}
+
+// Define all valid permission types.
+define_permission_types! {
+    Page => [View, Edit, Create, Delete, Rename],
+    Role => [View, Edit, Assign],
+    Site => [View, Edit],
+}
