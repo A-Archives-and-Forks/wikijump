@@ -88,6 +88,16 @@ impl UserService {
             }
             Some(user_id) => {
                 info!("Attempting to create user '{name}' ('{slug}', ID {user_id})");
+
+                // Insert user ID into known_user for foreign key
+                known_user::ActiveModel {
+                    user_id: ActiveValue::Set(user_id),
+                }
+                .insert(txn)
+                .await
+                .or_raise(make_error)?;
+
+                debug!("Inserted foreign key entry into known_user for ID {user_id}");
                 user_id
             }
             None => {
@@ -101,7 +111,7 @@ impl UserService {
                 .await
                 .or_raise(make_error)?;
 
-                debug!("Got next user ID in sequence: {user_id}");
+                debug!("Got next user ID {user_id} in sequence from known_user");
                 user_id
             }
         };
