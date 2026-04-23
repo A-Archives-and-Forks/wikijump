@@ -37,6 +37,7 @@ use strum_macros::{Display, EnumString};
 )]
 #[sea_orm(value_type = "String")]
 #[strum(serialize_all = "kebab_case", ascii_case_insensitive)]
+#[serde(rename_all = "kebab-case")]
 pub enum Resource {
     Page,
     Role,
@@ -58,6 +59,7 @@ pub enum Resource {
 )]
 #[sea_orm(value_type = "String")]
 #[strum(serialize_all = "kebab_case", ascii_case_insensitive)]
+#[serde(rename_all = "kebab-case")]
 pub enum Action {
     View,
     Edit,
