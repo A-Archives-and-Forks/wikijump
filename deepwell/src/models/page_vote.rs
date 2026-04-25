@@ -24,6 +24,22 @@ pub struct Model {
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
     #[sea_orm(
+        belongs_to = "super::known_user::Entity",
+        from = "Column::DisabledBy",
+        to = "super::known_user::Column::UserId",
+        on_update = "NoAction",
+        on_delete = "NoAction"
+    )]
+    KnownUser2,
+    #[sea_orm(
+        belongs_to = "super::known_user::Entity",
+        from = "Column::UserId",
+        to = "super::known_user::Column::UserId",
+        on_update = "NoAction",
+        on_delete = "NoAction"
+    )]
+    KnownUser1,
+    #[sea_orm(
         belongs_to = "super::page::Entity",
         from = "Column::PageId",
         to = "super::page::Column::PageId",
@@ -31,22 +47,6 @@ pub enum Relation {
         on_delete = "NoAction"
     )]
     Page,
-    #[sea_orm(
-        belongs_to = "super::user::Entity",
-        from = "Column::DisabledBy",
-        to = "super::user::Column::UserId",
-        on_update = "NoAction",
-        on_delete = "NoAction"
-    )]
-    User2,
-    #[sea_orm(
-        belongs_to = "super::user::Entity",
-        from = "Column::UserId",
-        to = "super::user::Column::UserId",
-        on_update = "NoAction",
-        on_delete = "NoAction"
-    )]
-    User1,
 }
 
 impl Related<super::page::Entity> for Entity {

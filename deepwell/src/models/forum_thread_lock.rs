@@ -39,13 +39,13 @@ pub enum Relation {
     )]
     ForumThread,
     #[sea_orm(
-        belongs_to = "super::user::Entity",
+        belongs_to = "super::known_user::Entity",
         from = "Column::UserId",
-        to = "super::user::Column::UserId",
+        to = "super::known_user::Column::UserId",
         on_update = "NoAction",
         on_delete = "NoAction"
     )]
-    User,
+    KnownUser,
 }
 
 impl Related<super::forum_thread::Entity> for Entity {
@@ -54,9 +54,9 @@ impl Related<super::forum_thread::Entity> for Entity {
     }
 }
 
-impl Related<super::user::Entity> for Entity {
+impl Related<super::known_user::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::User.def()
+        Relation::KnownUser.def()
     }
 }
 

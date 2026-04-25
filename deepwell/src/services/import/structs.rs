@@ -18,25 +18,36 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+use ftml::data::KarmaLevel;
 use time::{Date, OffsetDateTime};
 
 #[derive(Deserialize, Debug)]
 pub struct ImportUser {
-    pub user_id: i64,
-
+    // Required fields
+    pub user_id: i32,
     #[serde(with = "time::serde::rfc3339")]
     pub created_at: OffsetDateTime,
-    pub name: String,
-    pub slug: String,
-    pub email: String,
-    pub locale: String,
-    pub avatar: Option<Vec<u8>>,
+    #[serde(with = "time::serde::rfc3339")]
+    pub fetched_at: OffsetDateTime,
+    #[serde(flatten)]
+    pub wikidot_user_type: ImportedUserType,
+
+    // Biographical fields
     pub real_name: Option<String>,
     pub gender: Option<String>,
     pub birthday: Option<Date>,
     pub location: Option<String>,
     pub biography: Option<String>,
-    pub user_page: Option<String>,
+    pub website: Option<String>,
+    pub karma: KarmaLevel,
+    pub is_pro: bool,
+}
+
+#[derive(Deserialize, Debug)]
+#[serde(tag = "user_type", rename_all = "kebab-case")]
+pub enum ImportedUserType {
+    Extant { name: String, slug: String },
+    Deleted,
 }
 
 #[derive(Deserialize, Debug)]
