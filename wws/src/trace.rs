@@ -18,9 +18,9 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use tracing_subscriber::{
-    EnvFilter, fmt, layer::SubscriberExt, registry, util::SubscriberInitExt,
-};
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::util::SubscriberInitExt;
+use tracing_subscriber::{EnvFilter, fmt, registry};
 
 pub fn setup_tracing() {
     registry()

@@ -21,7 +21,8 @@
 //! Handling for the `robots.txt` file.
 
 use super::get_target_server;
-use axum::http::{header::HeaderMap, status::StatusCode};
+use axum::http::header::HeaderMap;
+use axum::http::status::StatusCode;
 
 // TODO
 

@@ -18,7 +18,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use s3::{creds::Credentials, region::Region};
+use s3::creds::Credentials;
+use s3::region::Region;
 
 #[derive(Debug, Clone)]
 pub struct Secrets {

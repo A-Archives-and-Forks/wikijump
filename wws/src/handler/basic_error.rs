@@ -22,15 +22,11 @@ use super::{
     HEADER_BASIC_ERROR, HEADER_FILENAME, HEADER_PAGE_SLUG, get_header, get_site_id,
     get_site_slug,
 };
-use crate::{
-    error::{BasicError, FallbackError, build_basic_error_response},
-    state::ServerState,
-};
-use axum::{
-    extract::{Path, State},
-    http::header::HeaderMap,
-    response::{IntoResponse, Response},
-};
+use crate::error::{BasicError, FallbackError, build_basic_error_response};
+use crate::state::ServerState;
+use axum::extract::{Path, State};
+use axum::http::header::HeaderMap;
+use axum::response::{IntoResponse, Response};
 use axum_extra::TypedHeader;
 use headers::Host;
 
