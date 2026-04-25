@@ -26,7 +26,8 @@ use crate::services::text_block::{
     MIME_HTML, TextBlock, TextBlockService, mime_for_language,
 };
 use crate::types::{PageId, TextBlockType};
-use ftml::{prelude::*, tree::CodeBlock};
+use ftml::prelude::*;
+use ftml::tree::CodeBlock;
 use tokio::time::timeout;
 
 #[derive(Debug)]
