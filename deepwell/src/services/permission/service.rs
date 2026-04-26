@@ -30,10 +30,11 @@ use crate::services::permission::{
     CheckPermissionContext, PermissionCache, PermissionInput, resolve_category_reference,
 };
 use crate::services::role::{GetUserRolesInput, RoleService, UpdateRolePermissionsInput};
-use crate::types::{Action, Permission, Reference, Resource};
+use crate::types::{Action, Permission, PermissionType, Reference, Resource};
 use futures::future::try_join_all;
 use std::borrow::Cow;
 use std::collections::HashSet;
+use std::hash::Hash;
 use std::net::IpAddr;
 
 #[derive(Debug)]
@@ -277,6 +278,124 @@ impl PermissionService {
         };
 
         Ok(role_permissions)
+    }
+
+    pub async fn get_decorated_permissions_for_role(
+        ctx: &ServiceContext<'_>,
+        site_id: i64,
+        role_reference: Reference<'_>,
+        human_readable_categories: bool,
+    ) -> Result<Vec<DecoratedPermission>> {
+        let txn = ctx.transaction();
+
+        let role = RoleService::get(ctx, site_id, role_reference)
+            .await
+            .or_raise(|| {
+                Error::new(
+                    "Failed to get role for decorated permissions",
+                    ErrorType::Role,
+                )
+            })?;
+
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to get decorated permissions for role ID {}",
+                    role.role_id
+                ),
+                ErrorType::Permission,
+            )
+        };
+
+        // Get permissions for the current role
+        let role_permissions = Self::permissions_as_set(ctx, role.role_id)
+            .await
+            .or_raise(make_error)?;
+
+        // Get permissions for the parent role (if any)
+        let parent_permissions = match role.parent_role_id {
+            Some(parent_id) => Some(
+                Self::permissions_as_set(ctx, parent_id)
+                    .await
+                    .or_raise(make_error)?,
+            ),
+            None => None,
+        };
+
+        // Get combined permissions for child roles
+        let children_roles = Role::find()
+            .filter(
+                role::Column::ParentRoleId
+                    .eq(role.role_id)
+                    .and(role::Column::SiteId.eq(site_id))
+                    .and(role::Column::DeletedAt.is_null()),
+            )
+            .all(txn)
+            .await
+            .or_raise(make_error)?;
+
+        let mut children_permissions = HashSet::new();
+        for child in &children_roles {
+            let child_perms = Self::permissions_as_set(ctx, child.role_id)
+                .await
+                .or_raise(make_error)?;
+            children_permissions.extend(child_perms);
+        }
+
+        // Get all valid permission types
+        let base_permissions: HashSet<Permission> = PermissionType::ALL
+            .iter()
+            .map(|pt| Permission {
+                resource: pt.resource,
+                resource_category: None,
+                action: pt.action,
+            })
+            .collect();
+
+        // Construct universe set from base permissions and optionally scoped permissions
+        let universe: HashSet<Permission> = base_permissions
+            .into_iter()
+            .chain(role_permissions.iter().cloned())
+            .chain(parent_permissions.iter().flatten().cloned())
+            .chain(children_permissions.iter().cloned())
+            .collect();
+
+        let mut decorated = Vec::with_capacity(universe.len());
+
+        // Decorate each permission
+        for mut perm in universe {
+            // The role has this permission
+            let active = role_permissions.contains(&perm);
+
+            // The role doesn't have this permission, but parent role does, so it can be added
+            let addable = !active
+                && parent_permissions
+                    .as_ref()
+                    .map_or(true, |parent| parent.contains(&perm));
+
+            // The role has this permission, and at least one child role contains it, so it can't be removed
+            let removable = active && !children_permissions.contains(&perm);
+
+            // Remap resource category from ID to slug
+            if human_readable_categories {
+                if let Some(Reference::Id(cat_id)) = perm.resource_category {
+                    perm.resource_category =
+                        resolve_category_slug(ctx, site_id, perm.resource, cat_id.into())
+                            .await
+                            .or_raise(make_error)?
+                            .map(Reference::Slug);
+                }
+            }
+
+            decorated.push(DecoratedPermission {
+                permission: perm,
+                active,
+                addable,
+                removable,
+            });
+        }
+
+        Ok(decorated)
     }
 
     // Lambda to query roles that have the specified permission, optionally filtered by category
