@@ -187,6 +187,7 @@ pub async fn get_role_permissions(
 
     PermissionService::get_permissions_for_role(
         ctx,
+        input.site_id,
         role.role_id,
         input.human_readable_categories,
     )

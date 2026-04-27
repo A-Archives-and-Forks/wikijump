@@ -221,63 +221,22 @@ impl PermissionService {
     /// Optionally returns human-readable category names.
     pub async fn get_permissions_for_role(
         ctx: &ServiceContext<'_>,
+        site_id: i64,
         role_id: i64,
         human_readable_categories: bool,
     ) -> Result<Vec<Permission>> {
-        let txn = ctx.transaction();
-
-        let make_error = || {
-            Error::new(
-                format!("failed to get permissions for role ID {}", role_id),
-                ErrorType::Role,
-            )
-        };
-
-        let role_permissions_iter = RolePermission::find()
-            .filter(role_permission::Column::RoleId.eq(role_id))
-            .order_by_asc(role_permission::Column::ResourceType)
-            .order_by_asc(role_permission::Column::ResourceCategoryId)
-            .order_by_asc(role_permission::Column::Action)
-            .all(txn)
-            .await
-            .or_raise(make_error)?
-            .into_iter();
-
-        let role_permissions = if human_readable_categories {
-            try_join_all(role_permissions_iter.map(|input| async move {
-                let resource_category_slug = match input.resource_category_id {
-                    Some(cat_id) => {
-                        resolve_category_slug(
-                            ctx,
-                            input.site_id,
-                            input.resource_type,
-                            cat_id.into(),
-                        )
-                        .await?
-                    }
-                    None => None,
-                };
-                Ok::<_, ExnError>(Permission {
-                    resource: input.resource_type,
-                    resource_category: resource_category_slug.map(Reference::Slug),
-                    action: input.action,
-                })
-            }))
-            .await
-            .or_raise(make_error)?
-            .into_iter()
-            .collect()
-        } else {
-            role_permissions_iter
-                .map(|p| Permission {
-                    resource: p.resource_type,
-                    resource_category: p.resource_category_id.map(Reference::Id),
-                    action: p.action,
-                })
-                .collect()
-        };
-
-        Ok(role_permissions)
+        let mut permissions = Self::fetch_permissions(ctx, role_id).await?;
+        if human_readable_categories {
+            for perm in &mut permissions {
+                if let Some(Reference::Id(cat_id)) = perm.resource_category {
+                    perm.resource_category =
+                        resolve_category_slug(ctx, site_id, perm.resource, cat_id.into())
+                            .await?
+                            .map(Reference::Slug);
+                }
+            }
+        }
+        Ok(permissions)
     }
 
     pub async fn get_decorated_permissions_for_role(
@@ -603,12 +562,40 @@ impl PermissionService {
         Ok(results)
     }
 
+    async fn fetch_permissions(
+        ctx: &ServiceContext<'_>,
+        role_id: i64,
+    ) -> Result<Vec<Permission>> {
+        let txn = ctx.transaction();
+        let make_error = || {
+            Error::new(
+                format!("failed to get permissions for role ID {}", role_id),
+                ErrorType::Role,
+            )
+        };
+        Ok(RolePermission::find()
+            .filter(role_permission::Column::RoleId.eq(role_id))
+            .order_by_asc(role_permission::Column::ResourceType)
+            .order_by_asc(role_permission::Column::ResourceCategoryId)
+            .order_by_asc(role_permission::Column::Action)
+            .all(txn)
+            .await
+            .or_raise(make_error)?
+            .into_iter()
+            .map(|p| Permission {
+                resource: p.resource_type,
+                resource_category: p.resource_category_id.map(Reference::Id),
+                action: p.action,
+            })
+            .collect())
+    }
+
     /// Fetches permissions for `role_id` as a set for easy comparison in hierarchy validation.
     pub async fn permissions_as_set(
         ctx: &ServiceContext<'_>,
         role_id: i64,
     ) -> Result<HashSet<Permission>> {
-        Ok(Self::get_permissions_for_role(ctx, role_id, false)
+        Ok(Self::fetch_permissions(ctx, role_id)
             .await?
             .into_iter()
             .collect())

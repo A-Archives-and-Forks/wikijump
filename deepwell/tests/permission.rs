@@ -609,6 +609,7 @@ async fn role_update_permissions_and_get() {
     // Get permissions with raw category IDs
     let perms = PermissionService::get_permissions_for_role(
         runner.context(),
+        f.site_id,
         role.role_id,
         false,
     )
@@ -636,10 +637,14 @@ async fn role_update_permissions_and_get() {
     );
 
     // Get permissions with human-readable categories
-    let perms =
-        PermissionService::get_permissions_for_role(runner.context(), role.role_id, true)
-            .await
-            .expect("Failed to get role permissions with human-readable categories");
+    let perms = PermissionService::get_permissions_for_role(
+        runner.context(),
+        f.site_id,
+        role.role_id,
+        true,
+    )
+    .await
+    .expect("Failed to get role permissions with human-readable categories");
 
     assert_eq!(perms.len(), 2);
     let view_perm = perms
