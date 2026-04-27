@@ -30,7 +30,8 @@ use deepwell::license::License;
 use deepwell::services::ServiceContext;
 use deepwell::services::category::CategoryService;
 use deepwell::services::permission::{
-    CheckPermissionContext, PermissionCache, PermissionInput, PermissionService,
+    CheckPermissionContext, DecoratedPermission, PermissionCache, PermissionInput,
+    PermissionService,
 };
 use deepwell::services::role::{
     CreateRoleInput, GrantUserRoleInput, RoleService, UpdateRolePermissionsInput,
@@ -95,7 +96,7 @@ impl PermissionFixture {
                 .category_id;
 
         // RoleA: page:view + page:edit, both unscoped
-        let role_a = create_role(ctx, site_id, "RoleA").await;
+        let role_a = create_role(ctx, site_id, "RoleA", None).await;
         add_perms_to_role(
             ctx,
             site_id,
@@ -116,7 +117,7 @@ impl PermissionFixture {
         .await;
 
         // RoleB: page:edit scoped to test-category only
-        let role_b = create_role(ctx, site_id, "RoleB").await;
+        let role_b = create_role(ctx, site_id, "RoleB", None).await;
         add_perms_to_role(
             ctx,
             site_id,
@@ -154,7 +155,12 @@ impl PermissionFixture {
 
 // Test helpers
 
-async fn create_role(ctx: &ServiceContext<'_>, site_id: i64, name: &str) -> i64 {
+async fn create_role(
+    ctx: &ServiceContext<'_>,
+    site_id: i64,
+    name: &str,
+    parent_role_id: Option<i64>,
+) -> i64 {
     RoleService::create(
         ctx,
         CreateRoleInput {
@@ -162,7 +168,7 @@ async fn create_role(ctx: &ServiceContext<'_>, site_id: i64, name: &str) -> i64 
             name: name.to_owned(),
             description: None,
             is_virtual: false,
-            parent_role_id: None,
+            parent_role_id,
             creating_user_id: SYSTEM_USER_ID,
             ip_address: common::IP_ADDRESS,
         },
@@ -589,12 +595,12 @@ async fn role_update_permissions_and_get() {
             new_permissions: vec![
                 PermissionInput {
                     resource_type: Resource::Page,
-                    resource_category: Some(Reference::Slug(CATEGORY_NAME.into())),
+                    resource_category: Some(Reference::Id(category_id)),
                     action: Action::View,
                 },
                 PermissionInput {
                     resource_type: Resource::Page,
-                    resource_category: Some(Reference::Slug(OTHER_CATEGORY_NAME.into())),
+                    resource_category: Some(Reference::Id(other_category_id)),
                     action: Action::Edit,
                 },
             ],
@@ -607,14 +613,15 @@ async fn role_update_permissions_and_get() {
     .expect("Failed to update role permissions");
 
     // Get permissions with raw category IDs
-    let perms = PermissionService::get_permissions_for_role(
-        runner.context(),
-        f.site_id,
-        role.role_id,
-        false,
-    )
-    .await
-    .expect("Failed to get role permissions");
+    let perms = run_endpoint!(
+        runner,
+        get_role_permissions,
+        json!({
+            "site_id": f.site_id,
+            "role_reference": role.role_id,
+            "human_readable_categories": false,
+        }),
+    );
 
     assert_eq!(perms.len(), 2);
     let view_perm = perms
@@ -637,14 +644,15 @@ async fn role_update_permissions_and_get() {
     );
 
     // Get permissions with human-readable categories
-    let perms = PermissionService::get_permissions_for_role(
-        runner.context(),
-        f.site_id,
-        role.role_id,
-        true,
-    )
-    .await
-    .expect("Failed to get role permissions with human-readable categories");
+    let perms = run_endpoint!(
+        runner,
+        get_role_permissions,
+        json!({
+            "site_id": f.site_id,
+            "role_reference": role.role_id,
+            "human_readable_categories": true,
+        }),
+    );
 
     assert_eq!(perms.len(), 2);
     let view_perm = perms
@@ -665,4 +673,121 @@ async fn role_update_permissions_and_get() {
         edit_perm.resource_category,
         Some(Reference::Slug(OTHER_CATEGORY_NAME.into()))
     );
+}
+
+#[tokio::test]
+async fn get_decorated_permissions_for_role() {
+    let runner = TestRunner::setup().await;
+    let f = PermissionFixture::setup(&runner).await;
+    let ctx = runner.context();
+
+    // Parent role (root): page:view + page:edit
+    let parent_id = create_role(ctx, f.site_id, "Parent", None).await;
+    add_perms_to_role(
+        ctx,
+        f.site_id,
+        parent_id,
+        vec![
+            PermissionInput {
+                resource_type: Resource::Page,
+                resource_category: None,
+                action: Action::View,
+            },
+            PermissionInput {
+                resource_type: Resource::Page,
+                resource_category: None,
+                action: Action::Edit,
+            },
+        ],
+    )
+    .await;
+
+    // Child role (under parent): page:view only
+    let child_id = create_role(ctx, f.site_id, "Child", Some(parent_id)).await;
+    add_perms_to_role(
+        ctx,
+        f.site_id,
+        child_id,
+        vec![PermissionInput {
+            resource_type: Resource::Page,
+            resource_category: None,
+            action: Action::View,
+        }],
+    )
+    .await;
+
+    // Helper to find a permission in the list
+    let find = |list: &Vec<DecoratedPermission>, resource: Resource, action: Action| {
+        list.iter()
+            .find(|d| d.permission.resource == resource && d.permission.action == action)
+            .unwrap_or_else(|| panic!("Permission {resource}:{action} not found"))
+            .clone()
+    };
+
+    // Calling endpoint on child role
+    let child_decorated = run_endpoint!(
+        runner,
+        get_decorated_role_permissions,
+        json!({
+            "site_id": f.site_id,
+            "role_reference": child_id,
+            "human_readable_categories": false,
+        }),
+    );
+
+    // Page:View: active + removable
+    let p = find(&child_decorated, Resource::Page, Action::View);
+    assert!(
+        p.active && p.removable && !p.addable,
+        "child page:view: expected active+removable"
+    );
+
+    // Page:Edit: inactive + addable
+    let p = find(&child_decorated, Resource::Page, Action::Edit);
+    assert!(
+        !p.active && p.addable && !p.removable,
+        "child page:edit: expected inactive+addable"
+    );
+
+    // Page:Create: inactive, not addable
+    let p = find(&child_decorated, Resource::Page, Action::Create);
+    assert!(
+        !p.active && !p.addable && !p.removable,
+        "child page:create: expected inactive+locked"
+    );
+
+    // Calling endpoint on parent role
+    let parent_decorated = run_endpoint!(
+        runner,
+        get_decorated_role_permissions,
+        json!({
+            "site_id": f.site_id,
+            "role_reference": parent_id,
+            "human_readable_categories": false,
+        }),
+    );
+
+    // Page:View: active + not removable because child has it
+    let p = find(&parent_decorated, Resource::Page, Action::View);
+    assert!(
+        p.active && !p.removable && !p.addable,
+        "parent page:view: expected active+locked"
+    );
+
+    // Page:Edit: active + removable
+    let p = find(&parent_decorated, Resource::Page, Action::Edit);
+    assert!(
+        p.active && p.removable && !p.addable,
+        "parent page:edit: expected active+removable"
+    );
+
+    // Page:Create: inactive + addable as root role has no parent, so all base permissions are addable
+    let p = find(&parent_decorated, Resource::Page, Action::Create);
+    assert!(
+        !p.active && p.addable && !p.removable,
+        "parent page:create: expected inactive+addable"
+    );
+
+    // Check nonexistent permission type
+    assert_panics!(|| find(&parent_decorated, Resource::Site, Action::Assign));
 }

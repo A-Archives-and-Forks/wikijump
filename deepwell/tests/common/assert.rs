@@ -60,3 +60,14 @@ macro_rules! assert_str_eq {
         assert_eq!(left, right);
     }};
 }
+
+/// Asserts that a block of code panics.
+#[allow(unused_macros)]
+macro_rules! assert_panics {
+    ($expr:expr) => {
+        assert!(
+            std::panic::catch_unwind($expr).is_err(),
+            "Expression did not panic!"
+        );
+    };
+}

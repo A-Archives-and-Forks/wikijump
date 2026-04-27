@@ -29,7 +29,9 @@ use crate::services::permission::resolvers::resolve_category_slug;
 use crate::services::permission::{
     CheckPermissionContext, PermissionCache, PermissionInput, resolve_category_reference,
 };
-use crate::services::role::{GetUserRolesInput, RoleService, UpdateRolePermissionsInput};
+use crate::services::role::{
+    GetRolePermissionsInput, GetUserRolesInput, RoleService, UpdateRolePermissionsInput,
+};
 use crate::types::{Action, Permission, PermissionType, Reference, Resource};
 use futures::future::try_join_all;
 use std::borrow::Cow;
@@ -221,10 +223,26 @@ impl PermissionService {
     /// Optionally returns human-readable category names.
     pub async fn get_permissions_for_role(
         ctx: &ServiceContext<'_>,
-        site_id: i64,
-        role_id: i64,
-        human_readable_categories: bool,
+        GetRolePermissionsInput {
+            site_id,
+            role_reference,
+            human_readable_categories,
+        }: GetRolePermissionsInput<'_>,
     ) -> Result<Vec<Permission>> {
+        let role_id = match role_reference {
+            Reference::Id(id) => id,
+            Reference::Slug(_) => {
+                RoleService::get(ctx, site_id, role_reference)
+                    .await
+                    .or_raise(|| {
+                        Error::new(
+                            "Failed to get role for decorated permissions",
+                            ErrorType::Role,
+                        )
+                    })?
+                    .role_id
+            }
+        };
         let mut permissions = Self::fetch_permissions(ctx, role_id).await?;
         if human_readable_categories {
             for perm in &mut permissions {
@@ -241,9 +259,11 @@ impl PermissionService {
 
     pub async fn get_decorated_permissions_for_role(
         ctx: &ServiceContext<'_>,
-        site_id: i64,
-        role_reference: Reference<'_>,
-        human_readable_categories: bool,
+        GetRolePermissionsInput {
+            site_id,
+            role_reference,
+            human_readable_categories,
+        }: GetRolePermissionsInput<'_>,
     ) -> Result<Vec<DecoratedPermission>> {
         let txn = ctx.transaction();
 
@@ -330,20 +350,20 @@ impl PermissionService {
             let addable = !active
                 && parent_permissions
                     .as_ref()
-                    .map_or(true, |parent| parent.contains(&perm));
+                    .is_none_or(|parent| parent.contains(&perm));
 
             // The role has this permission, and at least one child role contains it, so it can't be removed
             let removable = active && !children_permissions.contains(&perm);
 
             // Remap resource category from ID to slug
-            if human_readable_categories {
-                if let Some(Reference::Id(cat_id)) = perm.resource_category {
-                    perm.resource_category =
-                        resolve_category_slug(ctx, site_id, perm.resource, cat_id.into())
-                            .await
-                            .or_raise(make_error)?
-                            .map(Reference::Slug);
-                }
+            if human_readable_categories
+                && let Some(Reference::Id(cat_id)) = perm.resource_category
+            {
+                perm.resource_category =
+                    resolve_category_slug(ctx, site_id, perm.resource, cat_id.into())
+                        .await
+                        .or_raise(make_error)?
+                        .map(Reference::Slug);
             }
 
             decorated.push(DecoratedPermission {

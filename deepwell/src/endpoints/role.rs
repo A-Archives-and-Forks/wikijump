@@ -23,7 +23,7 @@ use std::net::IpAddr;
 use super::prelude::*;
 use crate::models::role::Model as RoleModel;
 use crate::models::user_role;
-use crate::services::permission::PermissionService;
+use crate::services::permission::{DecoratedPermission, PermissionService};
 use crate::services::role::{
     CreateRoleInput, DeleteRoleInput, GetRoleInput, GetRolePermissionsInput,
     GetUserRolesInput, GrantUserRoleInput, ListSiteRolesInput, ReparentRoleInput,
@@ -181,18 +181,24 @@ pub async fn get_role_permissions(
         input.role_reference, input.site_id
     );
 
-    let role = RoleService::get(ctx, input.site_id, input.role_reference)
+    PermissionService::get_permissions_for_role(ctx, input)
         .await
-        .or_raise(|| Error::new("role not found", ErrorType::Role))?;
+        .or_raise(|| Error::new("failed to get role permissions", ErrorType::Role))
+}
 
-    PermissionService::get_permissions_for_role(
-        ctx,
-        input.site_id,
-        role.role_id,
-        input.human_readable_categories,
-    )
-    .await
-    .or_raise(|| Error::new("failed to get role permissions", ErrorType::Role))
+pub async fn get_decorated_role_permissions(
+    ctx: &ServiceContext<'_>,
+    params: Params<'static>,
+) -> Result<Vec<DecoratedPermission>> {
+    let input: GetRolePermissionsInput = parse!(params, Role);
+    info!(
+        "Getting permissions for role {:?} in site ID {}",
+        input.role_reference, input.site_id
+    );
+
+    PermissionService::get_decorated_permissions_for_role(ctx, input)
+        .await
+        .or_raise(|| Error::new("failed to get role permissions", ErrorType::Role))
 }
 
 pub async fn grant_role_to_user(
