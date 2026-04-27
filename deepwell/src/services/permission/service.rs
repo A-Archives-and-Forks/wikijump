@@ -18,7 +18,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 use super::prelude::*;
-use crate::endpoints::site;
+use crate::endpoints::{parent, site};
 use crate::error::{Error, ErrorType};
 use crate::models::prelude::{Role, RolePermission};
 use crate::models::role_permission::Model as RolePermissionModel;
@@ -327,13 +327,17 @@ impl PermissionService {
             children_permissions.extend(child_perms);
         }
 
+        // Considering valid hierarchy, parent permissions should encompass the permissions of all descendants
+        let active_permissions = match parent_permissions.as_ref() {
+            Some(parent_perms) => parent_perms.iter().cloned(),
+            None => role_permissions.iter().cloned(),
+        };
+
         // Construct universe set from base permissions and optionally scoped permissions
         let universe: HashSet<Permission> = Permission::ALL
             .iter()
             .cloned()
-            .chain(role_permissions.iter().cloned())
-            .chain(parent_permissions.iter().flatten().cloned())
-            .chain(children_permissions.iter().cloned())
+            .chain(active_permissions)
             .collect();
 
         let mut decorated = Vec::with_capacity(universe.len());
