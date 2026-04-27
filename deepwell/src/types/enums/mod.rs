@@ -40,7 +40,7 @@ pub use self::file_revision::{FileRevisionChange, FileRevisionType};
 pub use self::license::License;
 pub use self::message_recipient_type::MessageRecipientType;
 pub use self::page_revision::{PageRevisionChange, PageRevisionType};
-pub use self::permission::{Action, PermissionType, Resource};
+pub use self::permission::{Action, Resource};
 pub use self::relation::{RelationObjectType, RelationType};
 pub use self::text_block_type::TextBlockType;
 pub use self::user_type::UserType;

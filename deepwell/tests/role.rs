@@ -93,7 +93,6 @@ impl RoleFixture {
 }
 
 // Test helpers
-
 async fn create_role(
     runner: &TestRunner,
     site_id: i64,
@@ -106,7 +105,7 @@ async fn create_role(
         runner.context(),
         InternalCreateRoleInput {
             site_id,
-            name: name.to_string(),
+            name: str!(name),
             description: None,
             is_virtual: false,
             parent_role_id,

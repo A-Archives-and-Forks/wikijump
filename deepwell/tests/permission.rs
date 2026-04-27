@@ -574,7 +574,7 @@ async fn role_update_permissions_and_get() {
         runner.context(),
         InternalCreateRoleInput {
             site_id: f.site_id,
-            name: "Test Role".to_string(),
+            name: str!("Test Role"),
             description: None,
             is_virtual: false,
             parent_role_id: None,
@@ -595,12 +595,12 @@ async fn role_update_permissions_and_get() {
             new_permissions: vec![
                 PermissionInput {
                     resource_type: Resource::Page,
-                    resource_category: Some(Reference::Id(category_id)),
+                    resource_category: Some(Reference::Slug(CATEGORY_NAME.into())),
                     action: Action::View,
                 },
                 PermissionInput {
                     resource_type: Resource::Page,
-                    resource_category: Some(Reference::Id(other_category_id)),
+                    resource_category: Some(Reference::Slug(OTHER_CATEGORY_NAME.into())),
                     action: Action::Edit,
                 },
             ],
@@ -681,7 +681,7 @@ async fn get_decorated_permissions_for_role() {
     let f = PermissionFixture::setup(&runner).await;
     let ctx = runner.context();
 
-    // Parent role (root): page:view + page:edit
+    // Parent role: page:view + page:edit
     let parent_id = create_role(ctx, f.site_id, "Parent", None).await;
     add_perms_to_role(
         ctx,
@@ -702,7 +702,7 @@ async fn get_decorated_permissions_for_role() {
     )
     .await;
 
-    // Child role (under parent): page:view only
+    // Child role: page:view only
     let child_id = create_role(ctx, f.site_id, "Child", Some(parent_id)).await;
     add_perms_to_role(
         ctx,

@@ -132,7 +132,7 @@ impl RoleService {
         };
 
         // Validate that the role belongs to the site
-        Self::get(ctx, site_id, role_id.into())
+        let _role = Self::get(ctx, site_id, role_id.into())
             .await
             .or_raise(make_error)?;
 

@@ -32,7 +32,7 @@ use crate::services::permission::{
 use crate::services::role::{
     GetRolePermissionsInput, GetUserRolesInput, RoleService, UpdateRolePermissionsInput,
 };
-use crate::types::{Action, Permission, PermissionType, Reference, Resource};
+use crate::types::{Action, Permission, Reference, Resource};
 use futures::future::try_join_all;
 use std::borrow::Cow;
 use std::collections::HashSet;
@@ -235,21 +235,27 @@ impl PermissionService {
                 RoleService::get(ctx, site_id, role_reference)
                     .await
                     .or_raise(|| {
-                        Error::new(
-                            "Failed to get role for decorated permissions",
-                            ErrorType::Role,
-                        )
+                        Error::new("Failed to get role for permissions", ErrorType::Role)
                     })?
                     .role_id
             }
         };
-        let mut permissions = Self::fetch_permissions(ctx, role_id).await?;
+        let make_error = || {
+            Error::new(
+                format!("failed to get permissions for role ID {}", role_id),
+                ErrorType::Permission,
+            )
+        };
+        let mut permissions = Self::fetch_permissions(ctx, role_id)
+            .await
+            .or_raise(make_error)?;
         if human_readable_categories {
             for perm in &mut permissions {
                 if let Some(Reference::Id(cat_id)) = perm.resource_category {
                     perm.resource_category =
                         resolve_category_slug(ctx, site_id, perm.resource, cat_id.into())
-                            .await?
+                            .await
+                            .or_raise(make_error)?
                             .map(Reference::Slug);
                 }
             }
@@ -321,19 +327,10 @@ impl PermissionService {
             children_permissions.extend(child_perms);
         }
 
-        // Get all valid permission types
-        let base_permissions: HashSet<Permission> = PermissionType::ALL
-            .iter()
-            .map(|pt| Permission {
-                resource: pt.resource,
-                resource_category: None,
-                action: pt.action,
-            })
-            .collect();
-
         // Construct universe set from base permissions and optionally scoped permissions
-        let universe: HashSet<Permission> = base_permissions
-            .into_iter()
+        let universe: HashSet<Permission> = Permission::ALL
+            .iter()
+            .cloned()
             .chain(role_permissions.iter().cloned())
             .chain(parent_permissions.iter().flatten().cloned())
             .chain(children_permissions.iter().cloned())
