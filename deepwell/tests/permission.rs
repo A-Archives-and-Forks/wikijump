@@ -34,7 +34,7 @@ use deepwell::services::permission::{
     PermissionService,
 };
 use deepwell::services::role::{
-    CreateRoleInput, GrantUserRoleInput, RoleService, UpdateRolePermissionsInput,
+    GrantUserRoleInput, InternalCreateRoleInput, RoleService, UpdateRolePermissionsInput,
 };
 use deepwell::services::site::{CreateSite, SiteService};
 use deepwell::services::user::{CreateUser, UserService};
@@ -163,7 +163,7 @@ async fn create_role(
 ) -> i64 {
     RoleService::create(
         ctx,
-        CreateRoleInput {
+        InternalCreateRoleInput {
             site_id,
             name: name.to_owned(),
             description: None,
@@ -572,7 +572,7 @@ async fn role_update_permissions_and_get() {
 
     let role = RoleService::create(
         runner.context(),
-        CreateRoleInput {
+        InternalCreateRoleInput {
             site_id: f.site_id,
             name: "Test Role".to_string(),
             description: None,

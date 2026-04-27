@@ -18,37 +18,17 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use std::net::IpAddr;
-
 use super::prelude::*;
 use crate::models::role::Model as RoleModel;
 use crate::models::user_role;
 use crate::services::permission::{DecoratedPermission, PermissionService};
 use crate::services::role::{
     CreateRoleInput, DeleteRoleInput, GetRoleInput, GetRolePermissionsInput,
-    GetUserRolesInput, GrantUserRoleInput, ListSiteRolesInput, ReparentRoleInput,
+    GetUserRolesInput, GrantUserRoleInput, InternalCreateRoleInput,
+    InternalReparentRoleInput, ListSiteRolesInput, ReparentRoleInput,
     RevokeUserRoleInput, RoleService, UpdateRoleInput, UpdateRolePermissionsInput,
 };
 use crate::types::Permission;
-
-// Public facing input structs to mask internal fields that should not be set by users.
-#[derive(Deserialize, Debug, Clone)]
-struct PublicCreateRoleInput {
-    site_id: i64,
-    name: String,
-    description: Option<String>,
-    parent_role_id: i64,
-    creating_user_id: i64,
-    ip_address: IpAddr,
-}
-#[derive(Deserialize, Debug, Clone)]
-struct PublicReparentRoleInput {
-    site_id: i64,
-    role_id: i64,
-    new_parent_id: i64,
-    reparenting_user_id: i64,
-    ip_address: IpAddr,
-}
 
 pub async fn list_site_roles(
     ctx: &ServiceContext<'_>,
@@ -66,14 +46,14 @@ pub async fn role_create(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
 ) -> Result<RoleModel> {
-    let input: PublicCreateRoleInput = parse!(params, Role);
+    let input: CreateRoleInput = parse!(params, Role);
 
     info!(
         "Creating role '{}' in site ID {}",
         input.name, input.site_id
     );
 
-    let translated = CreateRoleInput {
+    let translated = InternalCreateRoleInput {
         site_id: input.site_id,
         name: input.name,
         description: input.description,
@@ -122,13 +102,13 @@ pub async fn role_reparent(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
 ) -> Result<()> {
-    let input: PublicReparentRoleInput = parse!(params, Role);
+    let input: ReparentRoleInput = parse!(params, Role);
     info!(
         "Reparenting role ID {} to new parent {} in site ID {}",
         input.role_id, input.new_parent_id, input.site_id
     );
 
-    let translated = ReparentRoleInput {
+    let translated = InternalReparentRoleInput {
         site_id: input.site_id,
         role_id: input.role_id,
         new_parent_id: Some(input.new_parent_id),

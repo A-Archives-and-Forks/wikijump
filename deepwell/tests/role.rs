@@ -21,7 +21,7 @@
 #[macro_use]
 mod common;
 
-use deepwell::services::role::{CreateRoleInput, RoleService};
+use deepwell::services::role::{InternalCreateRoleInput, RoleService};
 use std::sync::atomic::{AtomicU64, Ordering};
 use str_macro::str;
 
@@ -104,7 +104,7 @@ async fn create_role(
     // Create endpoint will be tested explicitly in its test
     RoleService::create(
         runner.context(),
-        CreateRoleInput {
+        InternalCreateRoleInput {
             site_id,
             name: name.to_string(),
             description: None,
