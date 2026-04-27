@@ -19,12 +19,11 @@
  */
 
 use crate::state::ServerState;
-use axum::{
-    body::Body,
-    extract::State,
-    http::{header, status::StatusCode},
-    response::Response,
-};
+use axum::body::Body;
+use axum::extract::State;
+use axum::http::header;
+use axum::http::status::StatusCode;
+use axum::response::Response;
 
 fn text_response(body: &'static str, status: StatusCode) -> Response {
     Response::builder()

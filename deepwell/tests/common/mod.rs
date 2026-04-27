@@ -36,7 +36,6 @@ mod runner;
 pub use self::error::extract_error;
 pub use self::params::*;
 pub use self::runner::TestRunner;
-
 use std::net::{IpAddr, Ipv4Addr};
 
 #[allow(dead_code)]

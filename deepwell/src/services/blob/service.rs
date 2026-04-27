@@ -42,9 +42,10 @@ use futures::TryStreamExt;
 use rand::distr::{Alphanumeric, SampleString};
 use s3::request::request_trait::ResponseData;
 use s3::serde_types::HeadObjectResult;
+use sea_orm::prelude::*;
 use sea_orm::{
     DatabaseBackend, FromQueryResult, Statement, StreamTrait, TransactionTrait,
-    UpdateResult, prelude::*,
+    UpdateResult,
 };
 use sea_query::value::ArrayType;
 use std::collections::{HashMap, HashSet};

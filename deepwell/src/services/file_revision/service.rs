@@ -27,7 +27,8 @@ use crate::models::{file, page, site};
 use crate::services::blob::{EMPTY_BLOB_HASH, EMPTY_BLOB_MIME, FinalizeBlobUploadOutput};
 use crate::services::{BlobService, OutdateService, PageService};
 use crate::types::{Bytes, FetchDirection, RerenderDepth};
-use sea_orm::{FromQueryResult, prelude::*};
+use sea_orm::FromQueryResult;
+use sea_orm::prelude::*;
 use std::num::NonZeroI32;
 use std::sync::LazyLock;
 

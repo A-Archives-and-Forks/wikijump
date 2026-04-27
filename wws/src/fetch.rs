@@ -18,13 +18,12 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use crate::{
-    deepwell::FileData,
-    error::{BasicError, ResponseResult, build_basic_error_response},
-    range::ByteRange,
-    state::ServerState,
-};
-use axum::{body::Body, http::header::HeaderMap};
+use crate::deepwell::FileData;
+use crate::error::{BasicError, ResponseResult, build_basic_error_response};
+use crate::range::ByteRange;
+use crate::state::ServerState;
+use axum::body::Body;
+use axum::http::header::HeaderMap;
 use s3::request::request_trait::ResponseDataStream;
 use wikidot_normalize::normalize;
 

@@ -18,15 +18,14 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use crate::{
-    cache::Cache,
-    config::Secrets,
-    deepwell::{Deepwell, FileData, PageData},
-    error::{
-        BasicError, FallbackError, ResponseResult, Result, build_basic_error_response,
-    },
+use crate::cache::Cache;
+use crate::config::Secrets;
+use crate::deepwell::{Deepwell, FileData, PageData};
+use crate::error::{
+    BasicError, FallbackError, ResponseResult, Result, build_basic_error_response,
 };
-use axum::{http::HeaderMap, response::IntoResponse};
+use axum::http::HeaderMap;
+use axum::response::IntoResponse;
 use s3::bucket::Bucket;
 use std::sync::Arc;
 use std::time::Duration;

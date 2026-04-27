@@ -21,11 +21,10 @@
 #![allow(dead_code)] // TEMP
 
 use super::prelude::*;
-use crate::models::forum_post;
-use crate::models::forum_post_revision;
 use crate::models::forum_thread::{
     self, Entity as ForumThread, Model as ForumThreadModel,
 };
+use crate::models::{forum_post, forum_post_revision};
 use crate::services::ForumService;
 
 #[derive(Debug)]
@@ -340,7 +339,8 @@ impl ForumThreadService {
         }: GetForumThreads,
     ) -> Result<Vec<ForumThreadModel>> {
         use sea_orm::query::Order;
-        use sea_query::{Expr, SimpleExpr, func::Func};
+        use sea_query::func::Func;
+        use sea_query::{Expr, SimpleExpr};
 
         let txn = ctx.transaction();
 
