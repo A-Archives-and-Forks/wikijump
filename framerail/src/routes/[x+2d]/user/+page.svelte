@@ -142,8 +142,7 @@
       type="text"
       bind:value={$form.location}
     />
-    <label for="website"
-      >{data.internationalization?.["user-profile-info.website"]}</label
+    <label for="website">{data.internationalization?.["user-profile-info.website"]}</label
     >
     <input
       name="website"
