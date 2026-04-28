@@ -24,6 +24,7 @@
     gender: untrack(() => data.user?.gender ?? ""),
     birthday: untrack(() => data.user?.birthday ?? ""),
     location: untrack(() => data.user?.location ?? ""),
+    website: untrack(() => data.user?.website ?? ""),
     userPage: untrack(() => data.user?.user_page ?? ""),
     biography: untrack(() => data.user?.biography ?? ""),
     locales: untrack(() => data.user?.locales?.join(" ") ?? "")
@@ -140,6 +141,14 @@
       class="user-attribute location"
       type="text"
       bind:value={$form.location}
+    />
+    <label for="website">{data.internationalization?.["user-profile-info.website"]}</label
+    >
+    <input
+      name="website"
+      class="user-attribute website"
+      type="text"
+      bind:value={$form.website}
     />
     <label for="user-page"
       >{data.internationalization?.["user-profile-info.user-page"]}</label

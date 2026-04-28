@@ -93,6 +93,7 @@ pub struct UpdateUserBody {
     pub birthday: Maybe<Option<Date>>,
     pub location: Maybe<Option<String>>,
     pub biography: Maybe<Option<String>>,
+    pub website: Maybe<Option<String>>,
     pub user_page: Maybe<Option<String>>,
 
     #[serde(default)]

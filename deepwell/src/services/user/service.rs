@@ -279,6 +279,7 @@ impl UserService {
             gender: Set(None),
             birthday: Set(None),
             biography: Set(None),
+            website: Set(None),
             user_page: Set(None),
             created_at: Set(now()),
             updated_at: Set(None),
@@ -433,6 +434,7 @@ impl UserService {
             add_changed_field!(move birthday);
             add_changed_field!(ref location);
             add_changed_field!(ref biography);
+            add_changed_field!(ref website);
             add_changed_field!(ref user_page);
 
             if let Maybe::Set(name) = &input.name {
@@ -542,6 +544,10 @@ impl UserService {
 
         if let Maybe::Set(biography) = input.biography {
             model.biography = Set(biography);
+        }
+
+        if let Maybe::Set(website) = input.website {
+            model.website = Set(website);
         }
 
         if let Maybe::Set(user_page) = input.user_page {
