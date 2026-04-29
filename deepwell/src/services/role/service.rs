@@ -132,7 +132,7 @@ impl RoleService {
         };
 
         // Validate that the role belongs to the site
-        let _role = Self::get(ctx, site_id, role_id.into())
+        Self::assert_exists(ctx, site_id, role_id.into())
             .await
             .or_raise(make_error)?;
 
@@ -517,7 +517,7 @@ impl RoleService {
             }
 
             // Validate that the new parent role exists
-            Self::get(ctx, site_id, parent_id.into())
+            Self::assert_exists(ctx, site_id, parent_id.into())
                 .await
                 .or_raise(make_error)?;
 
