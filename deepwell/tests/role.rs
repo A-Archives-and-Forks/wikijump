@@ -205,7 +205,7 @@ async fn role_create_and_list() {
     assert!(!role.is_virtual);
 
     // Check that the role appears in the site role listing
-    let roles = run_endpoint!(runner, list_site_roles, json!({ "site_id": f.site_id }),);
+    let roles = run_endpoint!(runner, list_site_roles, json!({ "site_id": f.site_id }));
     let get = roles
         .iter()
         .find(|r| r.role_id == role.role_id)
