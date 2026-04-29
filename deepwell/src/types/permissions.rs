@@ -77,3 +77,34 @@ impl FromStr for Permission {
         })
     }
 }
+
+/// Macro for generating a list of all valid Permission types, for iteration/validation purposes.
+macro_rules! define_permission_types {
+    ( $( $resource:ident => [ $($action:ident),+ $(,)? ] ),+ $(,)? ) => {
+        impl Permission {
+            pub const ALL: &[Permission] = &[
+                $($(
+                    Permission { resource: Resource::$resource, resource_category: None, action: Action::$action },
+                )+)+
+            ];
+
+            pub const fn new(resource: Resource, action: Action) -> Option<Permission> {
+                match (resource, action) {
+                    $($(
+                        (Resource::$resource, Action::$action) => {
+                            Some(Permission { resource, resource_category: None, action })
+                        }
+                    )+)+
+                    _ => None,
+                }
+            }
+        }
+    };
+}
+
+// Define all valid permission types.
+define_permission_types! {
+    Page => [View, Edit, Create, Delete, Rename],
+    Role => [View, Edit, Assign],
+    Site => [View, Edit],
+}

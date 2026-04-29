@@ -52,7 +52,7 @@ pub struct RoleService;
 impl RoleService {
     pub async fn create(
         ctx: &ServiceContext<'_>,
-        CreateRoleInput {
+        InternalCreateRoleInput {
             site_id,
             name,
             description,
@@ -60,7 +60,7 @@ impl RoleService {
             parent_role_id,
             creating_user_id,
             ip_address,
-        }: CreateRoleInput,
+        }: InternalCreateRoleInput,
     ) -> Result<RoleModel> {
         let txn = ctx.transaction();
 
@@ -132,7 +132,7 @@ impl RoleService {
         };
 
         // Validate that the role belongs to the site
-        Self::get(ctx, site_id, role_id.into())
+        let _role = Self::get(ctx, site_id, role_id.into())
             .await
             .or_raise(make_error)?;
 
@@ -473,13 +473,13 @@ impl RoleService {
 
     pub async fn reparent_role(
         ctx: &ServiceContext<'_>,
-        ReparentRoleInput {
+        InternalReparentRoleInput {
             site_id,
             role_id,
             new_parent_id,
             reparenting_user_id,
             ip_address,
-        }: ReparentRoleInput,
+        }: InternalReparentRoleInput,
     ) -> Result<()> {
         let txn = ctx.transaction();
 

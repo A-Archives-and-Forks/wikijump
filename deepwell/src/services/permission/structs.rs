@@ -18,7 +18,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use crate::types::{Action, Reference, Resource};
+use crate::types::{Action, Permission, Reference, Resource};
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct PermissionInput<'a> {
@@ -27,13 +27,12 @@ pub struct PermissionInput<'a> {
     pub action: Action,
 }
 
-#[derive(Deserialize, Debug, Clone)]
-#[allow(dead_code)]
-pub struct PermissionOutput {
-    pub permission_id: i64,
-    pub description: String,
-    pub resource_type: Resource,
-    pub action: Action,
+#[derive(Serialize, Debug, Clone)]
+pub struct DecoratedPermission {
+    pub permission: Permission,
+    pub active: bool,
+    pub addable: bool,
+    pub removable: bool,
 }
 
 /// Context for permission checks.

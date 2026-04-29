@@ -65,6 +65,7 @@ pub mod all {
     pub use super::page_attribution::*;
     pub use super::page_revision::*;
     pub use super::parent::*;
+    pub use super::role::*;
     pub use super::routing::*;
     pub use super::site::*;
     pub use super::site_member::*;
@@ -94,6 +95,7 @@ pub mod page;
 pub mod page_attribution;
 pub mod page_revision;
 pub mod parent;
+pub mod role;
 pub mod routing;
 pub mod site;
 pub mod site_member;

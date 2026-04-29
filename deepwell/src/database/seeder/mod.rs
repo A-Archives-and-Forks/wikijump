@@ -38,7 +38,7 @@ use crate::services::relation::{
     SetPageAttributions,
 };
 use crate::services::role::{
-    CreateRoleInput, GrantUserRoleInput, RoleService, UpdateRolePermissionsInput,
+    GrantUserRoleInput, InternalCreateRoleInput, RoleService, UpdateRolePermissionsInput,
 };
 use crate::services::site::{CreateSite, CreateSiteOutput, SiteService, UpdateSiteBody};
 use crate::services::user::{CreateUser, CreateUserOutput, UpdateUserBody, UserService};
@@ -556,7 +556,7 @@ pub async fn seed(state: &ServerState) -> Result<()> {
 
             let role = RoleService::create(
                 &ctx,
-                CreateRoleInput {
+                InternalCreateRoleInput {
                     site_id,
                     name: role_template.name.clone(),
                     description: Some(role_template.description.clone()),

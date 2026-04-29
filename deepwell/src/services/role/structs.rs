@@ -22,8 +22,19 @@ use crate::types::{Maybe, Permission, Reference};
 use std::net::IpAddr;
 use time::OffsetDateTime;
 
+// Differentiate public facing input structs to mask internal fields that should not be set by users.
 #[derive(Deserialize, Debug, Clone)]
 pub struct CreateRoleInput {
+    pub site_id: i64,
+    pub name: String,
+    pub description: Option<String>,
+    pub parent_role_id: i64,
+    pub creating_user_id: i64,
+    pub ip_address: IpAddr,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct InternalCreateRoleInput {
     pub site_id: i64,
     pub name: String,
     pub description: Option<String>,
@@ -76,6 +87,15 @@ pub struct ListSiteRolesInput {
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct ReparentRoleInput {
+    pub site_id: i64,
+    pub role_id: i64,
+    pub new_parent_id: i64,
+    pub reparenting_user_id: i64,
+    pub ip_address: IpAddr,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct InternalReparentRoleInput {
     pub site_id: i64,
     pub role_id: i64,
     pub new_parent_id: Option<i64>,

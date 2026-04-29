@@ -18,7 +18,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 use super::prelude::*;
-use crate::endpoints::site;
+use crate::endpoints::{parent, site};
 use crate::error::{Error, ErrorType};
 use crate::models::prelude::{Role, RolePermission};
 use crate::models::role_permission::Model as RolePermissionModel;
@@ -29,11 +29,14 @@ use crate::services::permission::resolvers::resolve_category_slug;
 use crate::services::permission::{
     CheckPermissionContext, PermissionCache, PermissionInput, resolve_category_reference,
 };
-use crate::services::role::{GetUserRolesInput, RoleService, UpdateRolePermissionsInput};
+use crate::services::role::{
+    GetRolePermissionsInput, GetUserRolesInput, RoleService, UpdateRolePermissionsInput,
+};
 use crate::types::{Action, Permission, Reference, Resource};
 use futures::future::try_join_all;
 use std::borrow::Cow;
 use std::collections::HashSet;
+use std::hash::Hash;
 use std::net::IpAddr;
 
 #[derive(Debug)]
@@ -220,63 +223,159 @@ impl PermissionService {
     /// Optionally returns human-readable category names.
     pub async fn get_permissions_for_role(
         ctx: &ServiceContext<'_>,
-        role_id: i64,
-        human_readable_categories: bool,
+        GetRolePermissionsInput {
+            site_id,
+            role_reference,
+            human_readable_categories,
+        }: GetRolePermissionsInput<'_>,
     ) -> Result<Vec<Permission>> {
-        let txn = ctx.transaction();
-
+        let role_id = match role_reference {
+            Reference::Id(id) => id,
+            Reference::Slug(_) => {
+                RoleService::get(ctx, site_id, role_reference)
+                    .await
+                    .or_raise(|| {
+                        Error::new("Failed to get role for permissions", ErrorType::Role)
+                    })?
+                    .role_id
+            }
+        };
         let make_error = || {
             Error::new(
                 format!("failed to get permissions for role ID {}", role_id),
-                ErrorType::Role,
+                ErrorType::Permission,
+            )
+        };
+        let mut permissions = Self::fetch_permissions(ctx, role_id)
+            .await
+            .or_raise(make_error)?;
+        if human_readable_categories {
+            for perm in &mut permissions {
+                if let Some(Reference::Id(cat_id)) = perm.resource_category {
+                    perm.resource_category =
+                        resolve_category_slug(ctx, site_id, perm.resource, cat_id.into())
+                            .await
+                            .or_raise(make_error)?
+                            .map(Reference::Slug);
+                }
+            }
+        }
+        Ok(permissions)
+    }
+
+    pub async fn get_decorated_permissions_for_role(
+        ctx: &ServiceContext<'_>,
+        GetRolePermissionsInput {
+            site_id,
+            role_reference,
+            human_readable_categories,
+        }: GetRolePermissionsInput<'_>,
+    ) -> Result<Vec<DecoratedPermission>> {
+        let txn = ctx.transaction();
+
+        let role = RoleService::get(ctx, site_id, role_reference)
+            .await
+            .or_raise(|| {
+                Error::new(
+                    "Failed to get role for decorated permissions",
+                    ErrorType::Role,
+                )
+            })?;
+
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to get decorated permissions for role ID {}",
+                    role.role_id
+                ),
+                ErrorType::Permission,
             )
         };
 
-        let role_permissions_iter = RolePermission::find()
-            .filter(role_permission::Column::RoleId.eq(role_id))
-            .order_by_asc(role_permission::Column::ResourceType)
-            .order_by_asc(role_permission::Column::ResourceCategoryId)
-            .order_by_asc(role_permission::Column::Action)
-            .all(txn)
+        // Get permissions for the current role
+        let role_permissions = Self::permissions_as_set(ctx, role.role_id)
             .await
-            .or_raise(make_error)?
-            .into_iter();
+            .or_raise(make_error)?;
 
-        let role_permissions = if human_readable_categories {
-            try_join_all(role_permissions_iter.map(|input| async move {
-                let resource_category_slug = match input.resource_category_id {
-                    Some(cat_id) => {
-                        resolve_category_slug(
-                            ctx,
-                            input.site_id,
-                            input.resource_type,
-                            cat_id.into(),
-                        )
-                        .await?
-                    }
-                    None => None,
-                };
-                Ok::<_, ExnError>(Permission {
-                    resource: input.resource_type,
-                    resource_category: resource_category_slug.map(Reference::Slug),
-                    action: input.action,
-                })
-            }))
-            .await
-            .or_raise(make_error)?
-            .into_iter()
-            .collect()
-        } else {
-            role_permissions_iter
-                .map(|p| Permission {
-                    resource: p.resource_type,
-                    resource_category: p.resource_category_id.map(Reference::Id),
-                    action: p.action,
-                })
-                .collect()
+        // Get permissions for the parent role (if any)
+        let parent_permissions = match role.parent_role_id {
+            Some(parent_id) => Some(
+                Self::permissions_as_set(ctx, parent_id)
+                    .await
+                    .or_raise(make_error)?,
+            ),
+            None => None,
         };
 
-        Ok(role_permissions)
+        // Get combined permissions for child roles
+        let children_roles = Role::find()
+            .filter(
+                role::Column::ParentRoleId
+                    .eq(role.role_id)
+                    .and(role::Column::SiteId.eq(site_id))
+                    .and(role::Column::DeletedAt.is_null()),
+            )
+            .all(txn)
+            .await
+            .or_raise(make_error)?;
+
+        let mut children_permissions = HashSet::new();
+        for child in &children_roles {
+            let child_perms = Self::permissions_as_set(ctx, child.role_id)
+                .await
+                .or_raise(make_error)?;
+            children_permissions.extend(child_perms);
+        }
+
+        // Considering valid hierarchy, parent permissions should encompass the permissions of all descendants
+        let active_permissions = match parent_permissions.as_ref() {
+            Some(parent_perms) => parent_perms.iter().cloned(),
+            None => role_permissions.iter().cloned(),
+        };
+
+        // Construct universe set from base permissions and optionally scoped permissions
+        let universe: HashSet<Permission> = Permission::ALL
+            .iter()
+            .cloned()
+            .chain(active_permissions)
+            .collect();
+
+        let mut decorated = Vec::with_capacity(universe.len());
+
+        // Decorate each permission
+        for mut perm in universe {
+            // The role has this permission
+            let active = role_permissions.contains(&perm);
+
+            // The role doesn't have this permission, but parent role does, so it can be added
+            let addable = !active
+                && parent_permissions
+                    .as_ref()
+                    .is_none_or(|parent| parent.contains(&perm));
+
+            // The role has this permission, and at least one child role contains it, so it can't be removed
+            let removable = active && !children_permissions.contains(&perm);
+
+            // Remap resource category from ID to slug
+            if human_readable_categories
+                && let Some(Reference::Id(cat_id)) = perm.resource_category
+            {
+                perm.resource_category =
+                    resolve_category_slug(ctx, site_id, perm.resource, cat_id.into())
+                        .await
+                        .or_raise(make_error)?
+                        .map(Reference::Slug);
+            }
+
+            decorated.push(DecoratedPermission {
+                permission: perm,
+                active,
+                addable,
+                removable,
+            });
+        }
+
+        Ok(decorated)
     }
 
     // Lambda to query roles that have the specified permission, optionally filtered by category
@@ -484,12 +583,40 @@ impl PermissionService {
         Ok(results)
     }
 
+    async fn fetch_permissions(
+        ctx: &ServiceContext<'_>,
+        role_id: i64,
+    ) -> Result<Vec<Permission>> {
+        let txn = ctx.transaction();
+        let make_error = || {
+            Error::new(
+                format!("failed to get permissions for role ID {}", role_id),
+                ErrorType::Role,
+            )
+        };
+        Ok(RolePermission::find()
+            .filter(role_permission::Column::RoleId.eq(role_id))
+            .order_by_asc(role_permission::Column::ResourceType)
+            .order_by_asc(role_permission::Column::ResourceCategoryId)
+            .order_by_asc(role_permission::Column::Action)
+            .all(txn)
+            .await
+            .or_raise(make_error)?
+            .into_iter()
+            .map(|p| Permission {
+                resource: p.resource_type,
+                resource_category: p.resource_category_id.map(Reference::Id),
+                action: p.action,
+            })
+            .collect())
+    }
+
     /// Fetches permissions for `role_id` as a set for easy comparison in hierarchy validation.
     pub async fn permissions_as_set(
         ctx: &ServiceContext<'_>,
         role_id: i64,
     ) -> Result<HashSet<Permission>> {
-        Ok(Self::get_permissions_for_role(ctx, role_id, false)
+        Ok(Self::fetch_permissions(ctx, role_id)
             .await?
             .into_iter()
             .collect())
