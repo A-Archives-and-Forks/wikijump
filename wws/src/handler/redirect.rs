@@ -19,12 +19,12 @@
  */
 
 use super::get_site_id;
-use crate::{path::get_path, state::ServerState};
-use axum::{
-    extract::{Path, State},
-    http::{Uri, header::HeaderMap},
-    response::{IntoResponse, Redirect, Response},
-};
+use crate::path::get_path;
+use crate::state::ServerState;
+use axum::extract::{Path, State};
+use axum::http::Uri;
+use axum::http::header::HeaderMap;
+use axum::response::{IntoResponse, Redirect, Response};
 
 pub async fn redirect_to_main(
     State(state): State<ServerState>,

@@ -19,7 +19,7 @@
  */
 
 use super::prelude::*;
-use rand::{Rng, thread_rng};
+use rand::Rng;
 
 #[derive(Debug)]
 pub struct TestScorer;
@@ -37,8 +37,8 @@ impl Scorer for TestScorer {
 
     #[inline]
     async fn score(&self, _: &DatabaseTransaction, _: Condition) -> Result<ScoreValue> {
-        let mut rng = thread_rng();
-        let value = rng.gen_range(-100..100);
+        let mut rng = rand::rng();
+        let value = rng.random_range(-100..100);
         Ok(ScoreValue::Integer(value))
     }
 }

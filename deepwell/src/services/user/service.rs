@@ -19,6 +19,7 @@
  */
 
 use super::prelude::*;
+use crate::models::known_user::{self, Model as KnownUserModel};
 use crate::models::user::{self, Entity as User, Model as UserModel};
 use crate::services::alias::CreateAlias;
 use crate::services::audit::{AuditEvent, AuditService};
@@ -68,6 +69,13 @@ impl UserService {
         debug!("Normalizing user data (name '{name}', slug '{slug}')");
         regex_replace_in_place(&mut name, &LEADING_TRAILING_CHARS, "");
 
+        let make_error = || {
+            Error::new(
+                format!("failed to create user '{}' with email '{}'", slug, email),
+                ErrorType::User,
+            )
+        };
+
         let user_id = match override_user_id {
             Some(0) => {
                 error!(
@@ -80,24 +88,35 @@ impl UserService {
             }
             Some(user_id) => {
                 info!("Attempting to create user '{name}' ('{slug}', ID {user_id})");
-                ActiveValue::Set(user_id)
+
+                // Insert user ID into known_user for foreign key
+                known_user::ActiveModel {
+                    user_id: ActiveValue::Set(user_id),
+                }
+                .insert(txn)
+                .await
+                .or_raise(make_error)?;
+
+                debug!("Inserted foreign key entry into known_user for ID {user_id}");
+                user_id
             }
             None => {
-                info!("Attempting to create user '{name}' ('{slug}')");
+                info!("Attempting to create user '{name}' ('{slug}') with sequence ID");
 
-                // Use default value, which is set by BIGSERIAL
-                ActiveValue::NotSet
+                // Get user ID from known_user sequence
+                let KnownUserModel { user_id } = known_user::ActiveModel {
+                    user_id: ActiveValue::NotSet,
+                }
+                .insert(txn)
+                .await
+                .or_raise(make_error)?;
+
+                debug!("Got next user ID {user_id} in sequence from known_user");
+                user_id
             }
         };
 
         check_user_name(ctx.config(), &slug, &name)?;
-
-        let make_error = || {
-            Error::new(
-                format!("failed to create user '{}' with email '{}'", slug, email),
-                ErrorType::User,
-            )
-        };
 
         // Perform filter validation
         if should_check_filter(bypass_filter, user_type, None) {
@@ -242,7 +261,7 @@ impl UserService {
 
         // Insert new model
         let user = user::ActiveModel {
-            user_id,
+            user_id: Set(user_id),
             user_type: Set(user_type),
             name: Set(name),
             slug: Set(slug.clone()),
@@ -260,6 +279,7 @@ impl UserService {
             gender: Set(None),
             birthday: Set(None),
             biography: Set(None),
+            website: Set(None),
             user_page: Set(None),
             created_at: Set(now()),
             updated_at: Set(None),
@@ -305,7 +325,6 @@ impl UserService {
         mut reference: Reference<'_>,
     ) -> Result<Option<UserModel>> {
         let txn = ctx.transaction();
-
         let make_error = || Error::new("failed to get user", ErrorType::User);
 
         // If slug, determine if this is a user alias.
@@ -317,6 +336,10 @@ impl UserService {
         //       they would be slower than doing queries on
         //       simple indexes directly, which is why we are
         //       doing it this way.
+        //
+        //       When the wikidot_user table was later added,
+        //       we maintained the same query instead of trying
+        //       to join across multiple tables.
 
         if let Reference::Slug(ref slug) = reference
             && let Some(alias) = AliasService::get_optional(ctx, AliasType::User, slug)
@@ -411,6 +434,7 @@ impl UserService {
             add_changed_field!(move birthday);
             add_changed_field!(ref location);
             add_changed_field!(ref biography);
+            add_changed_field!(ref website);
             add_changed_field!(ref user_page);
 
             if let Maybe::Set(name) = &input.name {
@@ -520,6 +544,10 @@ impl UserService {
 
         if let Maybe::Set(biography) = input.biography {
             model.biography = Set(biography);
+        }
+
+        if let Maybe::Set(website) = input.website {
+            model.website = Set(website);
         }
 
         if let Maybe::Set(user_page) = input.user_page {

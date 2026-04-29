@@ -39,13 +39,13 @@ use crate::utils::assert_is_csprng;
 use bytes::Bytes;
 use cuid2::cuid;
 use futures::TryStreamExt;
-use rand::distributions::{Alphanumeric, DistString};
-use rand::thread_rng;
+use rand::distr::{Alphanumeric, SampleString};
 use s3::request::request_trait::ResponseData;
 use s3::serde_types::HeadObjectResult;
+use sea_orm::prelude::*;
 use sea_orm::{
     DatabaseBackend, FromQueryResult, Statement, StreamTrait, TransactionTrait,
-    UpdateResult, prelude::*,
+    UpdateResult,
 };
 use sea_query::value::ArrayType;
 use std::collections::{HashMap, HashSet};
@@ -133,7 +133,7 @@ impl BlobService {
             let mut path = format!("{PRESIGN_DIRECTORY}/");
 
             {
-                let mut rng = thread_rng();
+                let mut rng = rand::rng();
                 assert_is_csprng(&rng);
                 Alphanumeric.append_string(
                     &mut rng,

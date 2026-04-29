@@ -316,6 +316,7 @@ export interface Locales {
   "user-profile-info.since": string
   "user-profile-info.biography": string
   "user-profile-info.gender": string
+  "user-profile-info.website": string
   "user-profile-info.user-page": string
   "user-profile-info.locales": string
   "user-not-exist": string

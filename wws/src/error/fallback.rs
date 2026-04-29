@@ -42,10 +42,8 @@
 //! In this sense, fallback errors are "more primordial" than basic errors,
 //! since one cause is WWS failing to look up a basic error from DEEPWELL.
 
-use axum::{
-    http::StatusCode,
-    response::{IntoResponse, Response},
-};
+use axum::http::StatusCode;
+use axum::response::{IntoResponse, Response};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum FallbackError {

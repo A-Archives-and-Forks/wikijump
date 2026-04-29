@@ -30,6 +30,30 @@ pub struct Model {
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
     #[sea_orm(
+        belongs_to = "super::known_user::Entity",
+        from = "Column::CreatedBy",
+        to = "super::known_user::Column::UserId",
+        on_update = "NoAction",
+        on_delete = "NoAction"
+    )]
+    KnownUser3,
+    #[sea_orm(
+        belongs_to = "super::known_user::Entity",
+        from = "Column::DeletedBy",
+        to = "super::known_user::Column::UserId",
+        on_update = "NoAction",
+        on_delete = "NoAction"
+    )]
+    KnownUser2,
+    #[sea_orm(
+        belongs_to = "super::known_user::Entity",
+        from = "Column::UpdatedBy",
+        to = "super::known_user::Column::UserId",
+        on_update = "NoAction",
+        on_delete = "NoAction"
+    )]
+    KnownUser1,
+    #[sea_orm(
         belongs_to = "super::site::Entity",
         from = "Column::SiteId",
         to = "super::site::Column::SiteId",
@@ -37,30 +61,6 @@ pub enum Relation {
         on_delete = "NoAction"
     )]
     Site,
-    #[sea_orm(
-        belongs_to = "super::user::Entity",
-        from = "Column::CreatedBy",
-        to = "super::user::Column::UserId",
-        on_update = "NoAction",
-        on_delete = "NoAction"
-    )]
-    User3,
-    #[sea_orm(
-        belongs_to = "super::user::Entity",
-        from = "Column::DeletedBy",
-        to = "super::user::Column::UserId",
-        on_update = "NoAction",
-        on_delete = "NoAction"
-    )]
-    User2,
-    #[sea_orm(
-        belongs_to = "super::user::Entity",
-        from = "Column::UpdatedBy",
-        to = "super::user::Column::UserId",
-        on_update = "NoAction",
-        on_delete = "NoAction"
-    )]
-    User1,
 }
 
 impl Related<super::site::Entity> for Entity {

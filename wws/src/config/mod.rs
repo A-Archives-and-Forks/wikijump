@@ -28,7 +28,8 @@ pub use self::secrets::Secrets;
 use self::args::Arguments;
 use dotenvy::dotenv;
 use ref_map::*;
-use s3::{creds::Credentials, region::Region};
+use s3::creds::Credentials;
+use s3::region::Region;
 use std::path::PathBuf;
 use std::{env, process};
 

@@ -47,13 +47,34 @@ mod prelude {
 }
 
 pub mod all {
-    pub use super::{
-        auth::*, basic_error::*, blob::*, category::*, domain::*, email::*, file::*,
-        file_revision::*, health::*, info::*, link::*, locale::*, message::*, misc::*,
-        page::*, page_attribution::*, page_revision::*, parent::*, role::*, routing::*,
-        site::*, site_member::*, text::*, text_block::*, user::*, user_bot::*, view::*,
-        vote::*,
-    };
+    pub use super::auth::*;
+    pub use super::basic_error::*;
+    pub use super::blob::*;
+    pub use super::category::*;
+    pub use super::domain::*;
+    pub use super::email::*;
+    pub use super::file::*;
+    pub use super::file_revision::*;
+    pub use super::health::*;
+    pub use super::info::*;
+    pub use super::link::*;
+    pub use super::locale::*;
+    pub use super::message::*;
+    pub use super::misc::*;
+    pub use super::page::*;
+    pub use super::page_attribution::*;
+    pub use super::page_revision::*;
+    pub use super::parent::*;
+    pub use super::role::*;
+    pub use super::routing::*;
+    pub use super::site::*;
+    pub use super::site_member::*;
+    pub use super::text::*;
+    pub use super::text_block::*;
+    pub use super::user::*;
+    pub use super::user_bot::*;
+    pub use super::view::*;
+    pub use super::vote::*;
 }
 
 pub mod auth;

@@ -539,6 +539,8 @@ pub struct UserFields<'a> {
     #[serde(skip_serializing_if = "Maybe::is_unset")]
     pub biography: Maybe<Option<&'a str>>,
     #[serde(skip_serializing_if = "Maybe::is_unset")]
+    pub website: Maybe<Option<&'a str>>,
+    #[serde(skip_serializing_if = "Maybe::is_unset")]
     pub user_page: Maybe<Option<&'a str>>,
 }
 

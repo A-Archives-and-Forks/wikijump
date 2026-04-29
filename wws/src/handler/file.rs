@@ -19,22 +19,18 @@
  */
 
 use super::get_site_id;
-use crate::{
-    attachment::content_disposition_attachment,
-    deepwell::FileData,
-    fetch::{fetch_file_info, fetch_full_body, fetch_range_bytes, fetch_range_stream},
-    range::{ByteRange, ParsedRange, evaluate_range},
-    state::ServerState,
+use crate::attachment::content_disposition_attachment;
+use crate::deepwell::FileData;
+use crate::fetch::{
+    fetch_file_info, fetch_full_body, fetch_range_bytes, fetch_range_stream,
 };
-use axum::{
-    body::Body,
-    extract::{Path, State},
-    http::{
-        Method, StatusCode,
-        header::{self, HeaderMap},
-    },
-    response::{IntoResponse, Response},
-};
+use crate::range::{ByteRange, ParsedRange, evaluate_range};
+use crate::state::ServerState;
+use axum::body::Body;
+use axum::extract::{Path, State};
+use axum::http::header::{self, HeaderMap};
+use axum::http::{Method, StatusCode};
+use axum::response::{IntoResponse, Response};
 use rand::distr::{Alphanumeric, SampleString};
 use std::fmt::Write;
 

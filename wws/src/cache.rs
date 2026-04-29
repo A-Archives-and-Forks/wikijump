@@ -23,8 +23,10 @@
 //! Whenever you make changes to this module, make sure that the code is
 //! compatible with DEEPWELL's Redis code.
 
-use crate::{deepwell::FileData, error::Result};
-use redis::{AsyncCommands, aio::MultiplexedConnection};
+use crate::deepwell::FileData;
+use crate::error::Result;
+use redis::AsyncCommands;
+use redis::aio::MultiplexedConnection;
 
 macro_rules! get_connection {
     ($client:expr) => {

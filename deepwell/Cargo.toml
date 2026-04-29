@@ -8,7 +8,7 @@ keywords = ["wikijump", "api", "backend", "wiki"]
 categories = ["asynchronous", "database", "web-programming::http-server"]
 exclude = [".gitignore", ".editorconfig"]
 
-version = "2026.4.7"
+version = "2026.4.22"
 authors = ["Emmie Smith <emmie.maeda@gmail.com>"]
 edition = "2024"
 
@@ -16,7 +16,7 @@ edition = "2024"
 watch = ["notify"]
 
 [dependencies]
-argon2 = "0.5"
+argon2 = "0.6.0-rc.8"
 arraystring = "0.3"
 askama = "0.15"
 bytes = "1"
@@ -40,7 +40,7 @@ jsonrpsee = { version = "0.24", features = ["macros", "server"] }
 log = "0.4"
 notify = { version = "8", optional = true }
 paste = "1"
-rand = "0.8"
+rand = "0.9"
 redis = { version = "1", features = ["aio", "connection-manager", "tokio-comp", "tokio-rustls-comp"] }
 ref-map = "0.2"
 regex = "1"

@@ -21,9 +21,17 @@
 use super::prelude::*;
 use crate::models::alias::Model as AliasModel;
 use crate::models::user::Model as UserModel;
+use crate::models::wikidot_user::Model as WikidotUserModel;
 use crate::types::{Bytes, UserType};
 use std::net::IpAddr;
 use time::Date;
+
+#[derive(Serialize, Debug, Clone)]
+#[serde(tag = "user_record_type", rename_all = "snake_case")]
+pub enum User {
+    Wikijump(UserModel),
+    Wikidot(WikidotUserModel),
+}
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct CreateUser {
@@ -85,6 +93,7 @@ pub struct UpdateUserBody {
     pub birthday: Maybe<Option<Date>>,
     pub location: Maybe<Option<String>>,
     pub biography: Maybe<Option<String>>,
+    pub website: Maybe<Option<String>>,
     pub user_page: Maybe<Option<String>>,
 
     #[serde(default)]

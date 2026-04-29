@@ -31,11 +31,11 @@
 //! periodically.
 
 use super::prelude::*;
+use crate::models::known_user;
 use crate::models::session::{self, Entity as Session, Model as SessionModel};
 use crate::models::user::{self, Entity as User, Model as UserModel};
 use crate::utils::assert_is_csprng;
-use rand::distributions::{Alphanumeric, DistString};
-use rand::thread_rng;
+use rand::distr::{Alphanumeric, SampleString};
 
 #[derive(Debug)]
 pub struct SessionService;
@@ -98,7 +98,7 @@ impl SessionService {
     /// Example generated token: `wj:T9iF6vfjoYYE20QzrybV2C1V4K0LchHXsNVipX8G1GZ9vSJf0rvQpJ4YC8c8MAQ3`.
     fn new_token(config: &Config) -> String {
         debug!("Generating a new session token");
-        let mut rng = thread_rng();
+        let mut rng = rand::rng();
         assert_is_csprng(&rng);
 
         let mut token = Alphanumeric.sample_string(&mut rng, config.session_token_length);
@@ -168,7 +168,7 @@ impl SessionService {
 
         let txn = ctx.transaction();
         let user_opt = User::find()
-            .join(JoinType::Join, user::Relation::Session.def())
+            .join(JoinType::Join, known_user::Relation::Session.def())
             .filter(
                 Condition::all()
                     .add(session::Column::SessionToken.eq(session_token))

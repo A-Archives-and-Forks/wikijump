@@ -19,23 +19,18 @@
  */
 
 use super::get_site_id;
-use crate::{
-    deepwell::{TextBlockIndex, TextBlockType},
-    error::{
-        BasicError, FallbackError, TextBlockErrorReason, build_basic_error_response,
-    },
-    state::ServerState,
+use crate::deepwell::{TextBlockIndex, TextBlockType};
+use crate::error::{
+    BasicError, FallbackError, TextBlockErrorReason, build_basic_error_response,
 };
-use axum::{
-    body::Body,
-    extract::{Path, State},
-    http::{
-        header::{self, HeaderMap},
-        status::StatusCode,
-    },
-    response::{IntoResponse, Response},
-};
-use std::{collections::HashMap, num::NonZeroU16};
+use crate::state::ServerState;
+use axum::body::Body;
+use axum::extract::{Path, State};
+use axum::http::header::{self, HeaderMap};
+use axum::http::status::StatusCode;
+use axum::response::{IntoResponse, Response};
+use std::collections::HashMap;
+use std::num::NonZeroU16;
 
 pub async fn handle_html_block(
     State(state): State<ServerState>,

@@ -20,18 +20,14 @@
 
 //! See the `BasicErrorService` in DEEPWELL for information.
 
-use crate::{
-    deepwell::TextBlockType, error::FallbackError, language::parse_accept_language,
-    state::ServerStateInner,
-};
-use axum::{
-    body::Body,
-    http::{
-        header::{self, HeaderMap},
-        status::StatusCode,
-    },
-    response::{IntoResponse, Response},
-};
+use crate::deepwell::TextBlockType;
+use crate::error::FallbackError;
+use crate::language::parse_accept_language;
+use crate::state::ServerStateInner;
+use axum::body::Body;
+use axum::http::header::{self, HeaderMap};
+use axum::http::status::StatusCode;
+use axum::response::{IntoResponse, Response};
 use paste::paste;
 
 pub use crate::deepwell::BasicErrorHtml;

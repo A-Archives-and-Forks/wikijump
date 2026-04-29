@@ -19,9 +19,12 @@
  */
 
 use crate::error::{Result, TextBlockErrorReason};
-use jsonrpsee::{core::client::ClientT, http_client::HttpClient, rpc_params};
+use jsonrpsee::core::client::ClientT;
+use jsonrpsee::http_client::HttpClient;
+use jsonrpsee::rpc_params;
 use serde::Deserialize;
-use std::{num::NonZeroU16, time::Duration};
+use std::num::NonZeroU16;
+use std::time::Duration;
 
 const JSONRPC_MAX_REQUEST: u32 = 16 * 1024;
 const JSONRPC_TIMEOUT: Duration = Duration::from_millis(200);

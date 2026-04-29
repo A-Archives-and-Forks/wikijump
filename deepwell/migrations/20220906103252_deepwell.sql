@@ -8,14 +8,23 @@
 -- User
 --
 
+-- Contains all known user IDs.
+-- Used for foreign key constraints.
+
+CREATE TABLE known_user (
+    user_id BIGSERIAL PRIMARY KEY
+);
+
+-- Represents an active user on the platform.
+-- See wikidot_user for interaction notes.
+
 CREATE TABLE "user" (
-    user_id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT PRIMARY KEY REFERENCES known_user(user_id),
     -- Rust enum: UserType
     user_type TEXT NOT NULL DEFAULT 'regular',
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
     updated_at TIMESTAMP WITH TIME ZONE,
     deleted_at TIMESTAMP WITH TIME ZONE,
-    from_wikidot BOOLEAN NOT NULL DEFAULT false,
     name TEXT NOT NULL,
     slug TEXT NOT NULL,
     name_changes_left SMALLINT NOT NULL,  -- Default set in runtime configuration.
@@ -35,6 +44,7 @@ CREATE TABLE "user" (
     birthday DATE,
     location TEXT,
     biography TEXT,
+    website TEXT,
     user_page TEXT,
 
     -- Name uniqueness constraints
@@ -58,10 +68,46 @@ CREATE TABLE "user" (
     CHECK (gender IS NULL OR (length(gender) > 0 AND length(gender) < 100)),
     CHECK (location IS NULL OR (length(location) > 0 AND length(location) < 100)),
     CHECK (biography IS NULL OR (length(biography) > 0 AND length(biography) < 4000)),
+    CHECK (website IS NULL OR (length(website) > 0 AND length(website) < 100)),
     CHECK (user_page IS NULL OR (length(user_page) > 0 AND length(user_page) < 100)),
 
     CHECK (name_changes_left >= 0),                                 -- Value cannot be negative
     CHECK (avatar_s3_hash IS NULL OR length(avatar_s3_hash) = 64)   -- SHA-512 hash size (if set)
+);
+
+-- Represents legacy users imported from Wikidot.
+--
+-- This separate table enables us to satisfy the looser constraints
+-- Wikidot has on its data without compromising them for regular users.
+--
+-- The relationship between the user table and this one is:
+-- * A row in user only indicates a Wikijump-only user account.
+-- * A row in wikidot_user only indicates a Wikidot-only user account.
+-- * A row in both (with the same user ID) indicates a Wikidot user who has imported their account into Wikijump.
+-- * The wikidot_user table represents the static state of the Wikidot user at the time of "fetched_at". If a user has been imported to Wikijump, then any field updates are not reflected here.
+-- * If a user is queried, and it does not exist in user or has an alias, then wikidot_user is queried.
+
+CREATE TABLE wikidot_user (
+    user_id INTEGER PRIMARY KEY REFERENCES known_user(user_id),
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    fetched_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    is_deleted BOOLEAN NOT NULL,
+    name TEXT UNIQUE CHECK (length(name) > 0),
+    slug TEXT UNIQUE CHECK (length(slug) > 0),
+    -- Biographical fields (optional)
+    real_name TEXT,
+    gender TEXT,
+    birthday DATE,
+    location TEXT,
+    biography TEXT,
+    website TEXT,
+    karma SMALLINT NOT NULL CHECK (0 <= karma AND karma <= 5),
+    is_pro BOOLEAN NOT NULL,
+
+    -- Basic sanity check on fetched_at
+    CHECK (created_at < fetched_at),
+    -- Only deleted users can be missing a username or slug
+    CHECK (is_deleted OR (name IS NOT NULL AND slug IS NOT NULL))
 );
 
 --
@@ -107,7 +153,7 @@ CREATE TABLE site (
     -- then it must be one of these site domains, it cannot belong to another site.
     preferred_domain TEXT,
     layout TEXT,                -- Default page layout for the site
-    
+
     -- Rust enum: License
     license TEXT NOT NULL,      -- Default content license for the site
 
@@ -146,12 +192,12 @@ CREATE TABLE alias (
     -- Rust enum: AliasType
     alias_type TEXT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
-    created_by BIGINT NOT NULL REFERENCES "user"(user_id),
+    created_by BIGINT NOT NULL REFERENCES known_user(user_id),
     target_id BIGINT NOT NULL,
     slug TEXT NOT NULL,
 
     UNIQUE (alias_type, slug),
-    
+
     -- Enum value must not be empty
     CHECK (length(alias_type) > 0)
 );
@@ -176,11 +222,11 @@ CREATE TABLE relation (
     from_type TEXT NOT NULL,
     from_id BIGINT NOT NULL,
     metadata JSONB NOT NULL DEFAULT '{}',
-    created_by BIGINT NOT NULL REFERENCES "user"(user_id),
+    created_by BIGINT NOT NULL REFERENCES known_user(user_id),
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
-    overwritten_by BIGINT REFERENCES "user"(user_id),
+    overwritten_by BIGINT REFERENCES known_user(user_id),
     overwritten_at TIMESTAMP WITH TIME ZONE,
-    deleted_by BIGINT REFERENCES "user"(user_id),
+    deleted_by BIGINT REFERENCES known_user(user_id),
     deleted_at TIMESTAMP WITH TIME ZONE,
 
     CHECK ((overwritten_by IS NULL) = (overwritten_at IS NULL)),  -- ensure overwritten field consistency
@@ -220,7 +266,7 @@ CREATE UNIQUE INDEX relation_unique_page_attribution_active
 
 CREATE TABLE session (
     session_token TEXT PRIMARY KEY CHECK (length(session_token) > 48),
-    user_id BIGINT NOT NULL REFERENCES "user"(user_id),
+    user_id BIGINT NOT NULL REFERENCES known_user(user_id),
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
     expires_at TIMESTAMP WITH TIME ZONE NOT NULL CHECK (expires_at > created_at),
     ip_address TEXT NOT NULL,  -- TODO change to INET
@@ -292,7 +338,7 @@ CREATE TABLE page_revision (
     revision_number INT NOT NULL,
     page_id BIGINT NOT NULL REFERENCES page(page_id),
     site_id BIGINT NOT NULL REFERENCES site(site_id),
-    user_id BIGINT NOT NULL REFERENCES "user"(user_id),
+    user_id BIGINT NOT NULL REFERENCES known_user(user_id),
     from_wikidot BOOLEAN NOT NULL DEFAULT false,
     changes TEXT[] NOT NULL, -- List of changes in this revision
     wikitext_hash BYTEA NOT NULL REFERENCES text(hash),
@@ -374,7 +420,7 @@ CREATE TABLE page_lock (
     -- Currently the only value is 'wikidot' (meaning mods+ only)
     lock_type TEXT NOT NULL,
     page_id BIGINT NOT NULL REFERENCES page(page_id),
-    user_id BIGINT NOT NULL REFERENCES "user"(user_id),
+    user_id BIGINT NOT NULL REFERENCES known_user(user_id),
     reason TEXT NOT NULL,
 
     UNIQUE (page_id, deleted_at)
@@ -436,10 +482,10 @@ CREATE TABLE page_vote (
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
     deleted_at TIMESTAMP WITH TIME ZONE,
     disabled_at TIMESTAMP WITH TIME ZONE,
-    disabled_by BIGINT REFERENCES "user"(user_id),
+    disabled_by BIGINT REFERENCES known_user(user_id),
     from_wikidot BOOLEAN NOT NULL DEFAULT false,
     page_id BIGINT NOT NULL REFERENCES page(page_id),
-    user_id BIGINT NOT NULL REFERENCES "user"(user_id),
+    user_id BIGINT NOT NULL REFERENCES known_user(user_id),
     value SMALLINT NOT NULL,
 
     UNIQUE (page_id, user_id, deleted_at),
@@ -453,7 +499,7 @@ CREATE TABLE page_vote (
 -- Manages blobs that are being uploaded by the user
 CREATE TABLE blob_pending (
     external_id TEXT PRIMARY KEY,
-    created_by BIGINT NOT NULL REFERENCES "user"(user_id),
+    created_by BIGINT NOT NULL REFERENCES known_user(user_id),
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
     expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
     expected_length BIGINT NOT NULL CHECK (expected_length >= 0),
@@ -470,7 +516,7 @@ CREATE TABLE blob_pending (
 CREATE TABLE blob_blacklist (
     s3_hash BYTEA PRIMARY KEY CHECK (length(s3_hash) = 64),  -- SHA-512 hash size
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
-    created_by BIGINT NOT NULL REFERENCES "user"(user_id)
+    created_by BIGINT NOT NULL REFERENCES known_user(user_id)
 );
 
 --
@@ -500,7 +546,7 @@ CREATE TABLE file_revision (
     file_id BIGINT NOT NULL REFERENCES file(file_id),
     page_id BIGINT NOT NULL REFERENCES page(page_id),
     site_id BIGINT NOT NULL REFERENCES site(site_id),
-    user_id BIGINT NOT NULL REFERENCES "user"(user_id),
+    user_id BIGINT NOT NULL REFERENCES known_user(user_id),
     name TEXT NOT NULL,
     s3_hash BYTEA NOT NULL,
     mime TEXT NOT NULL,
@@ -576,7 +622,7 @@ CREATE TABLE text_block (
 CREATE TABLE authorization_token (
     token_id SERIAL PRIMARY KEY,
     token_value TEXT NOT NULL UNIQUE,
-    created_by BIGINT NOT NULL REFERENCES "user"(user_id),
+    created_by BIGINT NOT NULL REFERENCES known_user(user_id),
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
     description TEXT NOT NULL,
 
@@ -594,7 +640,7 @@ CREATE TABLE message_record (
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
     drafted_at TIMESTAMP WITH TIME ZONE NOT NULL,
     retracted_at TIMESTAMP WITH TIME ZONE,
-    sender_id BIGINT NOT NULL REFERENCES "user"(user_id),
+    sender_id BIGINT NOT NULL REFERENCES known_user(user_id),
 
     -- Text contents
     subject TEXT NOT NULL,
@@ -617,7 +663,7 @@ CREATE TABLE message_record (
 CREATE TABLE message (
     internal_id BIGSERIAL PRIMARY KEY,
     record_id TEXT NOT NULL REFERENCES message_record(external_id),  -- The record this corresponds to
-    user_id BIGINT NOT NULL REFERENCES "user"(user_id),  -- The user who owns the copy of this record
+    user_id BIGINT NOT NULL REFERENCES known_user(user_id),  -- The user who owns the copy of this record
 
     -- Folders and flags
     flag_read BOOLEAN NOT NULL DEFAULT false,  -- A user-toggleable flag for the "unread" status.
@@ -636,7 +682,7 @@ CREATE TABLE message (
 
 CREATE TABLE message_recipient (
     record_id TEXT NOT NULL REFERENCES message_record(external_id),
-    recipient_id BIGINT NOT NULL REFERENCES "user"(user_id),
+    recipient_id BIGINT NOT NULL REFERENCES known_user(user_id),
 
     -- Rust enum: MessageRecipientType
     recipient_type TEXT NOT NULL,
@@ -651,7 +697,7 @@ CREATE TABLE message_draft (
     external_id TEXT PRIMARY KEY,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
     updated_at TIMESTAMP WITH TIME ZONE,
-    user_id BIGINT NOT NULL REFERENCES "user"(user_id),
+    user_id BIGINT NOT NULL REFERENCES known_user(user_id),
     recipients JSON NOT NULL,
 
     -- Text contents
@@ -715,11 +761,11 @@ CREATE TABLE filter (
 CREATE TABLE forum_group (
     forum_group_id BIGSERIAL PRIMARY KEY,
     site_id BIGINT NOT NULL REFERENCES site(site_id),
-    created_by BIGINT NOT NULL REFERENCES "user"(user_id),
+    created_by BIGINT NOT NULL REFERENCES known_user(user_id),
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
-    updated_by BIGINT REFERENCES "user"(user_id),
+    updated_by BIGINT REFERENCES known_user(user_id),
     updated_at TIMESTAMP WITH TIME ZONE,
-    deleted_by BIGINT REFERENCES "user"(user_id),
+    deleted_by BIGINT REFERENCES known_user(user_id),
     deleted_at TIMESTAMP WITH TIME ZONE,
     name TEXT NOT NULL,
     description TEXT NOT NULL,
@@ -737,11 +783,11 @@ CREATE TABLE forum_category (
     forum_category_id BIGSERIAL PRIMARY KEY,
     forum_group_id BIGINT NOT NULL REFERENCES forum_group(forum_group_id),
     site_id BIGINT NOT NULL REFERENCES site(site_id),
-    created_by BIGINT NOT NULL REFERENCES "user"(user_id),
+    created_by BIGINT NOT NULL REFERENCES known_user(user_id),
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
-    updated_by BIGINT REFERENCES "user"(user_id),
+    updated_by BIGINT REFERENCES known_user(user_id),
     updated_at TIMESTAMP WITH TIME ZONE,
-    deleted_by BIGINT REFERENCES "user"(user_id),
+    deleted_by BIGINT REFERENCES known_user(user_id),
     deleted_at TIMESTAMP WITH TIME ZONE,
     name TEXT NOT NULL,
     description TEXT NOT NULL,
@@ -767,11 +813,11 @@ CREATE TABLE forum_thread (
     forum_group_id BIGINT NOT NULL REFERENCES forum_group(forum_group_id),
     site_id BIGINT NOT NULL REFERENCES site(site_id),
     page_id BIGINT REFERENCES page(page_id) UNIQUE,  -- For page discussion threads (NULL = regular thread)
-    created_by BIGINT NOT NULL REFERENCES "user"(user_id),
+    created_by BIGINT NOT NULL REFERENCES known_user(user_id),
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
-    updated_by BIGINT REFERENCES "user"(user_id),
+    updated_by BIGINT REFERENCES known_user(user_id),
     updated_at TIMESTAMP WITH TIME ZONE,
-    deleted_by BIGINT REFERENCES "user"(user_id),
+    deleted_by BIGINT REFERENCES known_user(user_id),
     deleted_at TIMESTAMP WITH TIME ZONE,
     title TEXT NOT NULL,
     description TEXT NOT NULL,
@@ -795,7 +841,7 @@ CREATE TABLE forum_thread_lock (
     expires_at TIMESTAMP WITH TIME ZONE,
     from_wikidot BOOLEAN NOT NULL DEFAULT false,
     forum_thread_id BIGINT NOT NULL REFERENCES forum_thread(forum_thread_id),
-    user_id BIGINT NOT NULL REFERENCES "user"(user_id),
+    user_id BIGINT NOT NULL REFERENCES known_user(user_id),
     reason TEXT NOT NULL,
     lock_type TEXT NOT NULL,
     allow_new_posts BOOLEAN NOT NULL DEFAULT false,
@@ -813,10 +859,10 @@ CREATE TABLE forum_post (
     forum_category_id BIGINT NOT NULL REFERENCES forum_category(forum_category_id),
     forum_group_id BIGINT NOT NULL REFERENCES forum_group(forum_group_id),
     site_id BIGINT NOT NULL REFERENCES site(site_id),
-    user_id BIGINT NOT NULL REFERENCES "user"(user_id),
+    user_id BIGINT NOT NULL REFERENCES known_user(user_id),
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
     updated_at TIMESTAMP WITH TIME ZONE,
-    deleted_by BIGINT REFERENCES "user"(user_id),
+    deleted_by BIGINT REFERENCES known_user(user_id),
     deleted_at TIMESTAMP WITH TIME ZONE,
     from_wikidot BOOLEAN NOT NULL DEFAULT false,
     latest_revision_id BIGINT,
@@ -837,7 +883,7 @@ CREATE TABLE forum_post_lock (
     deleted_at TIMESTAMP WITH TIME ZONE,
     expires_at TIMESTAMP WITH TIME ZONE,
     forum_post_id BIGINT NOT NULL REFERENCES forum_post(forum_post_id),
-    user_id BIGINT NOT NULL REFERENCES "user"(user_id),
+    user_id BIGINT NOT NULL REFERENCES known_user(user_id),
     reason TEXT NOT NULL,
     lock_type TEXT NOT NULL,
     cascading BOOLEAN NOT NULL,
@@ -853,7 +899,7 @@ CREATE TABLE forum_post_revision (
     forum_category_id BIGINT NOT NULL REFERENCES forum_category(forum_category_id),
     forum_group_id BIGINT NOT NULL REFERENCES forum_group(forum_group_id),
     site_id BIGINT NOT NULL REFERENCES site(site_id),
-    user_id BIGINT NOT NULL REFERENCES "user"(user_id),
+    user_id BIGINT NOT NULL REFERENCES known_user(user_id),
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
     updated_at TIMESTAMP WITH TIME ZONE,
     revision_number INTEGER NOT NULL CHECK (revision_number >= 0),
@@ -945,13 +991,13 @@ CREATE TABLE role_permission (
 
 -- User role assignments (many-to-many)
 CREATE TABLE user_role (
-    user_id BIGINT NOT NULL REFERENCES "user"(user_id),
+    user_id BIGINT NOT NULL REFERENCES known_user(user_id),
     role_id BIGINT NOT NULL REFERENCES role(role_id),
     -- Denormalized FK to avoid a join. (Remember, roles are tied to a specific site)
     site_id BIGINT NOT NULL REFERENCES site(site_id),
 
     assigned_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
-    assigned_by BIGINT NOT NULL REFERENCES "user"(user_id),
+    assigned_by BIGINT NOT NULL REFERENCES known_user(user_id),
     expires_at TIMESTAMP WITH TIME ZONE,
     deleted_at TIMESTAMP WITH TIME ZONE,
     PRIMARY KEY (user_id, role_id)

@@ -18,16 +18,15 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-use crate::{handler::*, state::ServerState};
-use axum::{
-    Router,
-    http::header::{ACCESS_CONTROL_ALLOW_ORIGIN, HeaderValue},
-    routing::{any, get},
-};
-use tower_http::{
-    compression::CompressionLayer, normalize_path::NormalizePathLayer,
-    set_header::SetResponseHeaderLayer, trace::TraceLayer,
-};
+use crate::handler::*;
+use crate::state::ServerState;
+use axum::Router;
+use axum::http::header::{ACCESS_CONTROL_ALLOW_ORIGIN, HeaderValue};
+use axum::routing::{any, get};
+use tower_http::compression::CompressionLayer;
+use tower_http::normalize_path::NormalizePathLayer;
+use tower_http::set_header::SetResponseHeaderLayer;
+use tower_http::trace::TraceLayer;
 
 pub fn build_router(state: ServerState) -> Router {
     // NOTE: For all GET routes, axum automatically handles HEAD requests.

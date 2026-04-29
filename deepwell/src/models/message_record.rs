@@ -33,6 +33,14 @@ pub struct Model {
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
+    #[sea_orm(
+        belongs_to = "super::known_user::Entity",
+        from = "Column::SenderId",
+        to = "super::known_user::Column::UserId",
+        on_update = "NoAction",
+        on_delete = "NoAction"
+    )]
+    KnownUser,
     #[sea_orm(has_many = "super::message::Entity")]
     Message,
     #[sea_orm(has_many = "super::message_recipient::Entity")]
@@ -69,14 +77,12 @@ pub enum Relation {
         on_delete = "NoAction"
     )]
     Text1,
-    #[sea_orm(
-        belongs_to = "super::user::Entity",
-        from = "Column::SenderId",
-        to = "super::user::Column::UserId",
-        on_update = "NoAction",
-        on_delete = "NoAction"
-    )]
-    User,
+}
+
+impl Related<super::known_user::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::KnownUser.def()
+    }
 }
 
 impl Related<super::message::Entity> for Entity {
@@ -88,12 +94,6 @@ impl Related<super::message::Entity> for Entity {
 impl Related<super::message_recipient::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::MessageRecipient.def()
-    }
-}
-
-impl Related<super::user::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::User.def()
     }
 }
 
