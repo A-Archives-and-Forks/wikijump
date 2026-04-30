@@ -235,7 +235,7 @@ impl ForumPostRevisionService {
             )
         };
 
-        let _revision = Self::get_direct(ctx, forum_post_revision_id)
+        Self::assert_exists_direct(ctx, forum_post_revision_id)
             .await
             .or_raise(make_error)?;
 
@@ -352,6 +352,15 @@ impl ForumPostRevisionService {
                 ErrorType::ForumPostRevisionNotFound,
             )
         })?)
+    }
+
+    #[inline]
+    pub async fn assert_exists_direct(
+        ctx: &ServiceContext<'_>,
+        forum_post_revision_id: i64,
+    ) -> Result<()> {
+        let _ = Self::get_direct(ctx, forum_post_revision_id).await?;
+        Ok(())
     }
 
     pub async fn count(ctx: &ServiceContext<'_>, forum_post_id: i64) -> Result<u64> {

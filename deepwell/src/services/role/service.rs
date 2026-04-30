@@ -73,7 +73,7 @@ impl RoleService {
 
         // Validate parent role (if specified) exists
         if let Some(parent_id) = parent_role_id {
-            let _parent_role = Self::get(ctx, site_id, parent_id.into())
+            Self::assert_exists(ctx, site_id, parent_id.into())
                 .await
                 .or_raise(make_error)?;
         }
@@ -132,7 +132,7 @@ impl RoleService {
         };
 
         // Validate that the role belongs to the site
-        let _role = Self::get(ctx, site_id, role_id.into())
+        Self::assert_exists(ctx, site_id, role_id.into())
             .await
             .or_raise(make_error)?;
 
@@ -325,6 +325,16 @@ impl RoleService {
         find_or_error!(Self::get_optional(ctx, site_id, reference), "role", Role)
     }
 
+    #[inline]
+    pub async fn assert_exists(
+        ctx: &ServiceContext<'_>,
+        site_id: i64,
+        reference: Reference<'_>,
+    ) -> Result<()> {
+        let _ = Self::get(ctx, site_id, reference).await?;
+        Ok(())
+    }
+
     pub async fn grant_role_to_user(
         ctx: &ServiceContext<'_>,
         GrantUserRoleInput {
@@ -507,7 +517,7 @@ impl RoleService {
             }
 
             // Validate that the new parent role exists
-            Self::get(ctx, site_id, parent_id.into())
+            Self::assert_exists(ctx, site_id, parent_id.into())
                 .await
                 .or_raise(make_error)?;
 
