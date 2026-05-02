@@ -31,22 +31,37 @@ use ftml::info;
 use redis::AsyncCommands;
 
 pub const DEFAULT_CATEGORY_KEY: &str = "_default";
+pub const SITE_NOT_SET_KEY: &str = "platform";
+pub const USER_NOT_SET_KEY: &str = "anonymous";
 
 #[derive(Debug, Clone, Copy)]
 pub struct PermissionCache;
 
 #[allow(dead_code)]
 impl PermissionCache {
-    /// Build Redis cache key for a permission hash.
-    fn key(site_id: i64, resource_type: Resource, action: Action) -> String {
-        format!("perm:{}:{}:{}", site_id, resource_type, action)
+    /// Build Redis cache key to lookup user permissions for a specific site.
+    fn site_user_key(site_id: Option<i64>, user_id: Option<i64>) -> String {
+        format!(
+            "site:{}:user:{}",
+            site_id
+                .map(|id| id.to_string())
+                .unwrap_or(SITE_NOT_SET_KEY.to_owned()),
+            user_id
+                .map(|id| id.to_string())
+                .unwrap_or(USER_NOT_SET_KEY.to_owned())
+        )
     }
 
-    /// Build the field key within a permission hash for a specific category.
-    fn category_field(resource_category_id: Option<i64>) -> Cow<'static, str> {
-        resource_category_id
-            .map(|id| Cow::Owned(id.to_string()))
-            .unwrap_or_else(|| Cow::Borrowed(DEFAULT_CATEGORY_KEY))
+    /// Build a hash field key for the permission
+    fn permission_key(
+        resource: Resource,
+        resource_category_id: Option<i64>,
+        action: Action,
+    ) -> Cow<'static, str> {
+        let category_id_str = resource_category_id
+            .map(|id| id.to_string())
+            .unwrap_or(DEFAULT_CATEGORY_KEY.to_owned());
+        Cow::Owned(format!("{}:{}:{}", resource, category_id_str, action))
     }
 
     /// Check if an action should be cached.
@@ -58,97 +73,66 @@ impl PermissionCache {
         }
     }
 
-    /// Fetch cached role IDs for a permission category.
-    pub async fn query_roles_with_permission_cache(
+    /// Check if this user's permission has been cached, and return it.
+    pub async fn check_user_permission(
         ctx: &ServiceContext<'_>,
-        site_id: i64,
+        site_id: Option<i64>,
+        user_id: Option<i64>,
         resource_type: Resource,
         resource_category_id: Option<i64>,
         action: Action,
-    ) -> Result<Option<Vec<i64>>> {
+    ) -> Result<Option<bool>> {
+        let key = Self::site_user_key(site_id, user_id);
+        let field = Self::permission_key(resource_type, resource_category_id, action);
+
         let mut redis = ctx.redis();
-
-        let key = Self::key(site_id, resource_type, action);
-        let field = Self::category_field(resource_category_id);
-        let default_field = Self::category_field(None);
-
-        // Fetch both category-specific and default values in one round trip
-        let values: Vec<Option<String>> = redis
-            .hmget(&key, &[&field, &default_field])
-            .await
-            .or_raise(|| {
+        let has_permission: Option<String> =
+            redis.hget(&key, &field).await.or_raise(|| {
                 warn!(
-                    "Failed to read permission cache key '{}' fields '{}' and '{}'",
-                    key, field, default_field
+                    "Failed to read permission cache key '{}' field '{}'",
+                    key, field
                 );
                 Error::new("Permission cache read error", ErrorType::Permission)
             })?;
 
-        let category_value = values[0].clone();
-        let default_value = values[1].clone();
-
-        // Prefer category-specific value, fall back to default if not found
-        let role_ids_str = if category_value.is_some() {
-            category_value
-        } else {
-            default_value
-        };
-
-        match role_ids_str {
-            None => Ok(None), // Field doesn't exist = cache miss
-            Some(s) => {
-                let parsed = s
-                    .split(',')
-                    .filter_map(|part| part.trim().parse::<i64>().ok())
-                    .collect();
-                Ok(Some(parsed))
-            }
-        }
+        Ok(match has_permission {
+            Some(val) => Some(val == "1"),
+            None => None,
+        })
     }
 
-    pub async fn build_permission_cache(
+    /// Set a user's permission value in the cache.
+    pub async fn set_user_permission(
         ctx: &ServiceContext<'_>,
-        site_id: i64,
+        site_id: Option<i64>,
+        user_id: Option<i64>,
+        resource_type: Resource,
+        resource_category_id: Option<i64>,
+        action: Action,
+        has_permission: bool,
     ) -> Result<()> {
-        let txn = ctx.transaction();
-        let make_error =
-            || Error::new("Error building permission cache", ErrorType::Permission);
-
-        let all_permissions = RolePermission::find()
-            .filter(role_permission::Column::SiteId.eq(site_id))
-            .all(txn)
-            .await
-            .or_raise(make_error)?;
-
-        let mut cache_map: HashMap<(Resource, Option<i64>, Action), Vec<i64>> =
-            HashMap::new();
-        for perm in all_permissions {
-            if !Self::is_cacheable(perm.resource_type, perm.action) {
-                continue;
-            }
-
-            let key = (perm.resource_type, perm.resource_category_id, perm.action);
-            cache_map.entry(key).or_default().push(perm.role_id);
-        }
+        let key = Self::site_user_key(site_id, user_id);
+        let field = Self::permission_key(resource_type, resource_category_id, action);
 
         let mut redis = ctx.redis();
-        for ((resource_type, resource_category_id, action), role_ids) in cache_map {
-            let key = Self::key(site_id, resource_type, action);
-            let field = Self::category_field(resource_category_id);
-            let value = role_ids
-                .iter()
-                .map(|id| id.to_string())
-                .collect::<Vec<_>>()
-                .join(",");
-            let _: () = redis.hset(&key, &field, value).await.or_raise(make_error)?;
-        }
+        let _: () = redis
+            .hset(&key, &field, if has_permission { "1" } else { "0" })
+            .await
+            .or_raise(|| {
+                warn!(
+                    "Failed to write permission cache key '{}' field '{}'",
+                    key, field
+                );
+                Error::new("Permission cache write error", ErrorType::Permission)
+            })?;
 
         Ok(())
     }
 
+    /// Invalidate the cache for a specific site.
     pub async fn invalidate_site(ctx: &ServiceContext<'_>, site_id: i64) -> Result<()> {
         let mut redis = ctx.redis();
-        let pattern = format!("perm:{}:*", site_id);
+        let pattern = format!("site:{}:*", site_id);
         let make_error = || {
             Error::new(
                 format!("Failed to invalidate permission cache for site {}", site_id),

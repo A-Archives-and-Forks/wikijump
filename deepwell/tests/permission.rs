@@ -27,7 +27,7 @@ use deepwell::license::License;
 use deepwell::services::ServiceContext;
 use deepwell::services::category::CategoryService;
 use deepwell::services::permission::{
-    CheckPermissionContext, DecoratedPermission, PermissionCache, PermissionInput,
+    CheckPermissionContext, DecoratedPermission, PermissionInput,
     PermissionService,
 };
 use deepwell::services::role::{
@@ -136,10 +136,6 @@ impl PermissionFixture {
         grant_role(ctx, site_id, user_a, role_a).await;
         grant_role(ctx, site_id, user_b, role_b).await;
         // user_c doesn't have any roles
-
-        PermissionCache::build_permission_cache(ctx, site_id)
-            .await
-            .expect("Failed to build permission cache");
 
         PermissionFixture {
             site_id,

@@ -429,6 +429,9 @@ impl PermissionService {
                 user_id, site_id, resource_type, resource_category, action,
             );
 
+            // Check if this permission is cacheable
+            let cacheable = PermissionCache::is_cacheable(resource_type, action);
+
             // Resolve category reference to ID for permission checking
             let resource_category_id = match &resource_category {
                 Some(reference) => {
@@ -437,6 +440,28 @@ impl PermissionService {
                 }
                 None => None,
             };
+
+            if cacheable {
+                // Check if this permission has been cached
+                let has_permission = PermissionCache::check_user_permission(
+                    ctx,
+                    Some(site_id),
+                    user_id,
+                    resource_type,
+                    resource_category_id,
+                    action,
+                )
+                .await
+                .or_raise(make_error)?;
+
+                // If we have a cached result, use it
+                if let Some(has_permission) = has_permission {
+                    results[i] = has_permission;
+                    continue;
+                }
+            }
+
+            // If permission is not cacheable, or is not cached, compute it fresh
 
             // Does this category have permissions scoped to it?
             let has_scoped_permissions = match resource_category_id {
@@ -452,20 +477,37 @@ impl PermissionService {
                 None => false,
             };
 
-            if has_scoped_permissions {
-                results[i] = user_permissions.contains(&Permission {
+            let has_permission = if has_scoped_permissions {
+                user_permissions.contains(&Permission {
                     resource: resource_type,
                     resource_category: resource_category_id.map(Reference::Id),
                     action,
-                });
+                })
             } else {
                 // If category does not have scoped permissions, fallback to _default
-                results[i] = user_permissions.contains(&Permission {
+                user_permissions.contains(&Permission {
                     resource: resource_type,
                     resource_category: None,
                     action,
-                });
+                })
+            };
+
+            // Cache result if cacheable
+            if cacheable {
+                PermissionCache::set_user_permission(
+                    ctx,
+                    Some(site_id),
+                    user_id,
+                    resource_type,
+                    resource_category_id,
+                    action,
+                    has_permission,
+                )
+                .await
+                .or_raise(make_error)?;
             }
+
+            results[i] = has_permission;
         }
 
         Ok(results)
