@@ -51,6 +51,7 @@ impl ForumPostService {
             from_wikidot,
         }: CreateForumPost,
     ) -> Result<CreateForumPostOutput> {
+        let txn = ctx.transaction();
         let make_error = || {
             Error::new(
                 format!(
@@ -124,7 +125,7 @@ impl ForumPostService {
             from_wikidot: Set(from_wikidot),
             ..Default::default()
         }
-        .insert(ctx.transaction())
+        .insert(txn)
         .await
         .or_raise(make_error)?;
 
@@ -150,7 +151,7 @@ impl ForumPostService {
             latest_revision_id: Set(Some(forum_post_revision_id)),
             ..Default::default()
         }
-        .update(ctx.transaction())
+        .update(txn)
         .await
         .or_raise(make_error)?;
 
@@ -186,6 +187,7 @@ impl ForumPostService {
             body: UpdateForumPostBody { title, wikitext },
         }: UpdateForumPost,
     ) -> Result<Option<UpdateForumPostOutput>> {
+        let txn = ctx.transaction();
         let make_error = || {
             Error::new(
                 format!(
@@ -235,7 +237,7 @@ impl ForumPostService {
             updated_at: Set(Some(now())),
             ..Default::default()
         }
-        .update(ctx.transaction())
+        .update(txn)
         .await
         .or_raise(make_error)?;
 
@@ -273,6 +275,7 @@ impl ForumPostService {
             user_id,
         }: DeleteForumPost,
     ) -> Result<ForumPostModel> {
+        let txn = ctx.transaction();
         let make_error = || {
             Error::new(
                 format!(
@@ -301,7 +304,7 @@ impl ForumPostService {
             ..Default::default()
         };
 
-        let post = model.update(ctx.transaction()).await.or_raise(make_error)?;
+        let post = model.update(txn).await.or_raise(make_error)?;
 
         ForumThreadService::touch_activity(
             ctx,
@@ -323,6 +326,7 @@ impl ForumPostService {
             user_id,
         }: RestoreForumPost,
     ) -> Result<ForumPostModel> {
+        let txn = ctx.transaction();
         let make_error = || {
             Error::new(
                 format!(
@@ -361,7 +365,7 @@ impl ForumPostService {
             ..Default::default()
         };
 
-        let post = model.update(ctx.transaction()).await.or_raise(make_error)?;
+        let post = model.update(txn).await.or_raise(make_error)?;
 
         ForumThreadService::touch_activity(
             ctx,
@@ -465,6 +469,7 @@ impl ForumPostService {
             max_depth,
         }: GetStructuredForumPosts,
     ) -> Result<Vec<ForumPostNode>> {
+        let txn = ctx.transaction();
         let make_error = || {
             Error::new(
                 format!(
@@ -504,7 +509,7 @@ impl ForumPostService {
                 .filter(
                     forum_post_revision::Column::ForumPostRevisionId.is_in(revision_ids),
                 )
-                .all(ctx.transaction())
+                .all(txn)
                 .await
                 .or_raise(make_error)?
         };

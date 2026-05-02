@@ -98,6 +98,7 @@ impl ForumThreadService {
                 },
         }: UpdateForumThread,
     ) -> Result<ForumThreadModel> {
+        let txn = ctx.transaction();
         let make_error = || {
             Error::new(
                 format!(
@@ -167,7 +168,7 @@ impl ForumThreadService {
             model.sticky = Set(sticky);
         }
 
-        let thread = model.update(ctx.transaction()).await.or_raise(make_error)?;
+        let thread = model.update(txn).await.or_raise(make_error)?;
 
         if moved_category {
             // Keep denormalized category/group/site fields in sync for thread descendants.
@@ -181,7 +182,7 @@ impl ForumThreadService {
             forum_post::Entity::update_many()
                 .set(post_model)
                 .filter(forum_post::Column::ForumThreadId.eq(thread.forum_thread_id))
-                .exec(ctx.transaction())
+                .exec(txn)
                 .await
                 .or_raise(make_error)?;
 
@@ -197,7 +198,7 @@ impl ForumThreadService {
                 .filter(
                     forum_post_revision::Column::ForumThreadId.eq(thread.forum_thread_id),
                 )
-                .exec(ctx.transaction())
+                .exec(txn)
                 .await
                 .or_raise(make_error)?;
 
@@ -214,6 +215,7 @@ impl ForumThreadService {
             user_id,
         }: DeleteForumThread,
     ) -> Result<ForumThreadModel> {
+        let txn = ctx.transaction();
         let make_error = || {
             Error::new(
                 format!(
@@ -243,7 +245,7 @@ impl ForumThreadService {
             ..Default::default()
         };
 
-        let thread = model.update(ctx.transaction()).await.or_raise(make_error)?;
+        let thread = model.update(txn).await.or_raise(make_error)?;
         Ok(thread)
     }
 
@@ -272,6 +274,7 @@ impl ForumThreadService {
             )
         })?;
 
+        let txn = ctx.transaction();
         let model = forum_thread::ActiveModel {
             forum_thread_id: Set(thread.forum_thread_id),
             updated_by: Set(user_id),
@@ -279,7 +282,7 @@ impl ForumThreadService {
             ..Default::default()
         };
 
-        let thread = model.update(ctx.transaction()).await.or_raise(|| {
+        let thread = model.update(txn).await.or_raise(|| {
             Error::new(
                 format!(
                     "failed to touch activity for forum thread ID {}",

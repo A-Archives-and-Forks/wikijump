@@ -92,6 +92,7 @@ impl ForumService {
                 },
         }: UpdateForumGroup,
     ) -> Result<ForumGroupModel> {
+        let txn = ctx.transaction();
         let make_error = || {
             Error::new(
                 format!(
@@ -130,7 +131,7 @@ impl ForumService {
             model.sort_index = Set(sort_index);
         }
 
-        let group = model.update(ctx.transaction()).await.or_raise(make_error)?;
+        let group = model.update(txn).await.or_raise(make_error)?;
         Ok(group)
     }
 
@@ -141,6 +142,7 @@ impl ForumService {
             user_id,
         }: DeleteForumGroup,
     ) -> Result<ForumGroupModel> {
+        let txn = ctx.transaction();
         let make_error = || {
             Error::new(
                 format!(
@@ -162,7 +164,7 @@ impl ForumService {
             ..Default::default()
         };
 
-        let group = model.update(ctx.transaction()).await.or_raise(make_error)?;
+        let group = model.update(txn).await.or_raise(make_error)?;
         Ok(group)
     }
 
@@ -354,6 +356,7 @@ impl ForumService {
                 },
         }: UpdateForumCategory,
     ) -> Result<ForumCategoryModel> {
+        let txn = ctx.transaction();
         let make_error = || {
             Error::new(
                 format!(
@@ -435,7 +438,7 @@ impl ForumService {
             model.layout = Set(layout);
         }
 
-        let category = model.update(ctx.transaction()).await.or_raise(make_error)?;
+        let category = model.update(txn).await.or_raise(make_error)?;
 
         if moved_group {
             // Keep denormalized group/site fields in sync for all descendants.
@@ -450,7 +453,7 @@ impl ForumService {
                 .filter(
                     forum_thread::Column::ForumCategoryId.eq(category.forum_category_id),
                 )
-                .exec(ctx.transaction())
+                .exec(txn)
                 .await
                 .or_raise(make_error)?;
 
@@ -465,7 +468,7 @@ impl ForumService {
                 .filter(
                     forum_post::Column::ForumCategoryId.eq(category.forum_category_id),
                 )
-                .exec(ctx.transaction())
+                .exec(txn)
                 .await
                 .or_raise(make_error)?;
 
@@ -481,7 +484,7 @@ impl ForumService {
                     forum_post_revision::Column::ForumCategoryId
                         .eq(category.forum_category_id),
                 )
-                .exec(ctx.transaction())
+                .exec(txn)
                 .await
                 .or_raise(make_error)?;
         }
@@ -496,6 +499,7 @@ impl ForumService {
             user_id,
         }: DeleteForumCategory,
     ) -> Result<ForumCategoryModel> {
+        let txn = ctx.transaction();
         let make_error = || {
             Error::new(
                 format!(
@@ -517,7 +521,7 @@ impl ForumService {
             ..Default::default()
         };
 
-        let category = model.update(ctx.transaction()).await.or_raise(make_error)?;
+        let category = model.update(txn).await.or_raise(make_error)?;
         Ok(category)
     }
 
