@@ -42,7 +42,7 @@ impl PermissionCache {
     /// Build Redis cache key to lookup user permissions for a specific site.
     fn site_user_key(site_id: Option<i64>, user_id: Option<i64>) -> String {
         format!(
-            "site:{}:user:{}",
+            "permission:site:{}:user:{}",
             site_id
                 .map(|id| id.to_string())
                 .unwrap_or(SITE_NOT_SET_KEY.to_owned()),
@@ -61,7 +61,10 @@ impl PermissionCache {
         let category_id_str = resource_category_id
             .map(|id| id.to_string())
             .unwrap_or(DEFAULT_CATEGORY_KEY.to_owned());
-        Cow::Owned(format!("{}:{}:{}", resource, category_id_str, action))
+        Cow::Owned(format!(
+            "permission:{}:{}:{}",
+            resource, category_id_str, action
+        ))
     }
 
     /// Check if an action should be cached.
@@ -129,7 +132,7 @@ impl PermissionCache {
     /// Invalidate the cache for a specific site.
     pub async fn invalidate_site(ctx: &ServiceContext<'_>, site_id: i64) -> Result<()> {
         let mut redis = ctx.redis();
-        let pattern = format!("site:{}:*", site_id);
+        let pattern = format!("permission:site:{}:*", site_id);
         let make_error = || {
             Error::new(
                 format!("Failed to invalidate permission cache for site {}", site_id),

@@ -63,7 +63,7 @@ impl CategoryResolver for PageCategoryResolver {
                 let category = CategoryService::get_optional(
                     ctx,
                     site_id,
-                    Reference::Slug(slug.clone()),
+                    Reference::Slug(cow!(&slug)),
                 )
                 .await?;
                 Ok(category.map(|c| c.category_id))
