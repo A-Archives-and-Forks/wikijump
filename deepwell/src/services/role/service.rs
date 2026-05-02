@@ -198,9 +198,9 @@ impl RoleService {
         // Check for child roles
         let child_roles = Role::find()
             .filter(
-                role::Column::ParentRoleId
-                    .eq(role.role_id)
-                    .and(role::Column::DeletedAt.is_null()),
+                Condition::all()
+                    .add(role::Column::ParentRoleId.eq(role.role_id))
+                    .add(role::Column::DeletedAt.is_null()),
             )
             .all(txn)
             .await
@@ -453,11 +453,11 @@ impl RoleService {
             Some(id) => Role::find()
                 .join(JoinType::InnerJoin, role::Relation::UserRole.def())
                 .filter(
-                    user_role::Column::UserId
-                        .eq(id)
-                        .and(role::Column::SiteId.eq(input.site_id))
-                        .and(role::Column::DeletedAt.is_null())
-                        .and(user_role::Column::DeletedAt.is_null()),
+                    Condition::all()
+                        .add(user_role::Column::UserId.eq(id))
+                        .add(role::Column::SiteId.eq(input.site_id))
+                        .add(role::Column::DeletedAt.is_null())
+                        .add(user_role::Column::DeletedAt.is_null()),
                 )
                 .all(txn)
                 .await
@@ -641,9 +641,9 @@ impl RoleService {
         // TODO: Figure out a more efficient way to do this
         let roles: Vec<RoleModel> = Role::find()
             .filter(
-                role::Column::SiteId
-                    .eq(site_id)
-                    .and(role::Column::DeletedAt.is_null()),
+                Condition::all()
+                    .add(role::Column::SiteId.eq(site_id))
+                    .add(role::Column::DeletedAt.is_null()),
             )
             .all(txn)
             .await
@@ -691,9 +691,9 @@ impl RoleService {
 
         let roles = Role::find()
             .filter(
-                role::Column::SiteId
-                    .eq(site_id)
-                    .and(role::Column::DeletedAt.is_null()),
+                Condition::all()
+                    .add(role::Column::SiteId.eq(site_id))
+                    .add(role::Column::DeletedAt.is_null()),
             )
             .all(txn)
             .await

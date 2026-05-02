@@ -48,6 +48,7 @@ impl ForumPostRevisionService {
             wikitext,
         }: CreateFirstForumPostRevision,
     ) -> Result<CreateFirstForumPostRevisionOutput> {
+        let txn = ctx.transaction();
         let make_error = || {
             Error::new(
                 format!(
@@ -93,7 +94,7 @@ impl ForumPostRevisionService {
             forum_post_revision_id,
             revision_number,
             ..
-        } = model.insert(ctx.transaction()).await.or_raise(make_error)?;
+        } = model.insert(txn).await.or_raise(make_error)?;
 
         Ok(CreateFirstForumPostRevisionOutput {
             forum_post_revision_id,
@@ -112,6 +113,7 @@ impl ForumPostRevisionService {
         }: CreateForumPostRevision,
         previous: ForumPostRevisionModel,
     ) -> Result<Option<CreateForumPostRevisionOutput>> {
+        let txn = ctx.transaction();
         let make_error = || {
             Error::new(
                 format!(
@@ -208,7 +210,7 @@ impl ForumPostRevisionService {
             forum_post_revision_id,
             revision_number,
             ..
-        } = model.insert(ctx.transaction()).await.or_raise(make_error)?;
+        } = model.insert(txn).await.or_raise(make_error)?;
 
         Ok(Some(CreateForumPostRevisionOutput {
             forum_post_revision_id,
@@ -225,6 +227,7 @@ impl ForumPostRevisionService {
             comments,
         }: UpdateForumPostRevision,
     ) -> Result<ForumPostRevisionModel> {
+        let txn = ctx.transaction();
         let make_error = || {
             Error::new(
                 format!(
@@ -249,7 +252,7 @@ impl ForumPostRevisionService {
             model.comments = Set(comments);
         }
 
-        let revision = model.update(ctx.transaction()).await.or_raise(make_error)?;
+        let revision = model.update(txn).await.or_raise(make_error)?;
         Ok(revision)
     }
 
@@ -391,6 +394,7 @@ impl ForumPostRevisionService {
             limit,
         }: GetForumPostRevisionRange,
     ) -> Result<Vec<ForumPostRevisionModel>> {
+        let txn = ctx.transaction();
         let make_error = || {
             Error::new(
                 format!(
@@ -436,11 +440,7 @@ impl ForumPostRevisionService {
                     .order_by(forum_post_revision::Column::RevisionNumber, Order::Asc),
             };
 
-        let revisions = query
-            .limit(limit)
-            .all(ctx.transaction())
-            .await
-            .or_raise(make_error)?;
+        let revisions = query.limit(limit).all(txn).await.or_raise(make_error)?;
         Ok(revisions)
     }
 

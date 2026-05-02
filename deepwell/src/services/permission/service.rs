@@ -17,6 +17,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
+
 use super::prelude::*;
 use crate::endpoints::{parent, site};
 use crate::error::{Error, ErrorType};
@@ -117,10 +118,10 @@ impl PermissionService {
         // Validate that the new permission set is a superset of each child's permissions.
         let children = Role::find()
             .filter(
-                role::Column::ParentRoleId
-                    .eq(role.role_id)
-                    .and(role::Column::SiteId.eq(site_id))
-                    .and(role::Column::DeletedAt.is_null()),
+                Condition::all()
+                    .add(role::Column::ParentRoleId.eq(role.role_id))
+                    .add(role::Column::SiteId.eq(site_id))
+                    .add(role::Column::DeletedAt.is_null()),
             )
             .all(txn)
             .await
@@ -130,6 +131,7 @@ impl PermissionService {
             let child_perms = Self::permissions_as_set(ctx, child.role_id)
                 .await
                 .or_raise(make_error)?;
+
             if !child_perms.is_subset(&resolved_permissions) {
                 if !cascade_removals {
                     bail!(Error::new(
@@ -145,7 +147,7 @@ impl PermissionService {
                 } else {
                     info!(
                         "Cascading permission removals to child role ID {} to maintain hierarchy consistency",
-                        child.role_id
+                        child.role_id,
                     );
                     Self::cascade_permission_removals(
                         ctx,
@@ -249,6 +251,7 @@ impl PermissionService {
         let mut permissions = Self::fetch_permissions(ctx, role_id)
             .await
             .or_raise(make_error)?;
+
         if human_readable_categories {
             for perm in &mut permissions {
                 if let Some(Reference::Id(cat_id)) = perm.resource_category {
@@ -310,10 +313,10 @@ impl PermissionService {
         // Get combined permissions for child roles
         let children_roles = Role::find()
             .filter(
-                role::Column::ParentRoleId
-                    .eq(role.role_id)
-                    .and(role::Column::SiteId.eq(site_id))
-                    .and(role::Column::DeletedAt.is_null()),
+                Condition::all()
+                    .add(role::Column::ParentRoleId.eq(role.role_id))
+                    .add(role::Column::SiteId.eq(site_id))
+                    .add(role::Column::DeletedAt.is_null()),
             )
             .all(txn)
             .await
@@ -394,10 +397,13 @@ impl PermissionService {
         };
 
         Ok(RolePermission::find()
-            .filter(role_permission::Column::SiteId.eq(site_id))
-            .filter(role_permission::Column::ResourceType.eq(resource))
-            .filter(category_condition)
-            .filter(role_permission::Column::Action.eq(action))
+            .filter(
+                Condition::all()
+                    .add(role_permission::Column::SiteId.eq(site_id))
+                    .add(role_permission::Column::ResourceType.eq(resource))
+                    .add(category_condition)
+                    .add(role_permission::Column::Action.eq(action)),
+            )
             .all(txn)
             .await
             .or_raise(|| Error::new("Error querying permissions", ErrorType::Permission))?
@@ -655,14 +661,19 @@ impl PermissionService {
                     Reference::Id(id) => Some(*id),
                     _ => None,
                 });
+            let resource_condition = match resource_category_id {
+                Some(id) => role_permission::Column::ResourceCategoryId.eq(id),
+                None => role_permission::Column::ResourceCategoryId.is_null(),
+            };
+
             RolePermission::delete_many()
-                .filter(role_permission::Column::RoleId.eq(child_role_id))
-                .filter(role_permission::Column::ResourceType.eq(perm.resource))
-                .filter(match resource_category_id {
-                    Some(id) => role_permission::Column::ResourceCategoryId.eq(id),
-                    None => role_permission::Column::ResourceCategoryId.is_null(),
-                })
-                .filter(role_permission::Column::Action.eq(perm.action))
+                .filter(
+                    Condition::all()
+                        .add(role_permission::Column::RoleId.eq(child_role_id))
+                        .add(role_permission::Column::ResourceType.eq(perm.resource))
+                        .add(resource_condition)
+                        .add(role_permission::Column::Action.eq(perm.action)),
+                )
                 .exec(txn)
                 .await
                 .or_raise(make_error)?;
@@ -671,10 +682,10 @@ impl PermissionService {
         // Recursively cascade to grandchildren
         let grandchildren = Role::find()
             .filter(
-                role::Column::ParentRoleId
-                    .eq(child_role_id)
-                    .and(role::Column::SiteId.eq(site_id))
-                    .and(role::Column::DeletedAt.is_null()),
+                Condition::all()
+                    .add(role::Column::ParentRoleId.eq(child_role_id))
+                    .add(role::Column::SiteId.eq(site_id))
+                    .add(role::Column::DeletedAt.is_null()),
             )
             .all(txn)
             .await
