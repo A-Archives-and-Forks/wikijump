@@ -35,14 +35,14 @@ pub trait CategoryResolver: Send + Sync {
     fn resolve(
         ctx: &ServiceContext<'_>,
         site_id: i64,
-        reference: Reference<'_>,
+        reference: &Reference<'_>,
     ) -> impl Future<Output = Result<Option<i64>>> + Send;
 
     /// Resolve a category reference to a slug, for human-readable output.
     fn resolve_slug<'slug>(
         ctx: &ServiceContext<'_>,
         site_id: i64,
-        reference: Reference<'slug>,
+        reference: &Reference<'slug>,
     ) -> impl Future<Output = Result<Option<Cow<'slug, str>>>> + Send;
 }
 
@@ -53,16 +53,19 @@ impl CategoryResolver for PageCategoryResolver {
     async fn resolve(
         ctx: &ServiceContext<'_>,
         site_id: i64,
-        reference: Reference<'_>,
+        reference: &Reference<'_>,
     ) -> Result<Option<i64>> {
         use crate::services::CategoryService;
 
         match reference {
-            Reference::Id(id) => Ok(Some(id)),
+            Reference::Id(id) => Ok(Some(*id)),
             Reference::Slug(slug) => {
-                let category =
-                    CategoryService::get_optional(ctx, site_id, Reference::Slug(slug))
-                        .await?;
+                let category = CategoryService::get_optional(
+                    ctx,
+                    site_id,
+                    Reference::Slug(cow!(&slug)),
+                )
+                .await?;
                 Ok(category.map(|c| c.category_id))
             }
         }
@@ -71,18 +74,18 @@ impl CategoryResolver for PageCategoryResolver {
     async fn resolve_slug<'slug>(
         ctx: &ServiceContext<'_>,
         site_id: i64,
-        reference: Reference<'slug>,
+        reference: &Reference<'slug>,
     ) -> Result<Option<Cow<'slug, str>>> {
         use crate::services::CategoryService;
 
         match reference {
             Reference::Id(id) => {
                 let category =
-                    CategoryService::get_optional(ctx, site_id, Reference::Id(id))
+                    CategoryService::get_optional(ctx, site_id, Reference::Id(*id))
                         .await?;
                 Ok(category.map(|c| Cow::Owned(c.slug)))
             }
-            Reference::Slug(slug) => Ok(Some(slug)),
+            Reference::Slug(slug) => Ok(Some(slug.clone())),
         }
     }
 }
@@ -92,7 +95,7 @@ pub async fn resolve_category_reference(
     ctx: &ServiceContext<'_>,
     site_id: i64,
     resource_type: Resource,
-    reference: Reference<'_>,
+    reference: &Reference<'_>,
 ) -> Result<Option<i64>> {
     match resource_type {
         Resource::Page => PageCategoryResolver::resolve(ctx, site_id, reference).await,
@@ -105,7 +108,7 @@ pub async fn resolve_category_slug<'slug>(
     ctx: &ServiceContext<'_>,
     site_id: i64,
     resource_type: Resource,
-    reference: Reference<'slug>,
+    reference: &Reference<'slug>,
 ) -> Result<Option<Cow<'slug, str>>> {
     match resource_type {
         Resource::Page => {

@@ -32,7 +32,7 @@ use crate::services::file::{
 };
 use crate::services::filter::{CreateFilter, FilterService};
 use crate::services::page::{CreatePage, PageService};
-use crate::services::permission::{PermissionCache, PermissionInput, PermissionService};
+use crate::services::permission::{PermissionInput, PermissionService};
 use crate::services::relation::{
     PageAttributionEntry, PageAttributionKind, PageAttributionMetadata, RelationService,
     SetPageAttributions,
@@ -631,11 +631,6 @@ pub async fn seed(state: &ServerState) -> Result<()> {
                 .or_raise(make_error)?;
             }
         }
-
-        // Trigger building of permission cache after all permissions have been added.
-        PermissionCache::build_permission_cache(&ctx, site_id)
-            .await
-            .or_raise(make_error)?;
     }
 
     txn.commit().await.or_raise(make_error)?;

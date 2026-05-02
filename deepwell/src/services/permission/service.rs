@@ -79,7 +79,7 @@ impl PermissionService {
                             ctx,
                             site_id,
                             input.resource_type,
-                            cat_ref,
+                            &cat_ref,
                         )
                         .await?
                     }
@@ -254,9 +254,9 @@ impl PermissionService {
 
         if human_readable_categories {
             for perm in &mut permissions {
-                if let Some(Reference::Id(cat_id)) = perm.resource_category {
+                if let Some(category_ref) = &perm.resource_category {
                     perm.resource_category =
-                        resolve_category_slug(ctx, site_id, perm.resource, cat_id.into())
+                        resolve_category_slug(ctx, site_id, perm.resource, category_ref)
                             .await
                             .or_raise(make_error)?
                             .map(Reference::Slug);
@@ -361,10 +361,10 @@ impl PermissionService {
 
             // Remap resource category from ID to slug
             if human_readable_categories
-                && let Some(Reference::Id(cat_id)) = perm.resource_category
+                && let Some(category_ref) = &perm.resource_category
             {
                 perm.resource_category =
-                    resolve_category_slug(ctx, site_id, perm.resource, cat_id.into())
+                    resolve_category_slug(ctx, site_id, perm.resource, category_ref)
                         .await
                         .or_raise(make_error)?
                         .map(Reference::Slug);
@@ -379,80 +379,6 @@ impl PermissionService {
         }
 
         Ok(decorated)
-    }
-
-    // Lambda to query roles that have the specified permission, optionally filtered by category
-    async fn query_roles_with_permission(
-        ctx: &ServiceContext<'_>,
-        site_id: i64,
-        resource: Resource,
-        resource_category_id: Option<i64>,
-        action: Action,
-    ) -> Result<Vec<i64>> {
-        let txn = ctx.transaction();
-
-        let category_condition = match resource_category_id {
-            Some(id) => role_permission::Column::ResourceCategoryId.eq(id),
-            None => role_permission::Column::ResourceCategoryId.is_null(),
-        };
-
-        Ok(RolePermission::find()
-            .filter(
-                Condition::all()
-                    .add(role_permission::Column::SiteId.eq(site_id))
-                    .add(role_permission::Column::ResourceType.eq(resource))
-                    .add(category_condition)
-                    .add(role_permission::Column::Action.eq(action)),
-            )
-            .all(txn)
-            .await
-            .or_raise(|| Error::new("Error querying permissions", ErrorType::Permission))?
-            .into_iter()
-            .map(|p| p.role_id)
-            .collect::<Vec<_>>())
-    }
-
-    async fn query_roles_with_permission_db(
-        ctx: &ServiceContext<'_>,
-        site_id: i64,
-        resource_type: Resource,
-        resource_category_id: Option<i64>,
-        action: Action,
-    ) -> Result<Vec<i64>> {
-        let make_error =
-            || Error::new("Error querying permissions", ErrorType::Permission);
-
-        // Check first for presence of scoped permission
-        let specific_roles = match resource_category_id {
-            Some(category_id) => Self::query_roles_with_permission(
-                ctx,
-                site_id,
-                resource_type,
-                Some(category_id),
-                action,
-            )
-            .await
-            .or_raise(make_error)?,
-            None => vec![],
-        };
-
-        let roles_with_permission = if specific_roles.is_empty() {
-            // If no scoped permission, check for _default permission
-            Self::query_roles_with_permission(ctx, site_id, resource_type, None, action)
-                .await
-                .or_raise(make_error)?
-        } else {
-            specific_roles
-        };
-
-        info!(
-            "Queried database for permission '{}:{}:{}', found {} roles",
-            resource_type,
-            resource_category_id.unwrap_or(0),
-            action,
-            roles_with_permission.len()
-        );
-        Ok(roles_with_permission)
     }
 
     pub async fn check_user_can(
@@ -480,32 +406,15 @@ impl PermissionService {
         let make_error =
             || Error::new("failed to check permissions", ErrorType::Permission);
 
-        // Get all roles for this user (includes virtual roles)
-        let role_ids: Vec<i64> = RoleService::get_all_roles_for_user_and_site(
-            ctx,
-            GetUserRolesInput {
-                user_id,
-                site_id,
-                page_reference,
-            },
-        )
-        .await
-        .or_raise(make_error)?
-        .into_iter()
-        .map(|r| r.role_id)
-        .collect();
+        let user_permissions =
+            Self::get_permissions_for_user(ctx, user_id, site_id, page_reference)
+                .await
+                .or_raise(make_error)?;
 
-        // Short-circuit: no roles means no permissions.
-        if role_ids.is_empty() {
+        // Short-circuit: no permissions.
+        if user_permissions.is_empty() {
             return Ok([false; N]);
         }
-
-        // Lambda to check if user has any of the specified roles
-        let user_has_any_role = |granted_roles: &[i64]| -> bool {
-            granted_roles
-                .iter()
-                .any(|role_id| role_ids.contains(role_id))
-        };
 
         let mut results = [false; N];
 
@@ -523,8 +432,11 @@ impl PermissionService {
                 user_id, site_id, resource_type, resource_category, action,
             );
 
+            // Check if this permission is cacheable
+            let cacheable = PermissionCache::is_cacheable(resource_type, action);
+
             // Resolve category reference to ID for permission checking
-            let resource_category_id = match resource_category {
+            let resource_category_id = match &resource_category {
                 Some(reference) => {
                     resolve_category_reference(ctx, site_id, resource_type, reference)
                         .await?
@@ -532,63 +444,89 @@ impl PermissionService {
                 None => None,
             };
 
-            // Check permission based on category specificity
-            let roles_with_permission =
-                if PermissionCache::is_cacheable(resource_type, action) {
-                    // Try to fetch from cache
-                    let cached_roles =
-                        PermissionCache::query_roles_with_permission_cache(
-                            ctx,
-                            site_id,
-                            resource_type,
-                            resource_category_id,
-                            action,
-                        )
-                        .await
-                        .or_raise(make_error)?;
+            if cacheable {
+                // Check if this permission has been cached
+                let has_permission = PermissionCache::check_user_permission(
+                    ctx,
+                    Some(site_id),
+                    user_id,
+                    resource_type,
+                    resource_category_id,
+                    action,
+                )
+                .await
+                .or_raise(make_error)?;
 
-                    if let Some(cached) = cached_roles {
-                        info!("Permission cache hit, {} roles found", cached.len());
-                        cached
-                    } else {
-                        info!("Permission cache miss, querying database directly");
-
-                        // If cache miss, rebuild tree async
-                        PermissionCache::build_permission_cache(ctx, site_id)
-                            .await
-                            .or_raise(make_error)?;
-
-                        // fall back to database query
-                        Self::query_roles_with_permission_db(
-                            ctx,
-                            site_id,
-                            resource_type,
-                            resource_category_id,
-                            action,
-                        )
-                        .await
-                        .or_raise(make_error)?
-                    }
+                // If we have a cached result, use it
+                if let Some(has_permission) = has_permission {
+                    info!(
+                        "Cache hit for user ID {:?} on site ID {} for resource {} of category {:?} with action {}",
+                        user_id, site_id, resource_type, resource_category, action,
+                    );
+                    results[i] = has_permission;
+                    continue;
                 } else {
-                    info!("Permission not cacheable, querying database directly");
-                    // For non-cacheable permissions, query database directly
-                    Self::query_roles_with_permission_db(
-                        ctx,
-                        site_id,
-                        resource_type,
-                        resource_category_id,
-                        action,
-                    )
-                    .await
-                    .or_raise(make_error)?
-                };
+                    info!(
+                        "Cache miss for user ID {:?} on site ID {} for resource {} of category {:?} with action {}",
+                        user_id, site_id, resource_type, resource_category, action,
+                    );
+                }
+            }
 
-            results[i] = user_has_any_role(&roles_with_permission);
+            // If permission is not cacheable, or is not cached, compute it fresh
+
+            // Does this category have permissions scoped to it?
+            let has_scoped_permissions = match resource_category_id {
+                Some(category_id) => Self::check_category_scoped(
+                    ctx,
+                    site_id,
+                    resource_type,
+                    category_id,
+                    action,
+                )
+                .await
+                .or_raise(make_error)?,
+                None => false,
+            };
+
+            let has_permission = if has_scoped_permissions {
+                user_permissions.contains(&Permission {
+                    resource: resource_type,
+                    resource_category: resource_category_id.map(Reference::Id),
+                    action,
+                })
+            } else {
+                // If category does not have scoped permissions, fallback to _default
+                user_permissions.contains(&Permission {
+                    resource: resource_type,
+                    resource_category: None,
+                    action,
+                })
+            };
+
+            // Cache result if cacheable
+            if cacheable {
+                PermissionCache::set_user_permission(
+                    ctx,
+                    Some(site_id),
+                    user_id,
+                    resource_type,
+                    resource_category_id,
+                    action,
+                    has_permission,
+                )
+                .await
+                .or_raise(make_error)?;
+            }
+
+            results[i] = has_permission;
         }
 
         Ok(results)
     }
 
+    /// Fetches permissions for `role_id`.
+    /// This is a separate function that returns Vec to preserve ordering.
     async fn fetch_permissions(
         ctx: &ServiceContext<'_>,
         role_id: i64,
@@ -626,6 +564,78 @@ impl PermissionService {
             .await?
             .into_iter()
             .collect())
+    }
+
+    async fn get_permissions_for_user(
+        ctx: &ServiceContext<'_>,
+        user_id: Option<i64>,
+        site_id: i64,
+        page_reference: Option<Reference<'_>>,
+    ) -> Result<HashSet<Permission>> {
+        let txn = ctx.transaction();
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to get permissions for user {:?} in site {:?}",
+                    user_id, site_id
+                ),
+                ErrorType::Permission,
+            )
+        };
+
+        let role_ids: Vec<i64> = RoleService::get_all_roles_for_user_and_site(
+            ctx,
+            GetUserRolesInput {
+                user_id,
+                site_id,
+                page_reference,
+            },
+        )
+        .await
+        .or_raise(make_error)?
+        .into_iter()
+        .map(|r| r.role_id)
+        .collect();
+
+        Ok(RolePermission::find()
+            .filter(role_permission::Column::RoleId.is_in(role_ids))
+            .all(txn)
+            .await
+            .or_raise(make_error)?
+            .into_iter()
+            .map(|p| Permission {
+                resource: p.resource_type,
+                resource_category: p.resource_category_id.map(Reference::Id),
+                action: p.action,
+            })
+            .collect())
+    }
+
+    async fn check_category_scoped(
+        ctx: &ServiceContext<'_>,
+        site_id: i64,
+        resource: Resource,
+        resource_category_id: i64,
+        action: Action,
+    ) -> Result<bool> {
+        let txn = ctx.transaction();
+        Ok(RolePermission::find()
+            .filter(
+                Condition::all()
+                    .add(role_permission::Column::SiteId.eq(site_id))
+                    .add(role_permission::Column::ResourceType.eq(resource))
+                    .add(
+                        role_permission::Column::ResourceCategoryId
+                            .eq(resource_category_id),
+                    )
+                    .add(role_permission::Column::Action.eq(action)),
+            )
+            .one(txn)
+            .await
+            .or_raise(|| {
+                Error::new("Error querying permissions", ErrorType::Permission)
+            })?)
+        .map(|p| p.is_some())
     }
 
     async fn cascade_permission_removals(
