@@ -95,10 +95,7 @@ impl PermissionCache {
                 Error::new("Permission cache read error", ErrorType::Permission)
             })?;
 
-        Ok(match has_permission {
-            Some(val) => Some(val == "1"),
-            None => None,
-        })
+        Ok(has_permission.map(|val| val == "1"))
     }
 
     /// Set a user's permission value in the cache.

@@ -27,8 +27,7 @@ use deepwell::license::License;
 use deepwell::services::ServiceContext;
 use deepwell::services::category::CategoryService;
 use deepwell::services::permission::{
-    CheckPermissionContext, DecoratedPermission, PermissionInput,
-    PermissionService,
+    CheckPermissionContext, DecoratedPermission, PermissionInput, PermissionService,
 };
 use deepwell::services::role::{
     GrantUserRoleInput, InternalCreateRoleInput, RoleService, UpdateRolePermissionsInput,

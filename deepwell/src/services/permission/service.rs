@@ -253,7 +253,7 @@ impl PermissionService {
             for perm in &mut permissions {
                 if let Some(category_ref) = &perm.resource_category {
                     perm.resource_category =
-                        resolve_category_slug(ctx, site_id, perm.resource, &category_ref)
+                        resolve_category_slug(ctx, site_id, perm.resource, category_ref)
                             .await
                             .or_raise(make_error)?
                             .map(Reference::Slug);
@@ -361,7 +361,7 @@ impl PermissionService {
                 && let Some(category_ref) = &perm.resource_category
             {
                 perm.resource_category =
-                    resolve_category_slug(ctx, site_id, perm.resource, &category_ref)
+                    resolve_category_slug(ctx, site_id, perm.resource, category_ref)
                         .await
                         .or_raise(make_error)?
                         .map(Reference::Slug);
