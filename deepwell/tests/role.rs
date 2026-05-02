@@ -22,6 +22,7 @@
 mod common;
 
 use deepwell::services::role::{InternalCreateRoleInput, RoleService};
+use deepwell::utils::now;
 use std::sync::atomic::{AtomicU64, Ordering};
 use str_macro::str;
 
@@ -463,6 +464,48 @@ async fn grant_and_revoke_role() {
         user_roles.len(),
         0,
         "User should have no roles after revocation"
+    );
+}
+
+#[tokio::test]
+async fn role_grant_expiration() {
+    let runner = TestRunner::setup().await;
+    let f = RoleFixture::setup(&runner).await;
+
+    let role = create_role(&runner, f.site_id, "Member", None).await;
+
+    // Grant the role with expired date
+    let expired = run_endpoint!(
+        runner,
+        grant_role_to_user,
+        json!({
+            "site_id": f.site_id,
+            "user_id": f.user_id,
+            "role_id": role.role_id,
+            "assigning_user_id": SYSTEM_USER_ID,
+            "expires_at": now().to_string(),
+            "ip_address": common::IP_ADDRESS,
+        }),
+    );
+
+    assert!(
+        expired.expires_at.is_some(),
+        "Expired role should have expires_at timestamp set"
+    );
+
+    // Verify that the expired role does not show up in the user's roles
+    let user_roles = run_endpoint!(
+        runner,
+        get_user_roles,
+        json!({
+            "site_id": f.site_id,
+            "user_id": f.user_id,
+        }),
+    );
+    assert_eq!(
+        user_roles.len(),
+        0,
+        "Expired role should not show up in user's roles"
     );
 }
 

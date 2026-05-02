@@ -457,7 +457,12 @@ impl RoleService {
                         .add(user_role::Column::UserId.eq(id))
                         .add(role::Column::SiteId.eq(input.site_id))
                         .add(role::Column::DeletedAt.is_null())
-                        .add(user_role::Column::DeletedAt.is_null()),
+                        .add(user_role::Column::DeletedAt.is_null())
+                        .add(
+                            Condition::any()
+                                .add(user_role::Column::ExpiresAt.is_null())
+                                .add(user_role::Column::ExpiresAt.gt(now())),
+                        ),
                 )
                 .all(txn)
                 .await
