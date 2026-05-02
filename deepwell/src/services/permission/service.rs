@@ -456,8 +456,17 @@ impl PermissionService {
 
                 // If we have a cached result, use it
                 if let Some(has_permission) = has_permission {
+                    info!(
+                        "Cache hit for user ID {:?} on site ID {} for resource {} of category {:?} with action {}",
+                        user_id, site_id, resource_type, resource_category, action,
+                    );
                     results[i] = has_permission;
                     continue;
+                } else {
+                    info!(
+                        "Cache miss for user ID {:?} on site ID {} for resource {} of category {:?} with action {}",
+                        user_id, site_id, resource_type, resource_category, action,
+                    );
                 }
             }
 
