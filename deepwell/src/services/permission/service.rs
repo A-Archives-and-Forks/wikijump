@@ -569,6 +569,7 @@ impl PermissionService {
         site_id: i64,
         page_reference: Option<Reference<'_>>,
     ) -> Result<HashSet<Permission>> {
+        let txn = ctx.transaction();
         let make_error = || {
             Error::new(
                 format!(
@@ -595,7 +596,7 @@ impl PermissionService {
 
         Ok(RolePermission::find()
             .filter(role_permission::Column::RoleId.is_in(role_ids))
-            .all(ctx.transaction())
+            .all(txn)
             .await
             .or_raise(make_error)?
             .into_iter()
@@ -614,12 +615,19 @@ impl PermissionService {
         resource_category_id: i64,
         action: Action,
     ) -> Result<bool> {
+        let txn = ctx.transaction();
         Ok(RolePermission::find()
-            .filter(role_permission::Column::SiteId.eq(site_id))
-            .filter(role_permission::Column::ResourceType.eq(resource))
-            .filter(role_permission::Column::ResourceCategoryId.eq(resource_category_id))
-            .filter(role_permission::Column::Action.eq(action))
-            .one(ctx.transaction())
+            .filter(
+                Condition::all()
+                    .add(role_permission::Column::SiteId.eq(site_id))
+                    .add(role_permission::Column::ResourceType.eq(resource))
+                    .add(
+                        role_permission::Column::ResourceCategoryId
+                            .eq(resource_category_id),
+                    )
+                    .add(role_permission::Column::Action.eq(action)),
+            )
+            .one(txn)
             .await
             .or_raise(|| {
                 Error::new("Error querying permissions", ErrorType::Permission)
