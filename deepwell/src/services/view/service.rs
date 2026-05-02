@@ -35,9 +35,7 @@ use crate::models::page_revision::Model as PageRevisionModel;
 use crate::models::site::Model as SiteModel;
 use crate::services::blueprint::{BlueprintPageType, GetBlueprintPageOutput};
 use crate::services::page_revision::RerenderType;
-use crate::services::permission::{
-    CheckPermissionContext, PermissionInput, PermissionService,
-};
+use crate::services::permission::{CheckPermissionContext, PermissionService};
 use crate::services::relation::{
     GetPageAttributions, GetSiteBan, PageAttribution, RelationService,
 };
@@ -48,7 +46,7 @@ use crate::services::{
     BlueprintPageService, CategoryService, DomainService, PageRevisionService,
     PageService, SessionService, SiteService, TextService, UserService,
 };
-use crate::types::{Action, PageId, RerenderDepth, Resource};
+use crate::types::{Action, PageId, Permission, RerenderDepth, Resource};
 use crate::utils::{parse_locales, split_category};
 use ftml::prelude::*;
 use ftml::render::html::HtmlOutput;
@@ -218,12 +216,12 @@ impl ViewService {
                             page_reference: None,
                         },
                         [
-                            PermissionInput {
+                            Permission {
                                 resource_type: Resource::Page,
                                 resource_category: category_id.map(Reference::Id),
                                 action: Action::View,
                             },
-                            PermissionInput {
+                            Permission {
                                 resource_type: Resource::Page,
                                 resource_category: category_id.map(Reference::Id),
                                 action: Action::Edit,
@@ -595,7 +593,7 @@ impl ViewService {
                 site_id,
                 page_reference: None,
             },
-            PermissionInput {
+            Permission {
                 resource_type: Resource::Site,
                 resource_category: None,
                 action: Action::Edit,

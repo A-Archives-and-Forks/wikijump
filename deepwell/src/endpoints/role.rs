@@ -156,7 +156,7 @@ pub async fn role_update_permissions(
 pub async fn get_role_permissions(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<Vec<Permission>> {
+) -> Result<Vec<Permission<'static>>> {
     let input: GetRolePermissionsInput = parse!(params, Role);
     info!(
         "Getting permissions for role {:?} in site ID {}",
@@ -171,7 +171,7 @@ pub async fn get_role_permissions(
 pub async fn get_decorated_role_permissions(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
-) -> Result<Vec<DecoratedPermission>> {
+) -> Result<Vec<DecoratedPermission<'static>>> {
     let input: GetRolePermissionsInput = parse!(params, Role);
     info!(
         "Getting permissions for role {:?} in site ID {}",

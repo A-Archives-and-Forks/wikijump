@@ -29,14 +29,14 @@ use crate::services::page_revision::{
     CreatePageRevisionBody, CreatePageRevisionOutput, CreateResurrectionPageRevision,
     CreateTombstonePageRevision,
 };
-use crate::services::permission::{
-    CheckPermissionContext, PermissionInput, PermissionService,
-};
+use crate::services::permission::{CheckPermissionContext, PermissionService};
 use crate::services::{
     CategoryService, FilterService, PageRevisionService, SiteService, TextBlockService,
     TextService,
 };
-use crate::types::{Action, PageId, PageOrder, PageRevisionType, Reference, Resource};
+use crate::types::{
+    Action, PageId, PageOrder, PageRevisionType, Permission, Reference, Resource,
+};
 use crate::utils::{get_category_name, trim_default};
 use ftml::layout::Layout;
 use ref_map::*;
@@ -1263,7 +1263,7 @@ impl PageService {
         PermissionService::check_user_can(
             ctx,
             permission_context,
-            PermissionInput {
+            Permission {
                 resource_type: Resource::Page,
                 resource_category: Some(Reference::Id(page_model.page_category_id)),
                 action,

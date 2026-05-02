@@ -32,7 +32,7 @@ use crate::services::file::{
 };
 use crate::services::filter::{CreateFilter, FilterService};
 use crate::services::page::{CreatePage, PageService};
-use crate::services::permission::{PermissionInput, PermissionService};
+use crate::services::permission::PermissionService;
 use crate::services::relation::{
     PageAttributionEntry, PageAttributionKind, PageAttributionMetadata, RelationService,
     SetPageAttributions,
@@ -42,7 +42,7 @@ use crate::services::role::{
 };
 use crate::services::site::{CreateSite, CreateSiteOutput, SiteService, UpdateSiteBody};
 use crate::services::user::{CreateUser, CreateUserOutput, UpdateUserBody, UserService};
-use crate::types::{Action, AliasType, Maybe, Reference, Resource};
+use crate::types::{Action, AliasType, Maybe, Permission, Reference, Resource};
 use crate::utils::now;
 use arrayvec::ArrayVec;
 use sea_orm::{
@@ -574,14 +574,16 @@ pub async fn seed(state: &ServerState) -> Result<()> {
             for perm_spec in &role_template.permissions {
                 let parts = perm_spec.split(':').collect::<ArrayVec<_, 3>>();
                 let input = match parts.as_slice() {
-                    [resource, action] => PermissionInput {
+                    [resource, action] => Permission {
                         resource_type: parse_or_raise!(resource, Resource, make_error),
                         resource_category: None,
                         action: parse_or_raise!(action, Action, make_error),
                     },
-                    [resource, category_slug, action] => PermissionInput {
+                    [resource, category_slug, action] => Permission {
                         resource_type: parse_or_raise!(resource, Resource, make_error),
-                        resource_category: Some(Reference::from(*category_slug)),
+                        resource_category: Some(Reference::Slug(Cow::Borrowed(
+                            category_slug,
+                        ))),
                         action: parse_or_raise!(action, Action, make_error),
                     },
                     _ => {
