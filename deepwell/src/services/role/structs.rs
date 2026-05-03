@@ -108,6 +108,7 @@ pub struct GrantUserRoleInput {
     pub role_id: i64,
     pub site_id: i64,
     pub assigning_user_id: i64,
+    #[serde(with = "time::serde::rfc3339::option")]
     pub expires_at: Option<OffsetDateTime>,
     pub ip_address: IpAddr,
 }

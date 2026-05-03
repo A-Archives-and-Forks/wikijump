@@ -25,6 +25,7 @@ use deepwell::services::role::{InternalCreateRoleInput, RoleService};
 use deepwell::utils::now;
 use std::sync::atomic::{AtomicU64, Ordering};
 use str_macro::str;
+use time::format_description::well_known::Rfc3339;
 
 use self::common::TestRunner;
 use deepwell::constants::SYSTEM_USER_ID;
@@ -483,7 +484,7 @@ async fn role_grant_expiration() {
             "user_id": f.user_id,
             "role_id": role.role_id,
             "assigning_user_id": SYSTEM_USER_ID,
-            "expires_at": now().to_string(),
+            "expires_at": now().format(&Rfc3339).unwrap(),
             "ip_address": common::IP_ADDRESS,
         }),
     );
