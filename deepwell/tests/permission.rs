@@ -27,14 +27,14 @@ use deepwell::license::License;
 use deepwell::services::ServiceContext;
 use deepwell::services::category::CategoryService;
 use deepwell::services::permission::{
-    CheckPermissionContext, DecoratedPermission, PermissionInput, PermissionService,
+    CheckPermissionContext, DecoratedPermission, PermissionService,
 };
 use deepwell::services::role::{
     GrantUserRoleInput, InternalCreateRoleInput, RoleService, UpdateRolePermissionsInput,
 };
 use deepwell::services::site::{CreateSite, SiteService};
 use deepwell::services::user::{CreateUser, UserService};
-use deepwell::types::{Action, Reference, Resource, UserType};
+use deepwell::types::{Action, Permission, Reference, Resource, UserType};
 use serde_json::json;
 use std::sync::atomic::{AtomicU64, Ordering};
 use str_macro::str;
@@ -100,12 +100,12 @@ impl PermissionFixture {
             site_id,
             role_a,
             vec![
-                PermissionInput {
+                Permission {
                     resource_type: Resource::Page,
                     resource_category: None,
                     action: Action::View,
                 },
-                PermissionInput {
+                Permission {
                     resource_type: Resource::Page,
                     resource_category: None,
                     action: Action::Edit,
@@ -120,7 +120,7 @@ impl PermissionFixture {
             ctx,
             site_id,
             role_b,
-            vec![PermissionInput {
+            vec![Permission {
                 resource_type: Resource::Page,
                 resource_category: Some(Reference::Id(category_id)),
                 action: Action::Edit,
@@ -176,7 +176,7 @@ async fn add_perms_to_role(
     ctx: &ServiceContext<'_>,
     site_id: i64,
     role_id: i64,
-    permissions: Vec<PermissionInput<'static>>,
+    permissions: Vec<Permission<'static>>,
 ) {
     PermissionService::update_permissions_for_role(
         ctx,
@@ -245,7 +245,7 @@ async fn check(
             site_id,
             page_reference: None,
         },
-        PermissionInput {
+        Permission {
             resource_type: resource,
             resource_category: category_id.map(Reference::Id),
             action,
@@ -262,7 +262,7 @@ async fn batch_check<const N: usize>(
     site_id: i64,
     perms: [(Resource, Option<i64>, Action); N],
 ) -> [bool; N] {
-    let inputs = perms.map(|(resource, category_id, action)| PermissionInput {
+    let inputs = perms.map(|(resource, category_id, action)| Permission {
         resource_type: resource,
         resource_category: category_id.map(Reference::Id),
         action,
@@ -449,7 +449,7 @@ async fn check_category_resolution() {
                 site_id: f.site_id,
                 page_reference: None
             },
-            PermissionInput {
+            Permission {
                 resource_type: Resource::Page,
                 resource_category: Some(Reference::from(TEST_CATEGORY_NAME)),
                 action: Action::Edit,
@@ -587,12 +587,12 @@ async fn role_update_permissions_and_get() {
             site_id: f.site_id,
             role_reference: Reference::Id(role.role_id),
             new_permissions: vec![
-                PermissionInput {
+                Permission {
                     resource_type: Resource::Page,
                     resource_category: Some(Reference::Slug(CATEGORY_NAME.into())),
                     action: Action::View,
                 },
-                PermissionInput {
+                Permission {
                     resource_type: Resource::Page,
                     resource_category: Some(Reference::Slug(OTHER_CATEGORY_NAME.into())),
                     action: Action::Edit,
@@ -682,12 +682,12 @@ async fn get_decorated_permissions_for_role() {
         f.site_id,
         parent_id,
         vec![
-            PermissionInput {
+            Permission {
                 resource_type: Resource::Page,
                 resource_category: None,
                 action: Action::View,
             },
-            PermissionInput {
+            Permission {
                 resource_type: Resource::Page,
                 resource_category: None,
                 action: Action::Edit,
@@ -702,7 +702,7 @@ async fn get_decorated_permissions_for_role() {
         ctx,
         f.site_id,
         child_id,
-        vec![PermissionInput {
+        vec![Permission {
             resource_type: Resource::Page,
             resource_category: None,
             action: Action::View,
@@ -711,9 +711,13 @@ async fn get_decorated_permissions_for_role() {
     .await;
 
     // Helper to find a permission in the list
-    let find = |list: &Vec<DecoratedPermission>, resource: Resource, action: Action| {
+    let find = |list: &Vec<DecoratedPermission<'static>>,
+                resource: Resource,
+                action: Action| {
         list.iter()
-            .find(|d| d.permission.resource == resource && d.permission.action == action)
+            .find(|d| {
+                d.permission.resource_type == resource && d.permission.action == action
+            })
             .unwrap_or_else(|| panic!("Permission {resource}:{action} not found"))
             .clone()
     };

@@ -139,8 +139,8 @@ pub enum AuditEvent<'a> {
     UpdatePermissions {
         role_id: i64,
         updating_user_id: i64,
-        old_permissions: Vec<Permission>,
-        new_permissions: Vec<Permission>,
+        old_permissions: Vec<Permission<'static>>,
+        new_permissions: Vec<Permission<'static>>,
     },
 }
 

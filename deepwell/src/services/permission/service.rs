@@ -28,7 +28,7 @@ use crate::services::ServiceContext;
 use crate::services::audit::{AuditEvent, AuditService};
 use crate::services::permission::resolvers::resolve_category_slug;
 use crate::services::permission::{
-    CheckPermissionContext, PermissionCache, PermissionInput, resolve_category_reference,
+    CheckPermissionContext, PermissionCache, resolve_category_reference,
 };
 use crate::services::role::{
     GetRolePermissionsInput, GetUserRolesInput, RoleService, UpdateRolePermissionsInput,
@@ -71,7 +71,7 @@ impl PermissionService {
         };
 
         // Resolve all category references concurrently before any DB writes.
-        let resolved_permissions: HashSet<Permission> =
+        let resolved_permissions: HashSet<Permission<'static>> =
             try_join_all(new_permissions.into_iter().map(|input| async move {
                 let resource_category_id = match input.resource_category {
                     Some(cat_ref) => {
@@ -86,7 +86,7 @@ impl PermissionService {
                     None => None,
                 };
                 Ok::<_, ExnError>(Permission {
-                    resource: input.resource_type,
+                    resource_type: input.resource_type,
                     resource_category: resource_category_id.map(Reference::Id),
                     action: input.action,
                 })
@@ -183,7 +183,7 @@ impl PermissionService {
                     role_permission::ActiveModel {
                         role_id: Set(role.role_id),
                         site_id: Set(site_id),
-                        resource_type: Set(perm.resource),
+                        resource_type: Set(perm.resource_type),
                         resource_category_id: Set(resource_category_id),
                         action: Set(perm.action),
                         ..Default::default()
@@ -206,7 +206,7 @@ impl PermissionService {
                 old_permissions: deleted_permissions
                     .into_iter()
                     .map(|p| Permission {
-                        resource: p.resource_type,
+                        resource_type: p.resource_type,
                         resource_category: p.resource_category_id.map(Reference::Id),
                         action: p.action,
                     })
@@ -230,7 +230,7 @@ impl PermissionService {
             role_reference,
             human_readable_categories,
         }: GetRolePermissionsInput<'_>,
-    ) -> Result<Vec<Permission>> {
+    ) -> Result<Vec<Permission<'static>>> {
         let role_id = match role_reference {
             Reference::Id(id) => id,
             Reference::Slug(_) => {
@@ -255,11 +255,15 @@ impl PermissionService {
         if human_readable_categories {
             for perm in &mut permissions {
                 if let Some(category_ref) = &perm.resource_category {
-                    perm.resource_category =
-                        resolve_category_slug(ctx, site_id, perm.resource, category_ref)
-                            .await
-                            .or_raise(make_error)?
-                            .map(Reference::Slug);
+                    perm.resource_category = resolve_category_slug(
+                        ctx,
+                        site_id,
+                        perm.resource_type,
+                        category_ref,
+                    )
+                    .await
+                    .or_raise(make_error)?
+                    .map(Reference::Slug);
                 }
             }
         }
@@ -273,7 +277,7 @@ impl PermissionService {
             role_reference,
             human_readable_categories,
         }: GetRolePermissionsInput<'_>,
-    ) -> Result<Vec<DecoratedPermission>> {
+    ) -> Result<Vec<DecoratedPermission<'static>>> {
         let txn = ctx.transaction();
 
         let role = RoleService::get(ctx, site_id, role_reference)
@@ -337,7 +341,7 @@ impl PermissionService {
         };
 
         // Construct universe set from base permissions and optionally scoped permissions
-        let universe: HashSet<Permission> = Permission::ALL
+        let universe: HashSet<Permission<'static>> = Permission::ALL
             .iter()
             .cloned()
             .chain(active_permissions)
@@ -364,7 +368,7 @@ impl PermissionService {
                 && let Some(category_ref) = &perm.resource_category
             {
                 perm.resource_category =
-                    resolve_category_slug(ctx, site_id, perm.resource, category_ref)
+                    resolve_category_slug(ctx, site_id, perm.resource_type, category_ref)
                         .await
                         .or_raise(make_error)?
                         .map(Reference::Slug);
@@ -381,10 +385,10 @@ impl PermissionService {
         Ok(decorated)
     }
 
-    pub async fn check_user_can(
+    pub async fn check_user_can<'a>(
         ctx: &ServiceContext<'_>,
         perm_ctx: &CheckPermissionContext<'_>,
-        input: PermissionInput<'_>,
+        input: Permission<'a>,
     ) -> Result<bool> {
         let [result] = Self::batch_check_user_can(ctx, perm_ctx, [input]).await?;
         Ok(result)
@@ -394,10 +398,10 @@ impl PermissionService {
     ///
     /// Returns an array of booleans corresponding to each permission input.
     /// Results are returned in the same order as the input array, best used with destructuring.
-    pub async fn batch_check_user_can<const N: usize>(
+    pub async fn batch_check_user_can<'a, const N: usize>(
         ctx: &ServiceContext<'_>,
         perm_ctx: &CheckPermissionContext<'_>,
-        permissions: [PermissionInput<'_>; N],
+        permissions: [Permission<'a>; N],
     ) -> Result<[bool; N]> {
         let user_id = perm_ctx.user_id;
         let site_id = perm_ctx.site_id;
@@ -420,8 +424,8 @@ impl PermissionService {
 
         for (
             i,
-            PermissionInput {
-                resource_type,
+            Permission {
+                resource_type: resource,
                 resource_category,
                 action,
             },
@@ -429,17 +433,16 @@ impl PermissionService {
         {
             info!(
                 "Checking permission for user ID {:?} on site ID {} for resource {} of category {:?} with action {}",
-                user_id, site_id, resource_type, resource_category, action,
+                user_id, site_id, resource, resource_category, action,
             );
 
             // Check if this permission is cacheable
-            let cacheable = PermissionCache::is_cacheable(resource_type, action);
+            let cacheable = PermissionCache::is_cacheable(resource, action);
 
             // Resolve category reference to ID for permission checking
             let resource_category_id = match &resource_category {
                 Some(reference) => {
-                    resolve_category_reference(ctx, site_id, resource_type, reference)
-                        .await?
+                    resolve_category_reference(ctx, site_id, resource, reference).await?
                 }
                 None => None,
             };
@@ -450,7 +453,7 @@ impl PermissionService {
                     ctx,
                     Some(site_id),
                     user_id,
-                    resource_type,
+                    resource,
                     resource_category_id,
                     action,
                 )
@@ -461,14 +464,14 @@ impl PermissionService {
                 if let Some(has_permission) = has_permission {
                     info!(
                         "Cache hit for user ID {:?} on site ID {} for resource {} of category {:?} with action {}",
-                        user_id, site_id, resource_type, resource_category, action,
+                        user_id, site_id, resource, resource_category, action,
                     );
                     results[i] = has_permission;
                     continue;
                 } else {
                     info!(
                         "Cache miss for user ID {:?} on site ID {} for resource {} of category {:?} with action {}",
-                        user_id, site_id, resource_type, resource_category, action,
+                        user_id, site_id, resource, resource_category, action,
                     );
                 }
             }
@@ -480,7 +483,7 @@ impl PermissionService {
                 Some(category_id) => Self::check_category_scoped(
                     ctx,
                     site_id,
-                    resource_type,
+                    resource,
                     category_id,
                     action,
                 )
@@ -491,14 +494,14 @@ impl PermissionService {
 
             let has_permission = if has_scoped_permissions {
                 user_permissions.contains(&Permission {
-                    resource: resource_type,
+                    resource_type: resource,
                     resource_category: resource_category_id.map(Reference::Id),
                     action,
                 })
             } else {
                 // If category does not have scoped permissions, fallback to _default
                 user_permissions.contains(&Permission {
-                    resource: resource_type,
+                    resource_type: resource,
                     resource_category: None,
                     action,
                 })
@@ -510,7 +513,7 @@ impl PermissionService {
                     ctx,
                     Some(site_id),
                     user_id,
-                    resource_type,
+                    resource,
                     resource_category_id,
                     action,
                     has_permission,
@@ -530,7 +533,7 @@ impl PermissionService {
     async fn fetch_permissions(
         ctx: &ServiceContext<'_>,
         role_id: i64,
-    ) -> Result<Vec<Permission>> {
+    ) -> Result<Vec<Permission<'static>>> {
         let txn = ctx.transaction();
         let make_error = || {
             Error::new(
@@ -548,7 +551,7 @@ impl PermissionService {
             .or_raise(make_error)?
             .into_iter()
             .map(|p| Permission {
-                resource: p.resource_type,
+                resource_type: p.resource_type,
                 resource_category: p.resource_category_id.map(Reference::Id),
                 action: p.action,
             })
@@ -559,7 +562,7 @@ impl PermissionService {
     pub async fn permissions_as_set(
         ctx: &ServiceContext<'_>,
         role_id: i64,
-    ) -> Result<HashSet<Permission>> {
+    ) -> Result<HashSet<Permission<'static>>> {
         Ok(Self::fetch_permissions(ctx, role_id)
             .await?
             .into_iter()
@@ -571,7 +574,7 @@ impl PermissionService {
         user_id: Option<i64>,
         site_id: i64,
         page_reference: Option<Reference<'_>>,
-    ) -> Result<HashSet<Permission>> {
+    ) -> Result<HashSet<Permission<'static>>> {
         let txn = ctx.transaction();
         let make_error = || {
             Error::new(
@@ -604,7 +607,7 @@ impl PermissionService {
             .or_raise(make_error)?
             .into_iter()
             .map(|p| Permission {
-                resource: p.resource_type,
+                resource_type: p.resource_type,
                 resource_category: p.resource_category_id.map(Reference::Id),
                 action: p.action,
             })
@@ -642,7 +645,7 @@ impl PermissionService {
         ctx: &ServiceContext<'_>,
         site_id: i64,
         child_role_id: i64,
-        removed_permissions: &HashSet<Permission>,
+        removed_permissions: &HashSet<Permission<'static>>,
     ) -> Result<()> {
         let txn = ctx.transaction();
 
@@ -659,7 +662,7 @@ impl PermissionService {
         let child_perms = Self::permissions_as_set(ctx, child_role_id)
             .await
             .or_raise(make_error)?;
-        let to_remove: HashSet<Permission> = child_perms
+        let to_remove: HashSet<Permission<'static>> = child_perms
             .intersection(removed_permissions)
             .cloned()
             .collect();
@@ -680,7 +683,7 @@ impl PermissionService {
                 .filter(
                     Condition::all()
                         .add(role_permission::Column::RoleId.eq(child_role_id))
-                        .add(role_permission::Column::ResourceType.eq(perm.resource))
+                        .add(role_permission::Column::ResourceType.eq(perm.resource_type))
                         .add(resource_condition)
                         .add(role_permission::Column::Action.eq(perm.action)),
                 )

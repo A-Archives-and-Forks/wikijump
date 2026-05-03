@@ -17,7 +17,6 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-use crate::services::permission::PermissionInput;
 use crate::types::{Maybe, Permission, Reference};
 use std::net::IpAddr;
 use time::OffsetDateTime;
@@ -65,7 +64,7 @@ pub struct UpdateRoleInput {
 pub struct UpdateRolePermissionsInput<'a> {
     pub site_id: i64,
     pub role_reference: Reference<'a>,
-    pub new_permissions: Vec<PermissionInput<'a>>,
+    pub new_permissions: Vec<Permission<'a>>,
     pub cascade_removals: bool,
     pub updating_user_id: i64,
     pub ip_address: IpAddr,

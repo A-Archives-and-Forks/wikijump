@@ -20,16 +20,9 @@
 
 use crate::types::{Action, Permission, Reference, Resource};
 
-#[derive(Deserialize, Debug, Clone)]
-pub struct PermissionInput<'a> {
-    pub resource_type: Resource,
-    pub resource_category: Option<Reference<'a>>,
-    pub action: Action,
-}
-
 #[derive(Serialize, Debug, Clone)]
-pub struct DecoratedPermission {
-    pub permission: Permission,
+pub struct DecoratedPermission<'a> {
+    pub permission: Permission<'a>,
     pub active: bool,
     pub addable: bool,
     pub removable: bool,

@@ -36,13 +36,13 @@ impl std::fmt::Display for PermissionParseError {
 impl std::error::Error for PermissionParseError {}
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
-pub struct Permission {
-    pub resource: Resource,
-    pub resource_category: Option<Reference<'static>>,
+pub struct Permission<'a> {
+    pub resource_type: Resource,
+    pub resource_category: Option<Reference<'a>>,
     pub action: Action,
 }
 
-impl FromStr for Permission {
+impl FromStr for Permission<'static> {
     type Err = PermissionParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -67,8 +67,10 @@ impl FromStr for Permission {
         };
 
         Ok(Self {
-            resource: Resource::from_str(resource).map_err(|_| PermissionParseError {
-                message: format!("invalid resource type: '{}'", resource),
+            resource_type: Resource::from_str(resource).map_err(|_| {
+                PermissionParseError {
+                    message: format!("invalid resource type: '{}'", resource),
+                }
             })?,
             resource_category,
             action: Action::from_str(action).map_err(|_| PermissionParseError {
@@ -81,18 +83,18 @@ impl FromStr for Permission {
 /// Macro for generating a list of all valid Permission types, for iteration/validation purposes.
 macro_rules! define_permission_types {
     ( $( $resource:ident => [ $($action:ident),+ $(,)? ] ),+ $(,)? ) => {
-        impl Permission {
-            pub const ALL: &[Permission] = &[
+        impl Permission<'static> {
+            pub const ALL: &[Permission<'static>] = &[
                 $($(
-                    Permission { resource: Resource::$resource, resource_category: None, action: Action::$action },
+                    Permission { resource_type: Resource::$resource, resource_category: None, action: Action::$action },
                 )+)+
             ];
 
-            pub const fn new(resource: Resource, action: Action) -> Option<Permission> {
+            pub const fn new(resource: Resource, action: Action) -> Option<Permission<'static>> {
                 match (resource, action) {
                     $($(
                         (Resource::$resource, Action::$action) => {
-                            Some(Permission { resource, resource_category: None, action })
+                            Some(Permission { resource_type: Resource::$resource, resource_category: None, action })
                         }
                     )+)+
                     _ => None,
