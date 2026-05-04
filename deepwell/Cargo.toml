@@ -40,7 +40,7 @@ jsonrpsee = { version = "0.24", features = ["macros", "server"] }
 log = "0.4"
 notify = { version = "8", optional = true }
 paste = "1"
-rand = "0.9"
+rand = "0.10"
 redis = { version = "1", features = ["aio", "connection-manager", "tokio-comp", "tokio-rustls-comp"] }
 ref-map = "0.2"
 regex = "1"
