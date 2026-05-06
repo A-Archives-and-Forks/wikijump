@@ -64,6 +64,7 @@ pub mod hash;
 pub mod info;
 pub mod license;
 pub mod locales;
+pub mod middleware;
 pub mod redis;
 pub mod services;
 pub mod types;

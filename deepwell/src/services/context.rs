@@ -22,17 +22,51 @@ use crate::api::ServerState;
 use crate::config::Config;
 use crate::error::prelude::*;
 use crate::locales::Localizations;
+use crate::models::session::Model as SessionModel;
 use crate::services::blob::MimeAnalyzer;
+use crate::types::Reference;
 use redis::aio::MultiplexedConnection as RedisMultiplexedConnection;
 use rsmq_async::Rsmq;
 use s3::bucket::Bucket;
 use sea_orm::DatabaseTransaction;
 use std::sync::Arc;
 
+/// Per-request context derived from HTTP headers by the middleware layer.
+#[derive(Debug, Clone, Default)]
+pub struct RequestContext {
+    pub session: Option<SessionModel>,
+    pub user_id: Option<i64>,
+    pub site_id: Option<i64>,
+    pub page_reference: Option<Reference<'static>>,
+}
+
+impl RequestContext {
+    #[inline]
+    pub fn user_session(&self) -> Option<&SessionModel> {
+        self.session.as_ref()
+    }
+
+    #[inline]
+    pub fn user_id(&self) -> Option<i64> {
+        self.user_id
+    }
+
+    #[inline]
+    pub fn site_id(&self) -> Option<i64> {
+        self.site_id
+    }
+
+    #[inline]
+    pub fn page_reference(&self) -> Option<&Reference<'_>> {
+        self.page_reference.as_ref()
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct ServiceContext<'txn> {
     state: ServerState,
     transaction: &'txn DatabaseTransaction,
+    request_ctx: RequestContext,
 }
 
 impl<'txn> ServiceContext<'txn> {
@@ -44,6 +78,14 @@ impl<'txn> ServiceContext<'txn> {
         ServiceContext {
             state: Arc::clone(state),
             transaction,
+            request_ctx: RequestContext::default(),
+        }
+    }
+
+    pub fn with_request_context(self, request_ctx: RequestContext) -> Self {
+        Self {
+            request_ctx,
+            ..self
         }
     }
 
@@ -91,5 +133,10 @@ impl<'txn> ServiceContext<'txn> {
     #[inline]
     pub fn transaction(&self) -> &'txn DatabaseTransaction {
         self.transaction
+    }
+
+    #[inline]
+    pub fn request_context(&self) -> &RequestContext {
+        &self.request_ctx
     }
 }

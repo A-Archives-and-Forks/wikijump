@@ -8,12 +8,34 @@ import type { JSONRPCRequest } from "json-rpc-2.0"
 export const DEEPWELL_HOST = process.env.DEEPWELL_HOST || "localhost"
 export const DEEPWELL_PORT = process.env.DEEPWELL_PORT || 2747
 export const DEEPWELL_URL = `http://${DEEPWELL_HOST}:${DEEPWELL_PORT}/jsonrpc`
-export const client = new JSONRPCClient(processRawRequest)
 
-async function processRawRequest(request: JSONRPCRequest): Promise<void> {
+interface RequestContextOptional {
+  sessionToken?: string,
+  siteId?: number,
+  page?: string | number,
+}
+
+export type RequestContext = RequestContextOptional | void
+
+export const client = new JSONRPCClient<RequestContext>(processRawRequest)
+
+async function processRawRequest(request: JSONRPCRequest, reqContext: RequestContext = {}): Promise<void> {
+  const headers: Record<string, string> = { "content-type": "application/json" }
+
+  // Populate request context in the headers
+  if (reqContext?.sessionToken) {
+    headers["X-Session-Token"] = reqContext.sessionToken
+  }
+  if (reqContext?.siteId) {
+    headers["X-Site-Id"] = reqContext.siteId.toString()
+  }
+  if (reqContext?.page) {
+    headers["X-Page"] = reqContext.page.toString()
+  }
+
   const response = await fetch(DEEPWELL_URL, {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: headers,
     body: JSON.stringify(request)
   })
 
