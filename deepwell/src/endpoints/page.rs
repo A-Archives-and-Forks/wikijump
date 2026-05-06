@@ -27,8 +27,8 @@ use crate::services::page::{
     CreatePage, CreatePageOutput, DeletePage, DeletePageOutput, EditPage, EditPageOutput,
     GetDeletedPageOutput, GetPageAnyDetails, GetPageOutput, GetPageReference,
     GetPageReferenceDetails, GetPageScoreOutput, GetPageSlug, MovePage, MovePageOutput,
-    PageEditPermission, PageEditPermissionOutput, RestorePage, RestorePageOutput,
-    RollbackPage, SetPageLayout,
+    PageEditPermissionOutput, RestorePage, RestorePageOutput, RollbackPage,
+    SetPageLayout,
 };
 use crate::services::page_revision::RerenderType;
 use crate::services::permission::CheckPermissionContext;
@@ -233,20 +233,28 @@ pub async fn page_edit(
 
 pub async fn page_edit_permission(
     ctx: &ServiceContext<'_>,
-    params: Params<'static>,
+    _params: Params<'static>,
 ) -> Result<PageEditPermissionOutput> {
-    let input: PageEditPermission = parse!(params, Page);
+    let request_ctx = ctx.request_context();
+    let page_reference = request_ctx.page_reference().cloned().ok_or_else(|| {
+        Error::new(
+            "page reference is required for edit permission check",
+            ErrorType::Page,
+        )
+    })?;
+
     info!(
-        "Checking edit permission for page {:?} in site ID {}",
-        input.page, input.site_id,
+        "Checking edit permission for page {:?} in site ID {:?}",
+        page_reference,
+        request_ctx.site_id().unwrap()
     );
 
     let can_edit = PageService::check_user_permission(
         ctx,
         &CheckPermissionContext {
-            user_id: input.user_id,
-            site_id: input.site_id,
-            page_reference: Some(input.page),
+            user_id: request_ctx.user_id(),
+            site_id: request_ctx.site_id().unwrap(),
+            page_reference: Some(page_reference),
         },
         Action::Edit,
     )

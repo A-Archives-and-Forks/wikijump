@@ -306,6 +306,7 @@ impl From<(CreatePageRevisionOutput, String)> for RestorePageOutput {
 }
 
 #[derive(Deserialize, Debug, Clone)]
+#[allow(dead_code)]
 pub struct PageEditPermission<'a> {
     pub site_id: i64,
     pub page: Reference<'a>,
