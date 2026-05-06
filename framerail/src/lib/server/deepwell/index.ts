@@ -10,16 +10,19 @@ export const DEEPWELL_PORT = process.env.DEEPWELL_PORT || 2747
 export const DEEPWELL_URL = `http://${DEEPWELL_HOST}:${DEEPWELL_PORT}/jsonrpc`
 
 interface RequestContextOptional {
-  sessionToken?: string,
-  siteId?: number,
-  page?: string | number,
+  sessionToken?: string
+  siteId?: number
+  page?: string | number
 }
 
 export type RequestContext = RequestContextOptional | void
 
 export const client = new JSONRPCClient<RequestContext>(processRawRequest)
 
-async function processRawRequest(request: JSONRPCRequest, reqContext: RequestContext = {}): Promise<void> {
+async function processRawRequest(
+  request: JSONRPCRequest,
+  reqContext: RequestContext = {}
+): Promise<void> {
   const headers: Record<string, string> = { "content-type": "application/json" }
 
   // Populate request context in the headers

@@ -52,7 +52,7 @@ import {
 import type { PageView, PreloadDataAsync } from "$lib/server/deepwell/views"
 import type { Optional, TranslateKeys } from "$lib/types"
 import type { Cookies, RequestEvent } from "@sveltejs/kit"
-import type { RequestContext } from "../deepwell";
+import type { RequestContext } from "../deepwell"
 
 export async function loadPage(
   slug: Optional<string>,
@@ -383,9 +383,9 @@ export async function pageEditPermissionAction({
     const requestContext: RequestContext = {
       sessionToken,
       siteId,
-      page: pageId || slug,
+      page: pageId || slug
     }
-    
+
     const res = await pageEditPermission(requestContext)
     return { res }
   } catch (e) {
