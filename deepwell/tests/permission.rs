@@ -24,7 +24,6 @@ mod common;
 use self::common::TestRunner;
 use deepwell::constants::SYSTEM_USER_ID;
 use deepwell::license::License;
-use deepwell::services::ServiceContext;
 use deepwell::services::category::CategoryService;
 use deepwell::services::permission::{
     CheckPermissionContext, DecoratedPermission, PermissionService,
@@ -34,6 +33,7 @@ use deepwell::services::role::{
 };
 use deepwell::services::site::{CreateSite, SiteService};
 use deepwell::services::user::{CreateUser, UserService};
+use deepwell::services::{RequestContext, ServiceContext};
 use deepwell::types::{Action, Permission, Reference, Resource, UserType};
 use serde_json::json;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -463,7 +463,7 @@ async fn check_category_resolution() {
 
 #[tokio::test]
 async fn check_permission_endpoint() {
-    let runner = TestRunner::setup().await;
+    let mut runner = TestRunner::setup().await;
     let f = PermissionFixture::setup(&runner).await;
 
     let page = run_endpoint!(
@@ -483,62 +483,50 @@ async fn check_permission_endpoint() {
     );
 
     // Check permissions for user_b via the endpoint, should allow
+    runner.set_request_context(RequestContext {
+        user_id: Some(f.user_b),
+        site_id: Some(f.site_id),
+        page_reference: Some(Reference::Id(page.page_id)),
+        ..Default::default()
+    });
     assert!(
-        run_endpoint!(
-            runner,
-            page_edit_permission,
-            json!({
-                "user_id": f.user_b,
-                "site_id": f.site_id,
-                "page": page.page_id,
-            }),
-        )
-        .can_edit,
+        run_endpoint!(runner, page_edit_permission).can_edit,
         "user_b should have edit permission for page in test-category"
     );
 
     // Same test but with slug instead of page_id, should still work
+    runner.set_request_context(RequestContext {
+        user_id: Some(f.user_b),
+        site_id: Some(f.site_id),
+        page_reference: Some(Reference::Slug(std::borrow::Cow::Owned(page.slug.clone()))),
+        ..Default::default()
+    });
     assert!(
-        run_endpoint!(
-            runner,
-            page_edit_permission,
-            json!({
-                "user_id": f.user_b,
-                "site_id": f.site_id,
-                "page": page.slug,
-            }),
-        )
-        .can_edit,
+        run_endpoint!(runner, page_edit_permission).can_edit,
         "user_b should have edit permission for page in test-category"
     );
 
     // Check permissions for user_a via the endpoint, should deny due to category-scoped permission
+    runner.set_request_context(RequestContext {
+        user_id: Some(f.user_a),
+        site_id: Some(f.site_id),
+        page_reference: Some(Reference::Id(page.page_id)),
+        ..Default::default()
+    });
     assert!(
-        !run_endpoint!(
-            runner,
-            page_edit_permission,
-            json!({
-                "user_id": f.user_a,
-                "site_id": f.site_id,
-                "page": page.page_id,
-            }),
-        )
-        .can_edit,
+        !run_endpoint!(runner, page_edit_permission).can_edit,
         "user_a should NOT have edit permission for page in test-category"
     );
 
     // Same test but with slug instead of page_id, should still work
+    runner.set_request_context(RequestContext {
+        user_id: Some(f.user_a),
+        site_id: Some(f.site_id),
+        page_reference: Some(Reference::Slug(std::borrow::Cow::Owned(page.slug.clone()))),
+        ..Default::default()
+    });
     assert!(
-        !run_endpoint!(
-            runner,
-            page_edit_permission,
-            json!({
-                "user_id": f.user_a,
-                "site_id": f.site_id,
-                "page": page.slug,
-            }),
-        )
-        .can_edit,
+        !run_endpoint!(runner, page_edit_permission).can_edit,
         "user_a should NOT have edit permission for page in test-category"
     );
 }

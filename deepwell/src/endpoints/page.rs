@@ -235,31 +235,31 @@ pub async fn page_edit_permission(
     ctx: &ServiceContext<'_>,
     _params: Params<'static>,
 ) -> Result<PageEditPermissionOutput> {
-    let request_ctx = ctx.request_context();
-    let page_reference = request_ctx.page_reference().cloned().ok_or_else(|| {
-        Error::new(
-            "page reference is required for edit permission check",
-            ErrorType::Page,
-        )
-    })?;
+    let request_ctx = ctx.request();
+    let make_error =
+        || Error::new("failed to check page edit permission", ErrorType::Page);
+
+    // Extract necessary fields from request context.
+    let user_id = request_ctx.user_id().ok();
+    let page_reference = request_ctx.page_reference().ok();
+    let site_id = request_ctx.site_id().or_raise(make_error)?;
 
     info!(
         "Checking edit permission for page {:?} in site ID {:?}",
-        page_reference,
-        request_ctx.site_id().unwrap()
+        page_reference, site_id
     );
 
     let can_edit = PageService::check_user_permission(
         ctx,
         &CheckPermissionContext {
-            user_id: request_ctx.user_id(),
-            site_id: request_ctx.site_id().unwrap(),
-            page_reference: Some(page_reference),
+            user_id,
+            site_id,
+            page_reference: page_reference.cloned(),
         },
         Action::Edit,
     )
     .await
-    .or_raise(|| Error::new("failed to check edit permission", ErrorType::Page))?;
+    .or_raise(make_error)?;
 
     Ok(PageEditPermissionOutput { can_edit })
 }

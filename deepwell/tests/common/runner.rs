@@ -22,7 +22,7 @@
 
 use deepwell::api::{ServerState, build_server_state};
 use deepwell::config::{Config, Secrets};
-use deepwell::services::ServiceContext;
+use deepwell::services::{RequestContext, ServiceContext};
 use sea_orm::{DatabaseTransaction, TransactionTrait};
 use self_cell::self_cell;
 use tokio::task;
@@ -31,6 +31,7 @@ use tokio::task;
 pub struct TestRunnerRequestContext {
     state: ServerState,
     transaction: Option<DatabaseTransaction>,
+    request_ctx: RequestContext,
 }
 
 impl TestRunnerRequestContext {
@@ -51,6 +52,7 @@ impl TestRunnerRequestContext {
         TestRunnerRequestContext {
             state,
             transaction: Some(txn),
+            request_ctx: RequestContext::default(),
         }
     }
 
@@ -62,6 +64,7 @@ impl TestRunnerRequestContext {
     #[inline]
     fn build_service_context<'txn>(&'txn self) -> ServiceContext<'txn> {
         ServiceContext::new(&self.state, self.transaction())
+            .with_request(self.request_ctx.clone())
     }
 }
 
@@ -120,5 +123,10 @@ impl TestRunner {
     #[allow(unused)]
     pub fn context<'a>(&'a self) -> &'a ServiceContext<'a> {
         self.borrow_dependent()
+    }
+
+    #[allow(unused)]
+    pub fn set_request_context(&mut self, req_ctx: RequestContext) {
+        self.with_dependent_mut(|_owner, ctx| ctx.set_request(req_ctx));
     }
 }

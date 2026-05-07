@@ -42,23 +42,37 @@ pub struct RequestContext {
 
 impl RequestContext {
     #[inline]
-    pub fn user_session(&self) -> Option<&SessionModel> {
-        self.session.as_ref()
+    pub fn user_session(&self) -> Result<&SessionModel> {
+        self.session.as_ref().ok_or_raise(|| {
+            Error::new(
+                "User session not present in request context",
+                ErrorType::Request,
+            )
+        })
     }
 
     #[inline]
-    pub fn user_id(&self) -> Option<i64> {
-        self.user_id
+    pub fn user_id(&self) -> Result<i64> {
+        self.user_id.ok_or_raise(|| {
+            Error::new("User ID not present in request context", ErrorType::Request)
+        })
     }
 
     #[inline]
-    pub fn site_id(&self) -> Option<i64> {
-        self.site_id
+    pub fn site_id(&self) -> Result<i64> {
+        self.site_id.ok_or_raise(|| {
+            Error::new("Site ID not present in request context", ErrorType::Request)
+        })
     }
 
     #[inline]
-    pub fn page_reference(&self) -> Option<&Reference<'_>> {
-        self.page_reference.as_ref()
+    pub fn page_reference(&self) -> Result<&Reference<'_>> {
+        self.page_reference.as_ref().ok_or_raise(|| {
+            Error::new(
+                "Page reference not present in request context",
+                ErrorType::Request,
+            )
+        })
     }
 }
 
@@ -82,11 +96,17 @@ impl<'txn> ServiceContext<'txn> {
         }
     }
 
-    pub fn with_request_context(self, request_ctx: RequestContext) -> Self {
+    #[inline]
+    pub fn with_request(self, request_ctx: RequestContext) -> Self {
         Self {
             request_ctx,
             ..self
         }
+    }
+
+    #[inline]
+    pub fn set_request(&mut self, request_ctx: RequestContext) {
+        self.request_ctx = request_ctx;
     }
 
     // Getters
@@ -136,7 +156,7 @@ impl<'txn> ServiceContext<'txn> {
     }
 
     #[inline]
-    pub fn request_context(&self) -> &RequestContext {
+    pub fn request(&self) -> &RequestContext {
         &self.request_ctx
     }
 }

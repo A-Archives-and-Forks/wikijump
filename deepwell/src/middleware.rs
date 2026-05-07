@@ -23,6 +23,7 @@ use std::borrow::Cow;
 use std::task::{Context, Poll};
 use tower::{Layer, Service};
 
+use crate::error::StdResult;
 use crate::types::Reference;
 
 #[derive(Debug, Clone)]
@@ -59,27 +60,24 @@ where
     type Error = S::Error;
     type Future = S::Future;
 
-    fn poll_ready(
-        &mut self,
-        cx: &mut Context<'_>,
-    ) -> Poll<std::result::Result<(), Self::Error>> {
+    fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<StdResult<(), Self::Error>> {
         self.service.poll_ready(cx)
     }
 
     fn call(&mut self, mut request: Request<Body>) -> Self::Future {
         let session_token: Option<String> = request
             .headers()
-            .get("X-Session-Token")
+            .get("X-Deepwell-Session-Token")
             .and_then(|v| v.to_str().ok())
             .map(str::to_owned);
         let site_id: Option<i64> = request
             .headers()
-            .get("X-Site-Id")
+            .get("X-Deepwell-Site-Id")
             .and_then(|v| v.to_str().ok())
             .and_then(|s| s.parse().ok());
         let page_ref: Option<Reference<'static>> = request
             .headers()
-            .get("X-Page")
+            .get("X-Deepwell-Page")
             .and_then(|v| v.to_str().ok())
             .map(|s| {
                 s.parse::<i64>()

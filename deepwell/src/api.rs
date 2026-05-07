@@ -234,10 +234,10 @@ async fn build_module(app_state: ServerState) -> Result<RpcModule<ServerState>> 
 
                             // Build request context from headers and store it in the context
                             let req_ctx = match headers {
-                                Some(ref h) => build_request_context(&ctx, h).await.or_raise(make_error)?,
+                                Some(ref h) => build_request(&ctx, h).await.or_raise(make_error)?,
                                 None => RequestContext::default(),
                             };
-                            let ctx = ctx.with_request_context(req_ctx);
+                            let ctx = ctx.with_request(req_ctx);
 
                             // Run the endpoint's implementation, and convert from
                             // the crate's error type to an RPC error.
@@ -452,7 +452,7 @@ async fn build_module(app_state: ServerState) -> Result<RpcModule<ServerState>> 
     Ok(module)
 }
 
-async fn build_request_context(
+async fn build_request(
     ctx: &ServiceContext<'_>,
     headers: &RequestContextHeaders,
 ) -> Result<RequestContext> {

@@ -27,13 +27,13 @@ async function processRawRequest(
 
   // Populate request context in the headers
   if (reqContext?.sessionToken) {
-    headers["X-Session-Token"] = reqContext.sessionToken
+    headers["X-Deepwell-Session-Token"] = reqContext.sessionToken
   }
   if (reqContext?.siteId) {
-    headers["X-Site-Id"] = reqContext.siteId.toString()
+    headers["X-Deepwell-Site-Id"] = reqContext.siteId.toString()
   }
   if (reqContext?.page) {
-    headers["X-Page"] = reqContext.page.toString()
+    headers["X-Deepwell-Page"] = reqContext.page.toString()
   }
 
   const response = await fetch(DEEPWELL_URL, {
