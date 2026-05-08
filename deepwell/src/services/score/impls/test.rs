@@ -19,7 +19,7 @@
  */
 
 use super::prelude::*;
-use rand::Rng;
+use rand::{Rng, RngExt};
 
 #[derive(Debug)]
 pub struct TestScorer;
