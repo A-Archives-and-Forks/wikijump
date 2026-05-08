@@ -1,6 +1,6 @@
 import defaults from "$lib/defaults"
 
-import { client } from "$lib/server/deepwell"
+import { client, type RequestContext } from "$lib/server/deepwell"
 import { Layout } from "$lib/types"
 
 import type {
@@ -76,16 +76,9 @@ export async function pageEdit(
 }
 
 export async function pageEditPermission(
-  siteId: number,
-  pageId: Optional<number>,
-  slug: string,
-  userId: Optional<number>
+  requestContext: RequestContext = {}
 ): Promise<{ can_edit: boolean }> {
-  return client.request("page_edit_permission", {
-    site_id: siteId,
-    page: pageId ?? slug,
-    user_id: userId
-  })
+  return client.request("page_edit_permission", {}, requestContext)
 }
 
 /* ----- Page History ----- */

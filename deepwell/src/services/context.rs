@@ -22,17 +22,65 @@ use crate::api::ServerState;
 use crate::config::Config;
 use crate::error::prelude::*;
 use crate::locales::Localizations;
+use crate::models::session::Model as SessionModel;
 use crate::services::blob::MimeAnalyzer;
+use crate::types::Reference;
 use redis::aio::MultiplexedConnection as RedisMultiplexedConnection;
 use rsmq_async::Rsmq;
 use s3::bucket::Bucket;
 use sea_orm::DatabaseTransaction;
 use std::sync::Arc;
 
+/// Per-request context derived from HTTP headers by the middleware layer.
+#[derive(Debug, Clone, Default)]
+pub struct RequestContext {
+    pub session: Option<SessionModel>,
+    pub user_id: Option<i64>,
+    pub site_id: Option<i64>,
+    pub page_reference: Option<Reference<'static>>,
+}
+
+impl RequestContext {
+    #[inline]
+    pub fn user_session(&self) -> Result<&SessionModel> {
+        self.session.as_ref().ok_or_raise(|| {
+            Error::new(
+                "User session not present in request context",
+                ErrorType::Request,
+            )
+        })
+    }
+
+    #[inline]
+    pub fn user_id(&self) -> Result<i64> {
+        self.user_id.ok_or_raise(|| {
+            Error::new("User ID not present in request context", ErrorType::Request)
+        })
+    }
+
+    #[inline]
+    pub fn site_id(&self) -> Result<i64> {
+        self.site_id.ok_or_raise(|| {
+            Error::new("Site ID not present in request context", ErrorType::Request)
+        })
+    }
+
+    #[inline]
+    pub fn page_reference(&self) -> Result<&Reference<'_>> {
+        self.page_reference.as_ref().ok_or_raise(|| {
+            Error::new(
+                "Page reference not present in request context",
+                ErrorType::Request,
+            )
+        })
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct ServiceContext<'txn> {
     state: ServerState,
     transaction: &'txn DatabaseTransaction,
+    request_ctx: RequestContext,
 }
 
 impl<'txn> ServiceContext<'txn> {
@@ -44,7 +92,21 @@ impl<'txn> ServiceContext<'txn> {
         ServiceContext {
             state: Arc::clone(state),
             transaction,
+            request_ctx: RequestContext::default(),
         }
+    }
+
+    #[inline]
+    pub fn with_request(self, request_ctx: RequestContext) -> Self {
+        Self {
+            request_ctx,
+            ..self
+        }
+    }
+
+    #[inline]
+    pub fn set_request(&mut self, request_ctx: RequestContext) {
+        self.request_ctx = request_ctx;
     }
 
     // Getters
@@ -91,5 +153,10 @@ impl<'txn> ServiceContext<'txn> {
     #[inline]
     pub fn transaction(&self) -> &'txn DatabaseTransaction {
         self.transaction
+    }
+
+    #[inline]
+    pub fn request(&self) -> &RequestContext {
+        &self.request_ctx
     }
 }

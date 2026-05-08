@@ -30,9 +30,10 @@ use crate::config::{Config, Secrets};
 use crate::endpoints::all::*;
 use crate::error::prelude::*;
 use crate::locales::Localizations;
-use crate::services::ServiceContext;
+use crate::middleware::{RequestContextHeaders, RequestContextLayer};
 use crate::services::blob::MimeAnalyzer;
 use crate::services::job::JobWorker;
+use crate::services::{RequestContext, ServiceContext, SessionService};
 use crate::utils::debug_pointer;
 use crate::{database, info, redis as redis_db};
 use jsonrpsee::server::{RpcModule, Server, ServerHandle};
@@ -185,6 +186,7 @@ pub async fn build_server(app_state: ServerState) -> Result<ServerHandle> {
     let make_error = || Error::new("failed to build server", ErrorType::ServerSetup);
     let socket_address = app_state.config.address;
     let server = Server::builder()
+        .set_http_middleware(tower::ServiceBuilder::new().layer(RequestContextLayer))
         .build(socket_address)
         .await
         .or_raise(make_error)?;
@@ -205,12 +207,15 @@ async fn build_module(app_state: ServerState) -> Result<RpcModule<ServerState>> 
             //
             // Contains a wrapper around each to set up state, convert error types,
             // and produce a transaction used in ServiceContext, passed in.
-            module.register_async_method($name, |params, state, _extensions| async move {
+            module.register_async_method($name, |params, state, extensions| async move {
                 // NOTE: We have our own Arc because we need to share it in some places
                 //       before setting up, but RpcModule insists on adding its own.
                 //       So we need to "unwrap it" before each method invocation.
                 //       Oh well.
                 let state = Arc::clone(&*state);
+
+                // Extract raw headers inserted by the tower middleware layer.
+                let headers = extensions.get::<RequestContextHeaders>().cloned();
 
                 // Wrap each call in a transaction, which commits or rolls back
                 // automatically based on whether the Result is Ok or Err.
@@ -221,15 +226,24 @@ async fn build_module(app_state: ServerState) -> Result<RpcModule<ServerState>> 
                     .database
                     .transaction(move |txn| {
                         Box::pin(async move {
+                            let ctx = ServiceContext::new(&state, &txn);
+                            let make_error = || Error::new(
+                                format!("method '{}' failed", $name),
+                                ErrorType::Request,
+                            );
+
+                            // Build request context from headers and store it in the context
+                            let req_ctx = match headers {
+                                Some(ref h) => build_request(&ctx, h).await.or_raise(make_error)?,
+                                None => RequestContext::default(),
+                            };
+                            let ctx = ctx.with_request(req_ctx);
+
                             // Run the endpoint's implementation, and convert from
                             // the crate's error type to an RPC error.
-                            let ctx = ServiceContext::new(&state, &txn);
                             $method(&ctx, params)
                                 .await
-                                .or_raise(|| Error::new(
-                                    format!("method '{}' failed", $name),
-                                    ErrorType::Request,
-                                ))
+                                .or_raise(make_error)
                         })
                     })
                     .await
@@ -436,4 +450,35 @@ async fn build_module(app_state: ServerState) -> Result<RpcModule<ServerState>> 
 
     // Return
     Ok(module)
+}
+
+async fn build_request(
+    ctx: &ServiceContext<'_>,
+    headers: &RequestContextHeaders,
+) -> Result<RequestContext> {
+    let make_error =
+        || Error::new("failed to resolve request context", ErrorType::Request);
+
+    let (session, user_id) = match headers.session_token.as_deref() {
+        Some("") | None => (None, None),
+        Some(token) => {
+            match SessionService::get_optional(ctx, token)
+                .await
+                .or_raise(make_error)?
+            {
+                Some(session) => {
+                    let user_id = session.user_id;
+                    (Some(session), Some(user_id))
+                }
+                None => (None, None),
+            }
+        }
+    };
+
+    Ok(RequestContext {
+        session,
+        user_id,
+        site_id: headers.site_id,
+        page_reference: headers.page_ref.clone(),
+    })
 }

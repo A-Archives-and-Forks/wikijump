@@ -52,6 +52,7 @@ import {
 import type { PageView, PreloadDataAsync } from "$lib/server/deepwell/views"
 import type { Optional, TranslateKeys } from "$lib/types"
 import type { Cookies, RequestEvent } from "@sveltejs/kit"
+import type { RequestContext } from "../deepwell"
 
 export async function loadPage(
   slug: Optional<string>,
@@ -374,12 +375,18 @@ export async function pageEditPermissionAction({
   const requestData: { siteId: number; pageId: number } = await request.json()
 
   const sessionToken = cookies.get("wikijump_token")
-  const session = await authGetSession(sessionToken)
 
   try {
     const { siteId, pageId } = requestData
     const { slug } = params
-    const res = await pageEditPermission(siteId, pageId, slug, session?.user_id)
+
+    const requestContext: RequestContext = {
+      sessionToken,
+      siteId,
+      page: pageId || slug
+    }
+
+    const res = await pageEditPermission(requestContext)
     return { res }
   } catch (e) {
     const error = e as DeepwellError
