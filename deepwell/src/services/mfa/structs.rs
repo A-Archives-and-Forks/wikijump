@@ -22,8 +22,8 @@ use super::prelude::*;
 use crate::services::PasswordService;
 use crate::utils::assert_is_csprng;
 use data_encoding::BASE32_NOPAD;
-use rand::Rng;
 use rand::distr::{Alphanumeric, SampleString};
+use rand::{Rng, RngExt};
 use std::iter;
 use std::net::IpAddr;
 
