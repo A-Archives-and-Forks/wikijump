@@ -33,10 +33,7 @@
     // Check edit permission first
     const res = await fetch("?/editPermission", {
       method: "POST",
-      body: JSON.stringify({
-        siteId: data.site.site_id,
-        pageId: data.page?.page_id
-      })
+      body: ""
     }).then((res) => res.text())
 
     const result = deserialize<

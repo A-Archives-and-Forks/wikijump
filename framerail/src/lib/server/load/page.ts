@@ -52,7 +52,7 @@ import {
 import type { PageView, PreloadDataAsync } from "$lib/server/deepwell/views"
 import type { Optional, TranslateKeys } from "$lib/types"
 import type { Cookies, RequestEvent } from "@sveltejs/kit"
-import type { RequestContext } from "../deepwell"
+import { getRequestContext } from "./request-ctx"
 
 export async function loadPage(
   slug: Optional<string>,
@@ -367,26 +367,9 @@ const pageDeleteSchema = variant("option", [
 ])
 
 /* ----- Page Edit Check Permission ----- */
-export async function pageEditPermissionAction({
-  request,
-  params,
-  cookies
-}: RequestEvent) {
-  const requestData: { siteId: number; pageId: number } = await request.json()
-
-  const sessionToken = cookies.get("wikijump_token")
-
+export async function pageEditPermissionAction({ locals }: RequestEvent) {
   try {
-    const { siteId, pageId } = requestData
-    const { slug } = params
-
-    const requestContext: RequestContext = {
-      sessionToken,
-      siteId,
-      page: pageId || slug
-    }
-
-    const res = await pageEditPermission(requestContext)
+    const res = await pageEditPermission(getRequestContext(locals))
     return { res }
   } catch (e) {
     const error = e as DeepwellError

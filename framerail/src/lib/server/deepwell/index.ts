@@ -4,18 +4,11 @@ import { JSONRPCClient } from "json-rpc-2.0"
 
 import type { Nullable } from "$lib/types"
 import type { JSONRPCRequest } from "json-rpc-2.0"
+import type { RequestContext } from "../load/request-ctx"
 
 export const DEEPWELL_HOST = process.env.DEEPWELL_HOST || "localhost"
 export const DEEPWELL_PORT = process.env.DEEPWELL_PORT || 2747
 export const DEEPWELL_URL = `http://${DEEPWELL_HOST}:${DEEPWELL_PORT}/jsonrpc`
-
-interface RequestContextOptional {
-  sessionToken?: string
-  siteId?: number
-  page?: string | number
-}
-
-export type RequestContext = RequestContextOptional | void
 
 export const client = new JSONRPCClient<RequestContext>(processRawRequest)
 
