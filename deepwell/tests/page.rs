@@ -24,12 +24,13 @@ mod common;
 use self::common::TestRunner;
 use deepwell::constants::ADMIN_USER_ID;
 use deepwell::error::prelude::*;
-use deepwell::types::PageRevisionType;
+use deepwell::services::RequestContext;
+use deepwell::types::{PageRevisionType, Reference};
 use serde_json::json;
 
 #[tokio::test]
 async fn basic_edit() {
-    let runner = TestRunner::setup().await;
+    let mut runner = TestRunner::setup().await;
 
     const SITE_SLUG: &str = "test";
     const PAGE_SLUG: &str = "my-page";
@@ -41,6 +42,15 @@ async fn basic_edit() {
 
     let site_id = output.site.site_id;
     assert_eq!(output.site.slug, SITE_SLUG, "Site slug doesn't match");
+
+    // Set request context to populate params for the internal permission check.
+    // TODO: Figure out a better way to handle this gap.
+    runner.set_request_context(RequestContext {
+        session: None,
+        user_id: Some(ADMIN_USER_ID),
+        site_id: Some(site_id),
+        page_reference: Some(Reference::Slug(PAGE_SLUG.into())),
+    });
 
     // Create page
 
@@ -173,7 +183,7 @@ async fn basic_edit() {
 
 #[tokio::test]
 async fn basic_move() {
-    let runner = TestRunner::setup().await;
+    let mut runner = TestRunner::setup().await;
 
     const SITE_SLUG: &str = "test";
     const PAGE_SLUG_1: &str = "alpha";
@@ -186,6 +196,14 @@ async fn basic_move() {
 
     let site_id = output.site.site_id;
     assert_eq!(output.site.slug, SITE_SLUG, "Site slug doesn't match");
+
+    // Set request context to populate params for the internal permission check.
+    runner.set_request_context(RequestContext {
+        session: None,
+        user_id: Some(ADMIN_USER_ID),
+        site_id: Some(site_id),
+        page_reference: Some(Reference::Slug(PAGE_SLUG_1.into())),
+    });
 
     // Create page
 
@@ -287,6 +305,12 @@ async fn basic_move() {
     assert_contains_error!(error, ErrorType::PageNotFound);
 
     // Page edit (success)
+    runner.set_request_context(RequestContext {
+        session: None,
+        user_id: Some(ADMIN_USER_ID),
+        site_id: Some(site_id),
+        page_reference: Some(Reference::Slug(PAGE_SLUG_2.into())),
+    });
 
     let output = run_endpoint!(
         runner,
