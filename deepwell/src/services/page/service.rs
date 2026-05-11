@@ -1243,32 +1243,29 @@ impl PageService {
 
     pub async fn check_user_permission(
         ctx: &ServiceContext<'_>,
-        permission_context: &CheckPermissionContext<'_>,
+        _permission_context: &CheckPermissionContext<'_>,
         action: Action,
     ) -> Result<bool> {
         let make_error =
             || Error::new("failed to check user permissions for page", ErrorType::Page);
 
-        let page_ref = match permission_context.page_reference {
-            Some(ref page_reference) => page_reference,
-            None => {
-                bail!(make_error());
-            }
-        };
+        let page_ref = ctx.request().page_reference().or_raise(make_error)?;
+        let site_id = ctx.request().site_id().or_raise(make_error)?;
 
-        let page_model = Self::get(ctx, permission_context.site_id, page_ref.clone())
+        info!(
+            "Checking edit permission for page {:?} in site ID {:?}",
+            page_ref, site_id
+        );
+
+        let page_model = Self::get(ctx, site_id, page_ref.clone())
             .await
             .or_raise(make_error)?;
 
-        PermissionService::check_user_can(
-            ctx,
-            permission_context,
-            Permission {
-                resource_type: Resource::Page,
-                resource_category: Some(Reference::Id(page_model.page_category_id)),
-                action,
-            },
-        )
+        ctx.user_has_permission(Permission {
+            resource_type: Resource::Page,
+            resource_category: Some(Reference::Id(page_model.page_category_id)),
+            action,
+        })
         .await
         .or_raise(make_error)
     }
