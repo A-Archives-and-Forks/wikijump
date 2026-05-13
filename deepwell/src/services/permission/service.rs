@@ -422,110 +422,123 @@ impl PermissionService {
 
         let mut results = [false; N];
 
-        for (
-            i,
-            Permission {
-                resource_type: resource,
-                resource_category,
-                action,
-            },
-        ) in permissions.into_iter().enumerate()
-        {
-            info!(
-                "Checking permission for user ID {:?} on site ID {} for resource {} of category {:?} with action {}",
-                user_id, site_id, resource, resource_category, action,
-            );
-
-            // Check if this permission is cacheable
-            let cacheable = PermissionCache::is_cacheable(resource, action);
-
-            // Resolve category reference to ID for permission checking
-            let resource_category_id = match &resource_category {
-                Some(reference) => {
-                    resolve_category_reference(ctx, site_id, resource, reference).await?
-                }
-                None => None,
-            };
-
-            if cacheable {
-                // Check if this permission has been cached
-                let has_permission = PermissionCache::check_user_permission(
-                    ctx,
-                    Some(site_id),
-                    user_id,
-                    resource,
-                    resource_category_id,
-                    action,
-                )
-                .await
-                .or_raise(make_error)?;
-
-                // If we have a cached result, use it
-                if let Some(has_permission) = has_permission {
-                    info!(
-                        "Cache hit for user ID {:?} on site ID {} for resource {} of category {:?} with action {}",
-                        user_id, site_id, resource, resource_category, action,
-                    );
-                    results[i] = has_permission;
-                    continue;
-                } else {
-                    info!(
-                        "Cache miss for user ID {:?} on site ID {} for resource {} of category {:?} with action {}",
-                        user_id, site_id, resource, resource_category, action,
-                    );
-                }
-            }
-
-            // If permission is not cacheable, or is not cached, compute it fresh
-
-            // Does this category have permissions scoped to it?
-            let has_scoped_permissions = match resource_category_id {
-                Some(category_id) => Self::check_category_scoped(
-                    ctx,
-                    site_id,
-                    resource,
-                    category_id,
-                    action,
-                )
-                .await
-                .or_raise(make_error)?,
-                None => false,
-            };
-
-            let has_permission = if has_scoped_permissions {
-                user_permissions.contains(&Permission {
-                    resource_type: resource,
-                    resource_category: resource_category_id.map(Reference::Id),
-                    action,
-                })
-            } else {
-                // If category does not have scoped permissions, fallback to _default
-                user_permissions.contains(&Permission {
-                    resource_type: resource,
-                    resource_category: None,
-                    action,
-                })
-            };
-
-            // Cache result if cacheable
-            if cacheable {
-                PermissionCache::set_user_permission(
-                    ctx,
-                    Some(site_id),
-                    user_id,
-                    resource,
-                    resource_category_id,
-                    action,
-                    has_permission,
-                )
-                .await
-                .or_raise(make_error)?;
-            }
-
-            results[i] = has_permission;
+        for (i, permission) in permissions.into_iter().enumerate() {
+            results[i] = Self::permission_in_set_helper(
+                ctx,
+                user_id,
+                &user_permissions,
+                site_id,
+                permission,
+            )
+            .await
+            .or_raise(make_error)?;
         }
 
         Ok(results)
+    }
+
+    /// Helper function to check if a permission is present in (the user's) permission set.
+    pub(crate) async fn permission_in_set_helper(
+        ctx: &ServiceContext<'_>,
+        user_id: Option<i64>,
+        user_permissions: &HashSet<Permission<'static>>,
+        site_id: i64,
+        Permission {
+            resource_type: resource,
+            resource_category,
+            action,
+        }: Permission<'_>,
+    ) -> Result<bool> {
+        let make_error =
+            || Error::new("failed to check permission", ErrorType::Permission);
+
+        info!(
+            "Checking permission for user ID {:?} on site ID {} for resource {} of category {:?} with action {}",
+            user_id, site_id, resource, resource_category, action,
+        );
+
+        // Check if this permission is cacheable
+        let cacheable = PermissionCache::is_cacheable(resource, action);
+
+        // Resolve category reference to ID for permission checking
+        let resource_category_id = match &resource_category {
+            Some(reference) => {
+                resolve_category_reference(ctx, site_id, resource, reference).await?
+            }
+            None => None,
+        };
+
+        if cacheable {
+            // Check if this permission has been cached
+            let has_permission = PermissionCache::check_user_permission(
+                ctx,
+                Some(site_id),
+                user_id,
+                resource,
+                resource_category_id,
+                action,
+            )
+            .await
+            .or_raise(make_error)?;
+
+            // If we have a cached result, use it
+            if let Some(has_permission) = has_permission {
+                info!(
+                    "Cache hit for user ID {:?} on site ID {} for resource {} of category {:?} with action {}",
+                    user_id, site_id, resource, resource_category, action,
+                );
+                return Ok(has_permission);
+            } else {
+                info!(
+                    "Cache miss for user ID {:?} on site ID {} for resource {} of category {:?} with action {}",
+                    user_id, site_id, resource, resource_category, action,
+                );
+            }
+        }
+
+        // If permission is not cacheable, or is not cached, compute it fresh
+
+        // Does this category have permissions scoped to it?
+        let has_scoped_permissions = match resource_category_id {
+            Some(category_id) => {
+                Self::check_category_scoped(ctx, site_id, resource, category_id, action)
+                    .await
+                    .or_raise(make_error)?
+            }
+            None => false,
+        };
+
+        let has_permission = if has_scoped_permissions {
+            user_permissions.contains(&Permission {
+                resource_type: resource,
+                resource_category: resource_category_id.map(Reference::Id),
+                action,
+            })
+        } else {
+            // If category does not have scoped permissions, fallback to _default
+            user_permissions.contains(&Permission {
+                resource_type: resource,
+                resource_category: None,
+                action,
+            })
+        };
+
+        // Cache result if cacheable
+        if cacheable {
+            PermissionCache::set_user_permission(
+                ctx,
+                Some(site_id),
+                user_id,
+                resource,
+                resource_category_id,
+                action,
+                has_permission,
+            )
+            .await
+            .or_raise(make_error)?;
+        }
+
+        Ok(has_permission)
     }
 
     /// Fetches permissions for `role_id`.
@@ -569,7 +582,7 @@ impl PermissionService {
             .collect())
     }
 
-    async fn get_permissions_for_user(
+    pub async fn get_permissions_for_user(
         ctx: &ServiceContext<'_>,
         user_id: Option<i64>,
         site_id: i64,

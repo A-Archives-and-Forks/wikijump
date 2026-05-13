@@ -80,6 +80,7 @@ where
             .get("X-Deepwell-Page")
             .and_then(|v| v.to_str().ok())
             .map(|s| {
+                // TODO: Figure out if this can cause a bug: if the slug is a number, it will be parsed as an ID instead of a slug.
                 s.parse::<i64>()
                     .map(Reference::Id)
                     .unwrap_or_else(|_| Reference::Slug(Cow::Owned(s.to_owned())))

@@ -170,5 +170,9 @@ declare global {
       [anyError: any]: unknown
     }
     // interface Platform {}
+
+    interface Locals {
+      requestContext: RequestContext
+    }
   }
 }

@@ -1,6 +1,6 @@
 import defaults from "$lib/defaults"
 
-import { client, type RequestContext } from "$lib/server/deepwell"
+import { client } from "$lib/server/deepwell"
 import { Layout } from "$lib/types"
 
 import type {
@@ -10,6 +10,7 @@ import type {
   PageVoteModel,
   ParseError
 } from "$lib/types"
+import type { RequestContext } from "../load/request-ctx"
 
 /* ----- Page Delete ----- */
 interface PageDelete {

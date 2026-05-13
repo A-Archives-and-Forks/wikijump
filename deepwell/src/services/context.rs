@@ -24,12 +24,15 @@ use crate::error::prelude::*;
 use crate::locales::Localizations;
 use crate::models::session::Model as SessionModel;
 use crate::services::blob::MimeAnalyzer;
-use crate::types::Reference;
+use crate::services::permission::PermissionService;
+use crate::types::{Permission, Reference};
 use redis::aio::MultiplexedConnection as RedisMultiplexedConnection;
 use rsmq_async::Rsmq;
 use s3::bucket::Bucket;
 use sea_orm::DatabaseTransaction;
+use std::collections::HashSet;
 use std::sync::Arc;
+use tokio::sync::OnceCell;
 
 /// Per-request context derived from HTTP headers by the middleware layer.
 #[derive(Debug, Clone, Default)]
@@ -76,11 +79,12 @@ impl RequestContext {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ServiceContext<'txn> {
     state: ServerState,
     transaction: &'txn DatabaseTransaction,
     request_ctx: RequestContext,
+    user_permissions: OnceCell<HashSet<Permission<'static>>>,
 }
 
 impl<'txn> ServiceContext<'txn> {
@@ -93,6 +97,7 @@ impl<'txn> ServiceContext<'txn> {
             state: Arc::clone(state),
             transaction,
             request_ctx: RequestContext::default(),
+            user_permissions: OnceCell::new(),
         }
     }
 
@@ -105,8 +110,12 @@ impl<'txn> ServiceContext<'txn> {
     }
 
     #[inline]
-    pub fn set_request(&mut self, request_ctx: RequestContext) {
+    /// Internal method to update the request context, for use in testing only.
+    pub fn set_request_for_test(&mut self, request_ctx: RequestContext) {
         self.request_ctx = request_ctx;
+
+        // Clear cached permissions since the user context has changed.
+        self.user_permissions = OnceCell::new();
     }
 
     // Getters
@@ -158,5 +167,41 @@ impl<'txn> ServiceContext<'txn> {
     #[inline]
     pub fn request(&self) -> &RequestContext {
         &self.request_ctx
+    }
+
+    pub async fn user_permissions(&self) -> Result<&HashSet<Permission<'static>>> {
+        // Lazily fetch and cache user permissions for the duration of the request.
+        self.user_permissions
+            .get_or_try_init(|| async {
+                let user_id = self.request_ctx.user_id;
+                let site_id = self.request_ctx.site_id()?;
+                let page_reference = self.request_ctx.page_reference.clone();
+
+                PermissionService::get_permissions_for_user(
+                    self,
+                    user_id,
+                    site_id,
+                    page_reference,
+                )
+                .await
+                .or_raise(|| {
+                    Error::new("Failed to fetch user permissions", ErrorType::Permission)
+                })
+            })
+            .await
+    }
+
+    pub async fn user_has_permission(&self, permission: Permission<'_>) -> Result<bool> {
+        let user_id = self.request_ctx.user_id;
+        let site_id = self.request_ctx.site_id()?;
+        let make_error =
+            || Error::new("Failed to check user permissions", ErrorType::Permission);
+
+        let perms = self.user_permissions().await.or_raise(make_error)?;
+        PermissionService::permission_in_set_helper(
+            self, user_id, perms, site_id, permission,
+        )
+        .await
+        .or_raise(make_error)
     }
 }
