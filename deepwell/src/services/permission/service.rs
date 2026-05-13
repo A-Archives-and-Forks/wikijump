@@ -423,7 +423,7 @@ impl PermissionService {
         let mut results = [false; N];
 
         for (i, permission) in permissions.into_iter().enumerate() {
-            results[i] = Self::_has_permission(
+            results[i] = Self::permission_in_set_helper(
                 ctx,
                 user_id,
                 &user_permissions,
@@ -438,7 +438,7 @@ impl PermissionService {
     }
 
     /// Helper function to check if a permission is present in (the user's) permission set.
-    pub async fn _has_permission(
+    pub(crate) async fn permission_in_set_helper(
         ctx: &ServiceContext<'_>,
         user_id: Option<i64>,
         user_permissions: &HashSet<Permission<'static>>,

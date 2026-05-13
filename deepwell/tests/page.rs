@@ -44,7 +44,6 @@ async fn basic_edit() {
     assert_eq!(output.site.slug, SITE_SLUG, "Site slug doesn't match");
 
     // Set request context to populate params for the internal permission check.
-    // TODO: Figure out a better way to handle this gap.
     runner.set_request_context(RequestContext {
         session: None,
         user_id: Some(ADMIN_USER_ID),

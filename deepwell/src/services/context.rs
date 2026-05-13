@@ -111,7 +111,7 @@ impl<'txn> ServiceContext<'txn> {
 
     #[inline]
     /// Internal method to update the request context, for use in testing only.
-    pub fn _set_request(&mut self, request_ctx: RequestContext) {
+    pub fn set_request_for_test(&mut self, request_ctx: RequestContext) {
         self.request_ctx = request_ctx;
 
         // Clear cached permissions since the user context has changed.
@@ -198,8 +198,10 @@ impl<'txn> ServiceContext<'txn> {
             || Error::new("Failed to check user permissions", ErrorType::Permission);
 
         let perms = self.user_permissions().await.or_raise(make_error)?;
-        PermissionService::_has_permission(self, user_id, perms, site_id, permission)
-            .await
-            .or_raise(make_error)
+        PermissionService::permission_in_set_helper(
+            self, user_id, perms, site_id, permission,
+        )
+        .await
+        .or_raise(make_error)
     }
 }
