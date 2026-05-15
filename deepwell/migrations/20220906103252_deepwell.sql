@@ -418,11 +418,14 @@ CREATE TABLE page_lock (
     from_wikidot BOOLEAN NOT NULL DEFAULT false,
     -- Text enum describing what kind of lock (e.g. authors only, staff only)
     -- Currently the only value is 'wikidot' (meaning mods+ only)
+    -- Rust enum: PageLockType
     lock_type TEXT NOT NULL,
     page_id BIGINT NOT NULL REFERENCES page(page_id),
     user_id BIGINT NOT NULL REFERENCES known_user(user_id),
     reason TEXT NOT NULL,
 
+    -- Enum value must not be empty
+    CHECK (length(lock_type) > 0),  
     UNIQUE (page_id, deleted_at)
 );
 
@@ -981,11 +984,20 @@ CREATE TABLE role_permission (
     role_id BIGINT NOT NULL REFERENCES role(role_id),
     -- Denormalized to avoid a join when filtering permissions by site.
     site_id BIGINT NOT NULL REFERENCES site(site_id),
+
+    -- Rust enum: Resource
     resource_type TEXT NOT NULL,
     -- Polymorphic reference to a resource category. For example, if the resource_type is "forum_category", then this references forum_category_id.
     -- NULL means the permission applies to all resources of the given type
     resource_category_id BIGINT,
+
+    -- Rust enum: Action
     action TEXT NOT NULL,
+
+    -- Enum value must not be empty
+    CHECK (length(resource_type) > 0),
+    CHECK (length(action) > 0),
+
     UNIQUE (site_id, role_id, resource_type, resource_category_id, action)
 );
 
