@@ -68,5 +68,9 @@
     gap: 1em;
     align-items: center;
     justify-content: center;
+
+    .action-row {
+      justify-content: center;
+    }
   }
 </style>

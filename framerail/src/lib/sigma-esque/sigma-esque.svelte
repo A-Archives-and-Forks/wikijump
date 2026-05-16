@@ -23,6 +23,8 @@
 <!-- Ignoring the styling as being a theme it will inevitably style other elements in the entire layout -->
 <!-- svelte-ignore css_unused_selector -->
 <style global lang="scss">
+  @use "../css/main.scss";
+
   $tablet-max-width: 767px;
 
   :root {
@@ -33,12 +35,19 @@
     --mild-text: #f0f0f0;
     --accent: #0066cc;
     --error: #b42d0a;
-    --col-accent-1: #19a9ff;
-    --col-accent-2: #0068b5;
+
+    --size-body-font: 16px;
+    --size-action-button-font: 14px;
+    --size-svg: 24px;
+    --size-border-radius: 0.5em;
   }
 
   body {
     margin: 0;
+    font-family: var(--font-sans), sans-serif;
+    font-weight: normal;
+    font-size: var(--size-body-font);
+    line-height: 1.5;
   }
 
   .clickable {
@@ -48,6 +57,10 @@
     &:disabled {
       cursor: auto;
     }
+  }
+
+  .hidden {
+    display: none;
   }
 
   .sigma-esque-container {
@@ -69,7 +82,9 @@
       color: var(--text);
       background-color: var(--background);
       border: 1px solid var(--border);
-      border-radius: 0.5em;
+      border-radius: var(--size-border-radius);
+      font-family: var(--font-sans), sans-serif;
+      line-height: 1.5;
 
       &.error {
         outline: 1px solid var(--error);
@@ -78,6 +93,11 @@
 
     input[type="radio"] {
       accent-color: var(--accent);
+    }
+
+    .debug {
+      font-family: var(--font-mono);
+      line-height: normal;
     }
 
     .user-attribute.avatar img {
@@ -104,8 +124,21 @@
     width: 100%;
     height: 3em;
     padding: 0 2em;
-    color: #fff;
-    background-color: #2b2b32;
+    color: var(--col-dark-text-subtle);
+    background-color: var(--col-dark-background);
+
+    a {
+      color: var(--col-dark-text-subtle);
+      font-family: var(--font-display);
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    ul,
+    ol {
+      padding-left: unset;
+      list-style-type: none;
+    }
   }
 
   .page-content-container {
@@ -119,6 +152,11 @@
     a {
       color: var(--accent);
     }
+
+    .page-title {
+      font-size: 2em;
+      font-weight: 700;
+    }
   }
 
   .footer {
@@ -130,8 +168,14 @@
     width: 100%;
     min-height: 3em;
     padding: 0 2em;
-    color: #fff;
-    background-color: #2b2b32;
+    color: var(--col-dark-text-subtle);
+    background-color: var(--col-dark-background);
+
+    .footer-items .footer-item a {
+      color: var(--col-dark-text-subtle);
+      font-family: var(--font-display);
+      font-weight: bold;
+    }
   }
 
   .action-row,
@@ -142,7 +186,10 @@
       color: var(--text);
       background-color: var(--background);
       border: 1px solid var(--border);
-      border-radius: 0.5em;
+      border-radius: var(--size-border-radius);
+      font-family: var(--font-display);
+      font-weight: 550;
+      font-size: var(--size-action-button-font);
 
       &.cast-vote,
       &.vote-rating {
@@ -155,6 +202,9 @@
         .vote-desc {
           display: inline-block;
           padding: 0.5em 1em;
+          font-family: inherit;
+          font-size: inherit;
+          font-weight: inherit;
         }
         .vote-subbutton,
         .vote-rating-number {
@@ -164,11 +214,19 @@
           color: var(--text);
           background-color: var(--background);
           border: 0;
-          border-left: 1px solid var(--border);
           border-radius: 0;
-          &:last-child {
-            border-radius: 0 0.5em 0.5em 0;
+          font-family: inherit;
+          font-size: inherit;
+          font-weight: inherit;
+          &:first-child {
+            border-radius: var(--size-border-radius) 0 0 var(--size-border-radius);
           }
+          &:last-child {
+            border-radius: 0 var(--size-border-radius) var(--size-border-radius) 0;
+          }
+        }
+        .vote-rating-number {
+          font-family: var(--font-mono), monospace;
         }
       }
     }

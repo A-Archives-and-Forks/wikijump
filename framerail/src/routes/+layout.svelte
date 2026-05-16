@@ -160,6 +160,8 @@
 <!-- Ignoring the "unused" svg as we know we imported and embedded a raw svg -->
 <!-- svelte-ignore css_unused_selector -->
 <style global lang="scss">
+  @use "../lib/css/abstracts/variables" as *;
+
   $tablet-max-width: 767px;
 
   .header-wjbanner {
