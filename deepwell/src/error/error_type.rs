@@ -47,6 +47,7 @@ pub enum ErrorType {
     GetView(ViewType),
     Job,
     Render,
+    PageLock,
 
     // 1100
     ServerSetup,
@@ -341,6 +342,7 @@ impl ErrorType {
             ErrorType::GetView(_) => 1016,
             ErrorType::Job => 1017,
             ErrorType::Render => 1018,
+            ErrorType::PageLock => 1019,
 
             // 1100 - Intermediate Setup
             ErrorType::ServerSetup => 1100,
@@ -593,6 +595,7 @@ impl ErrorType {
             ErrorType::GetView(_) => "Getting web view failed",
             ErrorType::Job => "Failed to process job from queue",
             ErrorType::Render => "Wikitext parsing and rendering failed",
+            ErrorType::PageLock => "Failed to act on a page lock",
 
             // 1100
             ErrorType::ServerSetup => "Failed to set up server internal state",

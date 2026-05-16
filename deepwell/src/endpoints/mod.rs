@@ -37,10 +37,10 @@ mod prelude {
     pub use crate::services::{
         AliasService, BlobService, CaddyService, CategoryService, DomainService,
         FileRevisionService, FileService, LinkService, MessageReportService,
-        MessageService, MfaService, PageRevisionService, PageService, ParentService,
-        RelationService, RenderService, ScoreService, ServiceContext, SessionService,
-        SettingsService, SiteService, TextBlockService, TextService, UserService,
-        ViewService, VoteService,
+        MessageService, MfaService, PageLockService, PageRevisionService, PageService,
+        ParentService, RelationService, RenderService, ScoreService, ServiceContext,
+        SessionService, SettingsService, SiteService, TextBlockService, TextService,
+        UserService, ViewService, VoteService,
     };
     pub use jsonrpsee::types::params::Params;
     pub use std::convert::TryFrom;
@@ -63,6 +63,7 @@ pub mod all {
     pub use super::misc::*;
     pub use super::page::*;
     pub use super::page_attribution::*;
+    pub use super::page_lock::*;
     pub use super::page_revision::*;
     pub use super::parent::*;
     pub use super::role::*;
@@ -93,6 +94,7 @@ pub mod message;
 pub mod misc;
 pub mod page;
 pub mod page_attribution;
+pub mod page_lock;
 pub mod page_revision;
 pub mod parent;
 pub mod role;

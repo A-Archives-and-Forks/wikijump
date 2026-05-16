@@ -18,7 +18,316 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+use sea_query::Cond;
+use std::net::IpAddr;
+use time::OffsetDateTime;
+
 use super::prelude::*;
+use crate::models::page_lock::{self, Entity as PageLock, Model as PageLockModel};
+use crate::services::audit::{AuditEvent, AuditService};
+use crate::services::relation::GetPageAttributions;
+use crate::services::{PageService, RelationService};
+use crate::types::{Action, PageLockType, Permission, Reference, Resource};
 
 #[derive(Debug, Clone)]
 pub struct PageLockService;
+
+impl PageLockService {
+    pub async fn create(
+        ctx: &ServiceContext<'_>,
+        site_id: i64,
+        user_id: i64,
+        page_ref: Reference<'_>,
+        input: CreatePageLockInput,
+    ) -> Result<PageLockModel> {
+        let txn = ctx.transaction();
+
+        let make_error = || {
+            Error::new(
+                format!("Failed to create page lock for page {:?}", page_ref),
+                ErrorType::PageLock,
+            )
+        };
+
+        // Fetch the page to be locked
+        let page_id = match page_ref {
+            Reference::Id(page_id) => page_id,
+            _ => {
+                PageService::get(ctx, site_id, page_ref.borrow())
+                    .await
+                    .or_raise(make_error)?
+                    .page_id
+            }
+        };
+
+        // Check if any active lock exists for the page
+        let existing_lock = Self::get_active_lock_for_page(ctx, page_id)
+            .await
+            .or_raise(make_error)?;
+
+        let mut updated_reason = input.reason.unwrap_or_default();
+
+        if let Some(old_lock) = existing_lock {
+            if !input.override_existing {
+                bail!(Error::new(
+                    format!(
+                        "An active lock already exists for page {:?}, please remove it first.",
+                        page_ref
+                    ),
+                    ErrorType::PageLock
+                ));
+            } else {
+                // Update lock reason to include override message
+                updated_reason = [
+                    updated_reason,
+                    format!("Overriding previous {} lock", old_lock.lock_type),
+                ]
+                .join("\n");
+
+                page_lock::ActiveModel {
+                    page_lock_id: Set(old_lock.page_lock_id),
+                    deleted_at: Set(Some(OffsetDateTime::now_utc())),
+                    updated_at: Set(Some(OffsetDateTime::now_utc())),
+                    ..Default::default()
+                }
+                .update(txn)
+                .await
+                .or_raise(make_error)?;
+            }
+        }
+
+        // Create the page lock
+        let new_lock = page_lock::ActiveModel {
+            page_id: Set(page_id),
+            user_id: Set(user_id),
+            lock_type: Set(input.lock_type),
+            reason: Set(updated_reason),
+            expires_at: Set(input.expires_at),
+            from_wikidot: Set(input.from_wikidot),
+            created_at: Set(OffsetDateTime::now_utc()),
+            deleted_at: Set(None),
+            updated_at: Set(None),
+            ..Default::default()
+        }
+        .insert(txn)
+        .await
+        .or_raise(make_error)?;
+
+        AuditService::log(
+            ctx,
+            input.ip_address,
+            AuditEvent::PageLockCreate {
+                user_id,
+                site_id,
+                page_id,
+                page_lock_id: new_lock.page_lock_id,
+                lock_type: input.lock_type,
+            },
+        )
+        .await
+        .or_raise(make_error)?;
+
+        Ok(new_lock)
+    }
+
+    pub async fn remove(
+        ctx: &ServiceContext<'_>,
+        site_id: i64,
+        user_id: i64,
+        page_ref: Reference<'_>,
+        ip_address: IpAddr,
+    ) -> Result<()> {
+        let txn = ctx.transaction();
+
+        let make_error = || {
+            Error::new(
+                format!("Failed to remove page lock for page {:?}", page_ref),
+                ErrorType::PageLock,
+            )
+        };
+
+        // Resolve page reference to ID
+        let page_id = match page_ref {
+            Reference::Id(page_id) => page_id,
+            _ => {
+                PageService::get(ctx, site_id, page_ref.borrow())
+                    .await
+                    .or_raise(make_error)?
+                    .page_id
+            }
+        };
+
+        // Fetch the active lock to be removed
+        let maybe_lock = Self::get_active_lock_for_page(ctx, page_id)
+            .await
+            .or_raise(make_error)?;
+
+        // If no lock, return
+        let page_lock = match maybe_lock {
+            Some(lock) => lock,
+            None => return Ok(()),
+        };
+
+        // Mark the page lock as deleted (soft delete)
+        page_lock::ActiveModel {
+            page_lock_id: Set(page_lock.page_lock_id),
+            deleted_at: Set(Some(OffsetDateTime::now_utc())),
+            updated_at: Set(Some(OffsetDateTime::now_utc())),
+            ..Default::default()
+        }
+        .update(txn)
+        .await
+        .or_raise(make_error)?;
+
+        AuditService::log(
+            ctx,
+            ip_address,
+            AuditEvent::PageLockRemove {
+                user_id,
+                page_id: page_lock.page_id,
+                page_lock_id: page_lock.page_lock_id,
+                lock_type: page_lock.lock_type,
+            },
+        )
+        .await
+        .or_raise(make_error)?;
+
+        Ok(())
+    }
+
+    pub async fn get_locks_for_page(
+        ctx: &ServiceContext<'_>,
+        site_id: i64,
+        page_ref: Reference<'_>,
+    ) -> Result<Vec<PageLockModel>> {
+        let txn = ctx.transaction();
+
+        let make_error = || {
+            Error::new(
+                format!("Failed to fetch active lock for page {:?}", page_ref),
+                ErrorType::PageLock,
+            )
+        };
+
+        // Fetch the page to get its ID
+        let page_id = match page_ref {
+            Reference::Id(page_id) => page_id,
+            _ => {
+                PageService::get(ctx, site_id, page_ref.borrow())
+                    .await
+                    .or_raise(make_error)?
+                    .page_id
+            }
+        };
+
+        // Fetch all historical locks for the page, including expired and deleted ones
+        let locks = PageLock::find()
+            .filter(page_lock::Column::PageId.eq(page_id))
+            .all(txn)
+            .await
+            .or_raise(make_error)?;
+
+        Ok(locks)
+    }
+
+    async fn get_active_lock_for_page(
+        ctx: &ServiceContext<'_>,
+        page_id: i64,
+    ) -> Result<Option<PageLockModel>> {
+        let txn = ctx.transaction();
+
+        let make_error = || {
+            Error::new(
+                format!("Failed to fetch active lock for page ID {}", page_id),
+                ErrorType::PageLock,
+            )
+        };
+
+        // Fetch the active lock for the page
+        let active_lock = PageLock::find()
+            .filter(
+                Condition::all()
+                    .add(page_lock::Column::PageId.eq(page_id))
+                    .add(page_lock::Column::DeletedAt.is_null())
+                    .add(
+                        Condition::any()
+                            .add(
+                                page_lock::Column::ExpiresAt
+                                    .gt(OffsetDateTime::now_utc()),
+                            )
+                            .add(page_lock::Column::ExpiresAt.is_null()),
+                    ),
+            )
+            .one(txn)
+            .await
+            .or_raise(make_error)?;
+
+        Ok(active_lock)
+    }
+
+    pub async fn can_user_bypass_lock(
+        ctx: &ServiceContext<'_>,
+        site_id: i64,
+        page_id: i64,
+        page_category_id: Option<i64>,
+        user_id: i64,
+    ) -> Result<bool> {
+        let make_error = || {
+            Error::new(
+                format!(
+                    "Failed to check lock bypass for page ID {} and user ID {}",
+                    page_id, user_id
+                ),
+                ErrorType::PageLock,
+            )
+        };
+
+        // Check if any active lock exists for the page
+        let active_lock = Self::get_active_lock_for_page(ctx, page_id)
+            .await
+            .or_raise(make_error)?;
+
+        if let Some(lock) = active_lock {
+            let can_bypass = match lock.lock_type {
+                // Mod is not a native Wikijump role; treat it as a permission check instead
+                PageLockType::PermissionOnly | PageLockType::Wikidot => ctx
+                    .user_has_permission(Permission {
+                        resource_type: Resource::Page,
+                        resource_category: page_category_id.map(Reference::Id),
+                        action: Action::BypassLock,
+                    })
+                    .await
+                    .or_raise(make_error)?,
+                PageLockType::AuthorOnly => {
+                    // Check if the user is the author of the page
+                    let attributions = RelationService::get_page_attributions(
+                        ctx,
+                        GetPageAttributions {
+                            site_id,
+                            page: page_id.into(),
+                        },
+                    )
+                    .await
+                    .or_raise(make_error)?;
+
+                    // User can bypass if they are an author of this page or have bypass permission
+                    let is_author =
+                        attributions.iter().any(|attr| attr.user_id == user_id);
+                    is_author
+                        || ctx
+                            .user_has_permission(Permission {
+                                resource_type: Resource::Page,
+                                resource_category: page_category_id.map(Reference::Id),
+                                action: Action::BypassLock,
+                            })
+                            .await
+                            .or_raise(make_error)?
+                }
+            };
+            Ok(can_bypass)
+        } else {
+            // No active lock, so no need to bypass
+            Ok(true)
+        }
+    }
+}

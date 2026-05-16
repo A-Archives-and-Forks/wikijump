@@ -63,6 +63,7 @@ pub enum Resource {
 pub enum Action {
     View,
     Edit,
+    BypassLock,
     Create,
     Delete,
     Rename,

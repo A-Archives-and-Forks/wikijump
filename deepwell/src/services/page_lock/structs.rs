@@ -18,18 +18,27 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+use std::net::IpAddr;
 use time::OffsetDateTime;
 
 use crate::types::{PageLockType, Reference};
 
+// TODO: Add ip_address to request context
+#[derive(Deserialize, Debug, Clone)]
+pub struct RemovePageLockInput {
+    pub ip_address: IpAddr,
+}
+
 #[derive(Deserialize, Debug, Clone)]
 #[allow(dead_code)]
-pub struct CreatePageLockInput<'a> {
-    pub page: Reference<'a>,
+pub struct CreatePageLockInput {
     #[serde(with = "time::serde::rfc3339::option")]
     pub expires_at: Option<OffsetDateTime>,
     #[serde(default)]
     pub from_wikidot: bool,
     pub lock_type: PageLockType,
-    pub reason: Option<&'a str>,
+    pub reason: Option<String>,
+    #[serde(default)]
+    pub override_existing: bool,
+    pub ip_address: IpAddr,
 }
