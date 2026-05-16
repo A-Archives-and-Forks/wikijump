@@ -6,6 +6,7 @@
   import { superForm } from "sveltekit-superforms"
 
   import type { PageProps } from "./$types"
+  import { Langs } from "../../../types"
 
   let { data }: PageProps = $props()
 
@@ -114,11 +115,9 @@
       <!-- TODO: Implement a multi select component -->
       <!-- I know it's ugly, but we can implement a better looking component later on -->
       <select id="locale" name="locale" multiple required bind:value={$form.locale}>
-        <option value="en">UNTRANSLATED:en</option>
-        <option value="ko">UNTRANSLATED:ko</option>
-        <option value="pl">UNTRANSLATED:pl</option>
-        <option value="vi">UNTRANSLATED:vi</option>
-        <option value="zh-Hans">UNTRANSLATED:zh_Hans</option>
+        {#each Object.entries(Langs) as [langName, langValue] (langName)}
+          <option value={langValue}>UNTRANSLATED: {langName}</option>
+        {/each}
       </select>
     </div>
 
