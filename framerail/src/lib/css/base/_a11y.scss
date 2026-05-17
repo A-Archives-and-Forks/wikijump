@@ -7,7 +7,7 @@ mark {
 s {
   @include label-for-screenreaders("stricken text");
 }
-s {
+del {
   @include label-for-screenreaders("deleted text");
 }
 ins {

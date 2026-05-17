@@ -1,6 +1,8 @@
 @use "sass:list";
 @use "sass:string";
 
+@use "../abstracts/functions" as *;
+
 // prettier-ignore
 $ranges-unified:
   "4E00-9FFF",   // CJK Unified Ideographs

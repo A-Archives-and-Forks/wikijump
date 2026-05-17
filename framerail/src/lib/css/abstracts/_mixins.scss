@@ -1,5 +1,7 @@
 @use "sass:math";
 
+@use "variables" as *;
+
 /// Mixin for when an element is being hovered over.
 /// Using this mixin instead of `:hover` accounts for edge cases.
 @mixin hover {
