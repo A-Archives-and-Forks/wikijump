@@ -29,7 +29,7 @@
       onSubmit: async ({ jsonData }) => {
         const submitForm = {
           ...$editForm,
-          siteId: errorData.site.site_id,
+          siteId: page.data.site.site_id,
           slug: page.params.slug ?? page.error?.site.default_page
         }
         jsonData(submitForm)
@@ -37,7 +37,7 @@
       onResult: async ({ result, cancel }) => {
         if (result.type === "success" && result.data) {
           cancel()
-          goto(resolve(`/${page.params.slug ?? page.error?.site.default_page}`, {}), {
+          goto(resolve(`/${page.params.slug ?? page.data.site.default_page}`, {}), {
             noScroll: true
           })
         }
@@ -56,8 +56,8 @@
     const res = await fetch(`?/deletedGet`, {
       method: "POST",
       body: JSON.stringify({
-        siteId: errorData?.site.site_id,
-        slug: page.params.slug ?? page.error?.site.default_page
+        siteId: page.data.site.site_id,
+        slug: page.params.slug ?? page.data.site.default_page
       })
     }).then((res) => res.text())
     const result = deserialize<
@@ -83,7 +83,7 @@
       onSubmit: async ({ jsonData }) => {
         const submitForm = {
           ...$restoreForm,
-          siteId: errorData.site.site_id
+          siteId: page.data.site.site_id
         }
         jsonData(submitForm)
       },

@@ -1,0 +1,65 @@
+@use "../abstracts/variables" as *;
+
+// Normalize html/body
+html,
+body {
+  min-width: 100%;
+  max-width: 100%;
+  min-height: 100%;
+  scroll-behavior: smooth;
+  font-size: 1rem;
+  line-height: 1.5;
+  touch-action: manipulation;
+}
+
+#toasts,
+#modals {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  z-index: $z-dialog;
+  width: 100%;
+}
+
+// Sets text selection color.
+::selection {
+  color: var(--col-text);
+  background-color: var(--col-text-select);
+}
+
+// Horizontal rules.
+hr {
+  display: block;
+  height: 0.125rem;
+  background: var(--col-border);
+}
+
+// Prevents `<sub>` and `<sup>` elements from affecting line-height.
+sub,
+sup {
+  font-size: 75%;
+  line-height: 0;
+}
+
+// Styles underlines globally.
+* {
+  text-decoration-thickness: 0.05em;
+  text-decoration-skip-ink: none;
+  text-underline-offset: 0.075em;
+}
+
+// Struck-out text.
+s {
+  text-decoration: line-through 0.15em;
+}
+
+// Highlighted text.
+mark {
+  color: inherit;
+  background: var(--col-text-highlight);
+}
+
+// Prevents sprite SVGs from breaking button handlers.
+[role="button"] > .wj-ui-sprite {
+  pointer-events: none;
+}
