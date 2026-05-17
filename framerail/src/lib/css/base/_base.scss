@@ -6,10 +6,10 @@ body {
   min-width: 100%;
   max-width: 100%;
   min-height: 100%;
+  scroll-behavior: smooth;
   font-size: 1rem;
   line-height: 1.5;
   touch-action: manipulation;
-  scroll-behavior: smooth;
 }
 
 #toasts,
@@ -44,8 +44,8 @@ sup {
 // Styles underlines globally.
 * {
   text-decoration-thickness: 0.05em;
-  text-underline-offset: 0.075em;
   text-decoration-skip-ink: none;
+  text-underline-offset: 0.075em;
 }
 
 // Struck-out text.

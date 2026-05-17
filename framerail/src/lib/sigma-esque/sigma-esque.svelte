@@ -45,8 +45,8 @@
   body {
     margin: 0;
     font-family: var(--font-sans), sans-serif;
-    font-weight: normal;
     font-size: var(--size-body-font);
+    font-weight: normal;
     line-height: 1.5;
   }
 
@@ -79,12 +79,12 @@
     select,
     fieldset {
       padding: 0.5em 1em;
+      font-family: var(--font-sans), sans-serif;
+      line-height: 1.5;
       color: var(--text);
       background-color: var(--background);
       border: 1px solid var(--border);
       border-radius: var(--size-border-radius);
-      font-family: var(--font-sans), sans-serif;
-      line-height: 1.5;
 
       &.error {
         outline: 1px solid var(--error);
@@ -128,9 +128,9 @@
     background-color: var(--col-dark-background);
 
     a {
-      color: var(--col-dark-text-subtle);
       font-family: var(--font-display);
       font-weight: 700;
+      color: var(--col-dark-text-subtle);
       text-decoration: none;
     }
 
@@ -172,9 +172,9 @@
     background-color: var(--col-dark-background);
 
     .footer-items .footer-item a {
-      color: var(--col-dark-text-subtle);
       font-family: var(--font-display);
       font-weight: bold;
+      color: var(--col-dark-text-subtle);
     }
   }
 
@@ -183,13 +183,13 @@
   .file-attribute.action {
     .action-button {
       padding: 0.5em 1em;
+      font-family: var(--font-display);
+      font-size: var(--size-action-button-font);
+      font-weight: 550;
       color: var(--text);
       background-color: var(--background);
       border: 1px solid var(--border);
       border-radius: var(--size-border-radius);
-      font-family: var(--font-display);
-      font-weight: 550;
-      font-size: var(--size-action-button-font);
 
       &.cast-vote,
       &.vote-rating {
@@ -211,13 +211,13 @@
           display: inline-block;
           flex: 1;
           padding: 0.5em 1em;
+          font-family: inherit;
+          font-size: inherit;
+          font-weight: inherit;
           color: var(--text);
           background-color: var(--background);
           border: 0;
           border-radius: 0;
-          font-family: inherit;
-          font-size: inherit;
-          font-weight: inherit;
           &:first-child {
             border-radius: var(--size-border-radius) 0 0 var(--size-border-radius);
           }

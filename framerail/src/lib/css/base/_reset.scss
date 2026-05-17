@@ -18,8 +18,8 @@
 ::before,
 ::after {
   box-sizing: border-box;
-  text-decoration: inherit;
   vertical-align: inherit;
+  text-decoration: inherit;
 }
 
 html {
@@ -77,8 +77,8 @@ button,
 [type="submit" i] {
   @include reset;
   text-transform: none;
-  cursor: pointer;
   -webkit-appearance: button;
+  cursor: pointer;
 }
 
 label {
@@ -104,8 +104,8 @@ textarea {
 }
 
 [type="search" i] {
-  outline-offset: -2px;
   -webkit-appearance: textfield;
+  outline-offset: -2px;
 }
 
 ::-webkit-inner-spin-button,
