@@ -298,7 +298,7 @@ impl PageLockService {
                     })
                     .await
                     .or_raise(make_error)?,
-                PageLockType::AuthorOnly => {
+                PageLockType::AuthorOrPermissionOnly => {
                     // Check if the user is the author of the page
                     let attributions = RelationService::get_page_attributions(
                         ctx,

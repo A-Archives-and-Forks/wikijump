@@ -42,8 +42,8 @@ use strum_macros::{Display, EnumIter, EnumString};
 pub enum PageLockType {
     // Only mods+ can edit, legacy lock type
     Wikidot,
-    // Only users with Page:EditLocked permission can edit
+    // Only users with Page:BypassLock permission can edit
     PermissionOnly,
-    // Authors and users with Page:EditLocked can edit
-    AuthorOnly,
+    // Authors and users with Page:BypassLock can edit
+    AuthorOrPermissionOnly,
 }

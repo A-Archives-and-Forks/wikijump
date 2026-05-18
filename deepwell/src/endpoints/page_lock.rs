@@ -23,28 +23,6 @@ use crate::models::page_lock::Model as PageLockModel;
 use crate::services::PageLockService;
 use crate::services::page_lock::{CreatePageLockInput, RemovePageLockInput};
 
-pub async fn page_lock_get_history(
-    ctx: &ServiceContext<'_>,
-    _params: Params<'static>,
-) -> Result<Vec<PageLockModel>> {
-    let request = ctx.request();
-    let site_id = request
-        .site_id()
-        .or_raise(|| Error::new("No site ID found", ErrorType::PageLock))?;
-    let page_ref = request
-        .page_reference()
-        .or_raise(|| Error::new("No page reference found", ErrorType::PageLock))?;
-
-    info!(
-        "Fetching lock history for page {:?} in site {}",
-        page_ref, site_id,
-    );
-
-    PageLockService::get_locks_for_page(ctx, site_id, page_ref.clone())
-        .await
-        .or_raise(|| Error::new("failed to fetch page lock history", ErrorType::PageLock))
-}
-
 pub async fn page_lock_create(
     ctx: &ServiceContext<'_>,
     params: Params<'static>,
@@ -67,7 +45,7 @@ pub async fn page_lock_create(
         input.lock_type, page_ref, site_id,
     );
 
-    PageLockService::create(ctx, site_id, user_id, page_ref.clone(), input)
+    PageLockService::create(ctx, site_id, user_id, page_ref.borrow(), input)
         .await
         .or_raise(|| Error::new("failed to create page lock", ErrorType::PageLock))?;
 
@@ -96,9 +74,31 @@ pub async fn page_lock_remove(
         page_ref, site_id,
     );
 
-    PageLockService::remove(ctx, site_id, user_id, page_ref.clone(), input.ip_address)
+    PageLockService::remove(ctx, site_id, user_id, page_ref.borrow(), input.ip_address)
         .await
         .or_raise(|| Error::new("failed to remove page lock", ErrorType::PageLock))?;
 
     Ok(())
+}
+
+pub async fn page_lock_get_history(
+    ctx: &ServiceContext<'_>,
+    _params: Params<'static>,
+) -> Result<Vec<PageLockModel>> {
+    let request = ctx.request();
+    let site_id = request
+        .site_id()
+        .or_raise(|| Error::new("No site ID found", ErrorType::PageLock))?;
+    let page_ref = request
+        .page_reference()
+        .or_raise(|| Error::new("No page reference found", ErrorType::PageLock))?;
+
+    info!(
+        "Fetching lock history for page {:?} in site {}",
+        page_ref, site_id,
+    );
+
+    PageLockService::get_locks_for_page(ctx, site_id, page_ref.borrow())
+        .await
+        .or_raise(|| Error::new("failed to fetch page lock history", ErrorType::PageLock))
 }
