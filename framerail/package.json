@@ -27,7 +27,7 @@
     "eslint": "^10.3.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-svelte": "^3.17.1",
-    "globals": "^17.5.0",
+    "globals": "^17.6.0",
     "jiti": "^2.6.1",
     "postcss": "^8.5.13",
     "postcss-html": "^1.8.1",
