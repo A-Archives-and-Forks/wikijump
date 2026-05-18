@@ -1036,7 +1036,7 @@ dependencies = [
  "tiny-keccak",
  "tokio",
  "toml",
- "tower 0.4.13",
+ "tower 0.5.3",
  "typenum",
  "unic-langid",
  "unicase",
