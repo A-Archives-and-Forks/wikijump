@@ -237,7 +237,7 @@ impl PermissionService {
                 RoleService::get(ctx, site_id, role_reference)
                     .await
                     .or_raise(|| {
-                        Error::new("Failed to get role for permissions", ErrorType::Role)
+                        Error::new("failed to get role for permissions", ErrorType::Role)
                     })?
                     .role_id
             }
@@ -649,7 +649,7 @@ impl PermissionService {
             .one(txn)
             .await
             .or_raise(|| {
-                Error::new("Error querying permissions", ErrorType::Permission)
+                Error::new("error querying permissions", ErrorType::Permission)
             })?)
         .map(|p| p.is_some())
     }

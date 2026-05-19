@@ -138,6 +138,7 @@ pub enum ErrorType {
     FileExists,
     FilterExists,
     CustomDomainExists,
+    PageLockExists,
 
     // 3000
     InvalidAuthentication,
@@ -432,6 +433,7 @@ impl ErrorType {
             ErrorType::FileExists => 2105,
             ErrorType::FilterExists => 2106,
             ErrorType::CustomDomainExists => 2107,
+            ErrorType::PageLockExists => 2108,
 
             //
             // 3000 -- Client / Protocol Errors
@@ -685,6 +687,7 @@ impl ErrorType {
             ErrorType::CustomDomainExists => {
                 "Cannot perform, custom domain already exists"
             }
+            ErrorType::PageLockExists => "Cannot perform, page lock already exists",
 
             // 3000
             ErrorType::InvalidAuthentication => {

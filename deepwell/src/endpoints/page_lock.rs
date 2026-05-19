@@ -32,13 +32,13 @@ pub async fn page_lock_create(
     let request = ctx.request();
     let site_id = request
         .site_id()
-        .or_raise(|| Error::new("No site ID found", ErrorType::PageLock))?;
+        .or_raise(|| Error::new("no site ID found", ErrorType::PageLock))?;
     let user_id = request
         .user_id()
-        .or_raise(|| Error::new("No user ID found", ErrorType::PageLock))?;
+        .or_raise(|| Error::new("no user ID found", ErrorType::PageLock))?;
     let page_ref = request
         .page_reference()
-        .or_raise(|| Error::new("No page reference found", ErrorType::PageLock))?;
+        .or_raise(|| Error::new("no page reference found", ErrorType::PageLock))?;
 
     info!(
         "Creating page lock of type {:?} for page {:?} in site {}",
@@ -61,13 +61,13 @@ pub async fn page_lock_remove(
     let request = ctx.request();
     let site_id = request
         .site_id()
-        .or_raise(|| Error::new("No site ID found", ErrorType::PageLock))?;
+        .or_raise(|| Error::new("no site ID found", ErrorType::PageLock))?;
     let user_id = request
         .user_id()
-        .or_raise(|| Error::new("No user ID found", ErrorType::PageLock))?;
+        .or_raise(|| Error::new("no user ID found", ErrorType::PageLock))?;
     let page_ref = request
         .page_reference()
-        .or_raise(|| Error::new("No page reference found", ErrorType::PageLock))?;
+        .or_raise(|| Error::new("no page reference found", ErrorType::PageLock))?;
 
     info!(
         "Removing active page lock for page {:?} in site {}",
@@ -88,10 +88,10 @@ pub async fn page_lock_get_history(
     let request = ctx.request();
     let site_id = request
         .site_id()
-        .or_raise(|| Error::new("No site ID found", ErrorType::PageLock))?;
+        .or_raise(|| Error::new("no site ID found", ErrorType::PageLock))?;
     let page_ref = request
         .page_reference()
-        .or_raise(|| Error::new("No page reference found", ErrorType::PageLock))?;
+        .or_raise(|| Error::new("no page reference found", ErrorType::PageLock))?;
 
     info!(
         "Fetching lock history for page {:?} in site {}",

@@ -30,7 +30,6 @@ pub struct RemovePageLockInput {
 }
 
 #[derive(Deserialize, Debug, Clone)]
-#[allow(dead_code)]
 pub struct CreatePageLockInput {
     #[serde(with = "time::serde::rfc3339::option")]
     pub expires_at: Option<OffsetDateTime>,
@@ -41,4 +40,10 @@ pub struct CreatePageLockInput {
     #[serde(default)]
     pub override_existing: bool,
     pub ip_address: IpAddr,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct CheckLockBypassOutput {
+    pub lock_present: bool,
+    pub can_edit: bool,
 }

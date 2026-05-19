@@ -44,7 +44,7 @@ impl PageLockService {
 
         let make_error = || {
             Error::new(
-                format!("Failed to create page lock for page {:?}", page_ref),
+                format!("failed to create page lock for page {:?}", page_ref),
                 ErrorType::PageLock,
             )
         };
@@ -65,29 +65,21 @@ impl PageLockService {
             .await
             .or_raise(make_error)?;
 
-        let mut updated_reason = input.reason.unwrap_or_default();
-
         if let Some(old_lock) = existing_lock {
             if !input.override_existing {
                 bail!(Error::new(
                     format!(
-                        "An active lock already exists for page {:?}, please remove it first.",
+                        "an active lock already exists for page {:?}, please remove it first.",
                         page_ref
                     ),
-                    ErrorType::PageLock
+                    ErrorType::PageLockExists
                 ));
             } else {
-                // Update lock reason to include override message
-                updated_reason = [
-                    updated_reason,
-                    format!("Overriding previous {} lock", old_lock.lock_type),
-                ]
-                .join("\n");
-
+                // Soft delete the old lock
                 page_lock::ActiveModel {
                     page_lock_id: Set(old_lock.page_lock_id),
-                    deleted_at: Set(Some(OffsetDateTime::now_utc())),
-                    updated_at: Set(Some(OffsetDateTime::now_utc())),
+                    deleted_at: Set(Some(now())),
+                    updated_at: Set(Some(now())),
                     ..Default::default()
                 }
                 .update(txn)
@@ -101,10 +93,10 @@ impl PageLockService {
             page_id: Set(page_id),
             user_id: Set(user_id),
             lock_type: Set(input.lock_type),
-            reason: Set(updated_reason),
+            reason: Set(input.reason.unwrap_or_default()),
             expires_at: Set(input.expires_at),
             from_wikidot: Set(input.from_wikidot),
-            created_at: Set(OffsetDateTime::now_utc()),
+            created_at: Set(now()),
             deleted_at: Set(None),
             updated_at: Set(None),
             ..Default::default()
@@ -136,26 +128,20 @@ impl PageLockService {
         user_id: i64,
         page_ref: Reference<'_>,
         ip_address: IpAddr,
-    ) -> Result<()> {
+    ) -> Result<Option<PageLockModel>> {
         let txn = ctx.transaction();
 
         let make_error = || {
             Error::new(
-                format!("Failed to remove page lock for page {:?}", page_ref),
+                format!("failed to remove page lock for page {:?}", page_ref),
                 ErrorType::PageLock,
             )
         };
 
         // Resolve page reference to ID
-        let page_id = match page_ref {
-            Reference::Id(page_id) => page_id,
-            _ => {
-                PageService::get(ctx, site_id, page_ref.borrow())
-                    .await
-                    .or_raise(make_error)?
-                    .page_id
-            }
-        };
+        let page_id = PageService::get_id(ctx, site_id, page_ref.borrow())
+            .await
+            .or_raise(make_error)?;
 
         // Fetch the active lock to be removed
         let maybe_lock = Self::get_active_lock_for_page(ctx, page_id)
@@ -165,14 +151,14 @@ impl PageLockService {
         // If no lock, return
         let page_lock = match maybe_lock {
             Some(lock) => lock,
-            None => return Ok(()),
+            None => return Ok(None),
         };
 
-        // Mark the page lock as deleted (soft delete)
-        page_lock::ActiveModel {
+        // Mark the page lock as deleted
+        let removed_lock = page_lock::ActiveModel {
             page_lock_id: Set(page_lock.page_lock_id),
-            deleted_at: Set(Some(OffsetDateTime::now_utc())),
-            updated_at: Set(Some(OffsetDateTime::now_utc())),
+            deleted_at: Set(Some(now())),
+            updated_at: Set(Some(now())),
             ..Default::default()
         }
         .update(txn)
@@ -192,7 +178,7 @@ impl PageLockService {
         .await
         .or_raise(make_error)?;
 
-        Ok(())
+        Ok(Some(removed_lock))
     }
 
     pub async fn get_locks_for_page(
@@ -204,25 +190,20 @@ impl PageLockService {
 
         let make_error = || {
             Error::new(
-                format!("Failed to fetch active lock for page {:?}", page_ref),
+                format!("failed to fetch active lock for page {:?}", page_ref),
                 ErrorType::PageLock,
             )
         };
 
         // Fetch the page to get its ID
-        let page_id = match page_ref {
-            Reference::Id(page_id) => page_id,
-            _ => {
-                PageService::get(ctx, site_id, page_ref.borrow())
-                    .await
-                    .or_raise(make_error)?
-                    .page_id
-            }
-        };
+        let page_id = PageService::get_id(ctx, site_id, page_ref.borrow())
+            .await
+            .or_raise(make_error)?;
 
         // Fetch all historical locks for the page, including expired and deleted ones
         let locks = PageLock::find()
             .filter(page_lock::Column::PageId.eq(page_id))
+            .order_by_desc(page_lock::Column::CreatedAt)
             .all(txn)
             .await
             .or_raise(make_error)?;
@@ -238,7 +219,7 @@ impl PageLockService {
 
         let make_error = || {
             Error::new(
-                format!("Failed to fetch active lock for page ID {}", page_id),
+                format!("failed to fetch active lock for page ID {}", page_id),
                 ErrorType::PageLock,
             )
         };
@@ -251,10 +232,7 @@ impl PageLockService {
                     .add(page_lock::Column::DeletedAt.is_null())
                     .add(
                         Condition::any()
-                            .add(
-                                page_lock::Column::ExpiresAt
-                                    .gt(OffsetDateTime::now_utc()),
-                            )
+                            .add(page_lock::Column::ExpiresAt.gt(now()))
                             .add(page_lock::Column::ExpiresAt.is_null()),
                     ),
             )
@@ -271,11 +249,11 @@ impl PageLockService {
         page_id: i64,
         page_category_id: Option<i64>,
         user_id: i64,
-    ) -> Result<bool> {
+    ) -> Result<CheckLockBypassOutput> {
         let make_error = || {
             Error::new(
                 format!(
-                    "Failed to check lock bypass for page ID {} and user ID {}",
+                    "failed to check lock bypass for page ID {} and user ID {}",
                     page_id, user_id
                 ),
                 ErrorType::PageLock,
@@ -324,10 +302,16 @@ impl PageLockService {
                             .or_raise(make_error)?
                 }
             };
-            Ok(can_bypass)
+            Ok(CheckLockBypassOutput {
+                lock_present: true,
+                can_edit: can_bypass,
+            })
         } else {
             // No active lock, so no need to bypass
-            Ok(true)
+            Ok(CheckLockBypassOutput {
+                lock_present: false,
+                can_edit: true,
+            })
         }
     }
 }
