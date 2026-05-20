@@ -354,6 +354,11 @@ async fn build_module(app_state: ServerState) -> Result<RpcModule<ServerState>> 
     register!("page_restore", page_restore);
     register!("page_set_layout", page_set_layout);
 
+    // Page lock
+    register!("page_lock_create", page_lock_create);
+    register!("page_lock_remove", page_lock_remove);
+    register!("page_lock_get_history", page_lock_get_history);
+
     // Page attributions
     register!("page_attribution_get_page", page_attribution_get_page);
     register!("page_attribution_update", page_attribution_update);

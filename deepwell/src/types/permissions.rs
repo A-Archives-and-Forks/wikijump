@@ -106,7 +106,7 @@ macro_rules! define_permission_types {
 
 // Define all valid permission types.
 define_permission_types! {
-    Page => [View, Edit, Create, Delete, Rename],
+    Page => [View, Edit, BypassLock, Create, Delete, Rename],
     Role => [View, Edit, Assign],
     Site => [View, Edit],
 }

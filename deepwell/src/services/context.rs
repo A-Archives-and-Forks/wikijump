@@ -57,14 +57,14 @@ impl RequestContext {
     #[inline]
     pub fn user_id(&self) -> Result<i64> {
         self.user_id.ok_or_raise(|| {
-            Error::new("User ID not present in request context", ErrorType::Request)
+            Error::new("user ID not present in request context", ErrorType::Request)
         })
     }
 
     #[inline]
     pub fn site_id(&self) -> Result<i64> {
         self.site_id.ok_or_raise(|| {
-            Error::new("Site ID not present in request context", ErrorType::Request)
+            Error::new("site ID not present in request context", ErrorType::Request)
         })
     }
 
@@ -185,7 +185,7 @@ impl<'txn> ServiceContext<'txn> {
                 )
                 .await
                 .or_raise(|| {
-                    Error::new("Failed to fetch user permissions", ErrorType::Permission)
+                    Error::new("failed to fetch user permissions", ErrorType::Permission)
                 })
             })
             .await
@@ -195,7 +195,7 @@ impl<'txn> ServiceContext<'txn> {
         let user_id = self.request_ctx.user_id;
         let site_id = self.request_ctx.site_id()?;
         let make_error =
-            || Error::new("Failed to check user permissions", ErrorType::Permission);
+            || Error::new("failed to check user permissions", ErrorType::Permission);
 
         let perms = self.user_permissions().await.or_raise(make_error)?;
         PermissionService::permission_in_set_helper(

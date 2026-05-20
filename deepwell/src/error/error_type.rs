@@ -47,6 +47,7 @@ pub enum ErrorType {
     GetView(ViewType),
     Job,
     Render,
+    PageLock,
 
     // 1100
     ServerSetup,
@@ -137,6 +138,7 @@ pub enum ErrorType {
     FileExists,
     FilterExists,
     CustomDomainExists,
+    PageLockExists,
 
     // 3000
     InvalidAuthentication,
@@ -341,6 +343,7 @@ impl ErrorType {
             ErrorType::GetView(_) => 1016,
             ErrorType::Job => 1017,
             ErrorType::Render => 1018,
+            ErrorType::PageLock => 1019,
 
             // 1100 - Intermediate Setup
             ErrorType::ServerSetup => 1100,
@@ -430,6 +433,7 @@ impl ErrorType {
             ErrorType::FileExists => 2105,
             ErrorType::FilterExists => 2106,
             ErrorType::CustomDomainExists => 2107,
+            ErrorType::PageLockExists => 2108,
 
             //
             // 3000 -- Client / Protocol Errors
@@ -593,6 +597,7 @@ impl ErrorType {
             ErrorType::GetView(_) => "Getting web view failed",
             ErrorType::Job => "Failed to process job from queue",
             ErrorType::Render => "Wikitext parsing and rendering failed",
+            ErrorType::PageLock => "Failed to act on a page lock",
 
             // 1100
             ErrorType::ServerSetup => "Failed to set up server internal state",
@@ -682,6 +687,7 @@ impl ErrorType {
             ErrorType::CustomDomainExists => {
                 "Cannot perform, custom domain already exists"
             }
+            ErrorType::PageLockExists => "Cannot perform, page lock already exists",
 
             // 3000
             ErrorType::InvalidAuthentication => {

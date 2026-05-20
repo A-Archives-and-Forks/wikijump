@@ -95,7 +95,7 @@ impl PermissionCache {
                     "Failed to read permission cache key '{}' field '{}'",
                     key, field
                 );
-                Error::new("Permission cache read error", ErrorType::Permission)
+                Error::new("permission cache read error", ErrorType::Permission)
             })?;
 
         Ok(has_permission.map(|val| val == "1"))
@@ -123,7 +123,7 @@ impl PermissionCache {
                     "Failed to write permission cache key '{}' field '{}'",
                     key, field
                 );
-                Error::new("Permission cache write error", ErrorType::Permission)
+                Error::new("permission cache write error", ErrorType::Permission)
             })?;
 
         Ok(())

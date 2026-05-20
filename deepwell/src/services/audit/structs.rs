@@ -20,7 +20,7 @@
 
 use super::prelude::*;
 use crate::license::License;
-use crate::types::Permission;
+use crate::types::{PageLockType, Permission};
 use ftml::layout::Layout;
 use sea_orm::prelude::TimeDateTimeWithTimeZone;
 use std::borrow::Cow;
@@ -141,6 +141,19 @@ pub enum AuditEvent<'a> {
         updating_user_id: i64,
         old_permissions: Vec<Permission<'static>>,
         new_permissions: Vec<Permission<'static>>,
+    },
+    PageLockCreate {
+        user_id: i64,
+        site_id: i64,
+        page_id: i64,
+        page_lock_id: i64,
+        lock_type: PageLockType,
+    },
+    PageLockRemove {
+        user_id: i64,
+        page_id: i64,
+        page_lock_id: i64,
+        lock_type: PageLockType,
     },
 }
 
@@ -486,6 +499,41 @@ impl<'a> AuditEvent<'a> {
                     extra_number: None,
                 }
             }
+            AuditEvent::PageLockCreate {
+                user_id,
+                site_id,
+                page_id,
+                page_lock_id,
+                lock_type,
+            } => RawAuditEvent {
+                event_type: "page_lock.create",
+                ip_address,
+                user_id: Some(user_id),
+                site_id: Some(site_id),
+                page_id: Some(page_id),
+                extra_id_1: Some(page_lock_id),
+                extra_id_2: None,
+                extra_string_1: Some(Cow::Owned(str!(lock_type))),
+                extra_string_2: None,
+                extra_number: None,
+            },
+            AuditEvent::PageLockRemove {
+                user_id,
+                page_id,
+                page_lock_id,
+                lock_type,
+            } => RawAuditEvent {
+                event_type: "page_lock.remove",
+                ip_address,
+                user_id: Some(user_id),
+                site_id: None,
+                page_id: Some(page_id),
+                extra_id_1: Some(page_lock_id),
+                extra_id_2: None,
+                extra_string_1: Some(Cow::Owned(str!(lock_type))),
+                extra_string_2: None,
+                extra_number: None,
+            },
         };
 
         Ok(raw_event)

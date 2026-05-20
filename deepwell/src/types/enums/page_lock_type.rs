@@ -1,5 +1,5 @@
 /*
- * types/enums/permission.rs
+ * types/enums/page_lock_type.rs
  *
  * DEEPWELL - Wikijump API provider and database manager
  * Copyright (C) 2019-2026 Wikijump Team
@@ -20,52 +20,30 @@
 
 use sea_orm::DeriveValueType;
 use serde::{Deserialize, Serialize};
-use strum_macros::{Display, EnumString};
+use strum_macros::{Display, EnumIter, EnumString};
 
 #[derive(
-    DeriveValueType,
+    EnumIter,
+    Serialize,
     Deserialize,
     Debug,
-    Clone,
     Copy,
+    Clone,
+    Hash,
     PartialEq,
     Eq,
-    Hash,
-    EnumString,
-    Display,
-    Serialize,
-)]
-#[sea_orm(value_type = "String")]
-#[strum(serialize_all = "kebab_case", ascii_case_insensitive)]
-#[serde(rename_all = "kebab-case")]
-pub enum Resource {
-    Page,
-    Role,
-    Site,
-}
-
-#[derive(
     DeriveValueType,
-    Deserialize,
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Hash,
     EnumString,
     Display,
-    Serialize,
 )]
 #[sea_orm(value_type = "String")]
-#[strum(serialize_all = "kebab_case", ascii_case_insensitive)]
 #[serde(rename_all = "kebab-case")]
-pub enum Action {
-    View,
-    Edit,
-    BypassLock,
-    Create,
-    Delete,
-    Rename,
-    Assign,
+#[strum(serialize_all = "kebab_case", ascii_case_insensitive)]
+pub enum PageLockType {
+    // Only mods+ can edit, legacy lock type
+    Wikidot,
+    // Only users with Page:BypassLock permission can edit
+    PermissionOnly,
+    // Authors and users with Page:BypassLock can edit
+    AuthorOrPermissionOnly,
 }

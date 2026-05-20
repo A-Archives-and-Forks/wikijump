@@ -161,6 +161,8 @@ class ModelFileRewriter:
                     rust_type = "PageRevisionType"
                 case _, "user_type":
                     rust_type = "UserType"
+                case "page_lock.rs", "lock_type":
+                    rust_type = "PageLockType"
 
                 # Not an enum type we need to map
                 case _:
