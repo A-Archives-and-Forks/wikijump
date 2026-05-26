@@ -46,7 +46,8 @@ if __name__ == "__main__":
 
     # Build command-line argument list
     cmdline = [
-        "docker-compose",
+        "docker",
+        "compose",
         "-p",
         "wikijump",
         "-f",
