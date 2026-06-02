@@ -108,11 +108,14 @@ pub struct Config {
     /// Length of randomly-generated segment in recovery codes.
     pub recovery_code_length: usize,
 
+    /// Length in digits of a TOTP code.
+    pub totp_digits: u32,
+
     /// Length in seconds that each TOTP lasts.
     pub totp_time_step: u64,
 
     /// How much leniency should be allowed for TOTP.
-    pub totp_time_skew: i64,
+    pub totp_time_skew: u32,
 
     /// The number of job workers to run in this process.
     pub job_workers: NonZeroU16,
@@ -299,6 +302,7 @@ impl Config {
             restricted_session_duration: time::Duration::minutes(5),
             recovery_code_count: 4,
             recovery_code_length: 8,
+            totp_digits: 6,
             totp_time_step: 30,
             totp_time_skew: 1,
             job_workers: NonZeroU16::new(2).unwrap(),
