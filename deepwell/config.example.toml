@@ -104,6 +104,11 @@ recovery-code-count = 12
 # middle of each recovery code to make it easier to read.
 recovery-code-length = 8
 
+# The length in digits for generated TOTP codes.
+#
+# Typically these are 6 or 8 digits.
+mfa-digits = 6
+
 # The amount of time that each TOTP should last.
 #
 # We use 30 seconds because this is standard with helpers

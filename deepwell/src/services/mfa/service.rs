@@ -23,9 +23,11 @@ use crate::models::user::Model as UserModel;
 use crate::services::audit::{AuditEvent, AuditService, UpdateMfaOperation};
 use crate::services::{PasswordService, UserService};
 use crate::types::UserType;
+use rust_otp::{Algorithm as TotpAlgorithm, TOTP};
 use sea_orm::ActiveValue;
 use std::net::IpAddr;
-use subtle::ConstantTimeEq;
+
+const TOTP_ALGORITHM: TotpAlgorithm = TotpAlgorithm::SHA256;
 
 #[derive(Debug)]
 pub struct MfaService;
@@ -230,6 +232,7 @@ impl MfaService {
     ) -> Result<()> {
         info!("Verifying TOTP code for user ID {}", user.user_id);
 
+        let config = ctx.config();
         let make_error = || {
             Error::new(
                 format!(
@@ -254,15 +257,21 @@ impl MfaService {
             }
         };
 
-        let actual_totp = rust_otp::make_totp(
-            secret,
-            ctx.config().totp_time_step,
-            ctx.config().totp_time_skew,
-        )
-        .or_raise(make_error)?;
+        let totp = TOTP::builder()
+            .base32_secret(secret)
+            .or_raise(make_error)?
+            .algorithm(TOTP_ALGORITHM)
+            .digits(config.totp_digits)
+            .time_step(config.totp_time_step)
+            .build()
+            .map_err(|message| Error::new(message, ErrorType::UserMfa))
+            .or_raise(make_error)?;
 
-        // Constant-time comparison
-        if actual_totp.ct_eq(&entered_totp).into() {
+        let code_verified = totp
+            .verify_current(entered_totp, config.totp_time_skew)
+            .or_raise(make_error)?;
+
+        if code_verified {
             return Ok(());
         }
 

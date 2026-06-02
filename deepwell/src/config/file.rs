@@ -111,8 +111,9 @@ struct Session {
 struct Mfa {
     recovery_code_count: usize,
     recovery_code_length: usize,
+    mfa_digits: u32,
     time_step: u64,
-    time_skew: i64,
+    time_skew: u32,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -285,6 +286,7 @@ impl ConfigFile {
                         Mfa {
                             recovery_code_count,
                             recovery_code_length,
+                            mfa_digits,
                             time_step,
                             time_skew,
                         },
@@ -426,6 +428,7 @@ impl ConfigFile {
             ),
             recovery_code_count,
             recovery_code_length,
+            totp_digits: mfa_digits,
             totp_time_step: time_step,
             totp_time_skew: time_skew,
             job_workers,
