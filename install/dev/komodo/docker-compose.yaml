@@ -61,7 +61,9 @@ services:
       context: .
       dockerfile_inline: |
         FROM ghcr.io/moghtech/komodo-periphery:latest
-        RUN apt-get update && apt-get install -y amazon-ecr-credential-helper
+        RUN apt-get update && \
+          apt-get install -y amazon-ecr-credential-helper && \
+          apt-get install -y docker-buildx-plugin docker-ce-cli docker-compose-plugin
     restart: unless-stopped
     labels:
       komodo.skip:
