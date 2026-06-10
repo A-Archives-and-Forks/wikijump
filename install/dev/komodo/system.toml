@@ -23,3 +23,16 @@ enabled = true
 executions = [
     { execution.type = "GlobalAutoUpdate", execution.params = {}, enabled = true },
 ]
+
+[[procedure]]
+name = "Auto Disk Cleanup"
+description = "Regularly delete incomplete or temporary artifacts to free up disk space."
+tags = ["system"]
+config.schedule = "Every Tuesday at midnight"
+
+[[procedure.config.stage]]
+name = "Prune Data"
+enabled = true
+executions = [
+  { execution.type = "PruneSystem", execution.params.server = "Local", enabled = true }
+]
