@@ -20,6 +20,7 @@
 
 use super::prelude::*;
 use crate::license::License;
+use crate::services::authorization_token::AuthorizedObject;
 use crate::types::{PageLockType, Permission};
 use ftml::layout::Layout;
 use sea_orm::prelude::TimeDateTimeWithTimeZone;
@@ -154,6 +155,11 @@ pub enum AuditEvent<'a> {
         page_id: i64,
         page_lock_id: i64,
         lock_type: PageLockType,
+    },
+    AuthorizationTokenCreate {
+        user_id: i64,
+        object_type: AuthorizedObject,
+        description: &'a str,
     },
 }
 
@@ -534,6 +540,32 @@ impl<'a> AuditEvent<'a> {
                 extra_string_2: None,
                 extra_number: None,
             },
+            AuditEvent::AuthorizationTokenCreate {
+                user_id,
+                object_type,
+                description,
+            } => {
+                #[derive(Serialize, Debug)]
+                struct Metadata<'a> {
+                    description: &'a str,
+                }
+
+                let metadata_json = serde_json::to_string(&Metadata { description })
+                    .or_raise(make_error)?;
+
+                RawAuditEvent {
+                    event_type: "authorization_token.create",
+                    ip_address,
+                    user_id: Some(user_id),
+                    site_id: None,
+                    page_id: None,
+                    extra_id_1: None,
+                    extra_id_2: None,
+                    extra_string_1: Some(Cow::Borrowed(object_type.name())),
+                    extra_string_2: Some(Cow::Owned(metadata_json)),
+                    extra_number: None,
+                }
+            }
         };
 
         Ok(raw_event)
