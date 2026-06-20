@@ -19,7 +19,9 @@
  */
 
 use super::prelude::*;
+use crate::services::audit::{AuditEvent, AuditService};
 use regex::RegexSet;
+use std::net::IpAddr;
 
 /// Describes one filter which a `FilterMatcher` can verify against.
 #[derive(Serialize, Deserialize, Debug, Clone, Hash, PartialEq, Eq)]
@@ -55,9 +57,19 @@ impl FilterMatcher {
         &self,
         ctx: &ServiceContext<'_>,
         field: &'static str,
-        text: &str,
+        value: &str,
     ) -> Result<()> {
-        let matches = self.regex_set.matches(text);
+        let make_error = || {
+            Error::new(
+                format!(
+                    "failed to verify filter (field '{}', value '{}')",
+                    field, value,
+                ),
+                ErrorType::Filter,
+            )
+        };
+
+        let matches = self.regex_set.matches(value);
         if !matches.matched_any() {
             info!("String passed all filters, is clear");
             return Ok(());
@@ -70,18 +82,24 @@ impl FilterMatcher {
                 "String failed filter ID {} (regex '{}'): {}",
                 info.filter_id, info.regex, info.description,
             );
-            failed.push(info.clone());
 
-            // TODO audit log, with contextual data (what it's checking)
-            //      (will need to add extra args)
-            let _ = ctx;
+            let ip_address = todo!();
+            AuditService::log(
+                ctx,
+                ip_address,
+                AuditEvent::FilterViolation { info, field, value },
+            )
+            .await
+            .or_raise(make_error)?;
+
+            failed.push(info.clone());
         }
 
         bail!(Error::new(
             format!("filter failure for field '{field}'"),
             ErrorType::FilterViolation {
                 field: str!(field),
-                value: str!(text),
+                value: str!(value),
                 failed,
             },
         ));

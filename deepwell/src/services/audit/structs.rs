@@ -21,6 +21,7 @@
 use super::prelude::*;
 use crate::license::License;
 use crate::services::authorization_token::AuthorizedObject;
+use crate::services::filter::FilterSummary;
 use crate::types::{PageLockType, Permission};
 use ftml::layout::Layout;
 use sea_orm::prelude::TimeDateTimeWithTimeZone;
@@ -104,6 +105,12 @@ pub enum AuditEvent<'a> {
         site_id: i64,
         page_id: i64,
         layout: Option<Layout>,
+    },
+    FilterViolation {
+        // TODO object being filtered
+        info: &'a FilterSummary,
+        field: &'a str,
+        value: &'a str,
     },
     RoleCreate {
         site_id: i64,
@@ -389,6 +396,12 @@ impl<'a> AuditEvent<'a> {
                 extra_string_2: None,
                 extra_number: None,
             },
+            AuditEvent::FilterViolation {
+                // TODO
+                ..
+            } => {
+                todo!()
+            }
             AuditEvent::RoleCreate {
                 site_id,
                 role_id,
