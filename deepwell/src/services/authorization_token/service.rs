@@ -163,8 +163,17 @@ impl AuthorizationTokenService {
             .await
             .or_raise(make_error)?;
 
-        // TODO audit log
-        let _ = ip_address;
+        AuditService::log(
+            ctx,
+            ip_address,
+            AuditEvent::AuthorizationTokenVerify {
+                object_type,
+                token: &token,
+                token_id,
+            },
+        )
+        .await
+        .or_raise(make_error)?;
 
         Ok(())
     }

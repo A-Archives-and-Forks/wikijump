@@ -161,6 +161,11 @@ pub enum AuditEvent<'a> {
         object_type: AuthorizedObject,
         description: &'a str,
     },
+    AuthorizationTokenVerify {
+        token: &'a str,
+        token_id: i32,
+        object_type: AuthorizedObject,
+    },
 }
 
 impl<'a> AuditEvent<'a> {
@@ -565,6 +570,22 @@ impl<'a> AuditEvent<'a> {
                     extra_string_2: Some(Cow::Owned(metadata_json)),
                     extra_number: None,
                 }
+            }
+            AuditEvent::AuthorizationTokenVerify {
+                token,
+                token_id,
+                object_type,
+            } => RawAuditEvent {
+                event_type: "authorization_token.verify",
+                ip_address,
+                user_id: None,
+                site_id: None,
+                page_id: None,
+                extra_id_1: Some(i64::from(token_id)),
+                extra_id_2: None,
+                extra_string_1: Some(Cow::Borrowed(object_type.name())),
+                extra_string_2: Some(Cow::Owned(str!(token))),
+                extra_number: None,
             }
         };
 
