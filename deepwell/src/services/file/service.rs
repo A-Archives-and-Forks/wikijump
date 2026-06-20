@@ -35,6 +35,7 @@ use crate::services::{BlobService, FileRevisionService, FilterService, PageServi
 use crate::types::{FileOrder, FileRevisionType};
 use crate::utils::trim_spaces_in_place;
 use sea_orm::ActiveValue;
+use std::net::IpAddr;
 
 pub const MAXIMUM_FILE_NAME_LENGTH: usize = 256;
 
@@ -59,6 +60,7 @@ impl FileService {
             revision_comments,
             user_id,
             bypass_filter,
+            ip_address,
         }: CreateFile,
     ) -> Result<CreateFileOutput> {
         info!("Creating file with name '{name}'");
@@ -86,7 +88,7 @@ impl FileService {
 
         // Perform filter validation
         if !bypass_filter {
-            Self::run_filter(ctx, site_id, Some(&name))
+            Self::run_filter(ctx, site_id, Some(&name), ip_address)
                 .await
                 .or_raise(make_error)?;
         }
@@ -142,6 +144,8 @@ impl FileService {
         .await
         .or_raise(make_error)?;
 
+        // TODO audit log
+
         Ok(output)
     }
 
@@ -157,6 +161,7 @@ impl FileService {
             revision_comments,
             bypass_filter,
             body,
+            ip_address,
         }: EditFile,
     ) -> Result<Option<EditFileOutput>> {
         info!("Editing file with ID {file_id}");
@@ -201,7 +206,7 @@ impl FileService {
                 .or_raise(make_error)?;
 
             if !bypass_filter {
-                Self::run_filter(ctx, site_id, Some(name))
+                Self::run_filter(ctx, site_id, Some(name), ip_address)
                     .await
                     .or_raise(make_error)?;
             }
@@ -588,6 +593,7 @@ impl FileService {
             revision_comments,
             user_id,
             bypass_filter,
+            ip_address,
         }: RollbackFile<'_>,
     ) -> Result<Option<EditFileOutput>> {
         let txn = ctx.transaction();
@@ -658,7 +664,7 @@ impl FileService {
                 .or_raise(make_error)?;
 
             if !bypass_filter {
-                Self::run_filter(ctx, site_id, Some(&name))
+                Self::run_filter(ctx, site_id, Some(&name), ip_address)
                     .await
                     .or_raise(make_error)?;
             }
@@ -964,6 +970,7 @@ impl FileService {
         ctx: &ServiceContext<'_>,
         site_id: i64,
         name: Option<&str>,
+        ip_address: IpAddr,
     ) -> Result<()> {
         info!("Checking file data against filters...");
 
@@ -987,7 +994,7 @@ impl FileService {
             .or_raise(make_error)?;
 
             filter_matcher
-                .verify(ctx, "filename", name)
+                .verify(ctx, "filename", name, ip_address)
                 .await
                 .or_raise(make_error)?;
         }

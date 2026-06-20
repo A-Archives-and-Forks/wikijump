@@ -41,6 +41,7 @@ use crate::utils::{get_category_name, trim_default};
 use ftml::layout::Layout;
 use ref_map::*;
 use sea_orm::ActiveValue;
+use std::net::IpAddr;
 use wikidot_normalize::normalize;
 
 #[derive(Debug)]
@@ -90,6 +91,7 @@ impl PageService {
                 Some(&wikitext),
                 Some(&title),
                 alt_title.as_ref(),
+                ip_address,
             )
             .await
             .or_raise(make_error)?;
@@ -226,6 +228,7 @@ impl PageService {
                 Maybe::Set(Some(ref alt_title)) => Some(alt_title),
                 _ => None,
             },
+            ip_address,
         )
         .await
         .or_raise(make_error)?;
@@ -1204,6 +1207,7 @@ impl PageService {
         wikitext: Option<S>,
         title: Option<S>,
         alt_title: Option<S>,
+        ip_address: IpAddr,
     ) -> Result<()> {
         info!("Checking page data against filters...");
 
@@ -1222,10 +1226,15 @@ impl PageService {
                 async {
                     match $field {
                         None => Ok(()),
-                        Some(value) => filter_matcher
-                            .verify(ctx, stringify!($field), value.as_ref())
-                            .await
-                            .or_raise(make_error),
+                        Some(value) => {
+                            let field = stringify!($field);
+                            let value = value.as_ref();
+
+                            filter_matcher
+                                .verify(ctx, field, value, ip_address)
+                                .await
+                                .or_raise(make_error)
+                        }
                     }
                 }
             };

@@ -58,6 +58,7 @@ impl FilterMatcher {
         ctx: &ServiceContext<'_>,
         field: &'static str,
         value: &str,
+        ip_address: IpAddr,
     ) -> Result<()> {
         let make_error = || {
             Error::new(
@@ -83,7 +84,6 @@ impl FilterMatcher {
                 info.filter_id, info.regex, info.description,
             );
 
-            let ip_address = todo!();
             AuditService::log(
                 ctx,
                 ip_address,

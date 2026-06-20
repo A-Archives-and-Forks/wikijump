@@ -121,8 +121,8 @@ impl UserService {
         // Perform filter validation
         if should_check_filter(bypass_filter, user_type, None) {
             let (result1, result2) = join!(
-                Self::run_name_filter(ctx, &name, &slug),
-                Self::run_email_filter(ctx, &email),
+                Self::run_name_filter(ctx, &name, &slug, ip_address),
+                Self::run_email_filter(ctx, &email, ip_address),
             );
             raise_multiple!(result1, result2; make_error);
         }
@@ -485,14 +485,21 @@ impl UserService {
         // Add each field
         if let Maybe::Set(name) = input.name {
             // NOTE: Name filter validation occurs in update_name(), not here
-            Self::update_name(ctx, name, &user, &mut model, should_check_filter)
-                .await
-                .or_raise(make_error)?;
+            Self::update_name(
+                ctx,
+                name,
+                &user,
+                &mut model,
+                should_check_filter,
+                ip_address,
+            )
+            .await
+            .or_raise(make_error)?;
         }
 
         if let Maybe::Set(email) = input.email {
             if should_check_filter {
-                Self::run_email_filter(ctx, &email)
+                Self::run_email_filter(ctx, &email, ip_address)
                     .await
                     .or_raise(make_error)?;
             }
@@ -615,6 +622,7 @@ impl UserService {
         user: &UserModel,
         model: &mut user::ActiveModel,
         should_check_filter: bool,
+        ip_address: IpAddr,
     ) -> Result<()> {
         // Regardless of the number of name change tokens,
         // the user can always change their name if the slug is
@@ -633,7 +641,7 @@ impl UserService {
 
         // Perform filter validation
         if should_check_filter {
-            Self::run_name_filter(ctx, &new_name, &new_slug)
+            Self::run_name_filter(ctx, &new_name, &new_slug, ip_address)
                 .await
                 .or_raise(make_error)?;
         }
@@ -707,6 +715,7 @@ impl UserService {
                 target_id: user.user_id,
                 created_by: user.user_id,
                 bypass_filter: !should_check_filter,
+                ip_address,
             },
             false,
         )
@@ -890,6 +899,7 @@ impl UserService {
         ctx: &ServiceContext<'_>,
         name: &str,
         slug: &str,
+        ip_address: IpAddr,
     ) -> Result<()> {
         info!("Checking user name data against filters...");
 
@@ -901,15 +911,19 @@ impl UserService {
                 .or_raise(make_error)?;
 
         let (result1, result2) = join!(
-            filter_matcher.verify(ctx, "name", name),
-            filter_matcher.verify(ctx, "slug", slug),
+            filter_matcher.verify(ctx, "name", name, ip_address),
+            filter_matcher.verify(ctx, "slug", slug, ip_address),
         );
         raise_multiple!(result1, result2; make_error);
 
         Ok(())
     }
 
-    async fn run_email_filter(ctx: &ServiceContext<'_>, email: &str) -> Result<()> {
+    async fn run_email_filter(
+        ctx: &ServiceContext<'_>,
+        email: &str,
+        ip_address: IpAddr,
+    ) -> Result<()> {
         info!("Checking user email data against filters...");
 
         let make_error = || Error::new("user failed email filter", ErrorType::User);
@@ -920,7 +934,7 @@ impl UserService {
                 .or_raise(make_error)?;
 
         filter_matcher
-            .verify(ctx, "email", email)
+            .verify(ctx, "email", email, ip_address)
             .await
             .or_raise(make_error)?;
 

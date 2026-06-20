@@ -26,6 +26,7 @@ use crate::services::filter::{FilterClass, FilterType};
 use crate::services::{FilterService, SiteService, UserService};
 use crate::types::{AliasType, Reference};
 use crate::utils::get_regular_slug;
+use std::net::IpAddr;
 
 #[derive(Debug)]
 pub struct AliasService;
@@ -54,6 +55,7 @@ impl AliasService {
             target_id,
             created_by,
             bypass_filter,
+            ip_address,
         }: CreateAlias,
         verify: bool,
     ) -> Result<CreateAliasOutput> {
@@ -74,7 +76,7 @@ impl AliasService {
 
         // Perform filter validation
         if !bypass_filter {
-            Self::run_filter(ctx, alias_type, &slug)
+            Self::run_filter(ctx, alias_type, &slug, ip_address)
                 .await
                 .or_raise(make_error)?;
         }
@@ -473,6 +475,7 @@ impl AliasService {
         ctx: &ServiceContext<'_>,
         alias_type: AliasType,
         slug: &str,
+        ip_address: IpAddr,
     ) -> Result<()> {
         info!("Checking alias name against filters...");
 
@@ -493,7 +496,7 @@ impl AliasService {
                 .or_raise(make_error)?;
 
         filter_matcher
-            .verify(ctx, "slug", slug)
+            .verify(ctx, "slug", slug, ip_address)
             .await
             .or_raise(make_error)?;
 
