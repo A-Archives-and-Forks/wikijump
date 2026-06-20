@@ -107,7 +107,7 @@ pub enum AuditEvent<'a> {
         layout: Option<Layout>,
     },
     FilterViolation {
-        // TODO object being filtered
+        object: ObjectScope,
         info: &'a FilterSummary,
         field: &'a str,
         value: &'a str,
@@ -397,10 +397,47 @@ impl<'a> AuditEvent<'a> {
                 extra_number: None,
             },
             AuditEvent::FilterViolation {
-                // TODO
-                ..
+                object,
+                info,
+                field,
+                value,
             } => {
-                todo!()
+                #[derive(Serialize, Debug)]
+                struct Metadata<'a> {
+                    #[serde(flatten)]
+                    info: &'a FilterSummary,
+                    field: &'a str,
+                    value: &'a str,
+                }
+
+                let mut user_id = None;
+                let mut site_id = None;
+                let mut page_id = None;
+                let mut extra_id_1 = None;
+
+                match object {
+                    ObjectScope::User(id) => user_id = Some(id),
+                    ObjectScope::Site(id) => site_id = Some(id),
+                    ObjectScope::Page(id) => page_id = Some(id),
+                    ObjectScope::File(id) => extra_id_1 = Some(id),
+                }
+
+                let metadata_json =
+                    serde_json::to_string(&Metadata { info, field, value })
+                        .or_raise(make_error)?;
+
+                RawAuditEvent {
+                    event_type: "filter.violation",
+                    ip_address,
+                    user_id,
+                    site_id,
+                    page_id,
+                    extra_id_1,
+                    extra_id_2: None,
+                    extra_string_1: Some(Cow::Owned(metadata_json)),
+                    extra_string_2: None,
+                    extra_number: None,
+                }
             }
             AuditEvent::RoleCreate {
                 site_id,
@@ -599,7 +636,7 @@ impl<'a> AuditEvent<'a> {
                 extra_string_1: Some(Cow::Borrowed(object_type.name())),
                 extra_string_2: Some(Cow::Owned(str!(token))),
                 extra_number: None,
-            }
+            },
         };
 
         Ok(raw_event)
@@ -622,6 +659,14 @@ pub struct RawAuditEvent<'a> {
 }
 
 // Ancillary structures
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum ObjectScope {
+    User(i64),
+    Site(i64),
+    Page(i64),
+    File(i64),
+}
 
 #[derive(Serialize, Debug, Clone, Default)]
 #[serde(default)]

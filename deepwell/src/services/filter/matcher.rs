@@ -84,10 +84,16 @@ impl FilterMatcher {
                 info.filter_id, info.regex, info.description,
             );
 
+            let object = todo!();
             AuditService::log(
                 ctx,
                 ip_address,
-                AuditEvent::FilterViolation { info, field, value },
+                AuditEvent::FilterViolation {
+                    object,
+                    info,
+                    field,
+                    value,
+                },
             )
             .await
             .or_raise(make_error)?;
