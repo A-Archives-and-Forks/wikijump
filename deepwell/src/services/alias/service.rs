@@ -22,6 +22,7 @@ use super::prelude::*;
 use crate::models::alias::{self, Entity as Alias, Model as AliasModel};
 use crate::models::site::{self, Entity as Site};
 use crate::models::user::{self, Entity as User};
+use crate::services::audit::{AuditEvent, AuditService, ObjectScope};
 use crate::services::filter::{FilterClass, FilterType};
 use crate::services::{FilterService, SiteService, UserService};
 use crate::types::{AliasType, Reference};
@@ -76,7 +77,7 @@ impl AliasService {
 
         // Perform filter validation
         if !bypass_filter {
-            Self::run_filter(ctx, alias_type, &slug, ip_address)
+            Self::run_filter(ctx, alias_type, &slug, target_id, ip_address)
                 .await
                 .or_raise(make_error)?;
         }
@@ -475,14 +476,15 @@ impl AliasService {
         ctx: &ServiceContext<'_>,
         alias_type: AliasType,
         slug: &str,
+        target_id: i64,
         ip_address: IpAddr,
     ) -> Result<()> {
         info!("Checking alias name against filters...");
 
         let make_error = || Error::new("failed to run filters", ErrorType::Alias);
 
-        let filter_type = match alias_type {
-            AliasType::User => FilterType::User,
+        let (filter_type, target_object) = match alias_type {
+            AliasType::User => (FilterType::User, ObjectScope::User(target_id)),
             AliasType::Site => {
                 // No filter with this type, skip verification
                 debug!("No need to run filter verification for site alias");
@@ -496,7 +498,7 @@ impl AliasService {
                 .or_raise(make_error)?;
 
         filter_matcher
-            .verify(ctx, "slug", slug, ip_address)
+            .verify(ctx, "slug", slug, target_object, ip_address)
             .await
             .or_raise(make_error)?;
 

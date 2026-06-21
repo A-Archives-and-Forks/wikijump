@@ -420,6 +420,7 @@ impl<'a> AuditEvent<'a> {
                     ObjectScope::Site(id) => site_id = Some(id),
                     ObjectScope::Page(id) => page_id = Some(id),
                     ObjectScope::File(id) => extra_id_1 = Some(id),
+                    ObjectScope::Other => (),
                 }
 
                 let metadata_json =
@@ -666,6 +667,7 @@ pub enum ObjectScope {
     Site(i64),
     Page(i64),
     File(i64),
+    Other,
 }
 
 #[derive(Serialize, Debug, Clone, Default)]

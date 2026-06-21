@@ -22,7 +22,7 @@ use super::prelude::*;
 use crate::models::page::{self, Entity as Page, Model as PageModel};
 use crate::models::page_category::Model as PageCategoryModel;
 use crate::models::page_revision::Model as PageRevisionModel;
-use crate::services::audit::{AuditEvent, AuditService};
+use crate::services::audit::{AuditEvent, AuditService, ObjectScope};
 use crate::services::filter::{FilterClass, FilterType};
 use crate::services::page_revision::{
     CreateFirstPageRevision, CreateFirstPageRevisionOutput, CreatePageRevision,
@@ -88,6 +88,7 @@ impl PageService {
             Self::run_filter(
                 ctx,
                 site_id,
+                None,
                 Some(&wikitext),
                 Some(&title),
                 alt_title.as_ref(),
@@ -221,6 +222,7 @@ impl PageService {
         Self::run_filter(
             ctx,
             site_id,
+            Some(page_id),
             wikitext.to_option(),
             title.to_option(),
             // Flatten what is essentially Option<Option<_>>
@@ -1204,6 +1206,7 @@ impl PageService {
     async fn run_filter<S: AsRef<str>>(
         ctx: &ServiceContext<'_>,
         site_id: i64,
+        page_id: Option<i64>,
         wikitext: Option<S>,
         title: Option<S>,
         alt_title: Option<S>,
@@ -1229,9 +1232,13 @@ impl PageService {
                         Some(value) => {
                             let field = stringify!($field);
                             let value = value.as_ref();
+                            let object = match page_id {
+                                Some(id) => ObjectScope::Page(id),
+                                None => ObjectScope::Other,
+                            };
 
                             filter_matcher
-                                .verify(ctx, field, value, ip_address)
+                                .verify(ctx, field, value, object, ip_address)
                                 .await
                                 .or_raise(make_error)
                         }

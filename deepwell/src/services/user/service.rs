@@ -22,7 +22,7 @@ use super::prelude::*;
 use crate::models::known_user::{self, Model as KnownUserModel};
 use crate::models::user::{self, Entity as User, Model as UserModel};
 use crate::services::alias::CreateAlias;
-use crate::services::audit::{AuditEvent, AuditService};
+use crate::services::audit::{AuditEvent, AuditService, ObjectScope};
 use crate::services::blob::{BlobService, FinalizeBlobUploadOutput};
 use crate::services::email::{EmailClassification, EmailService, EmailValidationOutput};
 use crate::services::filter::{FilterClass, FilterType};
@@ -120,9 +120,10 @@ impl UserService {
 
         // Perform filter validation
         if should_check_filter(bypass_filter, user_type, None) {
+            let object = ObjectScope::User(user_id);
             let (result1, result2) = join!(
-                Self::run_name_filter(ctx, &name, &slug, ip_address),
-                Self::run_email_filter(ctx, &email, ip_address),
+                Self::run_name_filter(ctx, &name, &slug, object, ip_address),
+                Self::run_email_filter(ctx, &email, object, ip_address),
             );
             raise_multiple!(result1, result2; make_error);
         }
@@ -499,9 +500,14 @@ impl UserService {
 
         if let Maybe::Set(email) = input.email {
             if should_check_filter {
-                Self::run_email_filter(ctx, &email, ip_address)
-                    .await
-                    .or_raise(make_error)?;
+                Self::run_email_filter(
+                    ctx,
+                    &email,
+                    ObjectScope::User(user.user_id),
+                    ip_address,
+                )
+                .await
+                .or_raise(make_error)?;
             }
 
             // Validate email
@@ -634,16 +640,22 @@ impl UserService {
 
         let make_error = || {
             Error::new(
-                format!("failed to update name '{}' -> '{}'", old_slug, new_slug,),
+                format!("failed to update name '{}' -> '{}'", old_slug, new_slug),
                 ErrorType::User,
             )
         };
 
         // Perform filter validation
         if should_check_filter {
-            Self::run_name_filter(ctx, &new_name, &new_slug, ip_address)
-                .await
-                .or_raise(make_error)?;
+            Self::run_name_filter(
+                ctx,
+                &new_name,
+                &new_slug,
+                ObjectScope::User(user.user_id),
+                ip_address,
+            )
+            .await
+            .or_raise(make_error)?;
         }
 
         if new_slug == user.slug {
@@ -899,6 +911,7 @@ impl UserService {
         ctx: &ServiceContext<'_>,
         name: &str,
         slug: &str,
+        object: ObjectScope,
         ip_address: IpAddr,
     ) -> Result<()> {
         info!("Checking user name data against filters...");
@@ -911,8 +924,8 @@ impl UserService {
                 .or_raise(make_error)?;
 
         let (result1, result2) = join!(
-            filter_matcher.verify(ctx, "name", name, ip_address),
-            filter_matcher.verify(ctx, "slug", slug, ip_address),
+            filter_matcher.verify(ctx, "name", name, object, ip_address),
+            filter_matcher.verify(ctx, "slug", slug, object, ip_address),
         );
         raise_multiple!(result1, result2; make_error);
 
@@ -922,6 +935,7 @@ impl UserService {
     async fn run_email_filter(
         ctx: &ServiceContext<'_>,
         email: &str,
+        object: ObjectScope,
         ip_address: IpAddr,
     ) -> Result<()> {
         info!("Checking user email data against filters...");
@@ -934,7 +948,7 @@ impl UserService {
                 .or_raise(make_error)?;
 
         filter_matcher
-            .verify(ctx, "email", email, ip_address)
+            .verify(ctx, "email", email, object, ip_address)
             .await
             .or_raise(make_error)?;
 

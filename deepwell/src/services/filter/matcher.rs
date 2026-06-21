@@ -19,7 +19,7 @@
  */
 
 use super::prelude::*;
-use crate::services::audit::{AuditEvent, AuditService};
+use crate::services::audit::{AuditEvent, AuditService, ObjectScope};
 use regex::RegexSet;
 use std::net::IpAddr;
 
@@ -58,6 +58,7 @@ impl FilterMatcher {
         ctx: &ServiceContext<'_>,
         field: &'static str,
         value: &str,
+        object: ObjectScope,
         ip_address: IpAddr,
     ) -> Result<()> {
         let make_error = || {
@@ -84,7 +85,6 @@ impl FilterMatcher {
                 info.filter_id, info.regex, info.description,
             );
 
-            let object = todo!();
             AuditService::log(
                 ctx,
                 ip_address,

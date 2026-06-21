@@ -24,6 +24,7 @@ use crate::models::file::{self, Entity as File, Model as FileModel};
 use crate::models::file_revision::{
     self, Entity as FileRevision, Model as FileRevisionModel,
 };
+use crate::services::audit::{AuditEvent, AuditService, ObjectScope};
 use crate::services::blob::{EMPTY_BLOB_HASH, EMPTY_BLOB_MIME, FinalizeBlobUploadOutput};
 use crate::services::file_revision::{
     CreateFileRevision, CreateFileRevisionBody, CreateFirstFileRevision,
@@ -88,7 +89,7 @@ impl FileService {
 
         // Perform filter validation
         if !bypass_filter {
-            Self::run_filter(ctx, site_id, Some(&name), ip_address)
+            Self::run_filter(ctx, site_id, None, Some(&name), ip_address)
                 .await
                 .or_raise(make_error)?;
         }
@@ -206,7 +207,7 @@ impl FileService {
                 .or_raise(make_error)?;
 
             if !bypass_filter {
-                Self::run_filter(ctx, site_id, Some(name), ip_address)
+                Self::run_filter(ctx, site_id, Some(file_id), Some(name), ip_address)
                     .await
                     .or_raise(make_error)?;
             }
@@ -664,7 +665,7 @@ impl FileService {
                 .or_raise(make_error)?;
 
             if !bypass_filter {
-                Self::run_filter(ctx, site_id, Some(&name), ip_address)
+                Self::run_filter(ctx, site_id, Some(file_id), Some(&name), ip_address)
                     .await
                     .or_raise(make_error)?;
             }
@@ -969,6 +970,7 @@ impl FileService {
     async fn run_filter(
         ctx: &ServiceContext<'_>,
         site_id: i64,
+        file_id: Option<i64>,
         name: Option<&str>,
         ip_address: IpAddr,
     ) -> Result<()> {
@@ -993,8 +995,13 @@ impl FileService {
             .await
             .or_raise(make_error)?;
 
+            let object = match file_id {
+                Some(id) => ObjectScope::File(id),
+                None => ObjectScope::Other,
+            };
+
             filter_matcher
-                .verify(ctx, "filename", name, ip_address)
+                .verify(ctx, "filename", name, object, ip_address)
                 .await
                 .or_raise(make_error)?;
         }
